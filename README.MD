@@ -3,7 +3,10 @@
 This is a very silly fork of the reconstruction of ZZT.  We've added some things that we found fun:
 
 * Custom drum 3 making terror noise (i insist)
-* #weave <dir> (puts empties)
+* #weave <dir>
+   * shifts everything that is not a board edge, solid, or object
+   * will not destroy player
+   * leaves an empty next to the bobject at <dir>.
 * material colors (dark colors and pallettes like 'wet' or 'leafy' which have a range of fg/bg they can produce)
     * wet
     * watery
