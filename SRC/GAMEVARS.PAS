@@ -30,7 +30,7 @@ interface
 		MAX_STAT = 150;
 		MAX_ELEMENT = 53;
 		MAX_BOARD = 100;
-		MAX_FLAG = 10;
+		MAX_FLAG = 18;
 		BOARD_WIDTH = 60;
 		BOARD_HEIGHT = 25;
 		WORLD_FILE_HEADER_SIZE = 512;
@@ -103,7 +103,8 @@ interface
 			StartPlayerX: byte;
 			StartPlayerY: byte;
 			TimeLimitSec: integer;
-			unk1: array[70 .. 85] of byte;
+			Local: integer;
+			unk1: array[72 .. 85] of byte;
 		end;
 		TWorldInfo = record
 			Ammo: integer;
@@ -114,10 +115,12 @@ interface
 			Torches: integer;
 			TorchTicks: integer;
 			EnergizerTicks: integer;
-			unk1: integer;
+			CustomZ: integer;
 			Score: integer;
 			Name: string[20];
-			Flags: array[1 .. MAX_FLAG] of string[20];
+			Flags: array[1 .. MAX_FLAG] of string[10];
+			ZName: array[1 .. 1] of string[10];
+			PlayerColor: byte;
 			BoardTimeSec: integer;
 			BoardTimeHsec: integer;
 			IsSave: boolean;

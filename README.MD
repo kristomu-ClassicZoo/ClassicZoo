@@ -1,3 +1,30 @@
+# Weave ZZT
+
+This is a very silly fork of the reconstruction of ZZT.  We've added some things that we found fun:
+
+* Custom drum 3 making terror noise (i insist)
+* #weave <dir> (puts empties)
+* material colors (dark colors and pallettes like 'wet' or 'leafy' which have a range of fg/bg they can produce)
+    * wet
+    * watery
+    * wooden
+    * canvas
+    * bblack (blinking black on black)
+    * leafy
+* #board <board number>
+* #if detect <dir> <type> <execute>
+* #warp <x> <y> (moves player)
+* #jump <x> <y> (moves object)
+* 18 flags length 10, 1 byte for playercolor
+* #playercolor <fg> <bg>
+* Custom counter (#give and #take 'custom <#>' or 'z <#>')
+* Custom counter name (#custom <statname> or #zname <statname>)
+* Local counter (#give local <#> and #take local <#>, result stays on board)
+
+More forthcoming.
+
+Description of the reconstruction itself is below:
+
 # The Reconstruction of ZZT
 
 The Reconstruction of ZZT is a reverse-engineered recreation of the source code to the last official release of
