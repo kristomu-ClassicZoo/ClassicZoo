@@ -3,10 +3,10 @@
 This is a very silly fork of the reconstruction of ZZT.  We've added some things that we found fun:
 
 * Custom drum 3 making terror noise (i insist)
-* #weave <dir>
+* #weave &lt;dir>
    * shifts everything that is not a board edge, solid, or object
    * will not destroy player
-   * leaves an empty next to the bobject at <dir>.
+   * leaves an empty next to the bobject at &lt;dir>.
 * material colors (dark colors and pallettes like 'wet' or 'leafy' which have a range of fg/bg they can produce)
     * wet
     * watery
@@ -14,15 +14,15 @@ This is a very silly fork of the reconstruction of ZZT.  We've added some things
     * canvas
     * bblack (blinking black on black)
     * leafy
-* #board <board number>
-* #if detect <dir> <type> <execute>
-* #warp <x> <y> (moves player)
-* #jump <x> <y> (moves object)
-* 18 flags length 10, 1 byte for playercolor
-* #playercolor <fg> <bg>
-* Custom counter (#give and #take 'custom <#>' or 'z <#>')
-* Custom counter name (#custom <statname> or #zname <statname>)
-* Local counter (#give local <#> and #take local <#>, result stays on board)
+* #board &lt;board #>
+* #if detect &lt;dir> &lt;type> &lt;execute>
+* #warp &lt;x> &lt;y> (moves player)
+* #jump &lt;x> &lt;y> (moves object)
+* 18 flags of length 10
+* #playercolor &lt;fg> &lt;bg>
+* Custom counter (#give and #take 'custom &lt;#>' or 'z &lt;#>')
+* Custom counter name (#custom &lt;statname> or #zname &lt;statname>), displays on sidebar
+* Local counter (#give local &lt;#> and #take local &lt;#>, result stays on board)
 
 More forthcoming.
 
