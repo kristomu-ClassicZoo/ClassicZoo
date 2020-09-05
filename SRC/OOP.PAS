@@ -131,6 +131,54 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 			end else if (OopWord = 'I') or (OopWord = 'IDLE') then begin
 				dx := 0;
 				dy := 0;
+			end else if (OopWord = 'NW') then begin
+				dx := -1;
+				dy := -1;
+			end else if (OopWord = 'NE') then begin
+				dx := 1;
+				dy := -1;
+			end else if (OopWord = 'SW') then begin
+				dx := -1;
+				dy := 1;
+			end else if (OopWord = 'SE') then begin
+				dx := 1;
+				dy := 1;
+			end else if (OopWord = 'WNW') then begin
+				dx := -2;
+				dy := -1;
+			end else if (OopWord = 'ENE') then begin
+				dx := 2;
+				dy := -1;
+			end else if (OopWord = 'WSW') then begin
+				dx := -2;
+				dy := 1;
+			end else if (OopWord = 'ESE') then begin
+				dx := 2;
+				dy := 1;
+			end else if (OopWord = 'NNW') then begin
+				dx := -1;
+				dy := -2;
+			end else if (OopWord = 'NNE') then begin
+				dx := 1;
+				dy := -2;
+			end else if (OopWord = 'SSW') then begin
+				dx := -1;
+				dy := 2;
+			end else if (OopWord = 'SSE') then begin
+				dx := 1;
+				dy := 2;
+			end else if (OopWord = 'N2') then begin
+				dx := 0;
+				dy := -2;
+			end else if (OopWord = 'E2') then begin
+				dx := 2;
+				dy := 0;
+			end else if (OopWord = 'W2') then begin
+				dx := -2;
+				dy := 0;
+			end else if (OopWord = 'S2') then begin
+				dx := 0;
+				dy := 2;
 			end else if (OopWord = 'SEEK') then begin
 				CalcDirectionSeek(X, Y, dx, dy);
 			end else if (OopWord = 'FLOW') then begin
@@ -370,6 +418,14 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 			else tile.Color := $10 end;
 			OopReadWord(statId, position);
 			goto ColorFound;
+		end else if OopWord = OopStringToWord('Bleeding') then begin
+			case Random(8) of
+				1,4: tile.Color := $04;
+				2,3: tile.Color := $4C;
+				5: tile.Color := $0C;
+			else tile.Color := $40 end;
+			OopReadWord(statId, position);
+			goto ColorFound;
 		end else if OopWord = OopStringToWord('Watery') then begin
 			case Random(20) of
 				0,3: tile.Color := $01;
@@ -395,6 +451,14 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 			goto ColorFound;
 		end else if OopWord = OopStringToWord('Bblack') then begin
 			tile.Color := $80;
+			OopReadWord(statId, position);
+			goto ColorFound;
+		end else if OopWord = OopStringToWord('Drab') then begin
+			tile.Color := $08;
+			OopReadWord(statId, position);
+			goto ColorFound;
+		end else if OopWord = OopStringToWord('Bloody') then begin
+			tile.Color := $04;
 			OopReadWord(statId, position);
 			goto ColorFound;
 		end else if OopWord = OopStringToWord('Canvas') then begin
@@ -458,7 +522,7 @@ procedure OopPlaceTile(x, y: integer; var tile: TTile);
 	var
 		color: byte;
 	begin
-		if Board.Tiles[x][y].Element <> E_PLAYER then begin
+		if ( Board.Tiles[x][y].Element <> E_PLAYER ) or ( tile.Element = E_MONITOR ) then begin
 			color := tile.Color;
 			if ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN then
 				color := ElementDefs[tile.Element].Color
@@ -477,7 +541,7 @@ procedure OopPlaceTile(x, y: integer; var tile: TTile);
 				Board.Tiles[x][y].Color := color
 			else begin
 				BoardDamageTile(x, y);
-				if ElementDefs[tile.Element].Cycle >= 0 then begin
+				if ( ElementDefs[tile.Element].Cycle >= 0 ) and ( tile.Element <> E_MONITOR ) then begin
 					AddStat(x, y, tile.Element, color, ElementDefs[tile.Element].Cycle, StatTemplateDefault);
 				end else begin
 					Board.Tiles[x][y].Element := tile.Element;
@@ -709,10 +773,14 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							MoveStat(statId, ix, iy);
 							stopRunning := true;
 						end else if OopWord = 'BOARD' then begin
+							CurrentStatTicked := 0;
+							stopRunning := true;
 							OopReadValue(statId, position);
 							BoardChange(OopValue);
 							TransitionDrawToBoard;
 							BoardEnter;
+						end else if OopWord = 'PAUSE' then begin
+							GamePaused := true;
 							stopRunning := true;
 						end else if OopWord = 'WEAVE' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
