@@ -435,6 +435,16 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 			else tile.Color := $11 end;
 			OopReadWord(statId, position);
 			goto ColorFound;
+		end else if OopWord = OopStringToWord('Burning') then begin
+			case Random(25) of
+				0,3,9: tile.Color := $0E;
+				1,4: tile.Color := $4C;
+				2: tile.Color := $08;
+				5: tile.Color := $68;
+				6,7,8: tile.Color := $0C;
+			else tile.Color := $4E end;
+			OopReadWord(statId, position);
+			goto ColorFound;
 		end else if OopWord = OopStringToWord('Leafy') then begin
 			case Random(8) of
 				0,2,4,6: tile.Color := $20;
@@ -447,6 +457,12 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 				0: tile.Color := $76;
 				1: tile.Color := $68;
 			else tile.Color := $60 end;
+			OopReadWord(statId, position);
+			goto ColorFound;
+		end else if OopWord = OopStringToWord('Rusty') then begin
+			case Random(3) of
+				1: tile.Color := $06;
+			else tile.Color := $08 end;
 			OopReadWord(statId, position);
 			goto ColorFound;
 		end else if OopWord = OopStringToWord('Bblack') then begin

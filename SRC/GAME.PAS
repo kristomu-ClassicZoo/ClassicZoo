@@ -738,12 +738,6 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));
 
-				if titleOnly then begin
-					World.BoardCount := 0;
-					World.Info.CurrentBoard := 0;
-					World.Info.IsSave := true;
-				end;
-
 				for boardId := 0 to World.BoardCount do begin
 					SidebarAnimateLoading;
 					BlockRead(f, World.BoardLen[boardId], 2);
