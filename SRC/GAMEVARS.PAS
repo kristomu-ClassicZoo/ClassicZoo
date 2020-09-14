@@ -104,7 +104,7 @@ interface
 			StartPlayerY: byte;
 			TimeLimitSec: integer;
 			Local: integer;
-			unk1: array[72 .. 85] of byte;
+			Register: array[1 .. 7] of integer;
 		end;
 		TWorldInfo = record
 			Ammo: integer;
@@ -124,7 +124,7 @@ interface
 			BoardTimeSec: integer;
 			BoardTimeHsec: integer;
 			IsSave: boolean;
-			unkPad: array[0 .. 13] of byte;
+			Register: array[1 .. 7] of integer;
 		end;
 		TEditorStatSetting = record
 			P1, P2, P3: byte;

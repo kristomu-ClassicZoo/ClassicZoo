@@ -640,7 +640,6 @@ function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boole
 			if ((Board.Stats[iStat].P2 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
 				if iStat = statId then
 					OopSend := true;
-
 				Board.Stats[iStat].DataPos := iDataPos;
 			end;
 		end;
@@ -789,7 +788,6 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							MoveStat(statId, ix, iy);
 							stopRunning := true;
 						end else if OopWord = 'BOARD' then begin
-							CurrentStatTicked := 0;
 							stopRunning := true;
 							OopReadValue(statId, position);
 							BoardChange(OopValue);
@@ -798,6 +796,19 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 						end else if OopWord = 'PAUSE' then begin
 							GamePaused := true;
 							stopRunning := true;
+						end else if OopWord = 'DUPLICATE' then begin
+							OopReadDirection(statId, position, deltaX, deltaY);
+							if Board.Tiles[X + deltaX][Y + deltaY].Element <> E_EMPTY then
+								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+							if Board.Tiles[X + deltaX][Y + deltaY].Element = E_EMPTY then begin
+								if Board.StatCount < (MAX_STAT - 2) then begin
+									AddStat(X + deltaX, Y + deltaY,
+										Board.Tiles[X][Y].Element,
+										Board.Tiles[X][Y].Color,
+										Board.Stats[statId].Cycle, Board.Stats[statId]);
+									BoardDrawTile(X + deltaX, Y + deltaY);
+								end;
+							end;
 						end else if OopWord = 'WEAVE' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
 							ElementWeave(X + deltaX, Y + deltaY, deltaX, deltaY);
@@ -809,6 +820,15 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							if (( ix > -1 ) and ( ix < 16 )) then begin
 								if (( iy > -1 ) and ( iy < 16 )) then begin
 									World.Info.PlayerColor := ((ix * 16) + iy) + $00;
+								end;
+							end;
+						end else if (OopWord = 'PUSH') or (OopWord = 'FETCH') then begin
+							OopReadValue(statId, position);
+							if ( OopValue > 0 ) and ( OopValue < 8 ) then begin
+								if OopWord = 'FETCH' then begin
+									Board.Info.Register[OopValue] := World.Info.Register[OopValue];
+								end else begin
+									World.Info.Register[OopValue] := Board.Info.Register[OopValue];
 								end;
 							end;
 						end else if OopWord = 'IF' then begin
@@ -848,9 +868,20 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 								counterPtr := @World.Info.CustomZ
 							else if OopWord = 'LOCAL' then
 								counterPtr := @Board.Info.Local
-							else
+							else if ( OopWord = 'REGISTER' ) or ( OopWord = 'GLOBAL' ) then begin
+								OopReadValue(statId, position);
+								if ( OopValue > 0 ) and ( OopValue < 8 ) then begin
+									if OopWord = 'REGISTER' then begin
+										counterPtr := @Board.Info.Register[OopValue];
+									end else begin
+										counterPtr := @World.Info.Register[OopValue];
+									end;
+								end else begin
+									counterPtr := nil;
+								end;
+							end else begin
 								counterPtr := nil;
-
+							end;
 							if counterPtr <> nil then begin
 								OopReadValue(statId, position);
 								if OopValue > 0 then begin

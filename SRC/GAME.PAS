@@ -191,6 +191,7 @@ procedure BoardClose;
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
+
 				if DataLen > 0 then begin
 					for iy := 1 to (ix - 1) do begin
 						if Board.Stats[iy].Data = Data then
@@ -263,7 +264,6 @@ procedure BoardOpen(boardId: integer);
 					DataLen := Board.Stats[-DataLen].DataLen;
 				end;
 			end;
-
 		World.Info.CurrentBoard := boardId;
 	end;
 
@@ -280,15 +280,16 @@ procedure BoardCreate;
 		ix, iy, i: integer;
 	begin
 		Board.Name := '';
-		Board.Info.Message := '';
 		Board.Info.MaxShots := 255;
 		Board.Info.IsDark := false;
-		Board.Info.ReenterWhenZapped := false;
-		Board.Info.TimeLimitSec := 0;
-		Board.Info.Local := 0;		
 		for i := 0 to 3 do
 			Board.Info.NeighborBoards[i] := 0;
-
+		Board.Info.ReenterWhenZapped := false;
+		Board.Info.Message := '';
+		Board.Info.TimeLimitSec := 0;
+		Board.Info.Local := 0;		
+		for i := 1 to 7 do
+			Board.Info.Register[i] := 0;
 		for ix := 0 to BOARD_WIDTH+1 do begin
 			Board.Tiles[ix][0] := TileBoardEdge;
 			Board.Tiles[ix][BOARD_HEIGHT+1] := TileBoardEdge;
@@ -349,6 +350,7 @@ procedure WorldCreate;
 		World.Info.BoardTimeHsec := 0;
 		for i := 1 to 7 do
 			World.Info.Keys[i] := false;
+			World.Info.Register[i] := 0;
 		for i := 1 to MAX_FLAG do
 			World.Info.Flags[i] := '';
 		World.Info.ZName[1] := '';
