@@ -92,7 +92,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                              <=-  WeaveZZT  -=>');
 		TextColor(Yellow);
-		Writeln('                                  Version  1.1');
+		Writeln('                                  Version  1.2');
 		Writeln('                        Created by The Guild of Weavers');
 		GotoXY(1, 7);
 		TextColor(Blue);
