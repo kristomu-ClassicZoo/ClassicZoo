@@ -3,7 +3,7 @@
 This is a very silly fork of the reconstruction of ZZT.  We've added some things that we found fun:
 
 * Custom drum 3 making terror noise (i insist)
-* #weave &lt;dir>
+* #weave &lt;direction>
    * shifts everything that is not a board edge, solid, or object
    * will not destroy player
    * leaves an empty next to the bobject at &lt;dir>.
@@ -23,8 +23,19 @@ This is a very silly fork of the reconstruction of ZZT.  We've added some things
 * Custom counter (#give and #take 'custom &lt;#>' or 'z &lt;#>')
 * Custom counter name (#custom &lt;statname> or #zname &lt;statname>), displays on sidebar
 * Local counter (#give local &lt;#> and #take local &lt;#>, result stays on board)
+* Duplicate &lt;direction>
+    * Duplicates a copy of itself in the given direction.
+* The Register
+    * 7 local counters (0-32767)
+    * Can #give or #take register &lt;1-7> &lt;amount>
+    * Can #push &lt;1-7> to push the local register value to the global register
+    * Can #give or #take global &lt;-7> &lt;amount> to manipulate the global register
+    * Can #fetch &lt;1-7> to fetch the global register value and dump it to the local register.
 
-More forthcoming.
+Upcoming:
+
+* (from Variety) #set hyper to set the speed to #endgame speed, #clear hyper to restore the current speed value
+* And More.
 
 Description of the reconstruction itself is below:
 
