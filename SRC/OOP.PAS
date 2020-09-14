@@ -790,9 +790,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 						end else if OopWord = 'BOARD' then begin
 							stopRunning := true;
 							OopReadValue(statId, position);
-							BoardChange(OopValue);
-							TransitionDrawToBoard;
-							BoardEnter;
+							Board.Stats[0].P3 := OopValue;
 						end else if OopWord = 'PAUSE' then begin
 							GamePaused := true;
 							stopRunning := true;

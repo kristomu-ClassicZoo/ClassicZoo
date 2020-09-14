@@ -1326,10 +1326,18 @@ procedure GamePromptEndPlay;
 
 procedure ElementPlayerTick(statId: integer);
 	var
-		unk1, unk2, unk3: integer;
+		unk1, unk2: integer;
+		NextBoard: integer;
 		i: integer;
 		bulletCount: integer;
 	begin
+		if Board.Stats[0].P3 > 0 then begin
+			NextBoard := Board.Stats[0].P3;
+			Board.Stats[0].P3 := 0;
+			BoardChange(NextBoard);
+			TransitionDrawToBoard;
+			BoardEnter;
+		end;
 		with Board.Stats[statId] do begin
 			if World.Info.EnergizerTicks > 0 then begin
 				if ElementDefs[E_PLAYER].Character = #2 then
@@ -1506,7 +1514,16 @@ procedure ElementPlayerTick(statId: integer);
 	end;
 
 procedure ElementMonitorTick(statId: integer);
+	var
+		NextBoard: integer;
 	begin
+		if Board.Stats[0].P3 > 0 then begin
+			NextBoard := Board.Stats[0].P3;
+			Board.Stats[0].P3 := 0;
+			BoardChange(NextBoard);
+			TransitionDrawToBoard;
+			BoardEnter;
+		end;
 		if UpCase(InputKeyPressed) in [#27, 'A', 'E', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|'] then
 			GamePlayExitRequested := true;
 	end;
