@@ -62,7 +62,6 @@ interface
 		TextWindowRejected: boolean;
 		ResourceDataFileName: string[50];
 		ResourceDataHeader: TResourceDataHeader;
-		OrderPrintId: ^string;
 	procedure TextWindowInitState(var state: TTextWindowState);
 	procedure TextWindowDrawOpen(var state: TTextWindowState);
 	procedure TextWindowDrawClose(var state: TTextWindowState);
@@ -77,7 +76,7 @@ interface
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
-uses Crt, Input, Printer;
+uses Crt, Input;
 
 function UpCaseString(input: string): string;
 	var
@@ -186,12 +185,9 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 				end;
 			end else if (lpos = 0) or (lpos = (state.LineCount + 1)) then begin
 				VideoWriteText(TextWindowX + 2, lineY, $1E, TextWindowStrInnerSep);
-			end else if (lpos = -4) and viewingFile then begin
-				VideoWriteText(TextWindowX + 2, lineY, $1A, '   Use            to view text,');
-				VideoWriteText(TextWindowX + 2 + 7, lineY, $1F, #24' '#25', Enter');
 			end else if (lpos = -3) and viewingFile then begin
-				VideoWriteText(TextWindowX + 2 + 1, lineY, $1A, '                 to print.');
-				VideoWriteText(TextWindowX + 2 + 12, lineY, $1F, 'Alt-P');
+				VideoWriteText(TextWindowX + 2, lineY, $1A, '   Use            to view text.');
+				VideoWriteText(TextWindowX + 2 + 7, lineY, $1F, #24' '#25', Enter');
 			end;
 		end;
 	end;
@@ -224,47 +220,6 @@ procedure TextWindowFree(var state: TTextWindowState);
 				LineCount := LineCount - 1;
 			end;
 			LoadedFilename := '';
-		end;
-	end;
-
-procedure TextWindowPrint(var state: TTextWindowState);
-	var
-		iLine, iChar: integer;
-		line: string;
-	begin
-		with state do begin
-			Rewrite(Lst);
-			for iLine := 1 to LineCount do begin
-				line := Lines[iLine]^;
-				if Length(line) > 0 then begin
-					case line[1] of
-						'$': begin
-							Delete(line, 1, 1);
-							for iChar := ((80 - Length(line)) div 2) downto 1 do
-								line := ' ' + line;
-						end;
-						'!', ':': begin
-							iChar := Pos(';', line);
-							if iChar > 0 then
-								Delete(line, 1, iChar)
-							else
-								line := '';
-						end;
-					else
-						line := '          ' + line
-					end;
-				end;
-				WriteLn(Lst, line);
-				if IOResult <> 0 then begin
-					Close(Lst);
-					exit;
-				end;
-			end;
-			if LoadedFilename = 'ORDER.HLP' then begin
-				WriteLn(Lst, OrderPrintId^);
-			end;
-			Write(Lst, Chr(12) { form feed });
-			Close(Lst);
 		end;
 	end;
 
@@ -334,9 +289,7 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 					if InputKeyPressed = KEY_PAGE_UP then
 						newLinePos := LinePos - TextWindowHeight + 4
 					else if InputKeyPressed = KEY_PAGE_DOWN then
-						newLinePos := LinePos + TextWindowHeight - 4
-					else if InputKeyPressed = KEY_ALT_P then
-						TextWindowPrint(state);
+						newLinePos := LinePos + TextWindowHeight - 4;
 				end;
 
 			LabelMatched:
