@@ -140,7 +140,6 @@ begin
 		SavedBoardFileName := 'TEMP';
 		SavedGameFileName := StartupWorldFileName;
 
-		GenerateTransitionTable;
 		WorldCreate;
 
 		GameTitleLoop;

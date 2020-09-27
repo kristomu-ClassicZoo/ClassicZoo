@@ -40,7 +40,6 @@ interface
 	procedure SidebarClearLine(y: integer);
 	procedure SidebarClear;
 	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
-	procedure GenerateTransitionTable;
 {$IFNDEF FPC}
 {$IFDEF CPU86}
 	procedure AdvancePointer(var address: pointer; count: integer);
@@ -103,6 +102,7 @@ interface
 	procedure GameTitleLoop;
 
 const
+	LFSR11_START = 42;
 	ProgressAnimColors: array[0 .. 7] of byte = ($18, $1C, $19, $1D, $1A, $1E, $1B, $1F);
 	ProgressAnimStrings: array[0 .. 7] of string[5] =
 		('....|', '...*/', '..*.-', '.*..\', '*...|', '..../', '....-', '....\');
@@ -140,6 +140,14 @@ procedure GameVideoInstall(columns, borderColor, mode: integer);
 			TextWindowInit(1, 2, 38, 22);
 	end;
 
+function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
+	begin
+		seed := (seed shr 1) xor ((-(seed and 1)) and $740);
+		tx := (seed - 1) and $3F;
+		ty := ((seed - 1) shr 6) and $3F;
+		LFSR11UpdateSeed := seed = LFSR11_START;
+	end;
+
 procedure SidebarClearLine(y: integer);
 	begin
 		VideoWriteText(60, y, $11, #179'                   ');
@@ -171,29 +179,6 @@ function EnsureIoTmpBufSize(newSize: word): integer;
 			EnsureIoTmpBufSize := 1;
 		end;
 	end;
-
-procedure GenerateTransitionTable;
-	var
-		i, ix, iy: integer;
-		t: TCoord;
-	begin
-		i := 0;
-		for iy := 0 to 19 do
-			for ix := 0 to 23 do begin
-				Inc(i);
-				TransitionTable[i].X := ix;
-				TransitionTable[i].Y := iy;
-			end;
-
-		{ shuffle }
-		for ix := 1 to TRANSITION_TABLE_COUNT do begin
-			iy := Random(TRANSITION_TABLE_COUNT) + 1;
-			t := TransitionTable[iy];
-			TransitionTable[iy] := TransitionTable[ix];
-			TransitionTable[ix] := t;
-		end;
-	end;
-
 
 {$IFDEF FPC}
 procedure AdvancePointer(var address: pointer; count: integer);
@@ -458,14 +443,17 @@ procedure WorldCreate;
 
 procedure TransitionDrawToFill(chr: char; color: integer);
 	var
-		i: integer;
+		seed: word;
+		tx, ty: byte;
 	begin
-		for i := 1 to TRANSITION_TABLE_COUNT do
-			VideoWriteText(
-				TransitionTable[i].X + BOARD_DRAW_X,
-				TransitionTable[i].Y + BOARD_DRAW_Y,
-				color, chr
-			);
+		seed := LFSR11_START;
+		repeat
+			if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
+				VideoWriteText(tx + BOARD_DRAW_X, ty + BOARD_DRAW_Y, color, chr);
+		until LFSR11UpdateSeed(seed, tx, ty);
+
+		if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
+			VideoWriteText(tx + BOARD_DRAW_X, ty + BOARD_DRAW_Y, color, chr);
 	end;
 
 procedure BoardDrawTile(x, y: integer);
@@ -509,14 +497,23 @@ procedure BoardDrawTile(x, y: integer);
 
 procedure TransitionDrawToBoard;
 	var
-		i: integer;
+		seed: word;
+		tx, ty: byte;
 	begin
-		for i := 1 to TRANSITION_TABLE_COUNT do
-			with TransitionTable[i] do
+		seed := LFSR11_START;
+		repeat
+			if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
 				BoardDrawTile(
-					X + Board.Info.DrawXOffset,
-					Y + Board.Info.DrawYOffset
+					tx + Board.Info.DrawXOffset,
+					ty + Board.Info.DrawYOffset
 				);
+		until LFSR11UpdateSeed(seed, tx, ty);
+
+		if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
+			BoardDrawTile(
+				tx + Board.Info.DrawXOffset,
+				ty + Board.Info.DrawYOffset
+			);
 	end;
 
 procedure ClearDisplayMessage;

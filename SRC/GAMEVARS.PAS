@@ -44,7 +44,6 @@ interface
 		BOARD_DRAW_OY_MAX = BOARD_HEIGHT - BOARD_DRAW_HEIGHT + 1;
 		WORLD_FILE_HEADER_SIZE = 1024;
 		WORLD_FILE_DESC_COUNT = 3;
-		TRANSITION_TABLE_COUNT = 480;
 		HIGH_SCORE_COUNT = 30;
 		TORCH_DX = 8;
 		TORCH_DY = 8;
@@ -165,7 +164,6 @@ interface
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
 	var
 		ForestSoundTableIdx: integer;
-		TransitionTable: array[1 .. TRANSITION_TABLE_COUNT] of TCoord;
 
 		LoadedGameFileName: TSmallString;
 		SavedGameFileName: TSmallString;
