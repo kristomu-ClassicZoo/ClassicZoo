@@ -34,6 +34,7 @@ interface
 		MAX_FLAG = 10;
 		BOARD_WIDTH = 60;
 		BOARD_HEIGHT = 25;
+		MAX_BOARD_SIZE = 20000;
 		WORLD_FILE_HEADER_SIZE = 512;
 		HIGH_SCORE_COUNT = 30;
 		TORCH_DURATION = 200;
@@ -147,7 +148,7 @@ interface
 			Score: integer;
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
-		TIoTmpBuf = array[0 .. 19999] of byte;
+		TIoTmpBuf = array[0 .. MAX_BOARD_SIZE-1] of byte;
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
