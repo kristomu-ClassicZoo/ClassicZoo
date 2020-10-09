@@ -135,27 +135,15 @@ procedure GameConfigure;
 	end;
 
 begin
-	WorldFileDescCount := 7;
-	WorldFileDescKeys[1] := 'TOWN';
-	WorldFileDescValues[1] := 'TOWN       The Town of ZZT';
-	WorldFileDescKeys[2] := 'DEMO';
-	WorldFileDescValues[2] := 'DEMO       Demo of the ZZT World Editor';
-	WorldFileDescKeys[3] := 'CAVES';
-	WorldFileDescValues[3] := 'CAVES      The Caves of ZZT';
-	WorldFileDescKeys[4] := 'DUNGEONS';
-	WorldFileDescValues[4] := 'DUNGEONS   The Dungeons of ZZT';
-	WorldFileDescKeys[5] := 'CITY';
-	WorldFileDescValues[5] := 'CITY       Underground City of ZZT';
-	WorldFileDescKeys[6] := 'BEST';
-	WorldFileDescValues[6] := 'BEST       The Best of ZZT';
-	WorldFileDescKeys[7] := 'TOUR';
-	WorldFileDescValues[7] := 'TOUR       Guided Tour ZZT'#39's Other Worlds';
+	WorldFileDescCount := 1;
+	WorldFileDescKeys[1] := 'WEAVEZZT';
+	WorldFileDescValues[1] := 'WEAVEZZT   The WeaveZZT Manifesto';
 
 	Randomize;
 	SetCBreak(false);
 	InitialTextAttr := TextAttr;
 
-	StartupWorldFileName := 'TOWN';
+	StartupWorldFileName := 'WEAVEZZT';
 	ResourceDataFileName := 'ZZT.DAT';
 	ResetConfig := false;
 	GameTitleExitRequested := false;
@@ -190,6 +178,10 @@ begin
 	Port[PORT_CGA_PALETTE] := 0;
 	TextAttr := InitialTextAttr;
 	ClrScr;
+
+	Writeln;
+	Writeln('  The Weavers thank you for playing WeaveZZT.');
+	Writeln;
 
 	VideoShowCursor;
 end.
