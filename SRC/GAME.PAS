@@ -646,9 +646,13 @@ procedure SidebarPromptString(prompt: string; extension: TString50; var filename
 	end;
 
 procedure PauseOnError;
+	var
+		counter: integer;
 	begin
+		{ Trick to set counter. }
+		if SoundHasTimeElapsed(counter, 0) then begin end;
 		SoundQueue(1, SoundParse('s004x114x9'));
-		Delay(2000);
+		repeat until SoundHasTimeElapsed(counter, 200);
 	end;
 
 function DisplayIOError: boolean;
@@ -698,10 +702,18 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 		ptr: pointer;
 		boardId: integer;
 		loadProgress: integer;
+	label OnError;
 	procedure SidebarAnimateLoading;
 		begin
 			VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
 			loadProgress := (loadProgress + 1) mod 8;
+		end;
+	procedure WorldPartialUnload(maxId: integer);
+		var
+			i: integer;
+		begin
+			for i := 0 to maxId do
+				ExtMemFree(World.BoardData[i], World.BoardLen[i]);
 		end;
 	begin
 		WorldLoad := false;
@@ -726,9 +738,9 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 
 				if World.BoardCount < 0 then begin
 					if World.BoardCount <> -1 then begin
-						VideoWriteText(63, 5, $1E, 'You need a newer');
-						VideoWriteText(63, 6, $1E, ' version of ZZT!');
-						exit;
+						VideoWriteText(62, 5, $1E, ' You need a newer');
+						VideoWriteText(62, 6, $1E, '  version of ZZT!');
+						goto OnError;
 					end else begin
 						Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
 						AdvancePointer(ptr, SizeOf(World.BoardCount));
@@ -747,6 +759,12 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 				for boardId := 0 to World.BoardCount do begin
 					SidebarAnimateLoading;
 					BlockRead(f, World.BoardLen[boardId], 2);
+					{ FIX: Prevent loading boards above the IoTmpBuf size limit. }
+					if World.BoardLen[boardId] > MAX_BOARD_SIZE then begin
+						VideoWriteText(62, 5, $1E, ' Board too large!');
+						WorldPartialUnload(boardId - 1);
+						goto OnError;
+					end;
 					if ExtMemGet(World.BoardData[boardId], World.BoardLen[boardId]) then begin
 						BlockRead(f, IoTmpBuf^, World.BoardLen[boardId]);
 						ExtMemWrite(World.BoardData[boardId], IoTmpBuf^, World.BoardLen[boardId]);
@@ -764,6 +782,16 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 				SidebarClearLine(5);
 			end;
 		end;
+
+		exit;
+
+	OnError:
+		Close(f);
+		PauseOnError;
+		WorldCreate; { Reset state }
+		SidebarClearLine(5);
+		SidebarClearLine(6);
+		WorldLoad := true;
 	end;
 
 procedure WorldSave(filename, extension: TString50);
