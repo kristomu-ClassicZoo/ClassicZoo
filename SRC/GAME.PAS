@@ -743,6 +743,12 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 					end;
 				end;
 
+				{ FIX: Prevent loading boards above the board count limit. }
+				if World.BoardCount > MAX_BOARD then begin
+					VideoWriteText(62, 5, $1E, ' Too many boards!');
+					goto OnError;
+				end;
+
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));
 
