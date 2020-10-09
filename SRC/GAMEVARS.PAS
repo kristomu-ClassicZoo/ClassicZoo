@@ -28,13 +28,13 @@ unit GameVars;
 interface
 	uses ExtMem;
 	const
-		MAX_STAT = 150;
+		MAX_STAT = 254;
 		MAX_ELEMENT = 53;
-		MAX_BOARD = 100;
+		MAX_BOARD = 255;
 		MAX_FLAG = 10;
 		BOARD_WIDTH = 60;
 		BOARD_HEIGHT = 25;
-		MAX_BOARD_SIZE = 20000;
+		MAX_BOARD_SIZE = 65521;
 		WORLD_FILE_HEADER_SIZE = 512;
 		HIGH_SCORE_COUNT = 30;
 		TORCH_DURATION = 200;
@@ -139,7 +139,7 @@ interface
 		TWorld = record
 			BoardCount: integer;
 			BoardData: array[0 .. MAX_BOARD] of TExtMemBlock;
-			BoardLen: array[0 .. MAX_BOARD] of integer;
+			BoardLen: array[0 .. MAX_BOARD] of word;
 			Info: TWorldInfo;
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
 		end;
