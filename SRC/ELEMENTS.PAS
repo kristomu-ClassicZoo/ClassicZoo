@@ -251,9 +251,10 @@ procedure ElementCentipedeHeadTick(statId: integer);
 					statId := tmp;
 				end;
 				Board.Stats[statId].Follower := Board.Stats[statId].Leader;
+				Board.Stats[statId].Leader := -1;
 				Board.Tiles[Board.Stats[statId].X][Board.Stats[statId].Y].Element := E_CENTIPEDE_HEAD;
 			end else if Board.Tiles[X + StepX][Y + StepY].Element = E_PLAYER then begin
-				if Follower <> -1 then begin
+				if Follower > 0 then begin
 					Board.Tiles[Board.Stats[Follower].X][Board.Stats[Follower].Y].Element := E_CENTIPEDE_HEAD;
 					Board.Stats[Follower].StepX := StepX;
 					Board.Stats[Follower].StepY := StepY;
@@ -262,10 +263,6 @@ procedure ElementCentipedeHeadTick(statId: integer);
 				BoardAttack(statId, X + StepX, Y + StepY);
 			end else begin
 				MoveStat(statId, X + StepX, Y + StepY);
-				tx := X - StepX;
-				ty := Y - StepY;
-				ix := StepX;
-				iy := StepY;
 
 				repeat
 					with Board.Stats[statId] do begin
@@ -289,7 +286,9 @@ procedure ElementCentipedeHeadTick(statId: integer);
 							end;
 						end;
 
-						if Follower > 0 then begin
+						if (Follower > 0)
+							and (Board.Tiles[Board.Stats[Follower].X][Board.Stats[Follower].Y].Element = E_CENTIPEDE_SEGMENT)
+						then begin
 							Board.Stats[Follower].Leader := statId;
 							Board.Stats[Follower].P1 := P1;
 							Board.Stats[Follower].P2 := P2;
@@ -664,12 +663,18 @@ procedure ElementTransporterTick(statId: integer);
 	end;
 
 procedure ElementTransporterDraw(x, y: integer; var ch: byte);
+	var
+		i: integer;
 	begin
 		with Board.Stats[GetStatIdAt(x, y)] do begin
-			if StepX = 0 then
-				ch := Ord(TransporterNSChars[StepY * 2 + 3 + (CurrentTick div Cycle) mod 4])
+			if Cycle = 0 then
+				i := 0
 			else
-				ch := Ord(TransporterEWChars[StepX * 2 + 3 + (CurrentTick div Cycle) mod 4]);
+				i := (CurrentTick div Cycle) mod 4;
+			if StepX = 0 then
+				ch := Ord(TransporterNSChars[StepY * 2 + 3 + i])
+			else
+				ch := Ord(TransporterEWChars[StepX * 2 + 3 + i]);
 		end;
 	end;
 
