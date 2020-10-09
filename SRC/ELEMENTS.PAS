@@ -963,7 +963,10 @@ procedure ElementObjectTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 procedure ElementDuplicatorTick(statId: integer);
 	var
 		sourceStatId: integer;
+		lastCurrentBoard: integer;
 	begin
+		lastCurrentBoard := World.Info.CurrentBoard;
+
 		with Board.Stats[statId] do begin
 			if P1 <= 4 then begin
 				P1 := P1 + 1;
@@ -998,6 +1001,8 @@ procedure ElementDuplicatorTick(statId: integer);
 						SoundQueue(3, #24#1#22#1);
 					end;
 				end;
+
+				if lastCurrentBoard <> World.Info.CurrentBoard then exit;
 
 				P1 := 0;
 				BoardDrawTile(X, Y);
