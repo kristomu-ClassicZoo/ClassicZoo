@@ -282,7 +282,8 @@ function SoundParse(input: string): string;
 					output := output + #0 + Chr(noteDuration);
 					Inc(inPos);
 				end;
-				'0'..'9': begin
+				{ FPC does not like overlapping case labels. }
+				'0'..'2','4'..'9': begin
 					output := output + Chr(Ord(input[inPos]) + $F0 - Ord('0')) + Chr(noteDuration);
 					Inc(inPos);
 				end;
