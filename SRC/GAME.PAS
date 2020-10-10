@@ -190,6 +190,7 @@ procedure BoardClose;
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
+
 				if DataLen > 0 then begin
 					for iy := 1 to (ix - 1) do begin
 						if Board.Stats[iy].Data = Data then
@@ -262,14 +263,13 @@ procedure BoardOpen(boardId: integer);
 					DataLen := Board.Stats[-DataLen].DataLen;
 				end;
 			end;
-
 		World.Info.CurrentBoard := boardId;
 	end;
 
 procedure BoardChange(boardId: integer);
 	begin
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
+		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := World.Info.PlayerColor;
 		BoardClose;
 		BoardOpen(boardId);
 	end;
@@ -279,14 +279,16 @@ procedure BoardCreate;
 		ix, iy, i: integer;
 	begin
 		Board.Name := '';
-		Board.Info.Message := '';
 		Board.Info.MaxShots := 255;
 		Board.Info.IsDark := false;
-		Board.Info.ReenterWhenZapped := false;
-		Board.Info.TimeLimitSec := 0;
 		for i := 0 to 3 do
 			Board.Info.NeighborBoards[i] := 0;
-
+		Board.Info.ReenterWhenZapped := false;
+		Board.Info.Message := '';
+		Board.Info.TimeLimitSec := 0;
+		Board.Info.Local := 0;		
+		for i := 1 to 7 do
+			Board.Info.Register[i] := 0;
 		for ix := 0 to BOARD_WIDTH+1 do begin
 			Board.Tiles[ix][0] := TileBoardEdge;
 			Board.Tiles[ix][BOARD_HEIGHT+1] := TileBoardEdge;
@@ -312,7 +314,7 @@ procedure BoardCreate;
 		end;
 
 		Board.Tiles[BOARD_WIDTH div 2][BOARD_HEIGHT div 2].Element := E_PLAYER;
-		Board.Tiles[BOARD_WIDTH div 2][BOARD_HEIGHT div 2].Color := ElementDefs[E_PLAYER].Color;
+		Board.Tiles[BOARD_WIDTH div 2][BOARD_HEIGHT div 2].Color := World.Info.PlayerColor;
 		Board.StatCount := 0;
 		Board.Stats[0].X := BOARD_WIDTH div 2;
 		Board.Stats[0].Y := BOARD_HEIGHT div 2;
@@ -339,6 +341,7 @@ procedure WorldCreate;
 		World.Info.Gems := 0;
 		World.Info.Health := 100;
 		World.Info.EnergizerTicks := 0;
+		World.Info.CustomZ := 0;
 		World.Info.Torches := 0;
 		World.Info.TorchTicks := 0;
 		World.Info.Score := 0;
@@ -346,8 +349,11 @@ procedure WorldCreate;
 		World.Info.BoardTimeHsec := 0;
 		for i := 1 to 7 do
 			World.Info.Keys[i] := false;
+			World.Info.Register[i] := 0;
 		for i := 1 to MAX_FLAG do
 			World.Info.Flags[i] := '';
+		World.Info.ZName[1] := '';
+		World.Info.PlayerColor := $1F;
 		BoardChange(0);
 		Board.Name := 'Title screen';
 		LoadedGameFileName := '';
@@ -644,7 +650,7 @@ procedure SidebarPromptString(prompt: string; extension: TString50; var filename
 
 procedure PauseOnError;
 	begin
-		SoundQueue(1, SoundParse('s004x114x9'));
+		SoundQueue(1, SoundParse('004x114x9'));
 		Delay(2000);
 	end;
 
@@ -732,12 +738,6 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));
-
-				if titleOnly then begin
-					World.BoardCount := 0;
-					World.Info.CurrentBoard := 0;
-					World.Info.IsSave := true;
-				end;
 
 				for boardId := 0 to World.BoardCount do begin
 					SidebarAnimateLoading;
@@ -1114,6 +1114,11 @@ procedure GameUpdateSidebar;
 			VideoWriteText(72, 10, $1E, numStr + ' ');
 			Str(World.Info.Score, numStr);
 			VideoWriteText(72, 11, $1E, numStr + ' ');
+			Str(World.Info.CustomZ, numStr);
+			if World.Info.ZName[1] <> '' then begin
+				VideoWriteText(64, 13, $1E, World.Info.ZName[1] + ':');
+				VideoWriteText(72, 13, $1E, numStr + ' ');
+			end;
 
 			if World.Info.TorchTicks = 0 then
 				VideoWriteText(75, 9, $16, '    ')
@@ -1169,9 +1174,8 @@ procedure DamageStat(attackerStatId: integer);
 					World.Info.Health := World.Info.Health - 10;
 
 					GameUpdateSidebar;
-					DisplayMessage(100, 'Ouch!');
 
-					Board.Tiles[X][Y].Color := $70 + (ElementDefs[E_PLAYER].Color mod $10);
+					Board.Tiles[X][Y].Color := $4C;
 
 					if World.Info.Health > 0 then begin
 						World.Info.BoardTimeSec := 0;
@@ -1190,17 +1194,17 @@ procedure DamageStat(attackerStatId: integer);
 
 							GamePaused := true;
 						end;
-						SoundQueue(4, #16#1#32#1#19#1#35#1);
+						SoundQueue(4, #16#1#32#1);
 					end else begin
-						SoundQueue(5, #32#3#35#3#39#3#48#3#39#3#42#3#50#3#55#3#53#3#56#3#64#3#69#3#16#10);
+						SoundQueue(5, #32#3#35#3#39#3#48#3);
 					end;
 				end;
 			end else begin
 				case Board.Tiles[X][Y].Element of
-					E_BULLET: SoundQueue(3, #32#1);
+					E_BULLET: SoundQueue(3, SoundParse('7'));
 					E_OBJECT: begin end;
 				else
-					SoundQueue(3, #64#1#16#1#80#1#48#1)
+					SoundQueue(3, SoundParse('0101'));
 				end;
 				RemoveStat(attackerStatId);
 			end;
@@ -1238,7 +1242,7 @@ procedure BoardAttack(attackerStatId: integer; x, y: integer);
 			GameUpdateSidebar;
 		end else begin
 			BoardDamageTile(x, y);
-			SoundQueue(2, #16#1);
+			SoundQueue(2, SoundParse('4'));
 		end;
 	end;
 
@@ -1263,7 +1267,7 @@ function BoardShoot(element: byte; tx, ty, deltaX, deltaY: integer; source: inte
 			) then
 		begin
 			BoardDamageTile(tx + deltaX, ty + deltaY);
-			SoundQueue(2, #16#1);
+			SoundQueue(2, SoundParse('4'));
 			BoardShoot := true;
 		end else begin
 			BoardShoot := false;
@@ -1309,7 +1313,6 @@ procedure BoardEnter;
 		Board.Info.StartPlayerY := Board.Stats[0].Y;
 
 		if Board.Info.IsDark and MessageHintTorchNotShown then begin
-			DisplayMessage(200, 'Room is dark - you need to light a torch!');
 			MessageHintTorchNotShown := false;
 		end;
 
@@ -1345,7 +1348,7 @@ procedure BoardPassageTeleport(x, y: integer);
 		end;
 
 		GamePaused := true;
-		SoundQueue(4, #48#1#52#1#55#1#49#1#53#1#56#1#50#1#54#1#57#1#51#1#55#1#58#1#52#1#56#1#64#1);
+		SoundQueue(4, #48#1#52#1#55#1#64#1);
 		TransitionDrawBoardChange;
 		BoardEnter;
 	end;
@@ -1379,17 +1382,17 @@ procedure GameDebugPrompt;
 		DebugEnabled := WorldGetFlagPosition('DEBUG') >= 0;
 
 		if input = 'HEALTH' then
-			World.Info.Health := World.Info.Health + 50
+			World.Info.Health := World.Info.Health + 500
 		else if input = 'AMMO' then
-			World.Info.Ammo := World.Info.Ammo + 5
+			World.Info.Ammo := World.Info.Ammo + 50
 		else if input = 'KEYS' then
 			for i := 1 to 7 do World.Info.Keys[i] := true
 		else if input = 'TORCHES' then
-			World.Info.Torches := World.Info.Torches + 3
+			World.Info.Torches := World.Info.Torches + 30
 		else if input = 'TIME' then
 			World.Info.BoardTimeSec := World.Info.BoardTimeSec - 30
 		else if input = 'GEMS' then
-			World.Info.Gems := World.Info.Gems + 5
+			World.Info.Gems := World.Info.Gems + 50
 		else if input = 'DARK' then begin
 			Board.Info.IsDark := toggle;
 			TransitionDrawToBoard;
@@ -1401,7 +1404,7 @@ procedure GameDebugPrompt;
 			end;
 		end;
 
-		SoundQueue(10, #39#4);
+		SoundQueue(10, #39#1);
 		SidebarClearLine(4);
 		SidebarClearLine(5);
 		GameUpdateSidebar;
@@ -1521,7 +1524,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 				if pauseBlink then begin
 					VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
-						ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
+						World.Info.PlayerColor, ElementDefs[E_PLAYER].Character);
 				end else begin
 					if Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER then
 						VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, $0F, ' ')
@@ -1551,7 +1554,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 						Board.Stats[0].X := Board.Stats[0].X + InputDeltaX;
 						Board.Stats[0].Y := Board.Stats[0].Y + InputDeltaY;
 						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
+						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := World.Info.PlayerColor;
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
 						DrawPlayerSurroundings(Board.Stats[0].X, Board.Stats[0].Y, 0);
 						DrawPlayerSurroundings(Board.Stats[0].X - InputDeltaX, Board.Stats[0].Y - InputDeltaY, 0);
@@ -1601,7 +1604,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 		end;
 
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
+		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := World.Info.PlayerColor;
 
 		SoundBlockQueueing := false;
 	end;
