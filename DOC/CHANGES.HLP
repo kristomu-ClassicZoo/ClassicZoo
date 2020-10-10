@@ -1,0 +1,62 @@
+$Changelog
+
+< ChocolateZoo 3.3 >
+
++ Added EMS/XMS extended memory support.
+  (Mr_Alert)
++ Added editor-less build, ZZT_NOED - you
+  can bundle it with your games or use it
+  to save an additional ~15 kilobytes of
+  conventional memory.
++ Added new cheats:
+  * PASSAGE - teleport to any board.
+  * SPEED - change game speed.
++ Editor improvements:
+  * New color picker - allows picking
+    all 8 BG and all 16 FG colors.
+  * D toggle - as in KevEdit, this will
+    force usage of the user-picked color
+    even if the ZZT default differs.
++ Added documentation about some not
+  previously documented ZZT-OOP features
+  to the language reference manual.
+- Removed the shareware/registered
+  distinction and order messages.
+* Various minor CPU and memory usage
+  optimizations.
+* Improved video code!
+  * Much better performance, especially
+    on non-CGA video cards.
+  * Restored the ZZT 2.0/3.0 monochrome
+    style, which suited it much better.
+/ Added code to prevent some invalid
+  worlds from being loaded, preventing
+  memory corruption:
+  * Worlds with more boards than allowed.
+  * Worlds with larger boards than the
+    built-in limit (20000 bytes in ZZT).
+/ Fixed the following ZZT 3.2 bugs.
+  (Note that, in ChocolateZoo, fixes
+  are only done for game behaviour which
+  leads to a crash or soft-lock - this
+  is to preserve compatibility with
+  existing games.)
+  * Conveyors swapping stats in some
+    scenarios, which could lead to a
+    game soft-lock.
+  * Conveyors not rendering an item in
+    some edge cases.
+  * I/O error messages not displaying
+    the correct error code.
+  * Crash when an object recursively
+    pushes itself. (GM)
+  * Crash when a scroll executes #become
+    or /dir. (GM)
+  * 0-cycle transporter crash. (zzo38)
+  * Various centipede edge cases.
+    (Tim Sweeney - from Super ZZT)
+  * When picking an item with ENTER in
+    the editor, it is not reflected in
+    the sidebar.
+  * Text window memory corruption for
+    >1024 line long text.
