@@ -1,2 +1,4 @@
--d EDITOR -o zzt.zip -p build.properties
--e ZZT_NOED.EXE -o zzt.zip -p build.properties
+-d EDITOR -o ChocoZZT.zip -p build.properties
+-e ZZT_NOED.EXE -o ChocoZZT.zip -p build.properties
+-f -d EDITOR -o ChocoZZT_FPC.zip -p build.properties
+-f -e ZZT_NOED.EXE -o ChocoZZT_FPC.zip -p build.properties
