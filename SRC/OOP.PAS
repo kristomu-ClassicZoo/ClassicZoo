@@ -54,7 +54,13 @@ procedure OopReadChar(statId: integer; var position: integer);
 { ## GLOBAL OBJECT }
 			if GlobalRead then begin
 				if (position >= 0) and (position < GlobalLen) then begin
-					Move(Ptr(Seg(GlobalData^), Ofs(GlobalData^) + position)^, OopChar, 1);
+					{$IFNDEF FPC}
+					{ On Turbo Pascal, the array pointer is actually }
+					{ a poiter to a string. }
+					OopChar := GlobalData^[position];
+					{$ELSE}
+					OopChar := GlobalData[position];
+					{$ENDIF}
 					Inc(position);
 				end else begin
 					OopChar := #0;
@@ -62,7 +68,13 @@ procedure OopReadChar(statId: integer; var position: integer);
 			end else begin
 { ## END GLOBAL OBJECT }
 				if (position >= 0) and (position < DataLen) then begin
-					Move(Ptr(Seg(Data^), Ofs(Data^) + position)^, OopChar, 1);
+					{$IFNDEF FPC}
+					{ On Turbo Pascal, the array pointer is actually }
+					{ a poiter to a string. }
+					OopChar := Data^[position];
+					{$ELSE}
+					OopChar := Data[position];
+					{$ENDIF}
 					Inc(position);
 				end else begin
 					OopChar := #0
