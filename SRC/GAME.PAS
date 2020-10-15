@@ -1592,8 +1592,9 @@ procedure GamePlayLoop(isTitle: boolean);
 				VideoWriteText(21, 24, $1E, 'Pausing...');
 				InputUpdate;
 
-				if InputKeyPressed = KEY_ESCAPE then
+				case UpCase(InputKeyPressed) of KEY_ESCAPE, 'Q': begin
 					GamePromptEndPlay;
+				end; end;
 
 				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
 					ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element].TouchProc(
