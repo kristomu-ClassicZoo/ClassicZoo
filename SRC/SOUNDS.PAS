@@ -114,7 +114,7 @@ function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 		hSecsDiff: word;
 		hSecsTotal: integer;
 	begin
-		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter mod 2) = 1) then begin
+		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter and 1) = 1) then begin
 			Dec(SoundTimeCheckCounter);
 			SoundCheckTimeIntr;
 		end;
@@ -140,7 +140,7 @@ procedure SoundTimerHandler;
 	interrupt;
 	begin
 		Inc(TimerTicks);
-		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter mod 2) = 0) then begin
+		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter and 1) = 0) then begin
 			Dec(SoundTimeCheckCounter);
 		end;
 
@@ -276,7 +276,7 @@ function SoundParse(input: string): string;
 						end;
 					end;
 
-					output := output + Chr(noteOctave * $10 + noteTone) + Chr(noteDuration);
+					output := output + Chr((noteOctave shl 4) + noteTone) + Chr(noteDuration);
 				end;
 				'X': begin
 					output := output + #0 + Chr(noteDuration);
