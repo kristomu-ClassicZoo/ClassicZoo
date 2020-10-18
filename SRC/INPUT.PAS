@@ -72,7 +72,7 @@ interface
 	function InputConfigure: boolean;
 
 implementation
-uses Dos, Crt, Keys, Sounds;
+uses ZetaSupp, Dos, Crt, Keys, Sounds;
 
 const
 	PORT_JOYSTICK = $0201;
@@ -384,7 +384,8 @@ function InputConfigure: boolean;
 procedure InputReadWaitKey;
 	begin
 		repeat
-			InputUpdate
+			ZetaSleepFrame;
+			InputUpdate;
 		until InputKeyPressed <> #0;
 	end;
 

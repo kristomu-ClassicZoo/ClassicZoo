@@ -107,7 +107,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop;
+uses ZetaSupp, Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -440,6 +440,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TStri
 
 			if editable then begin
 				Delay(25);
+				ZetaSleepFrame;
 				InputUpdate;
 				if InputKeyPressed = KEY_TAB then
 					InputDeltaX := 9;
@@ -481,6 +482,7 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 					Delay(45);
 				VideoWriteText(x + value + 1, y + 1, $9F, #31);
 
+				ZetaSleepFrame;
 				InputUpdate;
 				if (InputKeyPressed >= '1') and (InputKeyPressed <= '9') then begin
 					value := Ord(InputKeyPressed) - 49;
@@ -526,6 +528,7 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 			if editable then begin
 				VideoWriteText(62 + i, y + 1, $9F, #31);
 				Delay(35);
+				ZetaSleepFrame;
 				InputUpdate;
 
 				newResult := result + InputDeltaX;
@@ -1531,6 +1534,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				end;
 
 				VideoWriteText(64, 5, $1F, 'Pausing...');
+				ZetaSleepFrame;
 				InputUpdate;
 
 				if InputKeyPressed = KEY_ESCAPE then
@@ -1587,6 +1591,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 					CurrentStatTicked := 0;
 
 					InputUpdate;
+				end else begin
+					ZetaSleepPit;
 				end;
 			end;
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;

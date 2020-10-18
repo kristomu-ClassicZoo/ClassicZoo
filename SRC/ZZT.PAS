@@ -26,7 +26,7 @@
 {$I-}
 {$M 49152,163840,655360}
 program ZZT;
-uses Crt, Dos, Video, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+uses ZetaSupp, Crt, Dos, Video, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
 
 procedure ParseArguments;
 	var
@@ -170,7 +170,9 @@ begin
 		GenerateTransitionTable;
 		WorldCreate;
 
+		ZetaSetIdleHacks(false);
 		GameTitleLoop;
+		ZetaSetIdleHacks(true);
 
 		Dispose(IoTmpBuf);
 	end;
