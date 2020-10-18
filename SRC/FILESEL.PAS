@@ -46,6 +46,7 @@ function FileSelect(title, extension: TString50): string;
 		i: integer;
 		curPath: string;
 		startPath: string;
+		previewPath: string[PATH_PREVIEW_LENGTH + 4];
 	begin
 		useWorldFileDesc := extension = '.ZZT';
 		searching := true;
@@ -54,34 +55,40 @@ function FileSelect(title, extension: TString50): string;
 		while searching do begin
 			GetDir(0, curPath);
 			if Length(curPath) > PATH_PREVIEW_LENGTH then
-				curPath := '...' + Copy(curPath, Length(curPath) - PATH_PREVIEW_LENGTH + 1, PATH_PREVIEW_LENGTH);
+				previewPath := '...' + Copy(curPath, Length(curPath) - PATH_PREVIEW_LENGTH + 1, PATH_PREVIEW_LENGTH)
+			else
+				previewPath := curPath;
 
 			TextWindowInitState(textWindow);
-			textWindow.Title := title + ': ' + curPath;
+			textWindow.Title := title + ': ' + previewPath;
 			textWindow.Selectable := true;
 			textWIndow.Hyperlink := '';
 
 			{ Directories }
 			FindFirst('*', Directory, fileSearchRec);
 			while DosError = 0 do begin
-				entryName := fileSearchRec.Name;
-				if (Length(entryName) > 0) and (entryName <> '.') then
-					if (Length(curPath) > 3) or (entryName <> '..') then
-						TextWindowAppend(textWindow, '!' + entryName + ';[' + entryName + ']');
+				if (fileSearchRec.Attr and Directory) <> 0 then begin
+					entryName := fileSearchRec.Name;
+					if (Length(entryName) > 0) and (entryName <> '.') then
+						if (Length(curPath) > 3) or (entryName <> '..') then
+							TextWindowAppend(textWindow, '!' + entryName + ';[' + entryName + ']');
+				end;
 				FindNext(fileSearchRec);
 			end;
 		
 			{ Files }
 			FindFirst('*' + extension, AnyFile, fileSearchRec);
 			while DosError = 0 do begin
-				entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - 4);
+				if (fileSearchRec.Attr and Directory) = 0 then begin
+					entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - 4);
 
-				if useWorldFileDesc then
-					for i := 1 to WorldFileDescCount do
-						if entryName = WorldFileDescKeys[i] then
-							entryName := WorldFileDescValues[i];
+					if useWorldFileDesc then
+						for i := 1 to WorldFileDescCount do
+							if entryName = WorldFileDescKeys[i] then
+								entryName := WorldFileDescValues[i];
 
-				TextWindowAppend(textWindow, entryName);
+					TextWindowAppend(textWindow, entryName);
+				end;
 				FindNext(fileSearchRec);
 			end;
 
@@ -103,7 +110,7 @@ function FileSelect(title, extension: TString50): string;
 				entryName := textWindow.Lines[textWindow.LinePos]^;
 				if Pos(' ', entryName) <> 0 then
 					entryName := Copy(entryName, 1, Pos(' ', entryName) - 1);
-				FileSelect := entryName;
+				FileSelect := curPath + '\' + entryName;
 				searching := false;
 			end;
 		end;
