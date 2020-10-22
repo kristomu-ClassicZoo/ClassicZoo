@@ -1,5 +1,28 @@
 $Changelog
 
+< ChocolateZoo 3.4 >
+
++ New file selector:
+  + Full directory traversal support.
+  + The current path is now shown as
+    part of the title.
++ Editor improvements:
+  + Added water to the default pattern
+    list.
+  + Added support for multiple pattern
+    slots, complete with hotkeys.
+  + Added F5 tab, exposing board edges.
+  * The Transfer -> Import option now
+    uses the file selector to choose
+    a board.
+  / Fixed copying object code between
+    boards.
+  / Fixed editing pre-bound object code.
+    (kristomu)
+* Various minor CPU optimizations.
+/ Fixed being unable to exit the game
+  while paused by pressing Q.
+
 < ChocolateZoo 3.3 >
 
 + Added EMS/XMS extended memory support.
@@ -12,9 +35,9 @@ $Changelog
   * PASSAGE - teleport to any board.
   * SPEED - change game speed.
 + Editor improvements:
-  * New color picker - allows picking
+  + New color picker - allows picking
     all 8 BG and all 16 FG colors.
-  * D toggle - as in KevEdit, this will
+  + D toggle - as in KevEdit, this will
     force usage of the user-picked color
     even if the ZZT default differs.
 + Added documentation about some not
