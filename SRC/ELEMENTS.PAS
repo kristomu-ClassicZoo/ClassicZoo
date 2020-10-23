@@ -251,9 +251,10 @@ procedure ElementCentipedeHeadTick(statId: integer);
 					statId := tmp;
 				end;
 				Board.Stats[statId].Follower := Board.Stats[statId].Leader;
+				Board.Stats[statId].Leader := -1;
 				Board.Tiles[Board.Stats[statId].X][Board.Stats[statId].Y].Element := E_CENTIPEDE_HEAD;
 			end else if Board.Tiles[X + StepX][Y + StepY].Element = E_PLAYER then begin
-				if Follower <> -1 then begin
+				if Follower > 0 then begin
 					Board.Tiles[Board.Stats[Follower].X][Board.Stats[Follower].Y].Element := E_CENTIPEDE_HEAD;
 					Board.Stats[Follower].StepX := StepX;
 					Board.Stats[Follower].StepY := StepY;
@@ -262,10 +263,6 @@ procedure ElementCentipedeHeadTick(statId: integer);
 				BoardAttack(statId, X + StepX, Y + StepY);
 			end else begin
 				MoveStat(statId, X + StepX, Y + StepY);
-				tx := X - StepX;
-				ty := Y - StepY;
-				ix := StepX;
-				iy := StepY;
 
 				repeat
 					with Board.Stats[statId] do begin
@@ -289,7 +286,9 @@ procedure ElementCentipedeHeadTick(statId: integer);
 							end;
 						end;
 
-						if Follower > 0 then begin
+						if (Follower > 0)
+							and (Board.Tiles[Board.Stats[Follower].X][Board.Stats[Follower].Y].Element = E_CENTIPEDE_SEGMENT)
+						then begin
 							Board.Stats[Follower].Leader := statId;
 							Board.Stats[Follower].P1 := P1;
 							Board.Stats[Follower].P2 := P2;
@@ -451,6 +450,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 		ix, iy: integer;
 		canMove: boolean;
 		tiles: array[0..7] of TTile;
+		statIds: array[0..7] of integer;
 		iMin, iMax: integer;
 		tmpTile: TTile;
 	begin
@@ -471,6 +471,10 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 					canMove := true
 				else if not ElementDefs[Element].Pushable then
 					canMove := false;
+				{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
+				{ Pre-find stat IDs to prevent such a scenario from occuring. }
+				if ElementDefs[Element].Cycle > -1 then
+					statIds[i] := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i])
 			end;
 			i := i + direction;
 		until i = iMax;
@@ -484,7 +488,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 						iy := y + DiagonalDeltaY[(i - direction + 8) mod 8];
 						if ElementDefs[Element].Cycle > -1 then begin
 							tmpTile := Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]];
-							iStat := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
+							iStat := statIds[i];
 							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]] := tiles[i];
 							Board.Tiles[ix][iy].Element := E_EMPTY;
 							MoveStat(iStat, ix, iy);
@@ -659,12 +663,18 @@ procedure ElementTransporterTick(statId: integer);
 	end;
 
 procedure ElementTransporterDraw(x, y: integer; var ch: byte);
+	var
+		i: integer;
 	begin
 		with Board.Stats[GetStatIdAt(x, y)] do begin
-			if StepX = 0 then
-				ch := Ord(TransporterNSChars[StepY * 2 + 3 + (CurrentTick div Cycle) mod 4])
+			if Cycle = 0 then
+				i := 0
 			else
-				ch := Ord(TransporterEWChars[StepX * 2 + 3 + (CurrentTick div Cycle) mod 4]);
+				i := (CurrentTick div Cycle) mod 4;
+			if StepX = 0 then
+				ch := Ord(TransporterNSChars[StepY * 2 + 3 + i])
+			else
+				ch := Ord(TransporterEWChars[StepX * 2 + 3 + i]);
 		end;
 	end;
 
@@ -901,10 +911,13 @@ procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 			if ((Element = E_SLIDER_NS) and (deltaX = 0)) or ((Element = E_SLIDER_EW) and (deltaY = 0))
 				or ElementDefs[Element].Pushable then
 			begin
-				if Board.Tiles[x + deltaX][y + deltaY].Element = E_TRANSPORTER then
-					ElementTransporterMove(x, y, deltaX, deltaY)
-				else if Board.Tiles[x + deltaX][y + deltaY].Element <> E_EMPTY then
-					ElementPushablePush(x + deltaX, y + deltaY, deltaX, deltaY);
+				if Board.Tiles[x + deltaX][y + deltaY].Element = E_TRANSPORTER then begin
+					ElementTransporterMove(x, y, deltaX, deltaY);
+				end else if Board.Tiles[x + deltaX][y + deltaY].Element <> E_EMPTY then begin
+					if (deltaX <> 0) or (deltaY <> 0) then begin
+						ElementPushablePush(x + deltaX, y + deltaY, deltaX, deltaY);
+					end;
+				end;
 
 				if not ElementDefs[Board.Tiles[x + deltaX][y + deltaY].Element].Walkable
 					and ElementDefs[Board.Tiles[x + deltaX][y + deltaY].Element].Destructible
@@ -1038,7 +1051,10 @@ procedure ElementScrollTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 			OopExecute(statId, DataPos, 'Scroll');
 		end;
 
-		RemoveStat(GetStatIdAt(x, y));
+		statId := GetStatIdAt(x, y);
+		if statId <> -1 then begin
+			RemoveStat(statId);
+		end;
 	end;
 
 procedure ElementKeyTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
