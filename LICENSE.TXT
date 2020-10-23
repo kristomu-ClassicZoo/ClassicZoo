@@ -1,3 +1,7 @@
+OpenZoo
+Copyright (c) 2020 Adrian Siekierka
+
+Based on the Reconstruction of ZZT
 Copyright (c) 2020 Adrian Siekierka
 
 Based on a reconstruction of code from ZZT,

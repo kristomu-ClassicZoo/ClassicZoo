@@ -1,5 +1,32 @@
-$- - - - -
-$The Reconstruction of ZZT
-$- - - - -
+$OpenZoo
+
+Copyright (c) 2020 Adrian Siekierka
+
+Based on ZZT created by Tim Sweeney
+Copyright 1991 Epic MegaGames
 
 !-license;License information
+
+$About ZZT
+
+ZZT is a text-mode game from 1991 created
+by Tim Sweeney, the founder of Epic
+MegaGames. Its freely available editor
+and oddly versatile scripting language
+allowed it to enjoy a steady stream of
+popularity for generations, with many
+varied game worlds created by its fans!
+
+$ChocolateZoo credits
+
+ChocolateZoo would not be possible
+without the work and contributions
+of the following developers:
+
+Adrian Siekierka
+Ben Russell
+Alan Williams
+kristomu
+zzo38
+
+Thank you!
