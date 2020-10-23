@@ -28,7 +28,7 @@
 {$M 49152,163840,655360}
 {$ENDIF}
 program ZZT;
-uses Crt, Dos, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+uses Crt, Dos, FileMgmt, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
 
 procedure ParseArguments;
 	var
@@ -62,7 +62,7 @@ procedure GameConfigure;
 		ConfigWorldFile := '';
 		GameVersion := '3.2';
 
-		Assign(cfgFile, 'zzt.cfg');
+		Assign(cfgFile, FilenameFindIgnoreCase('zzt.cfg'));
 		Reset(cfgFile);
 		if IOResult = 0 then begin
 			Readln(cfgFile, ConfigWorldFile);

@@ -25,21 +25,68 @@
 
 {$I-}
 {$V-}
-unit FileSel;
+unit FileMgmt;
 
 interface
 	uses GameVars;
+	function FilenameFindIgnoreCase(fn: string): string;
 	function FileSelect(title, extension: TString50): string;
 
 implementation
+{$IFDEF FPC}
+uses StrUtils, SysUtils, TxtWind;
+{$ELSE}
 uses Dos, TxtWind;
+{$ENDIF}
 const
 	PATH_PREVIEW_LENGTH = 24;
+	MAX_FILENAME_LENGTH = 20;
+
+{$IFDEF FPC}
+function FilenameFindIgnoreCase(fn: string): string;
+	var
+		fileSearchRec: TRawbyteSearchRec;
+		startPath: string;
+		basePath: string;
+		newFn: string;
+		fnFilename: string;
+	begin
+		basePath := ExpandFileName(ExtractFileDir(fn));
+		fnFilename := UpCase(ExtractFileName(fn));
+		newFn := fn;
+
+		GetDir(0, startPath);
+		ChDir(basePath);
+
+		FindFirst('*', faAnyFile, fileSearchRec);
+		repeat
+			if ((fileSearchRec.Attr and faDirectory) = 0) then begin
+				if UpCase(fileSearchRec.Name) = fnFilename then begin
+					newFn := ExpandFileName(IncludeTrailingPathDelimiter(basePath) + fileSearchRec.Name);
+					break;
+				end;
+			end;
+		until FindNext(fileSearchRec) <> 0;
+		FindClose(fileSearchRec);
+
+		ChDir(startPath);
+		FilenameFindIgnoreCase := newFn;
+	end;
+{$ELSE}
+function FilenameFindIgnoreCase(fn: string): string;
+	begin
+		FilenameFindIgnoreCase := fn;
+	end;
+{$ENDIF}
 
 function FileSelect(title, extension: TString50): string;
 	var
 		textWindow: TTextWindowState;
+{$IFDEF FPC}
+		fileSearchRec: TRawbyteSearchRec;
+{$ELSE}
 		fileSearchRec: SearchRec;
+{$ENDIF}
 		entryName: string;
 		useWorldFileDesc: boolean;
 		searching: boolean;
@@ -64,13 +111,48 @@ function FileSelect(title, extension: TString50): string;
 			textWindow.Selectable := true;
 			textWIndow.Hyperlink := '';
 
+		{$IFDEF FPC}
+			{ .. }
+			if ExpandFileName(curPath) <> ExpandFileName(IncludeTrailingPathDelimiter(curPath) + '..') then
+				TextWindowAppend(textWindow, '!..;[..]');
+
+			{ Directories }
+			FindFirst('*', faDirectory, fileSearchRec);
+			repeat
+				if (fileSearchRec.Attr and faDirectory) <> 0 then begin
+					entryName := fileSearchRec.Name;
+					if Length(entryName) <= MAX_FILENAME_LENGTH then
+						if (Length(entryName) > 0) and (entryName <> '.') and (entryName <> '..') then
+							TextWindowAppend(textWindow, '!' + entryName + ';[' + entryName + ']');
+				end;
+			until FindNext(fileSearchRec) <> 0;
+			FindClose(fileSearchRec);
+		
+			{ Files }
+			FindFirst('*', faAnyFile, fileSearchRec);
+			repeat
+				if ((fileSearchRec.Attr and faDirectory) = 0) then begin
+					if UpCase(Copy(fileSearchRec.Name, Length(fileSearchRec.name) - Length(extension) + 1, Length(extension))) <> extension then
+						continue;
+					entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
+
+					if Length(entryName) <= MAX_FILENAME_LENGTH then
+						TextWindowAppend(textWindow, entryName);
+				end;
+			until FindNext(fileSearchRec) <> 0;
+			FindClose(fileSearchRec);
+		{$ELSE}
+			{ .. }
+			if Length(curPath) > 3 then
+				TextWindowAppend(textWindow, '!..;[..]');
+
 			{ Directories }
 			FindFirst('*', Directory, fileSearchRec);
 			while DosError = 0 do begin
 				if (fileSearchRec.Attr and Directory) <> 0 then begin
 					entryName := fileSearchRec.Name;
-					if (Length(entryName) > 0) and (entryName <> '.') then
-						if (Length(curPath) > 3) or (entryName <> '..') then
+					if Length(entryName) <= MAX_FILENAME_LENGTH then
+						if (Length(entryName) > 0) and (entryName <> '.') and (entryName <> '..') then
 							TextWindowAppend(textWindow, '!' + entryName + ';[' + entryName + ']');
 				end;
 				FindNext(fileSearchRec);
@@ -80,17 +162,12 @@ function FileSelect(title, extension: TString50): string;
 			FindFirst('*' + extension, AnyFile, fileSearchRec);
 			while DosError = 0 do begin
 				if (fileSearchRec.Attr and Directory) = 0 then begin
-					entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - 4);
-
-					if useWorldFileDesc then
-						for i := 1 to WorldFileDescCount do
-							if entryName = WorldFileDescKeys[i] then
-								entryName := WorldFileDescValues[i];
-
-					TextWindowAppend(textWindow, entryName);
+					if Length(entryName) <= MAX_FILENAME_LENGTH then
+						TextWindowAppend(textWindow, entryName);
 				end;
 				FindNext(fileSearchRec);
 			end;
+		{$ENDIF}
 
 			TextWindowAppend(textWindow, 'Exit');
 
@@ -108,9 +185,11 @@ function FileSelect(title, extension: TString50): string;
 			end else begin
 				{ File }
 				entryName := textWindow.Lines[textWindow.LinePos]^;
-				if Pos(' ', entryName) <> 0 then
-					entryName := Copy(entryName, 1, Pos(' ', entryName) - 1);
+			{$IFDEF FPC}
+				FileSelect := IncludeTrailingPathDelimiter(curPath) + entryName;
+			{$ELSE}
 				FileSelect := curPath + '\' + entryName;
+			{$ENDIF}
 				searching := false;
 			end;
 		end;

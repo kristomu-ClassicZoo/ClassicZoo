@@ -80,7 +80,7 @@ interface
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
-uses Crt, Input, Sounds, Printer;
+uses Crt, FileMgmt, Input, Sounds, Printer;
 
 function UpCaseString(input: string): string;
 	var
@@ -544,7 +544,7 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 			TextWindowInitState(state);
 			LoadedFilename := UpCaseString(filename);
 			if ResourceDataHeader.EntryCount = 0 then begin
-				Assign(f, ResourceDataFileName);
+				Assign(f, FilenameFindIgnoreCase(ResourceDataFileName));
 				Reset(f, 1);
 				if IOResult = 0 then
 					BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
@@ -561,7 +561,7 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 			end;
 
 			if entryPos <= 0 then begin
-				Assign(tf, filename);
+				Assign(tf, FilenameFindIgnoreCase(filename));
 				Reset(tf);
 				while (IOResult = 0) and (not Eof(tf)) do begin
 					Inc(LineCount);
@@ -570,7 +570,7 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 				end;
 				Close(tf);
 			end else begin
-				Assign(f, ResourceDataFilename);
+				Assign(f, FilenameFindIgnoreCase(ResourceDataFilename));
 				Reset(f, 1);
 				Seek(f, ResourceDataHeader.FileOffset[entryPos]);
 				if IOResult = 0 then begin
@@ -609,7 +609,7 @@ procedure TextWindowSaveFile(filename: TTextWindowLine; var state: TTextWindowSt
 		i: integer;
 	begin
 		with state do begin
-			Assign(f, filename);
+			Assign(f, FilenameFindIgnoreCase(filename));
 			Rewrite(f);
 			if IOResult <> 0 then exit;
 

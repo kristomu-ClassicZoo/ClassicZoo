@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, FileSel, ZVideo, Sounds, Input, Elements, Oop, Game;
+uses Dos, Crt, FileMgmt, ZVideo, Sounds, Input, Elements, Oop, Game;
 
 type
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
@@ -537,7 +537,7 @@ procedure EditorLoop;
 				if i = 0 then begin
 					SavedBoardFileName := FileSelect('ZZT Boards', '.BRD');
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
-						Assign(f, SavedBoardFileName + '.BRD');
+						Assign(f, FilenameFindIgnoreCase(SavedBoardFileName + '.BRD'));
 						Reset(f, 1);
 						if DisplayIOError then goto TransferEnd;
 
@@ -564,7 +564,7 @@ procedure EditorLoop;
 				end else if i = 1 then begin
 					SidebarPromptString('Export board', '.BRD', SavedBoardFileName, PROMPT_ALPHANUM);
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
-						Assign(f, SavedBoardFileName + '.BRD');
+						Assign(f, FilenameFindIgnoreCase(SavedBoardFileName + '.BRD'));
 						Rewrite(f, 1);
 						if DisplayIOError then goto TransferEnd;
 
@@ -941,7 +941,7 @@ procedure HighScoresLoad;
 		f: file of THighScoreList;
 		i: integer;
 	begin
-		Assign(f, World.Info.Name + '.HI');
+		Assign(f, FilenameFindIgnoreCase(World.Info.Name + '.HI'));
 		Reset(f);
 		if IOResult = 0 then begin
 			Read(f, HighScoreList);
@@ -959,7 +959,7 @@ procedure HighScoresSave;
 	var
 		f: file of THighScoreList;
 	begin
-		Assign(f, World.Info.Name + '.HI');
+		Assign(f, FilenameFindIgnoreCase(World.Info.Name + '.HI'));
 		Rewrite(f);
 		Write(f, HighScoreList);
 		Close(f);

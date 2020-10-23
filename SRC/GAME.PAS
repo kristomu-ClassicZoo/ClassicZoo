@@ -107,7 +107,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, FileSel, ZVideo, Sounds, Input, Elements, Editor, Oop;
+uses Dos, Crt, FileMgmt, ZVideo, Sounds, Input, Elements, Editor, Oop;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -713,7 +713,7 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 		SidebarClearLine(5);
 		VideoWriteText(62, 5, $1F, 'Loading.....');
 
-		Assign(f, filename + extension);
+		Assign(f, FilenameFindIgnoreCase(filename + extension));
 		Reset(f, 1);
 
 		if not DisplayIOError then begin
@@ -777,7 +777,7 @@ procedure WorldSave(filename, extension: TString50);
 		BoardClose;
 		VideoWriteText(63, 5, $1F, 'Saving...');
 
-		Assign(f, filename + extension);
+		Assign(f, FilenameFindIgnoreCase(filename + extension));
 		Rewrite(f, 1);
 
 		if not DisplayIOError then begin
