@@ -1043,7 +1043,22 @@ procedure ElementKeyTouch(x, y: integer; sourceStatId: integer; var deltaX, delt
 	var
 		key: integer;
 	begin
-		key := Board.Tiles[x][y].Color mod 8;
+		key := Board.Tiles[x][y].Color and 7;
+
+		{ Special handling to emulate ZZT 3.2 behaviour }
+		if key = 0 then begin
+			if (World.Info.Gems and $FF00) <> 0 then begin
+				DisplayMessage(200, 'You already have a Black key?');
+				SoundQueue(2, #48#2#32#2);
+			end else begin
+				World.Info.Gems := (World.Info.Gems and $00FF) or $100;
+				Board.Tiles[x][y].Element := E_EMPTY;
+				GameUpdateSidebar;
+				DisplayMessage(200, 'You now have the Black key?');
+				SoundQueue(2, #64#1#68#1#71#1#64#1#68#1#71#1#64#1#68#1#71#1#80#2);
+			end;
+			exit;
+		end;
 
 		if World.Info.Keys[key] then begin
 			DisplayMessage(200, 'You already have a '+ColorNames[key]+' key!');
@@ -1098,7 +1113,25 @@ procedure ElementDoorTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 	var
 		key: integer;
 	begin
-		key := (Board.Tiles[x][y].Color div 16) mod 8;
+		key := (Board.Tiles[x][y].Color shr 4) and 7;
+
+		{ Special handling to emulate ZZT 3.2 behaviour }
+		if key = 0 then begin
+			if (World.Info.Gems and $FF00) <> 0 then begin
+				Board.Tiles[x][y].Element := E_EMPTY;
+				BoardDrawTile(x, y);
+
+				World.Info.Gems := World.Info.Gems and $00FF;
+				GameUpdateSidebar;
+
+				DisplayMessage(200, 'The Black door is now open?');
+				SoundQueue(3, #48#1#55#1#59#1#48#1#55#1#59#1#64#4);
+			end else begin
+				DisplayMessage(200, 'The Black door is locked?');
+				SoundQueue(3, #23#1#16#1);
+			end;
+			exit;
+		end;
 
 		if World.Info.Keys[key] then begin
 			Board.Tiles[x][y].Element := E_EMPTY;
