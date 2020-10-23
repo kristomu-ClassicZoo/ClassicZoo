@@ -62,6 +62,15 @@ procedure ParseArguments;
 		ExtMemInstall(enableEms, enableXms);
 	end;
 
+procedure WritelnCentered(s: string);
+	var
+		y: byte;
+	begin
+		y := WhereY;
+		GotoXY(1 + ((80 - Length(s)) shr 1), y);
+		Writeln(s);
+	end;
+
 procedure GameConfigure;
 	var
 		unk1: integer;
@@ -72,7 +81,7 @@ procedure GameConfigure;
 		EditorEnabled := true;
 		ConfigRegistration := '';
 		ConfigWorldFile := '';
-		GameVersion := '3.2';
+		GameVersion := '%VERSION%';
 
 		Assign(cfgFile, FilenameFindIgnoreCase('zzt.cfg'));
 		Reset(cfgFile);
@@ -100,10 +109,10 @@ procedure GameConfigure;
 		TextColor(White);
 		TextColor(White);
 		Writeln;
-		Writeln('                                 <=-  ZZT  -=>');
+		WritelnCentered('<=-  %NAME%  -=>');
 		TextColor(Yellow);
-		Writeln('                                  Version  3.2');
-		Writeln('                            Created by Tim Sweeney');
+		WritelnCentered('Version %VERSION%');
+		WritelnCentered('%CONFIG_SUBTITLE%');
 		GotoXY(1, 7);
 		TextColor(Blue);
 		Write('================================================================================');
@@ -113,7 +122,9 @@ procedure GameConfigure;
 		GotoXY(30, 7);
 		Write(' Game Configuration ');
 		GotoXY(1, 25);
-		Write(' Copyright (c) 1991 Epic MegaGames                         Press ... to abort');
+		Write(' %COPYRIGHT% ');
+		GotoXY(59, 25);
+		Write(' Press ... to abort ');
 		TextColor(Black);
 		TextBackground(LightGray);
 		GotoXY(66, 25);
