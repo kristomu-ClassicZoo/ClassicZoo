@@ -48,7 +48,15 @@ interface
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 
 implementation
-uses Sounds, TimerSys, SDL2;
+uses FileMgmt, SysUtils, Sounds, TimerSys, SDL2;
+type
+	TCharsetTexture = record
+		valid: boolean;
+		charWidth: Uint32;
+		charHeight: Uint32;
+		charsetPitch: Uint32;
+		texture: PSDL_Texture;
+	end;
 const
 	EGA_PALETTE: array[0 .. 15] of Uint32 = (
 		$000000,
@@ -68,16 +76,132 @@ const
 		$FFFF55,
 		$FFFFFF
 	);
+	TEXT_BLINK_RATE = 534;
 var
 	window: PSDL_Window;
 	renderer: PSDL_Renderer;
 	playfieldMutex: PSDL_Mutex;
 	playfieldTexture: PSDL_Texture;
-	charsetTexture: PSDL_Texture;
+	charsetTexture: TCharsetTexture;
 	renderThread: PSDL_Thread;
 	renderThreadRunning: boolean;
 	screenBuffer: array[0 .. 3999] of byte;
 	screenBufferChange: array[0 .. 3999] of boolean; { we only use the even ones }
+
+{ Charset management }
+
+procedure FreeCharsetTexture(var tex: TCharsetTexture);
+	begin
+		if tex.valid then begin
+			SDL_DestroyTexture(tex.texture);
+			tex.valid := false;
+		end;
+	end;
+
+procedure LoadCharsetFromBMP(var tex: TCharsetTexture; path: string);
+	var
+		surfaceOld, surface: PSDL_Surface;
+		texWidth, texHeight: Int32;
+		aspectRatio: Single;
+	begin
+		tex.valid := false;
+
+		surface := SDL_LoadBMP(@path[1]);
+		if surface = nil then exit;
+
+		{ Ensure 32-bit color format for color key }
+		surfaceOld := surface;
+		surface := SDL_ConvertSurfaceFormat(surfaceOld, SDL_PIXELFORMAT_ARGB8888, 0);
+		SDL_FreeSurface(surfaceOld);
+		if surface = nil then exit;
+
+		SDL_SetColorKey(surface, 1, PUint32(surface^.pixels)^ and $00FFFFFF);
+		texWidth := surface^.w;
+		texHeight := surface^.h;
+
+		tex.texture := SDL_CreateTextureFromSurface(renderer, surface);
+		SDL_FreeSurface(surface);
+		if tex.texture = nil then exit;
+
+		if (texWidth * texHeight) < 256 then begin
+			FreeCharsetTexture(tex);
+			exit;
+		end;
+
+		tex.valid := true;
+
+		{ Try to figure out character width and height }
+		tex.charsetPitch := 1;
+		while tex.charsetPitch <= 256 do begin
+			if ((texWidth mod tex.charsetPitch) = 0) and ((texHeight mod (256 div tex.charsetPitch)) = 0) then begin
+				{ Proper divisors, 256 tiles }
+				{ say, 8x16 will lead to 16x8 in the next iteration }
+				{ so, clamping between 1:1 and 1:2 aspect ratios should work }
+				tex.charWidth := (texWidth div tex.charsetPitch);
+				tex.charHeight := (texHeight div (256 div tex.charsetPitch));
+
+				{ We go from highest to lowest aspect ratio, so just pick the first one which works. }
+				{ aspectRatio := Single(LongInt(tex.charWidth)) / Single(LongInt(tex.charHeight)); }
+				if tex.charWidth <= tex.charHeight then begin
+					exit;
+				end;
+			end;
+			tex.charsetPitch := tex.charsetPitch shl 1;
+		end;
+
+		FreeCharsetTexture(tex);
+	end;
+
+procedure LoadCharsetFromByteArray(var tex: TCharsetTexture; chByteArray: array of byte; chSizeBytes: longint);
+	var
+		surface: PSDL_Surface;
+		palette: array[0 .. 1] of TSDL_Color;
+		colors: array[0 .. 256*128-1] of byte;
+		i, ix, iy: integer;
+		iyo: Uint32;
+		ib: byte;
+	begin
+		tex.charWidth := 8;
+		tex.charHeight := chSizeBytes shr 8;
+		tex.charsetPitch := 32;
+		tex.valid := false;
+		if (tex.charHeight < 8) or (tex.charHeight > 16) then exit;
+
+		for i := 0 to 255 do
+			for iy := 0 to (tex.charHeight - 1) do begin
+				ib := chByteArray[i * tex.charHeight + iy];
+				iyo := (((i shr 5) * tex.charHeight + iy) shl 8) + ((i and 31) shl 3);
+				for ix := 0 to 7 do begin
+					colors[iyo + ix] := (ib shr (7 - ix)) and 1;
+				end;
+			end;
+
+		surface := SDL_CreateRGBSurfaceFrom(
+			@colors, 256, tex.charHeight * 8, 8, 256,
+			0, 0, 0, 0
+		);
+
+		if surface = nil then exit;
+
+		palette[0].r := 0;
+		palette[0].g := 0;
+		palette[0].b := 0;
+		palette[0].a := 0;
+		palette[1].r := 255;
+		palette[1].g := 255;
+		palette[1].b := 255;
+		palette[1].a := 255;
+		SDL_SetPaletteColors(surface^.format^.palette, @palette, 0, 2);
+		SDL_SetColorKey(surface, 1, 0);
+
+		tex.texture := SDL_CreateTextureFromSurface(renderer, surface);
+		SDL_FreeSurface(surface);
+		if tex.texture = nil then exit;
+
+		tex.valid := true;
+	end;
+
+{ Video drawing }
 
 procedure VideoDrawCharBg(x, y: integer);
 	var
@@ -96,10 +220,10 @@ procedure VideoDrawCharBg(x, y: integer);
 
 		bgCol := EGA_PALETTE[col shr 4];
 
-		outRect.x := x * 8;
-		outRect.y := y * 14;
-		outRect.w := 8;
-		outRect.h := 14;
+		outRect.x := x * charsetTexture.charWidth;
+		outRect.y := y * charsetTexture.charHeight;
+		outRect.w := charsetTexture.charWidth;
+		outRect.h := charsetTexture.charHeight;
 
 		SDL_SetRenderDrawColor(renderer, (bgCol shr 16), (bgCol shr 8), (bgCol shr 0), SDL_ALPHA_OPAQUE);
 		SDL_RenderFillRect(renderer, @outRect);
@@ -125,18 +249,18 @@ procedure VideoDrawCharFg(x, y: integer; blink: boolean);
 
 		fgCol := EGA_PALETTE[col and 15];
 
-		inRect.x := (chr and 31) * 8;
-		inRect.y := (chr shr 5) * 14;
-		inRect.w := 8;
-		inRect.h := 14;
+		inRect.x := (chr mod charsetTexture.charsetPitch) * charsetTexture.charWidth;
+		inRect.y := (chr div charsetTexture.charsetPitch) * charsetTexture.charHeight;
+		inRect.w := charsetTexture.charWidth;
+		inRect.h := charsetTexture.charHeight;
 
-		outRect.x := x * 8;
-		outRect.y := y * 14;
-		outRect.w := 8;
-		outRect.h := 14;
+		outRect.x := x * charsetTexture.charWidth;
+		outRect.y := y * charsetTexture.charHeight;
+		outRect.w := charsetTexture.charWidth;
+		outRect.h := charsetTexture.charHeight;
 
-		SDL_SetTextureColorMod(charsetTexture, (fgCol shr 16), (fgCol shr 8), (fgCol shr 0));
-		SDL_RenderCopy(renderer, charsetTexture, @inRect, @outRect);
+		SDL_SetTextureColorMod(charsetTexture.texture, (fgCol shr 16), (fgCol shr 8), (fgCol shr 0));
+		SDL_RenderCopy(renderer, charsetTexture.texture, @inRect, @outRect);
 	end;
 
 function VideoRenderThread(data: pointer): LongInt; cdecl;
@@ -150,7 +274,7 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 
 			SDL_LockMutex(playfieldMutex);
 
-			blink := (SDL_GetTicks mod 534) >= 267;
+			blink := (SDL_GetTicks mod TEXT_BLINK_RATE) >= (TEXT_BLINK_RATE div 2);
 
 			for iy := 0 to 24 do
 				for ix := 0 to (VideoColumns - 1) do
@@ -198,6 +322,10 @@ function VideoConfigure: boolean;
 procedure VideoInstall(columns, borderColor: integer);
 	var
 		charsetSurface: PSDL_Surface;
+		asciiBmpPath: string;
+		f: file;
+		chBuffer: array[0 .. 4095] of byte;
+		chSize: longint;
 	begin
 		VideoColumns := columns;
 		window := SDL_CreateWindow('Zeta2',
@@ -207,12 +335,24 @@ procedure VideoInstall(columns, borderColor: integer);
 		renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED or SDL_RENDERER_PRESENTVSYNC);
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, '0');
 
-		charsetSurface := SDL_LoadBMP('charset.bmp');
-		SDL_SetColorKey(charsetSurface, 1, 0);
-		charsetTexture := SDL_CreateTextureFromSurface(renderer, charsetSurface);
-		SDL_FreeSurface(charsetSurface);
-		{ charsetTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STATIC, 256, 112); }
-		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 640, 350);
+		{$I+}
+		Assign(f, FilenameFindIgnoreCase('ASCII.CHR'));
+		Reset(f, 1);
+		BlockRead(f, chBuffer, 4096, chSize);
+		Close(f);
+		{$I-}
+
+		asciiBmpPath := FilenameFindIgnoreCase('ASCII.BMP');
+		if FileExists(asciiBmpPath) then
+			LoadCharsetFromBMP(charsetTexture, asciiBmpPath);
+		if not charsetTexture.valid then
+			LoadCharsetFromByteArray(charsetTexture, chBuffer, chSize);
+		if not charsetTexture.valid then
+			RunError(217);
+
+		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+			VideoColumns * charsetTexture.charWidth, 25 * charsetTexture.charHeight);
+		SDL_SetWindowSize(window, VideoColumns * charsetTexture.charWidth, 25 * charsetTexture.charHeight);
 
 		playfieldMutex := SDL_CreateMutex;
 
@@ -230,7 +370,7 @@ procedure VideoUninstall;
 
 		SDL_DestroyMutex(playfieldMutex);
 		SDL_DestroyTexture(playfieldTexture);
-		SDL_DestroyTexture(charsetTexture);
+		FreeCharsetTexture(charsetTexture);
 		SDL_DestroyRenderer(renderer);
 		SDL_DestroyWindow(window);
 	end;
