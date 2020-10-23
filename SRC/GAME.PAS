@@ -101,7 +101,13 @@ const
 	StatTemplateDefault: TStat = (
 		X: 0; Y: 0; StepX: 0; StepY: 0;
 		Cycle: 0; P1: 0; P2: 0; P3: 0;
-		Follower: -1; Leader: -1
+		Follower: -1; Leader: -1;
+		Under: (Element: E_EMPTY; Color: $00);
+	{$IFDEF CPU64}
+		UnusedData: 0; DataPos: 0; DataLen: 0; Data: nil
+	{$ELSE}
+		Data: nil; DataPos: 0; DataLen: 0
+	{$ENDIF}
 	);
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
