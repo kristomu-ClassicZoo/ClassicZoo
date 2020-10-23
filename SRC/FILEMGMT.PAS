@@ -32,9 +32,18 @@ interface
 	function FilenameFindIgnoreCase(fn: string): string;
 	function FileSelect(title, extension: TString50): string;
 
-implementation
 {$IFDEF FPC}
-uses StrUtils, SysUtils, TxtWind;
+{$IFDEF CPUI8086}
+{$IFNDEF MSDOS}
+{ Pulling in all of SysUtlils on DOS/8086 increases filesize unreasonably. }
+{$DEFINE EXTFNSUP}
+{$ENDIF}
+{$ENDIF}
+{$ENDIF}
+
+implementation
+{$IFDEF EXTFNSUP}
+uses SysUtils, TxtWind;
 {$ELSE}
 uses Dos, TxtWind;
 {$ENDIF}
@@ -42,7 +51,7 @@ const
 	PATH_PREVIEW_LENGTH = 24;
 	MAX_FILENAME_LENGTH = 20;
 
-{$IFDEF FPC}
+{$IFDEF EXTFNSUP}
 function FilenameFindIgnoreCase(fn: string): string;
 	var
 		fileSearchRec: TRawbyteSearchRec;
@@ -82,7 +91,7 @@ function FilenameFindIgnoreCase(fn: string): string;
 function FileSelect(title, extension: TString50): string;
 	var
 		textWindow: TTextWindowState;
-{$IFDEF FPC}
+{$IFDEF EXTFNSUP}
 		fileSearchRec: TRawbyteSearchRec;
 {$ELSE}
 		fileSearchRec: SearchRec;
@@ -111,7 +120,7 @@ function FileSelect(title, extension: TString50): string;
 			textWindow.Selectable := true;
 			textWIndow.Hyperlink := '';
 
-		{$IFDEF FPC}
+		{$IFDEF EXTFNSUP}
 			{ .. }
 			if ExpandFileName(curPath) <> ExpandFileName(IncludeTrailingPathDelimiter(curPath) + '..') then
 				TextWindowAppend(textWindow, '!..;[..]');
@@ -132,8 +141,9 @@ function FileSelect(title, extension: TString50): string;
 			FindFirst('*', faAnyFile, fileSearchRec);
 			repeat
 				if ((fileSearchRec.Attr and faDirectory) = 0) then begin
-					if UpCase(Copy(fileSearchRec.Name, Length(fileSearchRec.name) - Length(extension) + 1, Length(extension))) <> extension then
-						continue;
+					if UpCase(Copy(fileSearchRec.Name,
+						Length(fileSearchRec.name) - Length(extension) + 1,
+						Length(extension))) <> extension then continue;
 					entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
 
 					if Length(entryName) <= MAX_FILENAME_LENGTH then
@@ -185,7 +195,7 @@ function FileSelect(title, extension: TString50): string;
 			end else begin
 				{ File }
 				entryName := textWindow.Lines[textWindow.LinePos]^;
-			{$IFDEF FPC}
+			{$IFDEF EXTFNSUP}
 				FileSelect := IncludeTrailingPathDelimiter(curPath) + entryName;
 			{$ELSE}
 				FileSelect := curPath + '\' + entryName;

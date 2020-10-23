@@ -26,7 +26,12 @@
 unit TimerSys;
 
 interface
-	uses Sounds, SDL2;
+	type
+		TIdleMode = (IMUntilPit, IMUntilFrame);
+		TDrumData = record
+			Len: integer;
+			Data: array[1 .. 63] of word;
+		end;
 	var
 		SoundNewVector: pointer;
 		SoundOldVector: pointer;
@@ -40,7 +45,7 @@ interface
 	procedure TimerSysUninstall;
 
 implementation
-uses AudioSim;
+uses AudioSim, Sounds, SDL2;
 
 const
 	PIT_SPEED_MS = 55;

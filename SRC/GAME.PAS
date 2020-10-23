@@ -107,7 +107,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, FileMgmt, ZVideo, Sounds, Input, Elements, Editor, Oop;
+uses Dos, Crt, FileMgmt, ZVideo, Sounds, TimerSys, Input, Elements, Editor, Oop;
 
 procedure SidebarClearLine(y: integer);
 	begin

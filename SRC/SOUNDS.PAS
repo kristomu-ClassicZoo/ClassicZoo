@@ -26,12 +26,7 @@
 unit Sounds;
 
 interface
-	type
-		TIdleMode = (IMUntilPit, IMUntilFrame);
-		TDrumData = record
-			Len: integer;
-			Data: array[1 .. 255] of word;
-		end;
+	uses TimerSys;
 	var
 		SoundEnabled: boolean;
 		SoundBlockQueueing: boolean;
@@ -51,7 +46,6 @@ interface
 	function SoundParse(input: string): string;
 
 implementation
-uses TimerSys;
 
 procedure SoundIdle(mode: TIdleMode);
 	begin

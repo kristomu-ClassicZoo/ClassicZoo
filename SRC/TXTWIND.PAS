@@ -80,7 +80,7 @@ interface
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
-uses Crt, FileMgmt, Input, Sounds, Printer;
+uses Crt, FileMgmt, Input, Sounds, TimerSys, Printer;
 
 function UpCaseString(input: string): string;
 	var

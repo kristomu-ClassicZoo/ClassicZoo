@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, FileMgmt, ZVideo, Sounds, Input, Elements, Oop, Game;
+uses Dos, Crt, FileMgmt, ZVideo, Sounds, TimerSys, Input, Elements, Oop, Game;
 
 type
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);

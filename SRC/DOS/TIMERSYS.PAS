@@ -26,7 +26,12 @@
 unit TimerSys;
 
 interface
-	uses Sounds;
+	type
+		TIdleMode = (IMUntilPit, IMUntilFrame);
+		TDrumData = record
+			Len: integer;
+			Data: array[1 .. 63] of word;
+		end;
 	var
 		SoundNewVector: pointer;
 		SoundOldVector: pointer;
@@ -39,7 +44,7 @@ interface
 	procedure TimerSysUninstall;
 
 implementation
-uses Crt, Dos;
+uses Crt, Dos, Sounds;
 
 var
 	TimerHsecs: word;
