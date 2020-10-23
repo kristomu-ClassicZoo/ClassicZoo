@@ -36,11 +36,12 @@ interface
 		MAX_RESOURCE_DATA_FILES = 24;
 	type
 		TTextWindowLine = string[50];
+		PTTextWindowLine = ^TTextWindowLine;
 		TTextWindowState = record
 			Selectable: boolean;
 			LineCount: integer;
 			LinePos: integer;
-			Lines: array[1 .. MAX_TEXT_WINDOW_LINES] of ^TTextWindowLine;
+			Lines: array[1 .. MAX_TEXT_WINDOW_LINES] of PTTextWindowLine;
 			Hyperlink: string[20];
 			Title: TTextWindowLine;
 			LoadedFilename: string[50];
@@ -73,6 +74,7 @@ interface
 	procedure TextWindowAppend(var state: TTextWindowState; line: TTextWindowLine);
 	procedure TextWindowFree(var state: TTextWindowState);
 	procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewingFile: boolean);
+	procedure TextWindowSort(var state: TTextWindowState; fromIdx, toIdx: integer);
 	procedure TextWindowEdit(var state: TTextWindowState);
 	procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowState);
 	procedure TextWindowSaveFile(filename: TTextWindowLine; var state: TTextWindowState);
@@ -368,6 +370,66 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 				TextWindowRejected := true;
 			end;
 		end;
+	end;
+
+procedure TextWindowSort(var state: TTextWindowState; fromIdx, toIdx: integer);
+	var
+		i, j: integer;
+		smallestIdx: integer;
+
+	procedure Swap(var a, b: PTTextWindowLine);
+		var
+			c: PTTextWindowLine;
+		begin
+			c := a;
+			a := b;
+			b := c;
+		end;
+
+	{ Returns the location of the pivot after separating. }
+	function Partition(var state: TTextWindowState; low: integer;
+		high: integer): integer;
+	var
+		pivot: PTTextWindowLine;
+		i, j: integer;
+	begin
+		{ Choose a random pivot. A cannae be bothered to do anything
+		  faster/more sophisticated. }
+		pivot := state.Lines[Random(high-low) + low];
+		i := low;
+		j := high;
+
+	    repeat
+			while state.Lines[i]^ < pivot^ do Inc(i);
+			while state.Lines[j]^ > pivot^ do Dec(j);
+
+			if i <= j then begin
+				Swap(state.Lines[i], state.Lines[j]);
+
+				Inc(i);
+				Dec(j);
+	    	end;
+		until i > j;
+
+		Partition := i;
+	end;
+
+	procedure Quicksort(var state: TTextWindowState; low: integer;
+		high: integer);
+	var
+		pivotPt: integer;
+	begin
+		if low < high then begin
+			pivotPt := partition(state, low, high);
+			Quicksort(state, low, pivotPt-1);
+			Quicksort(state, pivotPt, high);
+		end;
+	end;
+
+	begin
+		if fromIdx < 1 then fromIdx := 1;
+		if toIdx > state.LineCount then toIdx := state.LineCount;
+		Quicksort(state, fromIdx, toIdx);
 	end;
 
 procedure TextWindowEdit(var state: TTextWindowState);

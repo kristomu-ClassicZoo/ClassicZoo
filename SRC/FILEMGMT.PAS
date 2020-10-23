@@ -120,7 +120,7 @@ function FileSelect(title, extension: TString50; changeDir: boolean): string;
 		entryName: string;
 		useWorldFileDesc: boolean;
 		accepted, searching: boolean;
-		i: integer;
+		i, iSortStart: integer;
 		curPath: string;
 		startPath: string;
 		previewPath: string[PATH_PREVIEW_LENGTH + 4];
@@ -146,6 +146,7 @@ function FileSelect(title, extension: TString50; changeDir: boolean): string;
 			{ .. }
 			if ExpandFileName(curPath) <> ExpandFileName(IncludeTrailingPathDelimiter(curPath) + '..') then
 				TextWindowAppend(textWindow, '!..;[..]');
+			iSortStart := textWindow.LineCount + 1;
 
 			{ Directories }
 			FindFirst('*', faDirectory, fileSearchRec);
@@ -178,6 +179,7 @@ function FileSelect(title, extension: TString50; changeDir: boolean): string;
 			{ .. }
 			if Length(curPath) > 3 then
 				TextWindowAppend(textWindow, '!..;[..]');
+			iSortStart := textWindow.LineCount + 1;
 
 			{ Directories }
 			FindFirst('*', Directory, fileSearchRec);
@@ -204,6 +206,7 @@ function FileSelect(title, extension: TString50; changeDir: boolean): string;
 			end;
 		{$ENDIF}
 
+			TextWindowSort(textWindow, iSortStart, textWindow.LineCount);
 			TextWindowAppend(textWindow, 'Exit');
 
 			TextWindowDrawOpen(textWindow);
