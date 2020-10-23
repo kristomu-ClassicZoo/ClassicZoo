@@ -32,10 +32,12 @@ interface
 	function FilenameFindIgnoreCase(fn: string): string;
 	function FileSelect(title, extension: TString50): string;
 
-{$IFDEF FPC}
-{$IFDEF CPUI8086}
-{$IFNDEF MSDOS}
 { Pulling in all of SysUtlils on DOS/8086 increases filesize unreasonably. }
+{$IFDEF FPC}
+{$IFNDEF CPUI8086}
+{$DEFINE EXTFNSUP}
+{$ELSE}
+{$IFNDEF MSDOS}
 {$DEFINE EXTFNSUP}
 {$ENDIF}
 {$ENDIF}
@@ -143,11 +145,12 @@ function FileSelect(title, extension: TString50): string;
 				if ((fileSearchRec.Attr and faDirectory) = 0) then begin
 					if UpCase(Copy(fileSearchRec.Name,
 						Length(fileSearchRec.name) - Length(extension) + 1,
-						Length(extension))) <> extension then continue;
-					entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
+						Length(extension))) = extension then begin
+						entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
 
-					if Length(entryName) <= MAX_FILENAME_LENGTH then
-						TextWindowAppend(textWindow, entryName);
+						if Length(entryName) <= MAX_FILENAME_LENGTH then
+							TextWindowAppend(textWindow, entryName);
+					end;
 				end;
 			until FindNext(fileSearchRec) <> 0;
 			FindClose(fileSearchRec);
