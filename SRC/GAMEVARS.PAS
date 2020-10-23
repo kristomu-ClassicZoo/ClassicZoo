@@ -29,6 +29,7 @@
 unit GameVars;
 
 interface
+	uses ExtMem;
 	const
 		MAX_STAT = 150;
 		MAX_ELEMENT = 53;
@@ -157,7 +158,7 @@ interface
 		end;
 		TWorld = record
 			BoardCount: integer;
-			BoardData: array[0 .. MAX_BOARD] of pointer;
+			BoardData: array[0 .. MAX_BOARD] of TExtMemBlock;
 			BoardLen: array[0 .. MAX_BOARD] of integer;
 			Info: TWorldInfo;
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;

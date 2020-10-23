@@ -28,19 +28,29 @@
 {$M 49152,163840,655360}
 {$ENDIF}
 program ZZT;
-uses Crt, Dos, FileMgmt, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+uses Crt, Dos, ExtMem, FileMgmt, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
 
 procedure ParseArguments;
 	var
 		i: integer;
 		pArg: string;
+		enableEms: boolean;
+		enableXms: boolean;
 	begin
+		enableEms := true;
+		enableXms := true;
+
 		for i := 1 to ParamCount do begin
 			pArg := ParamStr(i);
 			if pArg[1] = '/' then begin
 				case UpCase(pArg[2]) of
 					'R': ResetConfig := true;
 				end;
+
+				if pArg = '/NOEMS' then
+					enableEms := false
+				else if pArg = '/NOXMS' then
+					enableXms := false;
 			end else begin
 				StartupWorldFileName := pArg;
 				if (Length(StartupWorldFileName) > 4) and (StartupWorldFileName[Length(StartupWorldFileName) - 3] = '.') then begin
@@ -48,6 +58,8 @@ procedure ParseArguments;
 				end;
 			end;
 		end;
+
+		ExtMemInstall(enableEms, enableXms);
 	end;
 
 procedure GameConfigure;
@@ -170,6 +182,7 @@ begin
 		GameTitleLoop;
 
 		Dispose(IoTmpBuf);
+		ExtMemUninstall;
 	end;
 
 	SoundClearQueue;
