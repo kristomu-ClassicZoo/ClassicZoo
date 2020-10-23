@@ -761,7 +761,7 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 				Close(f);
 
 				BoardOpen(World.Info.CurrentBoard);
-				LoadedGameFileName := filename;
+				LoadedGameFileName := FilenameExtractName(filename);
 				WorldLoad := true;
 
 				HighScoresLoad;
@@ -833,7 +833,7 @@ procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: T
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(newFilename) <> 0) then begin
 			filename := newFilename;
 			if extension = '.ZZT' then
-				World.Info.Name := filename;
+				World.Info.Name := FilenameExtractName(filename);
 			WorldSave(filename, extension);
 		end;
 	end;

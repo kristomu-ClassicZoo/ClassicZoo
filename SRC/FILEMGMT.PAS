@@ -29,6 +29,7 @@ unit FileMgmt;
 
 interface
 	uses GameVars;
+	function FilenameExtractName(fn: string): string;
 	function FilenameFindIgnoreCase(fn: string): string;
 	function FileSelect(title, extension: TString50): string;
 
@@ -54,6 +55,11 @@ const
 	MAX_FILENAME_LENGTH = 20;
 
 {$IFDEF EXTFNSUP}
+function FilenameExtractName(fn: string): string;
+	begin
+		FilenameExtractName := ExtractFileName(fn);
+	end;
+
 function FilenameFindIgnoreCase(fn: string): string;
 	var
 		fileSearchRec: TRawbyteSearchRec;
@@ -84,6 +90,19 @@ function FilenameFindIgnoreCase(fn: string): string;
 		FilenameFindIgnoreCase := newFn;
 	end;
 {$ELSE}
+function FilenameExtractName(fn: string): string;
+	var
+		i: integer;
+	begin
+		for i := Length(fn) downto 1 do begin
+			if fn[i] = '\' then begin
+				FilenameExtractName := Copy(fn, i + 1, Length(fn) - i);
+				exit;
+			end;
+		end;
+		FilenameExtractName := fn;
+	end;
+
 function FilenameFindIgnoreCase(fn: string): string;
 	begin
 		FilenameFindIgnoreCase := fn;
@@ -175,6 +194,8 @@ function FileSelect(title, extension: TString50): string;
 			FindFirst('*' + extension, AnyFile, fileSearchRec);
 			while DosError = 0 do begin
 				if (fileSearchRec.Attr and Directory) = 0 then begin
+					entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
+
 					if Length(entryName) <= MAX_FILENAME_LENGTH then
 						TextWindowAppend(textWindow, entryName);
 				end;
@@ -199,7 +220,10 @@ function FileSelect(title, extension: TString50): string;
 				{ File }
 				entryName := textWindow.Lines[textWindow.LinePos]^;
 			{$IFDEF EXTFNSUP}
-				FileSelect := IncludeTrailingPathDelimiter(curPath) + entryName;
+				FileSelect := ExtractRelativePath(
+					IncludeTrailingPathDelimiter(startPath),
+					IncludeTrailingPathDelimiter(curPath) + entryName
+				);
 			{$ELSE}
 				FileSelect := curPath + '\' + entryName;
 			{$ENDIF}
