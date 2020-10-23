@@ -848,7 +848,7 @@ function GameWorldLoad(extension: TString50): boolean;
 		else
 			title := 'Saved Games';
 		GameWorldLoad := false;
-		entryName := FileSelect(title, extension);
+		entryName := FileSelect(title, extension, true);
 
 		if Length(entryName) > 0 then begin
 			GameWorldLoad := WorldLoad(entryName, extension, false);

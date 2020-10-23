@@ -31,7 +31,7 @@ interface
 	uses GameVars;
 	function FilenameExtractName(fn: string): string;
 	function FilenameFindIgnoreCase(fn: string): string;
-	function FileSelect(title, extension: TString50): string;
+	function FileSelect(title, extension: TString50; changeDir: boolean): string;
 
 { Pulling in all of SysUtlils on DOS/8086 increases filesize unreasonably. }
 {$IFDEF FPC}
@@ -109,7 +109,7 @@ function FilenameFindIgnoreCase(fn: string): string;
 	end;
 {$ENDIF}
 
-function FileSelect(title, extension: TString50): string;
+function FileSelect(title, extension: TString50; changeDir: boolean): string;
 	var
 		textWindow: TTextWindowState;
 {$IFDEF EXTFNSUP}
@@ -119,7 +119,7 @@ function FileSelect(title, extension: TString50): string;
 {$ENDIF}
 		entryName: string;
 		useWorldFileDesc: boolean;
-		searching: boolean;
+		accepted, searching: boolean;
 		i: integer;
 		curPath: string;
 		startPath: string;
@@ -127,6 +127,7 @@ function FileSelect(title, extension: TString50): string;
 	begin
 		useWorldFileDesc := extension = '.ZZT';
 		searching := true;
+		accepted := false;
 		GetDir(0, startPath);
 
 		while searching do begin
@@ -220,20 +221,28 @@ function FileSelect(title, extension: TString50): string;
 				{ File }
 				entryName := textWindow.Lines[textWindow.LinePos]^;
 			{$IFDEF EXTFNSUP}
-				FileSelect := ExtractRelativePath(
-					IncludeTrailingPathDelimiter(startPath),
-					IncludeTrailingPathDelimiter(curPath) + entryName
-				);
+				if changeDir then
+					FileSelect := entryName
+				else
+					FileSelect := ExtractRelativePath(
+						IncludeTrailingPathDelimiter(startPath),
+						IncludeTrailingPathDelimiter(curPath) + entryName
+					);
 			{$ELSE}
-				FileSelect := curPath + '\' + entryName;
+				if changeDir then
+					FileSelect := entryName
+				else
+					FileSelect := curPath + '\' + entryName;
 			{$ENDIF}
+				accepted := true;
 				searching := false;
 			end;
 		end;
 
 		TextWindowFree(textWindow);
 
-		ChDir(startPath);
+		if (not changeDir) or (not accepted) then
+			ChDir(startPath);
 	end;
 
 end.

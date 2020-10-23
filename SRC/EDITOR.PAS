@@ -671,7 +671,7 @@ procedure EditorLoop;
 			SidebarPromptChoice(true, 3, 'Transfer board:', 'Import Export', i);
 			if InputKeyPressed <> KEY_ESCAPE then begin
 				if i = 0 then begin
-					SavedBoardFileName := FileSelect('ZZT Boards', '.BRD');
+					SavedBoardFileName := FileSelect('ZZT Boards', '.BRD', false);
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
 						Assign(f, FilenameFindIgnoreCase(SavedBoardFileName + '.BRD'));
 						Reset(f, 1);
