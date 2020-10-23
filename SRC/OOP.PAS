@@ -820,7 +820,8 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 				end else if OopChar = #0 then begin
 					endOfProgram := true;
 				end else begin
-					textLine := OopChar + OopReadLineToEnd(statId, position);
+					textLine := OopChar;
+					textLine := textLine + OopReadLineToEnd(statId, position);
 					TextWindowAppend(textWindow, textLine);
 				end;
 			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > 32);

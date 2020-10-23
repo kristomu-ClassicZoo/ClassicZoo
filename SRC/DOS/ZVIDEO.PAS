@@ -24,7 +24,7 @@
 }
 
 {$I-}
-unit Video;
+unit ZVideo;
 
 interface
 	type
@@ -399,4 +399,6 @@ begin
 	end;
 	VideoTextPointer := Ptr(VideoTextSegment, $0000);
 	VideoCursorVisible := true;
+
+	SetCBreak(false);
 end.

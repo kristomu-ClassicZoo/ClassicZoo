@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game;
+uses Dos, Crt, ZVideo, Sounds, Input, Elements, Oop, Game;
 
 type
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
@@ -646,6 +646,7 @@ procedure EditorLoop;
 		repeat
 			if drawMode = DrawingOn then
 				EditorPlaceTile(cursorX, cursorY);
+			SoundIdle(IMUntilFrame);
 			InputUpdate;
 			if (InputKeyPressed = #0) and (InputDeltaX = 0) and (InputDeltaY = 0) and not InputShiftPressed then begin
 				if SoundHasTimeElapsed(TickTimeCounter, 15) then

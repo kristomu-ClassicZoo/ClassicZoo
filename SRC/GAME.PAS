@@ -107,7 +107,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop;
+uses Dos, Crt, ZVideo, Sounds, Input, Elements, Editor, Oop;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -146,7 +146,11 @@ procedure GenerateTransitionTable;
 
 procedure AdvancePointer(var address: pointer; count: integer);
 	begin
+		{$IFNDEF FPC}
 		address := Ptr(Seg(address^), Ofs(address^) + count);
+		{$ELSE}
+		address := address + count;
+		{$ENDIF}
 	end;
 
 procedure BoardClose;
@@ -481,6 +485,7 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 					Delay(45);
 				VideoWriteText(x + value + 1, y + 1, $9F, #31);
 
+				SoundIdle(IMUntilFrame);
 				InputUpdate;
 				if (InputKeyPressed >= '1') and (InputKeyPressed <= '9') then begin
 					value := Ord(InputKeyPressed) - 49;
@@ -1139,10 +1144,12 @@ procedure GameUpdateSidebar;
 			else
 				VideoWriteText(65, 15, $1F, ' Be noisy');
 
+			{$IFDEF MSDOS}
 			if DebugEnabled then begin
 				Str(MemAvail, numStr);
 				VideoWriteText(69, 4, $1E, 'm' + numStr + ' ');
 			end;
+			{$ENDIF}
 		end;
 	end;
 
@@ -1531,6 +1538,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				end;
 
 				VideoWriteText(64, 5, $1F, 'Pausing...');
+				SoundIdle(IMUntilFrame);
 				InputUpdate;
 
 				if InputKeyPressed = KEY_ESCAPE then
@@ -1587,6 +1595,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 					CurrentStatTicked := 0;
 
 					InputUpdate;
+				end else begin
+					SoundIdle(IMUntilPit);
 				end;
 			end;
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
@@ -1709,7 +1719,11 @@ procedure GamePrintRegisterMessage;
 				isReading := true;
 				while (IOResult = 0) and isReading do begin
 					BlockRead(f, s, 1);
+					{$IFNDEF FPC}
 					strPtr := Ptr(Seg(s), Ofs(s) + 1);
+					{$ELSE}
+					strPtr := (@s) + 1;
+					{$ENDIF}
 					if Length(s) = 0 then begin
 						Dec(color);
 					end else begin

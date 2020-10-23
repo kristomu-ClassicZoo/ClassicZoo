@@ -27,6 +27,7 @@ unit Sounds;
 
 interface
 	type
+		TIdleMode = (IMUntilPit, IMUntilFrame);
 		TDrumData = record
 			Len: integer;
 			Data: array[1 .. 255] of word;
@@ -39,15 +40,10 @@ interface
 		SoundDurationMultiplier: byte;
 		SoundDurationCounter: byte;
 		SoundBuffer: string;
-		SoundNewVector: pointer;
-		SoundOldVector: pointer;
 		SoundBufferPos: integer;
 		SoundIsPlaying: boolean;
-		SoundTimeCheckCounter: integer;
-		UseSystemTimeForElapsed: boolean;
-		TimerTicks: word;
-		SoundTimeCheckHsec: integer;
 		SoundDrumTable: array[0 .. 9] of TDrumData;
+	procedure SoundIdle(mode: TIdleMode);
 	procedure SoundQueue(priority: integer; pattern: string);
 	procedure SoundClearQueue;
 	function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
@@ -55,10 +51,17 @@ interface
 	function SoundParse(input: string): string;
 
 implementation
-uses Crt, Dos;
+uses TimerSys;
+
+procedure SoundIdle(mode: TIdleMode);
+	begin
+		TimerSysIdle(mode);
+	end;
 
 procedure SoundQueue(priority: integer; pattern: string);
 	begin
+		TimerSysLockSoundBuffer;
+
 		if not SoundBlockQueueing and
 			(not SoundIsPlaying or (((priority >= SoundCurrentPriority) and (SoundCurrentPriority <> -1)) or (priority = -1))) then
 		begin
@@ -76,13 +79,18 @@ procedure SoundQueue(priority: integer; pattern: string);
 			end;
 			SoundIsPlaying := true;
 		end;
+
+		TimerSysUnlockSoundBuffer;
 	end;
 
 procedure SoundClearQueue;
 	begin
+		TimerSysLockSoundBuffer;
+
 		SoundBuffer := '';
 		SoundIsPlaying := false;
-		NoSound;
+
+		TimerSysUnlockSoundBuffer;
 	end;
 
 procedure SoundInitFreqTable;
@@ -130,48 +138,14 @@ procedure SoundInitDrumTable;
 			SoundDrumTable[9].Data[i] := Random(440) + 220;
 	end;
 
-procedure SoundPlayDrum(var drum: TDrumData);
-	var
-		i: integer;
-	begin
-		for i := 1 to drum.Len do begin
-			Sound(drum.Data[i]);
-			Delay(1);
-		end;
-		NoSound;
-	end;
-
-procedure SoundCheckTimeIntr;
-	var
-		hour, minute, sec, hSec: word;
-	begin
-		GetTime(hour, minute, sec, hSec);
-		if (SoundTimeCheckHsec <> 0) and (Integer(hSec) <> SoundTimeCheckHsec) then begin
-			SoundTimeCheckCounter := 0;
-			UseSystemTimeForElapsed := true;
-		end;
-		SoundTimeCheckHsec := Integer(hSec);
-	end;
-
 function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 	var
 		hour, minute, sec, hSec: word;
 		hSecsDiff: word;
 		hSecsTotal: integer;
 	begin
-		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter mod 2) = 1) then begin
-			SoundTimeCheckCounter := SoundTimeCheckCounter - 1;
-			SoundCheckTimeIntr;
-		end;
-
-		if UseSystemTimeForElapsed then begin
-			GetTime(hour, minute, sec, hSec);
-			hSecsTotal := sec * 100 + hSec;
-			hSecsDiff := Word((hSecsTotal - counter) + 6000) mod 6000;
-		end else begin
-			hSecsTotal := TimerTicks * 6;
-			hSecsDiff := hSecsTotal - counter;
-		end;
+		hSecsTotal := TimerSysGetHsecs;
+		hSecsDiff := Word((hSecsTotal - counter) + 6000) mod 6000;
 
 		if hSecsDiff >= duration then begin
 			SoundHasTimeElapsed := true;
@@ -179,45 +153,6 @@ function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 		end else begin
 			SoundHasTimeElapsed := false;
 		end;
-	end;
-
-procedure SoundTimerHandler;
-	interrupt;
-	begin
-		Inc(TimerTicks);
-		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter mod 2) = 0) then begin
-			SoundTimeCheckCounter := SoundTimeCheckCounter - 1;
-		end;
-
-		if not SoundEnabled then begin
-			SoundIsPlaying := false;
-			NoSound;
-		end else if SoundIsPlaying then begin
-			Dec(SoundDurationCounter);
-			if SoundDurationCounter <= 0 then begin
-				NoSound;
-				if SoundBufferPos >= Length(SoundBuffer) then begin
-					NoSound;
-					SoundIsPlaying := false;
-				end else begin
-					if SoundBuffer[SoundBufferPos] = #0 then
-						NoSound
-					else if SoundBuffer[SoundBufferPos] < #240 then
-						Sound(SoundFreqTable[Ord(SoundBuffer[SoundBufferPos])])
-					else
-						SoundPlayDrum(SoundDrumTable[Ord(SoundBuffer[SoundBufferPos]) - 240]);
-					Inc(SoundBufferPos);
-
-					SoundDurationCounter := SoundDurationMultiplier * Ord(SoundBuffer[SoundBufferPos]);
-					Inc(SoundBufferPos);
-				end;
-			end;
-		end;
-	end;
-
-procedure SoundUninstall;
-	begin
-		SetIntVec($1C, SoundOldVector);
 	end;
 
 function SoundParse(input: string): string;
@@ -339,20 +274,19 @@ function SoundParse(input: string): string;
 		SoundParse := output;
 	end;
 
+procedure SoundUninstall;
+	begin
+		TimerSysUninstall;
+	end;
+
 begin
+	TimerSysInstall;
+
 	SoundInitFreqTable;
 	SoundInitDrumTable;
-	SoundTimeCheckCounter := 36;
-	UseSystemTimeForElapsed := false;
-	TimerTicks := 0;
-	SoundTimeCheckHsec := 0;
 	SoundEnabled := true;
 	SoundBlockQueueing := false;
 	SoundClearQueue;
 	SoundDurationMultiplier := 1;
 	SoundIsPlaying := false;
-	TimerTicks := 0;
-	SoundNewVector := @SoundTimerHandler;
-	GetIntVec($1C, SoundOldVector);
-	SetIntVec($1C, SoundNewVector);
 end.

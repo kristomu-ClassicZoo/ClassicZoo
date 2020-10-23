@@ -28,7 +28,7 @@
 {$M 49152,163840,655360}
 {$ENDIF}
 program ZZT;
-uses Crt, Dos, Video, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+uses Crt, Dos, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
 
 procedure ParseArguments;
 	var
@@ -39,10 +39,6 @@ procedure ParseArguments;
 			pArg := ParamStr(i);
 			if pArg[1] = '/' then begin
 				case UpCase(pArg[2]) of
-					'T': begin
-						SoundTimeCheckCounter := 0;
-						UseSystemTimeForElapsed := false;
-					end;
 					'R': ResetConfig := true;
 				end;
 			end else begin
@@ -146,7 +142,6 @@ begin
 	WorldFileDescValues[7] := 'TOUR       Guided Tour ZZT'#39's Other Worlds';
 
 	Randomize;
-	SetCBreak(false);
 	InitialTextAttr := TextAttr;
 
 	StartupWorldFileName := 'TOWN';
@@ -177,11 +172,11 @@ begin
 		Dispose(IoTmpBuf);
 	end;
 
-	SoundUninstall;
 	SoundClearQueue;
 
 	VideoUninstall;
-	Port[PORT_CGA_PALETTE] := 0;
+	SoundUninstall;
+
 	TextAttr := InitialTextAttr;
 	ClrScr;
 

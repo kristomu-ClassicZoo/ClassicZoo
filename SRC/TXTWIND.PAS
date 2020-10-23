@@ -24,10 +24,13 @@
 }
 
 {$I-}
+{$IFDEF FPC}
+{$PACKRECORDS 1}
+{$ENDIF}
 unit TxtWind;
 
 interface
-	uses Video;
+	uses ZVideo;
 	const
 		MAX_TEXT_WINDOW_LINES = 1024;
 		MAX_RESOURCE_DATA_FILES = 24;
@@ -77,7 +80,7 @@ interface
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
-uses Crt, Input, Printer;
+uses Crt, Input, Sounds, Printer;
 
 function UpCaseString(input: string): string;
 	var
@@ -282,6 +285,7 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 			Hyperlink := '';
 			TextWindowDraw(state, false, viewingFile);
 			repeat
+				SoundIdle(IMUntilFrame);
 				InputUpdate;
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
@@ -576,7 +580,11 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 						New(Lines[LineCount]);
 
 						BlockRead(f, Lines[LineCount]^, 1);
+						{$IFNDEF FPC}
 						line := Ptr(Seg(Lines[LineCount]^), Ofs(Lines[LineCount]^) + 1);
+						{$ELSE}
+						line := Pointer(Lines[LineCount]) + 1;
+						{$ENDIF}
 						lineLen := Ord(Lines[LineCount]^[0]);
 						if lineLen = 0 then begin
 							Lines[LineCount]^ := '';
