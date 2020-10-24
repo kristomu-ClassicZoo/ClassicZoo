@@ -216,6 +216,10 @@ if [ -n "$FREE_PASCAL" ]; then
 	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
 	tail --pid $! -n +1 -f BUILD.LOG
 else
+	# HACK! NEC98 requires SRC/DOS/EXTMEM.PAS, as the underlying standards are
+	# the same. (We do this on Free Pascal via fpc.any.any.nec98.cfg.)
+	cp SRC/DOS/EXTMEM.PAS SRC/EXTMEM.PAS 2>/dev/null
+
 	cp SRC/"$PLATFORM_UNIT"/*.PAS SRC/ 2>/dev/null
 	cp SRC/"$PLATFORM_UNIT"/*.INC SRC/ 2>/dev/null
 
