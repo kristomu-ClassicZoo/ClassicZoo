@@ -78,7 +78,7 @@ interface
 	function InputConfigure: boolean;
 
 implementation
-uses Dos, Keys, Sounds;
+uses Dos, Keys, TimerSys;
 
 var
 	InputKeyBuffer: string;

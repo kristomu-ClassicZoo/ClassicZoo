@@ -44,10 +44,16 @@ while getopts "a:d:e:o:p:rg" opt; do
 			FPC_BINARY=ppcross8086
 			;;
 		i386)
-			FPC_BINARY=ppcross386
+			FPC_BINARY=ppc386
+			if [ ! -x "$(command -v $FPC_BINARY)" ]; then
+				FPC_BINARY=ppcross386
+			fi
 			;;
 		x86_64)
-			FPC_BINARY=ppcrossx64
+			FPC_BINARY=ppcx64
+			if [ ! -x "$(command -v $FPC_BINARY)" ]; then
+				FPC_BINARY=ppcrossx64
+			fi
 			;;
 		arm)
 			FPC_BINARY=ppcrossarm
@@ -116,7 +122,7 @@ fi
 
 echo "Preparing Pascal code..."
 
-for i in DOC RES SRC SYSTEM TOOLS VENDOR LICENSE.TXT; do
+for i in DOC HEADERS RES SRC SYSTEM TOOLS VENDOR LICENSE.TXT; do
 	cp -R "$i" "$TEMP_PATH"/
 done
 cp -R "$TEMP_PATH"/SYSTEM/*.BAT "$TEMP_PATH"/
@@ -237,11 +243,12 @@ else
 	tail --pid $! -n +1 -f BUILD.LOG
 fi
 
-if [ ! -f BUILD/ZZT.EXE ]; then
-       cd "$RETURN_PATH"
-       # rm -r "$TEMP_PATH"
-       exit 1
-fi
+# TODO
+#if [ ! -f BUILD/ZZT.EXE ]; then
+#       cd "$RETURN_PATH"
+#       # rm -r "$TEMP_PATH"
+#       exit 1
+#fi
 
 # Post-processing
 

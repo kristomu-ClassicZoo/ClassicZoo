@@ -47,7 +47,7 @@ interface
 	procedure VideoInvert(x1, y1, x2, y2: integer);
 
 implementation
-uses Dos, PC98;
+uses Dos, PC98, TimerSys;
 
 {$I VIDCONST.INC}
 		

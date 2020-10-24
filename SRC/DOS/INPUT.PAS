@@ -76,7 +76,7 @@ interface
 	function InputConfigure: boolean;
 
 implementation
-uses Dos, Crt, Keys, Sounds;
+uses Dos, Crt, Keys, TimerSys;
 
 const
 	PORT_JOYSTICK = $0201;
