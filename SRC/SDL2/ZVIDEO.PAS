@@ -29,6 +29,7 @@ unit ZVideo;
 interface
 	type
 		TVideoLine = string[80];
+		TScreenCopyLine = string[160];
 	var
 		VideoMonochrome: boolean;
 		VideoColumns: integer;

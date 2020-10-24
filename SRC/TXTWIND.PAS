@@ -45,7 +45,7 @@ interface
 			Hyperlink: string[20];
 			Title: TTextWindowLine;
 			LoadedFilename: string[50];
-			ScreenCopy: array[1 .. 25] of string[160];
+			ScreenCopy: array[1 .. 25] of TScreenCopyLine;
 		end;
 		TResourceDataHeader = record
 			EntryCount: integer;

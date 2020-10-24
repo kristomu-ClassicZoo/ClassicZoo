@@ -33,14 +33,13 @@ interface
 			Data: array[1 .. 63] of word;
 		end;
 	var
-		SoundNewVector: pointer;
-		SoundOldVector: pointer;
 		TimerTicks: word;
 	procedure TimerDelay(ms: word);
 	procedure TimerSysIdle(mode: TIdleMode);
 	procedure TimerSysWake(mode: TIdleMode);
 	procedure TimerSysLockSoundBuffer;
 	procedure TimerSysUnlockSoundBuffer;
+	procedure TimerSysStopSound;
 	function TimerSysGetHsecs: word;
 	procedure TimerSysInstall;
 	procedure TimerSysUninstall;
@@ -93,6 +92,13 @@ procedure TimerSysUnlockSoundBuffer;
 	begin
 		if (not SoundEnabled) or (not SoundIsPlaying) then
 			AudioSimulateClear;
+		SDL_UnlockMutex(SoundBufferMutex);
+	end;
+
+procedure TimerSysStopSound;
+	begin
+		SDL_LockMutex(SoundBufferMutex);
+		AudioSimulateClear;
 		SDL_UnlockMutex(SoundBufferMutex);
 	end;
 

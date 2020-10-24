@@ -33,13 +33,12 @@ interface
 			Data: array[1 .. 63] of word;
 		end;
 	var
-		SoundNewVector: pointer;
-		SoundOldVector: pointer;
 		TimerTicks: word;
 	procedure TimerDelay(ms: word);
 	procedure TimerSysIdle(mode: TIdleMode);
 	procedure TimerSysLockSoundBuffer;
 	procedure TimerSysUnlockSoundBuffer;
+	procedure TimerSysStopSound;
 	function TimerSysGetHsecs: word;
 	procedure TimerSysInstall;
 	procedure TimerSysUninstall;
@@ -48,6 +47,8 @@ implementation
 uses Crt, Dos, Sounds;
 
 var
+	SoundNewVector: pointer;
+	SoundOldVector: pointer;
 	TimerHsecs: word;
 	Int2FPointer: pointer;
 
@@ -85,6 +86,11 @@ procedure TimerSysLockSoundBuffer;
 procedure TimerSysUnlockSoundBuffer;
 	begin
 		{ no-op? }
+	end;
+
+procedure TimerSysStopSound;
+	begin
+		NoSound;
 	end;
 
 function TimerSysGetHsecs: word;

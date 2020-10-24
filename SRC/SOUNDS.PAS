@@ -80,11 +80,11 @@ procedure SoundQueue(priority: integer; pattern: string);
 procedure SoundClearQueue;
 	begin
 		TimerSysLockSoundBuffer;
-
 		SoundBuffer := '';
 		SoundIsPlaying := false;
-
 		TimerSysUnlockSoundBuffer;
+
+		TimerSysStopSound;
 	end;
 
 procedure SoundInitFreqTable;
