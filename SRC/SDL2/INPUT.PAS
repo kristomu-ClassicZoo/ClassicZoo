@@ -30,9 +30,7 @@ interface
 		KEY_BACKSPACE = #8;
 		KEY_TAB = #9;
 		KEY_ENTER = #13;
-		KEY_CTRL_Y = #25;
 		KEY_ESCAPE = #27;
-		KEY_ALT_P = #153;
 		KEY_F1 = #187;
 		KEY_F2 = #188;
 		KEY_F3 = #189;
@@ -51,8 +49,11 @@ interface
 		KEY_PAGE_DOWN = #209;
 		KEY_INSERT = #210;
 		KEY_DELETE = #211;
-		KEY_HOME = #212;
-		KEY_END = #213;
+		KEY_HOME = #199;
+		KEY_END = #207;
+		{ Maximum emulated scancode: 128 + 83 = 211 }
+		KEY_CTRL_Y = #212;
+		KEY_ALT_P = #213;
 	var
 		InputDeltaX, InputDeltaY: integer;
 		InputShiftPressed: boolean;
@@ -126,7 +127,11 @@ procedure InputUpdate;
 					InputUpdateKeymod(event.key.keysym._mod);
 					scode := Uint32(event.key.keysym.scancode);
 					kcode := Uint32(event.key.keysym.sym);
-					if (kcode > 0) and (kcode < 127) then begin
+					if KeysAltHeld and (Char(kcode) = 'p') then begin
+						k := KEY_ALT_P;
+					end else if KeysCtrlHeld and (Char(kcode) = 'y') then begin
+						k := KEY_CTRL_Y;
+					end else if (kcode > 0) and (kcode < 127) then begin
 						k := Char(kcode);
 					end else if scode <= 83 then begin
 						k := Char(Integer(PCScancodeMap[scode]) + 128);
