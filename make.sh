@@ -124,7 +124,7 @@ done
 # Replace symbols with ones from PROPERTIES_FILE
 if [ -f "$PROPERTIES_FILE" ]; then
 	while IFS='=' read -r KEY VALUE; do
-		for i in "$TEMP_PATH"/SRC/*.*; do
+		for i in `find "$TEMP_PATH"/SRC -type f`; do
 			sed -i -e 's#%'"$KEY"'%#'"$VALUE"'#g' "$i"
 		done
 	done < "$PROPERTIES_FILE"
