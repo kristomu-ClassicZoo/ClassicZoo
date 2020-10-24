@@ -1,4 +1,4 @@
 -a tp55-i8086-msdos-dos -p build.properties
 -a fpc-i8086-msdos-dos -p build.properties
--a fpc-i386-win32-sdl2 -d MEMLFIX -p build.properties
--a fpc-x86_64-win64-sdl2 -d MEMLFIX -p build.properties
+-a fpc-i386-win32-sdl2 -d MEMLFIX -d NOCONS -p build.properties
+-a fpc-x86_64-win64-sdl2 -d MEMLFIX -d NOCONS -p build.properties

@@ -39,7 +39,7 @@ interface
 	procedure InitEditorStatSettings;
 
 implementation
-uses Crt, ZVideo, Sounds, Input, TxtWind, Editor, Oop, Game;
+uses ZVideo, Sounds, Input, TxtWind, Editor, Oop, Game;
 
 const
 	TransporterNSChars: string = '^~^-v_v-';
@@ -1442,15 +1442,16 @@ procedure ElementPlayerTick(statId: integer);
 				ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].TouchProc(
 					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					if SoundEnabled and not SoundIsPlaying then
-						Sound(110);
+					{ FIXME: Restore support for player steps via an appropriate abstraction? }
+					{ if SoundEnabled and not SoundIsPlaying then
+						Sound(110); }
 					if ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].Walkable then begin
-						if SoundEnabled and not SoundIsPlaying then
-							NoSound;
+						{ if SoundEnabled and not SoundIsPlaying then
+							NoSound; }
 
 						MoveStat(0, X + InputDeltaX, Y + InputDeltaY);
 					end else if SoundEnabled and not SoundIsPlaying then begin
-						NoSound;
+						{ NoSound; }
 					end;
 				end;
 			end;

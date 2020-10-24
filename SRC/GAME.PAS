@@ -112,7 +112,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, ExtMem, FileMgmt, ZVideo, Sounds, TimerSys, Input, Elements, Editor, Oop;
+uses Dos, ExtMem, FileMgmt, ZVideo, Sounds, TimerSys, Input, Elements, Editor, Oop;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -452,7 +452,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TStri
 				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) mod $100));
 
 			if editable then begin
-				Delay(25);
+				TimerDelay(25);
 				InputUpdate;
 				if InputKeyPressed = KEY_TAB then
 					InputDeltaX := 9;
@@ -491,7 +491,7 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 		repeat
 			if editable then begin
 				if InputJoystickMoved then
-					Delay(45);
+					TimerDelay(45);
 				VideoWriteText(x + value + 1, y + 1, $9F, #31);
 
 				SoundIdle(IMUntilFrame);
@@ -539,7 +539,7 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 
 			if editable then begin
 				VideoWriteText(62 + i, y + 1, $9F, #31);
-				Delay(35);
+				TimerDelay(35);
 				InputUpdate;
 
 				newResult := result + InputDeltaX;
@@ -660,7 +660,7 @@ procedure SidebarPromptString(prompt: string; extension: TString50; var filename
 procedure PauseOnError;
 	begin
 		SoundQueue(1, SoundParse('s004x114x9'));
-		Delay(2000);
+		TimerDelay(2000);
 	end;
 
 function DisplayIOError: boolean;

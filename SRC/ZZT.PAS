@@ -32,7 +32,12 @@
 {$ENDIF}
 {$ENDIF}
 program ZZT;
-uses Crt, Dos, ExtMem, FileMgmt, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+
+uses
+{$IFNDEF NOCONS}
+Crt,
+{$ENDIF}
+Dos, ExtMem, FileMgmt, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
 
 procedure SetStartupWorldFileName(name: string);
 	begin
@@ -72,6 +77,7 @@ procedure ParseArguments;
 		ExtMemInstall(enableEms, enableXms);
 	end;
 
+{$IFNDEF NOCONS}
 procedure WritelnCentered(s: string);
 	var
 		y: byte;
@@ -80,6 +86,7 @@ procedure WritelnCentered(s: string);
 		GotoXY(1 + ((80 - Length(s)) shr 1), y);
 		Writeln(s);
 	end;
+{$ENDIF}
 
 procedure GameConfigure;
 	var
@@ -111,6 +118,7 @@ procedure GameConfigure;
 
 		ParsingConfigFile := false;
 
+{$IFNDEF NOCONS}
 		Window(1, 1, 80, 25);
 		TextBackground(Black);
 		ClrScr;
@@ -142,14 +150,19 @@ procedure GameConfigure;
 		TextBackground(Black);
 		ClrScr;
 		TextColor(Yellow);
+{$ENDIF}
 		if not InputConfigure then
 			GameTitleExitRequested := true
 		else begin
+{$IFNDEF NOCONS}
 			TextColor(LightGreen);
+{$ENDIF}
 			if not VideoConfigure then
 				GameTitleExitRequested := true;
 		end;
+{$IFNDEF NOCONS}
 		Window(1, 1, 80, 25);
+{$ENDIF}
 	end;
 
 begin
@@ -170,7 +183,9 @@ begin
 	WorldFileDescValues[7] := 'TOUR       Guided Tour ZZT'#39's Other Worlds';
 
 	Randomize;
+{$IFNDEF NOCONS}
 	InitialTextAttr := TextAttr;
+{$ENDIF}
 
 	StartupWorldFileName := 'TOWN';
 	ResourceDataFileName := 'ZZT.DAT';
@@ -180,13 +195,12 @@ begin
 	ParseArguments;
 
 	if not GameTitleExitRequested then begin
-		VideoInstall(80, Blue);
+		VideoInstall(80, $01);
 		OrderPrintId := @GameVersion;
 		TextWindowInit(5, 3, 50, 18);
 		New(IoTmpBuf);
 
 		VideoHideCursor;
-		ClrScr;
 
 		TickSpeed := 4;
 		DebugEnabled := false;
@@ -206,8 +220,10 @@ begin
 	VideoUninstall;
 	SoundUninstall;
 
+{$IFNDEF NOCONS}
 	TextAttr := InitialTextAttr;
 	ClrScr;
+{$ENDIF}
 
 	VideoShowCursor;
 end.

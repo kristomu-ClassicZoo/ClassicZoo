@@ -216,7 +216,8 @@ if [ -n "$FREE_PASCAL" ]; then
 	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
 	tail --pid $! -n +1 -f BUILD.LOG
 else
-	cp SRC/DOS/*.PAS SRC/
+	cp SRC/"$PLATFORM_UNIT"/*.PAS SRC/ 2>/dev/null
+	cp SRC/"$PLATFORM_UNIT"/*.INC SRC/ 2>/dev/null
 
 	touch BUILD.LOG
 	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &

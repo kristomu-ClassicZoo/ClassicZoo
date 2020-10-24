@@ -36,6 +36,7 @@ interface
 		SoundNewVector: pointer;
 		SoundOldVector: pointer;
 		TimerTicks: word;
+	procedure TimerDelay(ms: word);
 	procedure TimerSysIdle(mode: TIdleMode);
 	procedure TimerSysLockSoundBuffer;
 	procedure TimerSysUnlockSoundBuffer;
@@ -49,6 +50,11 @@ uses Crt, Dos, Sounds;
 var
 	TimerHsecs: word;
 	Int2FPointer: pointer;
+
+procedure TimerDelay(ms: word);
+	begin
+		Delay(ms);
+	end;
 
 procedure TimerSysIdle(mode: TIdleMode);
 	var

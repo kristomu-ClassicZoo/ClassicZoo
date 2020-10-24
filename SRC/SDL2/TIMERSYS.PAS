@@ -36,6 +36,7 @@ interface
 		SoundNewVector: pointer;
 		SoundOldVector: pointer;
 		TimerTicks: word;
+	procedure TimerDelay(ms: word);
 	procedure TimerSysIdle(mode: TIdleMode);
 	procedure TimerSysWake(mode: TIdleMode);
 	procedure TimerSysLockSoundBuffer;
@@ -58,6 +59,11 @@ var
 	{ }
 	AudioDevice: TSDL_AudioDeviceID;
 	AudioSpec: TSDL_AudioSpec;
+
+procedure TimerDelay(ms: word);
+	begin
+		SDL_Delay(ms);
+	end;
 
 procedure AudioCallback(userdata: pointer; stream: PUint8; len: Int32); cdecl;
 	begin
