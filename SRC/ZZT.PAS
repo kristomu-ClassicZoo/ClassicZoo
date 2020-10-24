@@ -34,6 +34,15 @@
 program ZZT;
 uses Crt, Dos, ExtMem, FileMgmt, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
 
+procedure SetStartupWorldFileName(name: string);
+	begin
+		if Length(name) <= 0 then exit;
+		StartupWorldFileName := FilenameChdirToName(name);
+		if (Length(StartupWorldFileName) > 4) and (StartupWorldFileName[Length(StartupWorldFileName) - 3] = '.') then begin
+			StartupWorldFileName := Copy(StartupWorldFileName, 1, Length(StartupWorldFileName) - 4);
+		end;
+	end;
+
 procedure ParseArguments;
 	var
 		i: integer;
@@ -56,10 +65,7 @@ procedure ParseArguments;
 				else if pArg = '/NOXMS' then
 					enableXms := false;
 			end else begin
-				StartupWorldFileName := pArg;
-				if (Length(StartupWorldFileName) > 4) and (StartupWorldFileName[Length(StartupWorldFileName) - 3] = '.') then begin
-					StartupWorldFileName := Copy(StartupWorldFileName, 1, Length(StartupWorldFileName) - 4);
-				end;
+				SetStartupWorldFileName(pArg);
 			end;
 		end;
 
@@ -97,9 +103,7 @@ procedure GameConfigure;
 			EditorEnabled := false;
 			ConfigWorldFile := Copy(ConfigWorldFile, 2, Length(ConfigWorldFile) - 1);
 		end;
-		if Length(ConfigWorldFile) <> 0 then begin
-			StartupWorldFileName := ConfigWorldFile;
-		end;
+		SetStartupWorldFileName(ConfigWorldFile);
 
 		InputInitDevices;
 		joystickEnabled := InputJoystickEnabled;

@@ -29,6 +29,7 @@ unit FileMgmt;
 
 interface
 	uses GameVars;
+	function FilenameChdirToName(fn: string): string;
 	function FilenameExtractName(fn: string): string;
 	function FilenameFindIgnoreCase(fn: string): string;
 	function FileSelect(title, extension: TString50; changeDir: boolean): string;
@@ -55,6 +56,13 @@ const
 	MAX_FILENAME_LENGTH = 20;
 
 {$IFDEF EXTFNSUP}
+function FilenameChdirToName(fn: string): string;
+	begin
+		FilenameChdirToName := ExtractFileName(fn);
+		if DirectoryExists(ExtractFileDir(fn)) then
+			ChDir(ExtractFileDir(fn));
+	end;
+
 function FilenameExtractName(fn: string): string;
 	begin
 		FilenameExtractName := ExtractFileName(fn);
@@ -69,6 +77,11 @@ function FilenameFindIgnoreCase(fn: string): string;
 		fnFilename: string;
 	begin
 		basePath := ExpandFileName(ExtractFileDir(fn));
+		if not DirectoryExists(basePath) then begin
+			FilenameFindIgnoreCase := fn;
+			exit;
+		end;
+
 		fnFilename := UpCase(ExtractFileName(fn));
 		newFn := fn;
 
@@ -79,7 +92,11 @@ function FilenameFindIgnoreCase(fn: string): string;
 		repeat
 			if ((fileSearchRec.Attr and faDirectory) = 0) then begin
 				if UpCase(fileSearchRec.Name) = fnFilename then begin
-					newFn := ExpandFileName(IncludeTrailingPathDelimiter(basePath) + fileSearchRec.Name);
+					newFn := ExtractRelativePath(
+						IncludeTrailingPathDelimiter(startPath),
+						ExpandFileName(IncludeTrailingPathDelimiter(basePath) + fileSearchRec.Name)
+					);
+
 					break;
 				end;
 			end;
@@ -90,6 +107,20 @@ function FilenameFindIgnoreCase(fn: string): string;
 		FilenameFindIgnoreCase := newFn;
 	end;
 {$ELSE}
+function FilenameChdirToName(fn: string): string;
+	var
+		i: integer;
+	begin
+		for i := Length(fn) downto 1 do begin
+			if fn[i] = '\' then begin
+				FilenameChdirToName := Copy(fn, i + 1, Length(fn) - i);
+				ChDir(Copy(fn, 1, i));
+				exit;
+			end;
+		end;
+		FilenameChdirToName := fn;
+	end;
+
 function FilenameExtractName(fn: string): string;
 	var
 		i: integer;

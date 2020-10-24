@@ -106,6 +106,7 @@ procedure LoadCharsetFromBMP(var tex: TCharsetTexture; path: string);
 	begin
 		tex.valid := false;
 
+		path := ExpandFileName(path);
 		surface := SDL_LoadBMP(@path[1]);
 		if surface = nil then exit;
 
@@ -322,6 +323,7 @@ function VideoConfigure: boolean;
 procedure VideoInstall(columns, borderColor: integer);
 	var
 		charsetSurface: PSDL_Surface;
+		resPath: string;
 		asciiBmpPath: string;
 		f: file;
 		chBuffer: array[0 .. 4095] of byte;
@@ -331,18 +333,17 @@ procedure VideoInstall(columns, borderColor: integer);
 		window := SDL_CreateWindow('Zeta2',
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			640, 350, 0);
+		resPath := IncludeTrailingPathDelimiter(ExtractFileDir(ExpandFileName(ParamStr(0))));
 
 		renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED or SDL_RENDERER_PRESENTVSYNC);
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, '0');
 
-		{$I+}
-		Assign(f, FilenameFindIgnoreCase('ASCII.CHR'));
+		Assign(f, FilenameFindIgnoreCase(resPath + 'ASCII.CHR'));
 		Reset(f, 1);
 		BlockRead(f, chBuffer, 4096, chSize);
 		Close(f);
-		{$I-}
 
-		asciiBmpPath := FilenameFindIgnoreCase('ASCII.BMP');
+		asciiBmpPath := FilenameFindIgnoreCase(resPath + 'ASCII.BMP');
 		if FileExists(asciiBmpPath) then
 			LoadCharsetFromBMP(charsetTexture, asciiBmpPath);
 		if not charsetTexture.valid then
