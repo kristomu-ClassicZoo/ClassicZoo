@@ -327,6 +327,7 @@ procedure BoardCreate;
 		Board.Tiles[BOARD_WIDTH div 2][BOARD_HEIGHT div 2].Element := E_PLAYER;
 		Board.Tiles[BOARD_WIDTH div 2][BOARD_HEIGHT div 2].Color := ElementDefs[E_PLAYER].Color;
 		Board.StatCount := 0;
+		Board.Stats[0] := StatTemplateDefault;
 		Board.Stats[0].X := BOARD_WIDTH div 2;
 		Board.Stats[0].Y := BOARD_HEIGHT div 2;
 		Board.Stats[0].Cycle := 1;
