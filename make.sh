@@ -4,6 +4,7 @@ PROPERTIES_FILE=build.properties
 EXECUTABLE_NAME=ZZT
 OUTPUT_ARCHIVE=
 TPC_DEFINES=""
+FPC_DEFINES=""
 TEMP_PATH=$(mktemp -d /tmp/zoo.XXXXXXXXXXXX)
 CLEANUP=yes
 FREE_PASCAL=
@@ -60,6 +61,7 @@ while getopts "a:d:e:o:p:rD" opt; do
 		PLATFORM_UNIT="${PLATFORM_UNIT_LOWER^^}"
 		;;
 	d)
+		FPC_DEFINES=$FPC_DEFINES" -d"$OPTARG
 		if [ -n "$TPC_DEFINES" ]; then
 			TPC_DEFINES=$TPC_DEFINES","$OPTARG
 		else
@@ -101,7 +103,7 @@ TPC_ARGS=""
 FPC_ARGS=""
 if [ -n "$TPC_DEFINES" ]; then
 	TPC_ARGS="$TPC_ARGS"' /D'"$TPC_DEFINES"
-	FPC_ARGS="$FPC_ARGS"' -d'"$TPC_DEFINES"
+	FPC_ARGS="$FPC_ARGS $FPC_DEFINES"
 fi
 
 if [ ! -d "OUTPUT" ]; then
