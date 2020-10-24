@@ -330,7 +330,7 @@ procedure VideoInstall(columns, borderColor: integer);
 		chSize: longint;
 	begin
 		VideoColumns := columns;
-		window := SDL_CreateWindow('Zeta2',
+		window := SDL_CreateWindow('%NAME% %VERSION%',
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			640, 350, 0);
 		resPath := IncludeTrailingPathDelimiter(ExtractFileDir(ExpandFileName(ParamStr(0))));
