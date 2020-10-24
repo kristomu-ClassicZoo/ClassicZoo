@@ -112,7 +112,7 @@ fi
 
 echo "Preparing Pascal code..."
 
-for i in DOC HEADERS RES SRC SYSTEM TOOLS VENDOR LICENSE.TXT; do
+for i in ASSETS DOC HEADERS RES SRC SYSTEM TOOLS VENDOR LICENSE.TXT; do
 	cp -R "$i" "$TEMP_PATH"/
 done
 cp -R "$TEMP_PATH"/SYSTEM/*.BAT "$TEMP_PATH"/

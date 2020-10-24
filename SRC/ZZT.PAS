@@ -26,6 +26,10 @@
 {$I-}
 {$IFNDEF FPC}
 {$M 49152,163840,655360}
+{$ELSE}
+{$IFDEF WINDOWS}
+{$R ../ASSETS/zwindows.rc}
+{$ENDIF}
 {$ENDIF}
 program ZZT;
 uses Crt, Dos, ExtMem, FileMgmt, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
