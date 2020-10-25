@@ -680,7 +680,7 @@ function DisplayIOError: boolean;
 		Str(ioResValue, textWindow.Title);
 		textWindow.Title := 'Error # ' + textWindow.Title;
 		TextWindowInitState(textWindow);
-		TextWindowAppend(textWindow, '$DOS Error: ');
+		TextWindowAppend(textWindow, '$I/O Error: ');
 		TextWindowAppend(textWindow, '');
 		TextWindowAppend(textWindow, 'This may be caused by missing');
 		TextWindowAppend(textWindow, 'ZZT files or a bad disk.  If');

@@ -82,7 +82,12 @@ interface
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
-uses FileMgmt, Input, Sounds, TimerSys, Printer;
+uses FileMgmt, Input, Sounds,
+{$IFDEF MSDOS}
+{$DEFINE TXTPRINT}
+Printer,
+{$ENDIF}
+TimerSys;
 
 function UpCaseString(input: string): string;
 	var
@@ -191,12 +196,18 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 				end;
 			end else if (lpos = 0) or (lpos = (state.LineCount + 1)) then begin
 				VideoWriteText(TextWindowX + 2, lineY, $1E, TextWindowStrInnerSep);
+		{$IFDEF TXTPRINT}
 			end else if (lpos = -4) and viewingFile then begin
 				VideoWriteText(TextWindowX + 2, lineY, $1A, '   Use            to view text,');
 				VideoWriteText(TextWindowX + 2 + 7, lineY, $1F, #24' '#25', Enter');
 			end else if (lpos = -3) and viewingFile then begin
 				VideoWriteText(TextWindowX + 2 + 1, lineY, $1A, '                 to print.');
 				VideoWriteText(TextWindowX + 2 + 12, lineY, $1F, 'Alt-P');
+		{$ELSE}
+			end else if (lpos = -2) and viewingFile then begin
+				VideoWriteText(TextWindowX + 2, lineY, $1A, '   Use            to view text.');
+				VideoWriteText(TextWindowX + 2 + 7, lineY, $1F, #24' '#25', Enter');
+		{$ENDIF}
 			end;
 		end;
 	end;
@@ -238,6 +249,7 @@ procedure TextWindowPrint(var state: TTextWindowState);
 		iLine, iChar: integer;
 		line: string;
 	begin
+{$IFDEF TXTPRINT}
 		with state do begin
 			Rewrite(Lst);
 			for iLine := 1 to LineCount do begin
@@ -272,6 +284,7 @@ procedure TextWindowPrint(var state: TTextWindowState);
 			Write(Lst, Chr(12) { form feed });
 			Close(Lst);
 		end;
+{$ENDIF}
 	end;
 
 procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewingFile: boolean);
