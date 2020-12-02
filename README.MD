@@ -31,10 +31,20 @@ This is a very silly fork of the reconstruction of ZZT.  We've added some things
     * Can #push &lt;1-7> to push the local register value to the global register
     * Can #give or #take global &lt;-7> &lt;amount> to manipulate the global register
     * Can #fetch &lt;1-7> to fetch the global register value and dump it to the local register.
+* Paper Mode (New! v1.3)
+    * All Black and White coloring is reversed
+    * Doors, text, passages and other colorations are altered to match paper asthetic
+    * Activated by preceding the world file with ! in the command line or in ZZT.CFG
+* Bonus Labels (New! v1.3)
+    * Add additional : after a label definition (e.g. :touch ::::::::)
+    * The given label can now be #ZAPped that many extra times before it becomes a comment
+    * Restore does not restore bonus labels (this is by design)
 
 Upcoming:
 
 * (from Variety) #set hyper to set the speed to #endgame speed, #clear hyper to restore the current speed value
+* More file interactivity (load object from file, save and load registers, LoadStatic for large blobs.)
+* Utilizing all available padding (access stat padding in object, etc.)
 * And More.
 
 Description of the reconstruction itself is below:

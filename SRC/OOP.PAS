@@ -671,6 +671,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 	label StartParsing;
 	label ReadInstruction;
 	label ReadCommand;
+	label StopExecution;
 	begin
 		with Board.Stats[statId] do begin
 		StartParsing:
@@ -787,10 +788,14 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							iy := OopValue;
 							MoveStat(statId, ix, iy);
 							stopRunning := true;
+
 						end else if OopWord = 'BOARD' then begin
-							stopRunning := true;
 							OopReadValue(statId, position);
-							Board.Stats[0].P3 := OopValue;
+							BoardChange(OopValue);
+							TransitionDrawToBoard;
+							BoardEnter;
+							stopRunning := true;
+							
 						end else if OopWord = 'PAUSE' then begin
 							GamePaused := true;
 							stopRunning := true;
@@ -912,7 +917,12 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							while OopFindLabel(statId, OopWord, labelStatId, labelDataPos, #13':') do begin
 								labelPtr := Board.Stats[labelStatId].Data;
 								AdvancePointer(labelPtr, labelDataPos + 1);
-
+								while ( Char(labelPtr^) <> #13 ) do begin
+									AdvancePointer(labelPtr, 1);
+								end;
+								while Char(labelPtr^) <> ':' do begin
+									AdvancePointer(labelPtr, -1);
+								end;
 								Char(labelPtr^) := #39;
 							end;
 						end else if OopWord = 'RESTORE' then begin
@@ -922,6 +932,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							while OopFindLabel(statId, OopWord, labelStatId, labelDataPos, #13#39) do
 								repeat
 									labelPtr := Board.Stats[labelStatId].Data;
+									
 									AdvancePointer(labelPtr, labelDataPos + 1);
 
 									Char(labelPtr^) := ':';
@@ -1028,6 +1039,10 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 				end;
 			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > 32);
 
+
+			if OopWord = 'BOARD' then
+				goto StopExecution;
+				
 			if repeatInsNextTick then
 				position := lastPosition;
 
@@ -1065,6 +1080,8 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 				OopPlaceTile(ix, iy, replaceTile);
 			end;
 		end;
+
+		StopExecution:
 	end;
 
 begin

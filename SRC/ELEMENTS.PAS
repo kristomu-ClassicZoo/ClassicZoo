@@ -1338,6 +1338,13 @@ procedure ElementPlayerTick(statId: integer);
 			TransitionDrawToBoard;
 			BoardEnter;
 		end;
+		if World.Info.PlayerColor = $00 then begin
+			if ConfigPaper then begin
+				World.Info.PlayerColor := $09;
+			end else begin
+				World.Info.PlayerColor := $1F;
+			end;
+		end;
 		with Board.Stats[statId] do begin
 			if World.Info.EnergizerTicks > 0 then begin
 				if ElementDefs[E_PLAYER].Character = #2 then
@@ -1352,9 +1359,6 @@ procedure ElementPlayerTick(statId: integer);
 
 				BoardDrawTile(X, Y);
 			end else if (Board.Tiles[X][Y].Color <> World.Info.PlayerColor) or (ElementDefs[E_PLAYER].Character <> #2) then begin
-				if World.Info.PlayerColor = $00 then begin
-					World.Info.PlayerColor := $1F;
-				end;
 				Board.Tiles[X][Y].Color := World.Info.PlayerColor;
 				ElementDefs[E_PLAYER].Character := #2;
 				BoardDrawTile(X, Y);
@@ -1517,6 +1521,13 @@ procedure ElementMonitorTick(statId: integer);
 	var
 		NextBoard: integer;
 	begin
+		if World.Info.PlayerColor = $00 then begin
+			if ConfigPaper then begin
+				World.Info.PlayerColor := $09;
+			end else begin
+				World.Info.PlayerColor := $1F;
+			end;
+		end;
 		if Board.Stats[0].P3 > 0 then begin
 			NextBoard := Board.Stats[0].P3;
 			Board.Stats[0].P3 := 0;

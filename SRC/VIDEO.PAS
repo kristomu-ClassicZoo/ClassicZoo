@@ -32,6 +32,15 @@ interface
 		TVideoWriteTextProc = procedure(x, y, color: byte; text: TVideoLine);
 	const
 		PORT_CGA_PALETTE = $03D9;
+		EXPRESSIONS: array[0..6] of array[1..14] of char = (
+			(#$00, #$00, #$7E, #$FF, #$DB, #$FF, #$FF, #$C3, #$E7, #$FF, #$7E, #$00, #$00, #$00),
+			(#$00, #$00, #$7E, #$81, #$93, #$FF, #$FF, #$DF, #$C7, #$FF, #$7E, #$00, #$00, #$00),
+			(#$00, #$00, #$7E, #$FF, #$DB, #$FF, #$FF, #$E7, #$C3, #$FF, #$7E, #$00, #$00, #$00),
+			(#$00, #$00, #$7E, #$DB, #$E7, #$DB, #$FF, #$FF, #$E3, #$C7, #$7E, #$00, #$00, #$00),
+			(#$00, #$00, #$7E, #$FF, #$DB, #$FF, #$FF, #$E7, #$E7, #$FF, #$7E, #$00, #$00, #$00),
+			(#$00, #$00, #$7E, #$FF, #$DB, #$FF, #$FF, #$FF, #$E7, #$DF, #$7E, #$00, #$00, #$00),
+			(#$00, #$00, #$7E, #$FF, #$D1, #$FF, #$FF, #$C1, #$F5, #$F1, #$7E, #$00, #$00, #$00)
+		);
 	var
 		VideoWriteText: TVideoWriteTextProc;
 		VideoMonochrome: boolean;
@@ -47,11 +56,26 @@ interface
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
+	procedure SetExpr(expr: integer);
 
 implementation
 uses Crt, Dos;
 
 {$F+}
+
+procedure SetExpr(expr: integer);
+	var
+		regs: Registers;
+	begin
+		regs.ax := $1110;
+		regs.bh := $0E;                           (* bytes per character *)
+		regs.bl := 0;                             (* load to block 0 *)
+		regs.cx := 1;                             (* 1 characters *)
+		regs.dx := 2;                             (* start with character 2 *)
+		regs.es := Seg(EXPRESSIONS[expr]);        (* segment of table *)
+		regs.bp := Ofs(EXPRESSIONS[expr]);        (* offset of the table *)
+		intr($10, regs);
+	end;
 
 procedure VideoWriteTextCO80(x, y, color: byte; text: TVideoLine);
 	begin

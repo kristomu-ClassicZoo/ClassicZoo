@@ -354,7 +354,11 @@ procedure WorldCreate;
 		for i := 1 to MAX_FLAG do
 			World.Info.Flags[i] := '';
 		World.Info.ZName[1] := '';
-		World.Info.PlayerColor := $1F;
+		if ConfigPaper then begin
+			World.Info.PlayerColor := $09;
+		end else begin
+			World.Info.PlayerColor := $1F;
+		end;
 		BoardChange(0);
 		Board.Name := 'Title screen';
 		LoadedGameFileName := '';
@@ -372,6 +376,7 @@ procedure TransitionDrawToFill(chr: char; color: integer);
 procedure BoardDrawTile(x, y: integer);
 	var
 		ch: byte;
+		cl: byte;
 	begin
 		with Board.Tiles[x][y] do begin
 			if not Board.Info.IsDark
@@ -381,22 +386,60 @@ procedure BoardDrawTile(x, y: integer);
 					and ((Sqr(Board.Stats[0].X - x) + Sqr(Board.Stats[0].Y - y) * 2) < TORCH_DIST_SQR)
 				) or ForceDarknessOff then
 			begin
-				if Element = E_EMPTY then
-					VideoWriteText(x - 1, y - 1, $0F, ' ')
-				else if ElementDefs[Element].HasDrawProc then begin
+				if Element = E_EMPTY then begin
+					if ConfigPaper then begin
+						VideoWriteText(x - 1, y - 1, $F0, ' ');
+					end else begin
+						VideoWriteText(x - 1, y - 1, $0F, ' ');
+					end;
+				end else if ElementDefs[Element].HasDrawProc then begin
 					ElementDefs[Element].DrawProc(x, y, ch);
-					VideoWriteText(x - 1, y - 1, Color, Chr(ch));
-				end else if Element < E_TEXT_MIN then
-					VideoWriteText(x - 1, y - 1, Color, ElementDefs[Element].Character)
-				else begin
+					if ConfigPaper then begin
+						case (Color mod 16) of
+							$0: cl := Color + $F;
+							$F: cl := Color - $F;
+						else cl := Color end;
+						case (cl div 16) of
+							$0: cl := cl + $F0;
+							$F: cl := cl - $F0;
+						end;
+						VideoWriteText(x - 1, y - 1, cl, Chr(ch));
+					end else begin
+						VideoWriteText(x - 1, y - 1, Color, Chr(ch));
+					end;
+				end else if Element < E_TEXT_MIN then begin
+					if ConfigPaper then begin
+						case (Color mod 16) of
+							$0: cl := Color + $F;
+							$F: cl := Color - $F;
+						else cl := Color end;
+						case (cl div 16) of
+							$0: cl := cl + $F0;
+							$F: cl := cl - $F0;
+						end;
+						VideoWriteText(x - 1, y - 1, cl, ElementDefs[Element].Character);
+					end else begin
+						VideoWriteText(x - 1, y - 1, Color, ElementDefs[Element].Character);
+					end;
+				end else begin
 					{ Text drawing }
-					if Element = E_TEXT_WHITE then
-						VideoWriteText(x - 1, y - 1, $0F, Chr(Board.Tiles[x][y].Color))
-					else if VideoMonochrome then
-						VideoWriteText(x - 1, y - 1, ((Element - E_TEXT_MIN) + 1) * 16, Chr(Board.Tiles[x][y].Color))
-					else
-						VideoWriteText(x - 1, y - 1, (((Element - E_TEXT_MIN) + 1) * 16) + $F, Chr(Board.Tiles[x][y].Color));
-				end
+					case Board.Tiles[x][y].Color of
+						$00, $20, $FF: Board.Tiles[x][y].Color := $20;
+					end;
+					if Element = E_TEXT_WHITE then begin
+						if ConfigPaper then begin
+							VideoWriteText(x - 1, y - 1, $F0, Chr(Board.Tiles[x][y].Color));
+						end else begin
+							VideoWriteText(x - 1, y - 1, $0F, Chr(Board.Tiles[x][y].Color));
+						end;
+					end else begin
+						if ConfigPaper then begin
+							VideoWriteText(x - 1, y - 1, (Element - E_TEXT_MIN) + $F1, Chr(Board.Tiles[x][y].Color));
+						end else begin
+							VideoWriteText(x - 1, y - 1, (((Element - E_TEXT_MIN) + 1) * 16) + $F, Chr(Board.Tiles[x][y].Color));
+						end;
+					end;
+				end;
 			end else begin
 				{ Darkness }
 				VideoWriteText(x - 1, y - 1, $07, #176);
@@ -1524,13 +1567,30 @@ procedure GamePlayLoop(boardChanged: boolean);
 					pauseBlink := not pauseBlink;
 
 				if pauseBlink then begin
-					VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
-						World.Info.PlayerColor, ElementDefs[E_PLAYER].Character);
+					if ConfigPaper then begin
+						if World.Info.PlayerColor = $09 then begin
+							VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
+								$F9, ElementDefs[E_PLAYER].Character);
+						end else begin
+							VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
+								World.Info.PlayerColor, ElementDefs[E_PLAYER].Character);
+						end;
+					end else begin
+						if World.Info.PlayerColor = $00 then
+							World.Info.PlayerColor := $1F;
+						VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
+							World.Info.PlayerColor, ElementDefs[E_PLAYER].Character);
+					end;
 				end else begin
-					if Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER then
-						VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, $0F, ' ')
-					else
+					if Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER then begin
+						if ConfigPaper then begin
+							VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, $F0, ' ');
+						end else begin
+							VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, $0F, ' ');
+						end;
+					end else begin
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
+					end;
 				end;
 
 				VideoWriteText(64, 5, $1F, 'Pausing...');

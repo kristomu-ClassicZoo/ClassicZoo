@@ -33,6 +33,7 @@ procedure ParseArguments;
 		i: integer;
 		pArg: string;
 	begin
+		ConfigPaper := false;
 		for i := 1 to ParamCount do begin
 			pArg := ParamStr(i);
 			if pArg[1] = '/' then begin
@@ -50,6 +51,10 @@ procedure ParseArguments;
 				end;
 			end;
 		end;
+		if StartupWorldFileName[1] = '!' then begin
+			ConfigPaper := true;
+			StartupWorldFileName := Copy(StartupWorldFileName, 2, Length(StartupWorldFileName) - 1);
+		end;
 	end;
 
 procedure GameConfigure;
@@ -60,7 +65,6 @@ procedure GameConfigure;
 	begin
 		ParsingConfigFile := true;
 		EditorEnabled := true;
-		ConfigRegistration := '';
 		ConfigWorldFile := '';
 		GameVersion := '3.2';
 
@@ -68,7 +72,6 @@ procedure GameConfigure;
 		Reset(cfgFile);
 		if IOResult = 0 then begin
 			Readln(cfgFile, ConfigWorldFile);
-			Readln(cfgFile, ConfigRegistration);
 		end;
 		if ConfigWorldFile[1] = '*' then begin
 			EditorEnabled := false;
@@ -92,7 +95,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                              <=-  WeaveZZT  -=>');
 		TextColor(Yellow);
-		Writeln('                                  Version  1.2');
+		Writeln('                                  Version  1.3');
 		Writeln('                        Created by The Guild of Weavers');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -155,6 +158,8 @@ begin
 		GenerateTransitionTable;
 		WorldCreate;
 
+		SetExpr(0);
+
 		GameTitleLoop;
 
 		Dispose(IoTmpBuf);
@@ -168,13 +173,9 @@ begin
 	TextAttr := InitialTextAttr;
 	ClrScr;
 
-	if Length(ConfigRegistration) = 0 then begin
-		GamePrintRegisterMessage;
-	end else begin
-		Writeln;
-		Writeln('  The Weavers thank you for playing WeaveZZT.');
-		Writeln;
-	end;
+	Writeln;
+	Writeln('  The Weavers thank you for playing WeaveZZT.');
+	Writeln;
 
 	VideoShowCursor;
 end.
