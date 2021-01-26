@@ -115,7 +115,7 @@ function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 		hSecsTotal: integer;
 	begin
 		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter mod 2) = 1) then begin
-			SoundTimeCheckCounter := SoundTimeCheckCounter - 1;
+			Dec(SoundTimeCheckCounter);
 			SoundCheckTimeIntr;
 		end;
 
@@ -141,7 +141,7 @@ procedure SoundTimerHandler;
 	begin
 		Inc(TimerTicks);
 		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter mod 2) = 0) then begin
-			SoundTimeCheckCounter := SoundTimeCheckCounter - 1;
+			Dec(SoundTimeCheckCounter);
 		end;
 
 		if not SoundEnabled then begin
@@ -181,18 +181,18 @@ function SoundParse(input: string): string;
 		noteDuration: integer;
 		output: string;
 		noteTone: integer;
+		inPos: byte;
 	procedure AdvanceInput;
-		begin
-			input := Copy(input, 2, Length(input) - 1);
-		end;
+		inline($FE/$86/>inPos); { Inc(inPos); in inline assembly }
 	begin
 		output := '';
 		noteOctave := 3;
 		noteDuration := 1;
+		inPos := 1;
 
-		while Length(input) <> 0 do begin
+		while inPos <= Length(input) do begin
 			noteTone := -1;
-			case UpCase(input[1]) of
+			case UpCase(input[inPos]) of
 				'T': begin
 					noteDuration := 1;
 					AdvanceInput;
@@ -227,16 +227,16 @@ function SoundParse(input: string): string;
 				end;
 				'+': begin
 					if noteOctave < 6 then
-						noteOctave := noteOctave + 1;
+						Inc(noteOctave);
 					AdvanceInput;
 				end;
 				'-': begin
 					if noteOctave > 1 then
-						noteOctave := noteOctave - 1;
+						Dec(noteOctave);
 					AdvanceInput;
 				end;
 				'A'..'G': begin
-					case UpCase(input[1]) of
+					case UpCase(input[inPos]) of
 						'C': begin
 							noteTone := 0;
 							AdvanceInput;
@@ -267,13 +267,13 @@ function SoundParse(input: string): string;
 						end;
 					end;
 
-					case UpCase(input[1]) of
+					if inPos <= Length(input) then case UpCase(input[inPos]) of
 						'!': begin
-							noteTone := noteTone - 1;
+							Dec(noteTone);
 							AdvanceInput;
 						end;
 						'#': begin
-							noteTone := noteTone + 1;
+							Inc(noteTone);
 							AdvanceInput;
 						end;
 					end;
@@ -285,7 +285,7 @@ function SoundParse(input: string): string;
 					AdvanceInput;
 				end;
 				'0'..'9': begin
-					output := output + Chr(Ord(input[1]) + $F0 - Ord('0')) + Chr(noteDuration);
+					output := output + Chr(Ord(input[inPos]) + $F0 - Ord('0')) + Chr(noteDuration);
 					AdvanceInput;
 				end;
 			else AdvanceInput end;
