@@ -104,10 +104,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                                 <=-  ZZT  -=>');
 		TextColor(Yellow);
-		if Length(ConfigRegistration) = 0 then
-			Writeln('                             Shareware version 3.2')
-		else
-			Writeln('                                  Version  3.2');
+		Writeln('                                  Version  3.2');
 		Writeln('                            Created by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -194,14 +191,6 @@ begin
 	Port[PORT_CGA_PALETTE] := 0;
 	TextAttr := InitialTextAttr;
 	ClrScr;
-
-	if Length(ConfigRegistration) = 0 then begin
-		GamePrintRegisterMessage;
-	end else begin
-		Writeln;
-		Writeln('  Registered version -- Thank you for playing ZZT.');
-		Writeln;
-	end;
 
 	VideoShowCursor;
 end.
