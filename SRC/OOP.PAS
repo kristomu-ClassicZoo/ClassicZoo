@@ -818,7 +818,7 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 							OopReadWord(statId, position);
 							bindStatId := 0;
 							if OopIterateStat(statId, bindStatId, OopWord) then begin
-								FreeMem(Data, DataLen);
+								FreeStatDataMem(statId);
 								Data := Board.Stats[bindStatId].Data;
 								DataLen := Board.Stats[bindStatId].DataLen;
 								position := 0;
