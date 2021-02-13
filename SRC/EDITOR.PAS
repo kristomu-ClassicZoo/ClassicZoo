@@ -502,11 +502,7 @@ procedure EditorLoop;
 			state.Title := 'Board Information';
 			TextWindowDrawOpen(state);
 			state.LinePos := 1;
-			state.LineCount := 9;
-			state.Selectable := true;
 			exitRequested := false;
-			for i := 1 to state.LineCount do
-				New(state.Lines[i]);
 
 			repeat
 				state.Selectable := true;
@@ -582,9 +578,9 @@ procedure EditorLoop;
 					exitRequested := true;
 					TextWindowDrawClose(state);
 				end;
-			until exitRequested;
 
-			TextWindowFree(state);
+				TextWindowFree(state);
+			until exitRequested;
 		end;
 
 	procedure EditorEditStatText(statId: integer; prompt: string);
