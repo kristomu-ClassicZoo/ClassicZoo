@@ -38,6 +38,7 @@ interface
 		TORCH_DURATION = 200;
 		TORCH_DX = 12;
 		TORCH_DY = 8;
+		OOP_TOKEN_LENGTH = 20;
 	type
 		TString50 = string[50];
 		TCoord = record
@@ -180,7 +181,7 @@ interface
 		InitialTextAttr: byte;
 
 		OopChar: char;
-		OopWord: string[20];
+		OopWord: string[OOP_TOKEN_LENGTH];
 		OopValue: integer;
 
 		DebugEnabled: boolean;

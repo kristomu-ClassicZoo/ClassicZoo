@@ -98,8 +98,10 @@ procedure OopReadWord(statId: integer; var position: integer);
 			while ((OopChar >= 'A') and (OopChar <= 'Z')) or (OopChar = ':')
 				or ((OopChar >= '0') and (OopChar <= '9')) or (OopChar = '_') do
 			begin
-				Inc(wordPos);
-				OopWord[wordPos] := OopChar;
+				if wordPos <= OOP_TOKEN_LENGTH then begin
+					Inc(wordPos);
+					OopWord[wordPos] := OopChar;
+				end;
 				OopReadChar(statId, position);
 				OopChar := UpCase(OopChar);
 			end;
@@ -111,7 +113,7 @@ procedure OopReadWord(statId: integer; var position: integer);
 
 procedure OopReadValue(statId: integer; var position: integer);
 	var
-		s: string[20];
+		s: string[OOP_TOKEN_LENGTH];
 		code: integer;
 		wordPos: byte;
 	begin
@@ -122,8 +124,10 @@ procedure OopReadValue(statId: integer; var position: integer);
 
 		OopChar := UpCase(OopChar);
 		while (OopChar >= '0') and (OopChar <= '9') do begin
-			Inc(wordPos);
-			s[wordPos] := OopChar;
+			if wordPos <= OOP_TOKEN_LENGTH then begin
+				Inc(wordPos);
+				s[wordPos] := OopChar;
+			end;
 			OopReadChar(statId, position);
 			OopChar := UpCase(OopChar);
 		end;
