@@ -62,6 +62,7 @@ interface
 	function GameWorldLoad(extension: TString50): boolean;
 	procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState);
 	procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; template: TStat);
+	procedure FreeStatDataMem(statId: integer);
 	procedure RemoveStat(statId: integer);
 	function GetStatIdAt(x, y: integer): integer;
 	function BoardPrepareTileForPlacement(x, y: integer): boolean;
@@ -909,7 +910,7 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 				DataPos := 0;
 			end;
 
-			if template.Data <> nil then begin
+			if (template.Data <> nil) and (template.DataLen > 0) then begin
 				GetMem(Board.Stats[Board.StatCount].Data, template.DataLen);
 				Move(template.Data^, Board.Stats[Board.StatCount].Data^, template.DataLen);
 			end;
@@ -925,21 +926,28 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 		end;
 	end;
 
-procedure RemoveStat(statId: integer);
+procedure FreeStatDataMem(statId: integer);
 	var
 		i: integer;
-	label StatDataInUse;
 	begin
 		with Board.Stats[statId] do begin
 			if DataLen <> 0 then begin
 				for i := 1 to Board.StatCount do begin
 					if (Board.Stats[i].Data = Data) and (i <> statId) then
-						goto StatDataInUse;
+						exit;
 				end;
 				FreeMem(Data, DataLen);
 			end;
+		end;
+	end;
 
-		StatDataInUse:
+procedure RemoveStat(statId: integer);
+	var
+		i: integer;
+	begin
+		FreeStatDataMem(statId);
+
+		with Board.Stats[statId] do begin
 			if statId < CurrentStatTicked then
 				CurrentStatTicked := CurrentStatTicked - 1;
 
