@@ -475,6 +475,8 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 				{ Pre-find stat IDs to prevent such a scenario from occuring. }
 				if ElementDefs[Element].Cycle > -1 then
 					statIds[i] := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i])
+				else
+					statIds[i] := -1;
 			end;
 			i := i + direction;
 		until i = iMax;
@@ -486,7 +488,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 					if ElementDefs[Element].Pushable then begin
 						ix := x + DiagonalDeltaX[(i - direction + 8) mod 8];
 						iy := y + DiagonalDeltaY[(i - direction + 8) mod 8];
-						if ElementDefs[Element].Cycle > -1 then begin
+						if (ElementDefs[Element].Cycle > -1) and (statIds[i] >= 0) then begin
 							tmpTile := Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]];
 							iStat := statIds[i];
 							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]] := tiles[i];
