@@ -284,7 +284,7 @@ function SoundParse(input: string): string;
 					Inc(inPos);
 				end;
 				'A'..'G': begin
-					noteTone := SoundParseNoteTable[UpCase(input[1])];
+					noteTone := SoundParseNoteTable[UpCase(input[inPos])];
 					Inc(inPos);
 
 					if inPos <= Length(input) then case UpCase(input[inPos]) of
