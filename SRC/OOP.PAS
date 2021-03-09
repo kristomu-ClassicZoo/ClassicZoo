@@ -1496,5 +1496,4 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 		StopExecution:
 	end;
 
-begin
 end.

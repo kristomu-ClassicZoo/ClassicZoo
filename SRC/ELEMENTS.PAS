@@ -1067,5 +1067,4 @@ procedure InitElementsGame;
 		ForceDarknessOff := false;
 	end;
 
-begin
 end.
