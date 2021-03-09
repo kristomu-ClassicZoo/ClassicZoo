@@ -32,6 +32,10 @@ interface
 		TVideoWriteTextProc = procedure(x, y, color: byte; text: TVideoLine);
 	const
 		PORT_CGA_PALETTE = $03D9;
+		EGA_PALETTE_INDICES: array[0..16] of char = (
+			#$00, #$01, #$02, #$03, #$04, #$05, #$06, #$07,
+			#$08, #$09, #$0A, #$0B, #$0C, #$0D, #$0E, #$0F, #$00
+		);
 		PALLETTE: array[0..6] of array[1..48] of char = (
 		{Fade - Starts as Normal}
 		(
@@ -313,6 +317,11 @@ procedure SetPal(value: integer);
 	var
 		regs: Registers;
 	begin
+		regs.ax := $1002;
+		regs.es := Seg(EGA_PALETTE_INDICES);
+		regs.dx := Ofs(EGA_PALETTE_INDICES);
+		Intr($10, regs);
+
 		regs.ax := $1012;
 		regs.bx := 0;
 		regs.cx := 16;
