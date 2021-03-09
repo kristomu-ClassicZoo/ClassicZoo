@@ -27,18 +27,17 @@ unit GameVars;
 
 interface
 	const
-		MAX_STAT = 150;
-		MAX_ELEMENT = 53;
-		MAX_BOARD = 100;
-		MAX_FLAG = 10;
+		MAX_STAT = 254;
+		MAX_ELEMENT = 56;
+		MAX_BOARD = 255;
 		BOARD_WIDTH = 60;
 		BOARD_HEIGHT = 25;
 		WORLD_FILE_HEADER_SIZE = 512;
+		MAX_BOARD_SIZE = 65521;
 		HIGH_SCORE_COUNT = 30;
 		TORCH_DURATION = 200;
-		TORCH_DX = 8;
-		TORCH_DY = 5;
-		TORCH_DIST_SQR = 50;
+		TORCH_DX = 12;
+		TORCH_DY = 8;
 	type
 		TString50 = string[50];
 		TCoord = record
@@ -65,17 +64,10 @@ interface
 			Cycle: integer;
 			TickProc: TElementTickProc;
 			TouchProc: TElementTouchProc;
-			EditorCategory: integer;
-			EditorShortcut: char;
 			Name: string[20];
 			CategoryName: string[20];
 			Param1Name: string[20];
-			Param2Name: string[20];
-			ParamBulletTypeName: string[20];
-			ParamBoardName: string[20];
-			ParamDirName: string[20];
 			ParamTextName: string[20];
-			ScoreValue: integer;
 		end;
 		TStat = record
 			X, Y: byte;
@@ -88,7 +80,8 @@ interface
 			Data: ^string;
 			DataPos: integer;
 			DataLen: integer;
-			unk1, unk2: pointer;
+			DataLast: integer;
+			MyLocal: array[1 .. 3] of integer;
 		end;
 		TRleTile = record
 			Count: byte;
@@ -96,34 +89,35 @@ interface
 		end;
 		TBoardInfo = record
 			MaxShots: byte;
-			IsDark: boolean;
+			IsDark: byte;
 			NeighborBoards: array[0 .. 3] of byte;
 			ReenterWhenZapped: boolean;
 			Message: string[58];
 			StartPlayerX: byte;
 			StartPlayerY: byte;
-			TimeLimitSec: integer;
-			unk1: array[70 .. 85] of byte;
+			Local: integer;
+			Register: array[1 .. 8] of integer;
 		end;
 		TWorldInfo = record
 			Ammo: integer;
 			Gems: integer;
-			Keys: array [1..7] of boolean;
+			Keys: array [1 .. 6] of byte;
+			PlayerColor: byte;
 			Health: integer;
 			CurrentBoard: integer;
 			Torches: integer;
 			TorchTicks: integer;
-			EnergizerTicks: integer;
-			unk1: integer;
+			RomBank: integer;
+			CustomZ: integer;
 			Score: integer;
-			Name: string[20];
-			Flags: array[1 .. MAX_FLAG] of string[20];
-			BoardTimeSec: integer;
-			BoardTimeHsec: integer;
-			IsSave: boolean;
-			unkPad: array[0 .. 13] of byte;
+			Name: string[5];
+			Flags: array[1 .. 24] of string[8];
+			PlayerName: array[1 .. 7] of byte;
+			PlayerPronoun: byte;
+			PlayerAppearance: byte;
+			Register: array[1 .. 10] of integer;
 		end;
-		TEditorStatSetting = record
+		TStatSetting = record
 			P1, P2, P3: byte;
 			StepX, StepY: integer;
 		end;
@@ -137,55 +131,39 @@ interface
 		TWorld = record
 			BoardCount: integer;
 			BoardData: array[0 .. MAX_BOARD] of pointer;
-			BoardLen: array[0 .. MAX_BOARD] of integer;
+			BoardLen: array[0 .. MAX_BOARD] of word;
 			Info: TWorldInfo;
-			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
+			StatSettings: array[0 .. MAX_ELEMENT] of TStatSetting;
 		end;
 		THighScoreEntry = record
 			Name: TString50;
 			Score: integer;
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
-		TIoTmpBuf = array[0 .. 19999] of byte;
+		TIoTmpBuf = array[0 .. MAX_BOARD_SIZE-1] of byte;
 	var
-		PlayerDirX: integer;
-		PlayerDirY: integer;
-		unkVar_0476: integer;
-		unkVar_0478: integer;
-
-		TransitionTable: array[1 .. 80*25] of TCoord;
-		LoadedGameFileName: TString50;
-		SavedGameFileName: TString50;
-		SavedBoardFileName: TString50;
+		FadeTimer: integer;
+		FadedOut: boolean;
+		JustEntered: boolean;
 		StartupWorldFileName: TString50;
 		Board: TBoard;
 		World: TWorld;
-		MessageAmmoNotShown: boolean;
-		MessageOutOfAmmoNotShown: boolean;
-		MessageNoShootingNotShown: boolean;
-		MessageTorchNotShown: boolean;
-		MessageOutOfTorchesNotShown: boolean;
-		MessageRoomNotDarkNotShown: boolean;
-		MessageHintTorchNotShown: boolean;
-		MessageForestNotShown: boolean;
-		MessageFakeNotShown: boolean;
-		MessageGemNotShown: boolean;
-		MessageEnergizerNotShown: boolean;
-		unkVar_4ABA: array[0 .. 14] of byte;
+		SwapWorld: TWorldInfo;
+		FlashInv: integer;
+		BigTimer: integer;
+		DisplayClock: integer;
+		FlashHint: integer;
 
 		GameTitleExitRequested: boolean;
 		GamePlayExitRequested: boolean;
 		GameStateElement: integer;
 		ReturnBoardId: integer;
 
-		TransitionTableSize: integer;
 		TickSpeed: byte;
 
 		IoTmpBuf: ^TIoTmpBuf;
 
 		ElementDefs: array[0 .. MAX_ELEMENT] of TElementDef;
-		EditorPatternCount: integer;
-		EditorPatterns: array[1 .. 10] of byte;
 
 		TickTimeDuration: integer;
 		CurrentTick: integer;
@@ -203,17 +181,19 @@ interface
 		DebugEnabled: boolean;
 
 		HighScoreList: THighScoreList;
-		ConfigRegistration: string;
 		ConfigWorldFile: TString50;
-		EditorEnabled: boolean;
 		GameVersion: TString50;
 		ParsingConfigFile: boolean;
+		ConfigPaper: boolean;
 		ResetConfig: boolean; { This flag is a remnant from ZZT 3.0. }
 		JustStarted: boolean;
 
-		WorldFileDescCount: integer;
-		WorldFileDescKeys: array[1 .. 10] of TString50;
-		WorldFileDescValues: array[1 .. 10] of TString50;
+{ ## GLOBAL OBJECT }
+		GlobalRead: boolean;
+		GlobalLen: integer;
+		GlobalData: ^string;
+{ ## END GLOBAL OBJECT }
+
 	const
 		E_EMPTY = 0;
 		E_BOARD_EDGE = 1;
@@ -244,7 +224,7 @@ interface
 		E_SLIDER_EW = 26;
 		E_FAKE = 27;
 		E_INVISIBLE = 28;
-		E_BLINK_WALL = 29;
+		E_OVERLAY = 29;
 		E_TRANSPORTER = 30;
 		E_LINE = 31;
 		E_RICOCHET = 32;
@@ -260,7 +240,13 @@ interface
 		E_TIGER = 42;
 		E_BLINK_RAY_NS = 43;
 		E_CENTIPEDE_HEAD = 44;
-		E_CENTIPEDE_SEGMENT = 45;
+		E_BIG_DOOR = 45;
+		E_BDOPEN = 54;
+		E_BDCLOSE = 55;
+		E_BDUNDER = 56;
+{ ## GLOBAL OBJECT }
+		E_GLOBAL = 46;
+{ ## END GLOBAL OBJECT }
 		E_TEXT_BLUE = 47;
 		E_TEXT_GREEN = 48;
 		E_TEXT_CYAN = 49;
@@ -270,6 +256,7 @@ interface
 		E_TEXT_WHITE = 53;
 		{}
 		E_TEXT_MIN = E_TEXT_BLUE;
+		E_TEXT_MAX = E_TEXT_WHITE;
 		{}
 		CATEGORY_ITEM = 1;
 		CATEGORY_CREATURE = 2;

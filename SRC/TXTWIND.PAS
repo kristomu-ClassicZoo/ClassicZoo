@@ -70,11 +70,10 @@ interface
 	procedure TextWindowAppend(var state: TTextWindowState; line: TTextWindowLine);
 	procedure TextWindowFree(var state: TTextWindowState);
 	procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewingFile: boolean);
-	procedure TextWindowEdit(var state: TTextWindowState);
 	procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowState);
-	procedure TextWindowSaveFile(filename: TTextWindowLine; var state: TTextWindowState);
 	procedure TextWindowDisplayFile(filename, title: string);
 	procedure TextWindowInit(x, y, width, height: integer);
+	procedure DrawInventoryItem(x,y: integer; InvItem: string);
 
 implementation
 uses Crt, Input, Printer;
@@ -107,6 +106,9 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 	var
 		ix, iy: integer;
 	begin
+		SlowInput;
+		InputKeyPressed := #0;
+		TrueDelay(200);
 		with state do begin
 			for iy := 1 to (TextWindowHeight + 1) do
 				VideoMove(TextWindowX, iy + TextWindowY - 1, TextWindowWidth, @ScreenCopy[iy], false);
@@ -116,7 +118,7 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1, $0F, TextWindowStrText);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				Delay(25);
+				TrueDelay(17);
 			end;
 
 			VideoWriteText(TextWindowX, TextWindowY + 2, $0F, TextWindowStrSep);
@@ -133,7 +135,7 @@ procedure TextWindowDrawClose(var state: TTextWindowState);
 			for iy := 0 to (TextWindowHeight div 2) do begin
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				Delay(18);
+				TrueDelay(7);
 				VideoMove(TextWindowX, TextWindowY + iy, TextWindowWidth,
 					@ScreenCopy[iy + 1], true);
 				VideoMove(TextWindowX, TextWindowY + TextWindowHeight - iy, TextWindowWidth,
@@ -176,6 +178,20 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 								textOffset := 2;
 								textColor := $1F;
 								textX := (textX - 4) + ((TextWindowWidth - Length(Lines[lpos]^)) div 2);
+							end;
+							'%': begin
+								textOffset := 2;
+								textColor := $1C;
+								if Length(Lines[lpos]^) < 21 then
+									textX := ((TextWindowWidth div 2) - Length(Lines[lpos]^)) + 4;
+							end;
+							'&': begin
+								textOffset := 2;
+								textColor := $1D;
+								if Length(Lines[lpos]^) > 20 then
+									textX := (TextWindowWidth - Length(Lines[lpos]^)) + 2
+								else
+									textX := (TextWindowWidth div 2) + 5;
 							end;
 						end;
 					end;
@@ -227,67 +243,33 @@ procedure TextWindowFree(var state: TTextWindowState);
 		end;
 	end;
 
-procedure TextWindowPrint(var state: TTextWindowState);
-	var
-		iLine, iChar: integer;
-		line: string;
-	begin
-		with state do begin
-			Rewrite(Lst);
-			for iLine := 1 to LineCount do begin
-				line := Lines[iLine]^;
-				if Length(line) > 0 then begin
-					case line[1] of
-						'$': begin
-							Delete(line, 1, 1);
-							for iChar := ((80 - Length(line)) div 2) downto 1 do
-								line := ' ' + line;
-						end;
-						'!', ':': begin
-							iChar := Pos(';', line);
-							if iChar > 0 then
-								Delete(line, 1, iChar)
-							else
-								line := '';
-						end;
-					else
-						line := '          ' + line
-					end;
-				end;
-				WriteLn(Lst, line);
-				if IOResult <> 0 then begin
-					Close(Lst);
-					exit;
-				end;
-			end;
-			if LoadedFilename = 'ORDER.HLP' then begin
-				WriteLn(Lst, OrderPrintId^);
-			end;
-			Write(Lst, Chr(12) { form feed });
-			Close(Lst);
-		end;
-	end;
-
 procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewingFile: boolean);
 	var
 		newLinePos: integer;
-		unk1: integer;
 		iLine, iChar: integer;
 		pointerStr: string[20];
+		FirstInput: boolean;
 	label LabelMatched;
 	label LabelNotMatched;
 	begin
+		FirstInput := true;
+		SlowInput;
 		with state do begin
 			TextWindowRejected := false;
 			Hyperlink := '';
 			TextWindowDraw(state, false, viewingFile);
 			repeat
 				InputUpdate;
+				if FirstInput then begin
+					InputKeyPressed := #0;
+					TrueDelay(200);
+					FirstInput := false;
+				end;
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
 					newLinePos := newLinePos + InputDeltaY;
-				end else if InputShiftPressed or (InputKeyPressed = KEY_ENTER) then begin
-					InputShiftAccepted := true;
+					TrueDelay(35);
+				end else if InputKeyPressed = KEY_ENTER then begin
 					if (Lines[LinePos]^[1]) = '!' then begin
 						pointerStr := Copy(Lines[LinePos]^, 2, Length(Lines[LinePos]^) - 1);
 
@@ -306,7 +288,6 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 								newLinePos := LinePos;
 								TextWindowDraw(state, false, viewingFile);
 								InputKeyPressed := #0;
-								InputShiftPressed := false;
 							end;
 						end else begin
 							if hyperlinkAsSelect then begin
@@ -322,7 +303,6 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 										end;
 										newLinePos := iLine;
 										InputKeyPressed := #0;
-										InputShiftPressed := false;
 										goto LabelMatched;
 									LabelNotMatched:
 									end;
@@ -335,8 +315,6 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 						newLinePos := LinePos - TextWindowHeight + 4
 					else if InputKeyPressed = KEY_PAGE_DOWN then
 						newLinePos := LinePos + TextWindowHeight - 4
-					else if InputKeyPressed = KEY_ALT_P then
-						TextWindowPrint(state);
 				end;
 
 			LabelMatched:
@@ -348,169 +326,22 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 				if newLinePos <> LinePos then begin
 					LinePos := newLinePos;
 					TextWindowDraw(state, false, viewingFile);
-					if (Lines[LinePos]^[1]) = '!' then
+					if ((Lines[LinePos]^[1]) = '!') or ((Lines[LinePos]^[1]) = '^') then
 						if hyperlinkAsSelect then
-							TextWindowDrawTitle($1E, #174'Press ENTER to select this'#175)
+							TextWindowDrawTitle($1E, #26'Press ENTER to select this'#27)
 						else
-							TextWindowDrawTitle($1E, #174'Press ENTER for more info'#175);
+							TextWindowDrawTitle($1E, #26'Press ENTER for more info'#27);
 				end;
 				if InputJoystickMoved then begin
-					Delay(35);
+					TrueDelay(35);
 				end;
-			until (InputKeyPressed = KEY_ESCAPE) or (InputKeyPressed = KEY_ENTER) or InputShiftPressed;
+			until ((InputKeyPressed = KEY_ENTER) and (InputDeltaY = 0)) or (InputKeyPressed = KEY_ESCAPE);
 			if InputKeyPressed = KEY_ESCAPE then begin
 				InputKeyPressed := #0;
 				TextWindowRejected := true;
 			end;
 		end;
-	end;
-
-procedure TextWindowEdit(var state: TTextWindowState);
-	var
-		newLinePos: integer;
-		insertMode: boolean;
-		charPos: integer;
-		i: integer;
-	procedure DeleteCurrLine;
-		var
-			i: integer;
-		begin
-			with state do begin
-				if LineCount > 1 then begin
-					Dispose(Lines[LinePos]);
-					for i := (LinePos + 1) to LineCount do
-						Lines[i - 1] := Lines[i];
-
-					LineCount := LineCount - 1;
-					if LinePos > LineCount then
-						newLinePos := LineCount
-					else
-						TextWindowDraw(state, true, false);
-				end else begin
-					Lines[1]^ := '';
-				end;
-			end;
-		end;
-	begin
-		with state do begin
-			if LineCount = 0 then
-				TextWindowAppend(state, '');
-			insertMode := true;
-			LinePos := 1;
-			charPos := 1;
-			TextWindowDraw(state, true, false);
-			repeat
-				if insertMode then
-					VideoWriteText(77, 14, $1E, 'on ')
-				else
-					VideoWriteText(77, 14, $1E, 'off');
-
-				if charPos >= (Length(Lines[LinePos]^) + 1) then begin
-					charPos := Length(Lines[LinePos]^) + 1;
-					VideoWriteText(charPos + TextWindowX + 3,
-						TextWindowY + (TextWindowHeight div 2) + 1,
-						$70, ' ');
-				end else begin
-					VideoWriteText(charPos + TextWindowX + 3,
-						TextWindowY + (TextWindowHeight div 2) + 1,
-						$70, Lines[LinePos]^[charPos]);
-				end;
-				InputReadWaitKey;
-				newLinePos := LinePos;
-				case InputKeyPressed of
-					KEY_UP: newLinePos := LinePos - 1;
-					KEY_DOWN: newLinePos := LinePos + 1;
-					KEY_PAGE_UP: newLinePos := LinePos - TextWindowHeight + 4;
-					KEY_PAGE_DOWN: newLinePos := LinePos + TextWindowHeight - 4;
-					KEY_RIGHT: begin
-						charPos := charPos + 1;
-						if charPos > (Length(Lines[LinePos]^) + 1) then begin
-							charPos := 1;
-							newLinePos := LinePos + 1;
-						end;
-					end;
-					KEY_LEFT: begin
-						charPos := charPos - 1;
-						if charPos < 1 then begin
-							charPos := TextWindowWidth;
-							newLinePos := LinePos - 1;
-						end;
-					end;
-					KEY_ENTER: begin
-						if LineCount < MAX_TEXT_WINDOW_LINES then begin
-							for i := LineCount downto (LinePos + 1) do
-								Lines[i + 1] := Lines[i];
-
-							New(Lines[LinePos + 1]);
-							Lines[LinePos + 1]^
-								:= Copy(Lines[LinePos]^, charPos, Length(Lines[LinePos]^) - charPos + 1);
-							Lines[LinePos]^
-								:= Copy(Lines[LinePos]^, 1, charPos - 1);
-
-							newLinePos := LinePos + 1;
-							charPos := 1;
-							LineCount := LineCount + 1;
-						end;
-					end;
-					KEY_BACKSPACE: begin
-						if charPos > 1 then begin
-							Lines[LinePos]^ :=
-								Copy(Lines[LinePos]^, 1, charPos - 2)
-								+ Copy(Lines[LinePos]^, charPos, Length(Lines[LinePos]^) - charPos + 1);
-							charPos := charPos - 1;
-						end else if Length(Lines[LinePos]^) = 0 then begin
-							DeleteCurrLine;
-							newLinePos := LinePos - 1;
-							charPos := TextWindowWidth;
-						end;
-					end;
-					KEY_INSERT: begin
-						insertMode := not insertMode;
-					end;
-					KEY_DELETE: begin
-						Lines[LinePos]^ :=
-							Copy(Lines[LinePos]^, 1, charPos - 1)
-							+ Copy(Lines[LinePos]^, charPos + 1, Length(Lines[LinePos]^) - charPos);
-					end;
-					KEY_CTRL_Y: begin
-						DeleteCurrLine;
-					end;
-				else
-					if (InputKeyPressed >= #32) and (charPos < (TextWindowWidth - 7)) then begin
-						if not insertMode then begin
-							Lines[LinePos]^ := Copy(Lines[LinePos]^, 1, charPos - 1)
-								+ InputKeyPressed
-								+ Copy(Lines[LinePos]^, charPos + 1, Length(Lines[LinePos]^) - charPos);
-							charPos := charPos + 1;
-						end else begin
-							if Length(Lines[LinePos]^) < (TextWindowWidth - 8) then begin
-								Lines[LinePos]^ := Copy(Lines[LinePos]^, 1, charPos - 1)
-									+ InputKeyPressed
-									+ Copy(Lines[LinePos]^, charPos, Length(Lines[LinePos]^) - charPos + 1);
-								charPos := charPos + 1;
-							end;
-						end;
-					end;
-				end;
-
-				if newLinePos < 1 then
-					newLinePos := 1
-				else if newLinePos > LineCount then
-					newLinePos := LineCount;
-
-				if newLinePos <> LinePos then begin
-					LinePos := newLinePos;
-					TextWindowDraw(state, true, false);
-				end else begin
-					TextWindowDrawLine(state, LinePos, true, false);
-				end;
-			until InputKeyPressed = KEY_ESCAPE;
-
-			if Length(Lines[LineCount]^) = 0 then begin
-				Dispose(Lines[LineCount]);
-				LineCount := LineCount - 1;
-			end;
-		end;
+		{FastInput;}
 	end;
 
 procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowState);
@@ -595,25 +426,6 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 		end;
 	end;
 
-procedure TextWindowSaveFile(filename: TTextWindowLine; var state: TTextWindowState);
-	var
-		f: text;
-		i: integer;
-	begin
-		with state do begin
-			Assign(f, filename);
-			Rewrite(f);
-			if IOResult <> 0 then exit;
-
-			for i := 1 to LineCount do begin
-				WriteLn(f, Lines[i]^);
-				if IOResult <> 0 then exit;
-			end;
-
-			Close(f);
-		end;
-	end;
-
 procedure TextWindowDisplayFile(filename, title: string);
 	var
 		state: TTextWindowState;
@@ -641,18 +453,431 @@ procedure TextWindowInit(x, y, width, height: integer);
 		TextWindowStrInnerLine := '';
 		for i := 1 to (TextWindowWidth - 5) do begin
 			TextWindowStrInnerEmpty := TextWindowStrInnerEmpty + ' ';
-			TextWindowStrInnerLine := TextWindowStrInnerLine + #205;
+			TextWindowStrInnerLine := TextWindowStrInnerLine + #127;
 		end;
-		TextWindowStrTop    := #198#209 + TextWindowStrInnerLine  + #209 + #181;
-		TextWindowStrBottom := #198#207 + TextWindowStrInnerLine  + #207 + #181;
-		TextWindowStrSep    :=  ' '#198 + TextWindowStrInnerLine  + #181 + ' ';
-		TextWindowStrText   :=  ' '#179 + TextWindowStrInnerEmpty + #179 + ' ';
+		TextWindowStrTop    := #222#29 + TextWindowStrInnerLine  + #31 + #221;
+		TextWindowStrBottom := #222#18 + TextWindowStrInnerLine  + #12 + #221;
+		TextWindowStrSep    :=  ' '#222 + TextWindowStrInnerLine  + #221 + ' ';
+		TextWindowStrText   :=  ' '#222 + TextWindowStrInnerEmpty + #221 + ' ';
 		TextWindowStrInnerArrows := TextWindowStrInnerEmpty;
-		TextWindowStrInnerArrows[1] := #175;
-		TextWindowStrInnerArrows[Length(TextWindowStrInnerArrows)] := #174;
+		TextWindowStrInnerArrows[1] := #26;
+		TextWindowStrInnerArrows[Length(TextWindowStrInnerArrows)] := #27;
 		TextWindowStrInnerSep := TextWindowStrInnerEmpty;
 		for i := 1 to (TextWindowWidth div 5) do
 			TextWindowStrInnerSep[i * 5 + ((TextWindowWidth mod 5) div 2)] := #7;
+	end;
+
+procedure DrawInventoryItem(x,y: integer; InvItem: string);
+    var
+		ix, iy: integer;
+	begin
+		ix := (x * 10) + 1;
+		iy := (y * 6 ) + 2;
+
+		if InvItem = 'SCONCE' then begin
+			VideoWriteText(ix, iy, $16, #222);
+			VideoWriteText(ix + 1, iy, $0E, #219);
+			VideoWriteText(ix + 2, iy, $16, #221);
+			VideoWriteText(ix + 3, iy, $6E, #222#221);
+			VideoWriteText(ix + 5, iy, $16, #222);
+			VideoWriteText(ix + 6, iy, $0E, #219);
+			VideoWriteText(ix + 7, iy, $16, #221);
+			Inc(iy);
+			VideoWriteText(ix, iy, $71, #11);
+			VideoWriteText(ix + 1, iy, $F7, #32#18#32#32#12#32);
+			VideoWriteText(ix + 7, iy, $71, #10);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $18, #94);
+			VideoWriteText(ix + 2, iy, $71, #31);
+			VideoWriteText(ix + 3, iy, $7F, #5#4);
+			VideoWriteText(ix + 5, iy, $71, #29);
+			VideoWriteText(ix + 6, iy, $18, #94);
+		end else if InvItem = 'PLANT' then begin
+			VideoWriteText(ix, iy, $12, #5);
+			VideoWriteText(ix + 1, iy, $2A, #42);
+			VideoWriteText(ix + 2, iy, $A2, #42);
+			VideoWriteText(ix + 3, iy, $21, #42#223);
+			VideoWriteText(ix + 5, iy, $A2, #94);
+			VideoWriteText(ix + 6, iy, $21, #94);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $12, #232);
+			VideoWriteText(ix + 2, iy, $24, #132);
+			VideoWriteText(ix + 3, iy, $AC, #132#132);
+			VideoWriteText(ix + 5, iy, $24, #132);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $16, #42);
+			VideoWriteText(ix + 3, iy, $6E, #223#223);
+			VideoWriteText(ix + 5, iy, $16, #250);
+		end else if InvItem = 'MAP' then begin
+			VideoWriteText(ix, iy, $16, #222);
+			VideoWriteText(ix + 1, iy, $E6, #94);
+			VideoWriteText(ix + 2, iy, $6E, #31);
+			VideoWriteText(ix + 3, iy, $E6, #94);
+			VideoWriteText(ix + 4, iy, $A6, #94#94);
+			VideoWriteText(ix + 6, iy, $E6, #94);
+			VideoWriteText(ix + 7, iy, $16, #221);
+			Inc(iy);
+			VideoWriteText(ix, iy, $16, #222);
+			VideoWriteText(ix + 1, iy, $AE, #221#42#146);
+			VideoWriteText(ix + 4, iy, $AF, #132);
+			VideoWriteText(ix + 5, iy, $AE, #18#219);
+			VideoWriteText(ix + 7, iy, $16, #221);
+			Inc(iy);
+			VideoWriteText(ix, iy, $16, #222);
+			VideoWriteText(ix + 1, iy, $E6, #132);
+			VideoWriteText(ix + 2, iy, $6E, #18#12);
+			VideoWriteText(ix + 4, iy, $E6, #132);
+			VideoWriteText(ix + 5, iy, $6E, #12);
+			VideoWriteText(ix + 6, iy, $E6, #132);
+			VideoWriteText(ix + 7, iy, $16, #221);
+		end else if InvItem = 'SOCKS' then begin
+			VideoWriteText(ix + 2, iy, $C1, #250);
+			VideoWriteText(ix + 3, iy, $14, #240#227);
+			VideoWriteText(ix + 5, iy, $0C, #219);
+			VideoWriteText(ix + 6, iy, $14, #11);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $14, #234);
+			VideoWriteText(ix + 2, iy, $4C, #232);
+			VideoWriteText(ix + 3, iy, $14, #219#222#219#221);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $41, #248#227);
+			VideoWriteText(ix + 3, iy, $14, #248);
+			VideoWriteText(ix + 5, iy, $14, #42);
+			VideoWriteText(ix + 6, iy, $41, #132);
+		end else if InvItem = 'SHIRT' then begin
+			VideoWriteText(ix + 1, iy, $31, #250);
+			VideoWriteText(ix + 2, iy, $B3, #250);
+			VideoWriteText(ix + 3, iy, $3B, #220#220#220);
+			VideoWriteText(ix + 6, iy, $31, #42);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $31, #132);
+			VideoWriteText(ix + 2, iy, $03, #219);
+			VideoWriteText(ix + 3, iy, $3B, #219#219#221);
+			VideoWriteText(ix + 6, iy, $31, #132);
+			VideoWriteText(ix + 7, iy, $13, #4);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $3B, #32#223#223#4);
+		end else if InvItem = 'PANTS' then begin
+			VideoWriteText(ix + 2, iy, $A2, #144);
+			VideoWriteText(ix + 3, iy, $2A, #94#94#144);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $2A, #221);
+			VideoWriteText(ix + 3, iy, $A1, #10#240);
+			VideoWriteText(ix + 5, iy, $2A, #222);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $2A, #221);
+			VideoWriteText(ix + 3, iy, $1A, #221#222);
+			VideoWriteText(ix + 5, iy, $2A, #222);
+		end else if InvItem = 'CANDLE' then begin
+			VideoWriteText(ix + 3, iy, $1E, #222#240);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $16, #234);
+			VideoWriteText(ix + 3, iy, $E1, #146#147);
+			VideoWriteText(ix + 5, iy, $16, #233);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $61, #250);
+			VideoWriteText(ix + 3, iy, $6E, #18#12);
+			VideoWriteText(ix + 5, iy, $61, #42);
+		end else if InvItem = 'BUCKET' then begin
+			VideoWriteText(ix + 1, iy, $16, #10);
+			VideoWriteText(ix + 2, iy, $6E, #142#127#127#141);
+			VideoWriteText(ix + 6, iy, $16, #11);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $16, #222);
+			VideoWriteText(ix + 2, iy, $6E, #139#127#127#140);
+			VideoWriteText(ix + 6, iy, $16, #221);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $16, #5);
+			VideoWriteText(ix + 2, iy, $68, #232#94#94#248);
+			VideoWriteText(ix + 6, iy, $16, #4);
+		end else if ((InvItem = 'WATER') or (InvItem = 'ICE')) or (InvItem = 'HOTWATER') then begin
+			VideoWriteText(ix + 1, iy, $16, #10);
+			VideoWriteText(ix + 2, iy, $E6, #250);
+			VideoWriteText(ix + 3, iy, $6B, #220#220);
+			VideoWriteText(ix + 5, iy, $E6, #42);
+			VideoWriteText(ix + 6, iy, $16, #11);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $16, #222);
+			VideoWriteText(ix + 2, iy, $6E, #232);
+			VideoWriteText(ix + 3, iy, $6B, #223#223);
+			VideoWriteText(ix + 5, iy, $6E, #248);
+			VideoWriteText(ix + 6, iy, $16, #221);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $16, #5);
+			VideoWriteText(ix + 2, iy, $68, #232#94#94#248);
+			VideoWriteText(ix + 6, iy, $16, #4);
+		end else if InvItem = 'SHIELD' then begin
+			VideoWriteText(ix + 2, iy, $31, #94);
+			VideoWriteText(ix + 3, iy, $B3, #94);
+			VideoWriteText(ix + 4, iy, $C6, #94);
+			VideoWriteText(ix + 5, iy, $61, #94);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $36, #220);
+			VideoWriteText(ix + 3, iy, $BC, #220#223);
+			VideoWriteText(ix + 5, iy, $36, #223);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $16, #232);
+			VideoWriteText(ix + 3, iy, $61, #240);
+			VideoWriteText(ix + 4, iy, $B1, #227);
+			VideoWriteText(ix + 5, iy, $13, #248);
+		end else if InvItem = 'LADDER' then begin
+			VideoWriteText(ix, iy, $16, #220#220#220#220#220#220#220#220);
+			Inc(iy);
+			VideoWriteText(ix, iy, $16, #222#32#221#222#32#221#222);
+			Inc(iy);
+			VideoWriteText(ix, iy, $16, #223#223#223#223#223#223#223#223);
+		end else if InvItem = 'MEAT' then begin
+			VideoWriteText(ix, iy, $17, #10);
+			VideoWriteText(ix + 1, iy, $1F, #220);
+			VideoWriteText(ix + 3, iy, $16, #227#220#220#240);
+			Inc(iy);
+			VideoWriteText(ix, iy, $17, #232);
+			VideoWriteText(ix + 1, iy, $F7, #11#94);
+			VideoWriteText(ix + 3, iy, $6F, #221#32#32#32);
+			VideoWriteText(ix + 7, iy, $16, #221);
+			Inc(iy);
+			VideoWriteText(ix, iy, $17, #5);
+			VideoWriteText(ix + 1, iy, $F1, #132);
+			VideoWriteText(ix + 2, iy, $17, #94);
+			VideoWriteText(ix + 3, iy, $16, #42);
+			VideoWriteText(ix + 4, iy, $61, #132#132#132);
+			VideoWriteText(ix + 7, iy, $16, #248);
+		end else if InvItem = 'PAINTING' then begin
+			VideoWriteText(ix, iy, $6B, #10);
+			VideoWriteText(ix + 1, iy, $B6, #94#94);
+			VideoWriteText(ix + 3, iy, $C6, #94);
+			VideoWriteText(ix + 4, iy, $B6, #94#94#94);
+			VideoWriteText(ix + 7, iy, $6B, #11);
+			Inc(iy);
+			VideoWriteText(ix, iy, $6B, #222);
+			VideoWriteText(ix + 1, iy, $BC, #139);
+			VideoWriteText(ix + 2, iy, $CB, #94#32#94#94);
+			VideoWriteText(ix + 6, iy, $BC, #4);
+			VideoWriteText(ix + 7, iy, $6B, #221);
+			Inc(iy);
+			VideoWriteText(ix, iy, $63, #5);
+			VideoWriteText(ix + 1, iy, $36, #132#132#132#132#132#132);
+			VideoWriteText(ix + 7, iy, $63, #4);
+		end else if InvItem = 'FLASK' then begin
+			VideoWriteText(ix + 3, iy, $12, #220#220);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $2E, #127);
+			VideoWriteText(ix + 3, iy, $AE, #127#127);
+			VideoWriteText(ix + 5, iy, $26, #127);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $12, #223#223#223#223);
+		end else if InvItem = 'PLATTER' then begin
+			Inc(iy);
+			VideoWriteText(ix, iy, $18, #227);
+			VideoWriteText(ix + 1, iy, $1F, #220#220#220#220#220#220);
+			VideoWriteText(ix + 7, iy, $18, #240);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $17, #94#94#94#94);
+		end else if InvItem = 'MIRROR' then begin
+			VideoWriteText(ix + 1, iy, $1E, #144);
+			VideoWriteText(ix + 2, iy, $7E, #223#223);
+			VideoWriteText(ix + 4, iy, $EF, #220);
+			VideoWriteText(ix + 5, iy, $E8, #144);
+			VideoWriteText(ix + 6, iy, $18, #248);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $1E, #222);
+			VideoWriteText(ix + 2, iy, $F7, #219#227);
+			VideoWriteText(ix + 4, iy, $7F, #157);
+			VideoWriteText(ix + 5, iy, $8E, #221);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $1E, #145);
+			VideoWriteText(ix + 2, iy, $EF, #223);
+			VideoWriteText(ix + 3, iy, $E7, #223);
+			VideoWriteText(ix + 4, iy, $EF, #223);
+			VideoWriteText(ix + 5, iy, $E8, #145);
+			VideoWriteText(ix + 6, iy, $18, #240);
+		end else if InvItem = 'MILPOR' then begin
+			VideoWriteText(ix + 1, iy, $1F, #144);
+			VideoWriteText(ix + 2, iy, $7F, #223#223);
+			VideoWriteText(ix + 4, iy, $FF, #220);
+			VideoWriteText(ix + 5, iy, $F8, #144);
+			VideoWriteText(ix + 6, iy, $18, #248);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $1F, #222);
+			VideoWriteText(ix + 2, iy, $F7, #219#227);
+			VideoWriteText(ix + 4, iy, $7F, #157);
+			VideoWriteText(ix + 5, iy, $8F, #221);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $1F, #145);
+			VideoWriteText(ix + 2, iy, $FF, #223);
+			VideoWriteText(ix + 3, iy, $F7, #223);
+			VideoWriteText(ix + 4, iy, $FF, #223);
+			VideoWriteText(ix + 5, iy, $F8, #145);
+			VideoWriteText(ix + 6, iy, $18, #240);
+		end else if InvItem = 'SCRYER' then begin
+			VideoWriteText(ix + 1, iy, $18, #144);
+			VideoWriteText(ix + 2, iy, $08, #223#223);
+			VideoWriteText(ix + 4, iy, $87, #220);
+			VideoWriteText(ix + 5, iy, $80, #144);
+			VideoWriteText(ix + 6, iy, $10, #248);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $18, #222);
+			VideoWriteText(ix + 2, iy, $70, #219#227);
+			VideoWriteText(ix + 4, iy, $07, #157);
+			VideoWriteText(ix + 5, iy, $08, #221);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $18, #145);
+			VideoWriteText(ix + 2, iy, $87, #223);
+			VideoWriteText(ix + 3, iy, $80, #223);
+			VideoWriteText(ix + 4, iy, $87, #223);
+			VideoWriteText(ix + 5, iy, $80, #145);
+			VideoWriteText(ix + 6, iy, $10, #240);
+		end else if InvItem = 'LANTERN' then begin
+			VideoWriteText(ix + 2, iy, $81, #146);
+			VideoWriteText(ix + 3, iy, $87, #29#233);
+			VideoWriteText(ix + 5, iy, $18, #233);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $18, #10);
+			VideoWriteText(ix + 2, iy, $78, #221);
+			VideoWriteText(ix + 3, iy, $FC, #5);
+			VideoWriteText(ix + 4, iy, $7F, #221);
+			VideoWriteText(ix + 5, iy, $81, #232);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $18, #227);
+			VideoWriteText(ix + 2, iy, $87, #147);
+			VideoWriteText(ix + 3, iy, $7F, #5);
+			VideoWriteText(ix + 4, iy, $78, #234);
+			VideoWriteText(ix + 5, iy, $81, #5);
+		end else if InvItem = 'GOBLET' then begin
+			VideoWriteText(ix + 2, iy, $6E, #234#127#233);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $16, #42);
+			VideoWriteText(ix + 3, iy, $64, #94);
+			VideoWriteText(ix + 4, iy, $16, #250);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $16, #132#219#132);
+		end else if InvItem = 'AMETHISP' then begin
+			VideoWriteText(ix + 2, iy, $15, #227);
+			VideoWriteText(ix + 3, iy, $D5, #250);
+			VideoWriteText(ix + 4, iy, $51, #42#94);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $51, #240);
+			VideoWriteText(ix + 2, iy, $D5, #42#32#157);
+			VideoWriteText(ix + 5, iy, $15, #250);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $15, #234);
+			VideoWriteText(ix + 2, iy, $5D, #18);
+			VideoWriteText(ix + 3, iy, $D5, #132);
+			VideoWriteText(ix + 4, iy, $5D, #250);
+			VideoWriteText(ix + 5, iy, $15, #4);
+		end else if InvItem = 'HELMET' then begin
+			VideoWriteText(ix + 2, iy, $17, #227);
+			VideoWriteText(ix + 3, iy, $71, #233#234);
+			VideoWriteText(ix + 5, iy, $17, #240);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $87, #94);
+			VideoWriteText(ix + 3, iy, $78, #240#227);
+			VideoWriteText(ix + 5, iy, $87, #94);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $18, #42);
+			VideoWriteText(ix + 3, iy, $81, #132#132);
+			VideoWriteText(ix + 5, iy, $18, #250);
+		end else if InvItem = 'ANVIL' then begin
+			VideoWriteText(ix + 1, iy, $87, #10);
+			VideoWriteText(ix + 2, iy, $78, #94#94#94#94#94);
+			VideoWriteText(ix + 7, iy, $18, #11);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $18, #42);
+			VideoWriteText(ix + 2, iy, $87, #94#94#94);
+			VideoWriteText(ix + 5, iy, $18, #223#94);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $87, #12#127#18);
+		end else if InvItem = 'REDWHEN' then begin
+			VideoWriteText(ix + 3, iy, $C6, #42#250);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $1C, #227#219#219#240);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $1C, #222);
+			VideoWriteText(ix + 3, iy, $CE, #223#223);
+			VideoWriteText(ix + 5, iy, $1C, #221);
+		end else if InvItem = 'BLUEWHEN' then begin
+			VideoWriteText(ix + 3, iy, $B6, #42#250);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $1B, #227#219#219#240);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $1B, #222);
+			VideoWriteText(ix + 3, iy, $BE, #223#223);
+			VideoWriteText(ix + 5, iy, $1B, #221);
+		end else if InvItem = 'VIOLETTA' then begin
+			VideoWriteText(ix + 1, iy, $15, #227);
+			VideoWriteText(ix + 2, iy, $51, #250);
+			VideoWriteText(ix + 3, iy, $D1, #94);
+			VideoWriteText(ix + 4, iy, $51, #42);
+			VideoWriteText(ix + 5, iy, $15, #240);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $15, #5);
+			VideoWriteText(ix + 2, iy, $D1, #132);
+			VideoWriteText(ix + 3, iy, $ED, #132);
+			VideoWriteText(ix + 4, iy, $D1, #132);
+			VideoWriteText(ix + 5, iy, $15, #4);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $12, #42);
+			VideoWriteText(ix + 2, iy, $2A, #12);
+			VideoWriteText(ix + 3, iy, $AD, #94);
+			VideoWriteText(ix + 4, iy, $2A, #18);
+			VideoWriteText(ix + 5, iy, $12, #250);
+		end else if InvItem = 'PLANKS' then begin
+			VideoWriteText(ix + 2, iy, $19, #132#132#132#132#240);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $69, #234#32#32#32#233);
+			VideoWriteText(ix + 6, iy, $19, #221);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $69, #234#32#32#32#233);
+			VideoWriteText(ix + 6, iy, $19, #4);
+		end else if InvItem = 'TOWEL' then begin
+			VideoWriteText(ix + 1, iy, $1D, #227#132#132#132#132#132);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $0D, #219#219#219#251#219);
+			VideoWriteText(ix + 6, iy, $D1, #147);
+			Inc(iy);
+			VideoWriteText(ix + 1, iy, $D5, #234#220#220#220#220#220);
+		end else if InvItem = 'COIN' then begin
+			VideoWriteText(ix + 3, iy, $17, #171#170);
+			Inc(iy);
+			VideoWriteText(ix + 2, iy, $71, #148);
+			VideoWriteText(ix + 3, iy, $17, #156#155);
+			VideoWriteText(ix + 5, iy, $71, #149);
+			Inc(iy);
+			VideoWriteText(ix + 3, iy, $17, #168#169);
+
+		{
+		end else if InvItem = '' then begin
+			VideoWriteText(ix, iy, $, #);
+			VideoWriteText(ix + 1, iy, $, #);
+			VideoWriteText(ix + 2, iy, $, #);
+			VideoWriteText(ix + 3, iy, $, #);
+			VideoWriteText(ix + 4, iy, $, #);
+			VideoWriteText(ix + 5, iy, $, #);
+			VideoWriteText(ix + 6, iy, $, #);
+			VideoWriteText(ix + 7, iy, $, #);
+			Inc(iy);
+			VideoWriteText(ix, iy, $, #);
+			VideoWriteText(ix + 1, iy, $, #);
+			VideoWriteText(ix + 2, iy, $, #);
+			VideoWriteText(ix + 3, iy, $, #);
+			VideoWriteText(ix + 4, iy, $, #);
+			VideoWriteText(ix + 5, iy, $, #);
+			VideoWriteText(ix + 6, iy, $, #);
+			VideoWriteText(ix + 7, iy, $, #);
+			Inc(iy);
+			VideoWriteText(ix, iy, $, #);
+			VideoWriteText(ix + 1, iy, $, #);
+			VideoWriteText(ix + 2, iy, $, #);
+			VideoWriteText(ix + 3, iy, $, #);
+			VideoWriteText(ix + 4, iy, $, #);
+			VideoWriteText(ix + 5, iy, $, #);
+			VideoWriteText(ix + 6, iy, $, #);
+			VideoWriteText(ix + 7, iy, $, #);
+		}
+
+		end;
+		Inc(iy);
+		VideoWriteText(ix + ((8 - Length(invitem)) div 2), iy, $17, invitem);
 	end;
 
 begin

@@ -43,20 +43,23 @@ interface
 		KEY_F8 = #194;
 		KEY_F9 = #195;
 		KEY_F10 = #196;
-		KEY_UP = #200;
 		KEY_PAGE_UP = #201;
+		KEY_UP = #200;
 		KEY_LEFT = #203;
 		KEY_RIGHT = #205;
 		KEY_DOWN = #208;
+		KEY_AUP = #72;
+		KEY_ALEFT = #75;
+		KEY_ARIGHT = #77;
+		KEY_ADOWN = #80;
 		KEY_PAGE_DOWN = #209;
 		KEY_INSERT = #210;
 		KEY_DELETE = #211;
 		KEY_HOME = #212;
 		KEY_END = #213;
 	var
+		MultiKey: boolean;
 		InputDeltaX, InputDeltaY: integer;
-		InputShiftPressed: boolean;
-		InputShiftAccepted: boolean;
 		InputJoystickEnabled: boolean;
 		InputMouseEnabled: boolean;
 		InputKeyPressed: char;
@@ -69,7 +72,12 @@ interface
 	procedure InputUpdate;
 	procedure InputInitDevices;
 	procedure InputReadWaitKey;
+	procedure FastInput;
+	procedure SlowInput;
+	procedure MultiInput;
+	procedure InputClearBuffer;
 	function InputConfigure: boolean;
+	function InputCheck(c: Char): boolean;
 
 implementation
 uses Dos, Crt, Keys, Sounds;
@@ -190,56 +198,98 @@ procedure InputCalibrateJoystick;
 		end;
 	end;
 
+function InputCheck(c: Char): boolean;
+	var
+		i: integer;
+	begin
+		InputCheck := false;
+		for i := 1 to Length(InputKeyBuffer) do begin
+			if InputKeyBuffer[i] = c then InputCheck := true;
+			if InputKeyBuffer[i] = UpCase(c) then InputCheck := true;
+		end;
+	end;
+
+procedure InputClearBuffer;
+	begin
+		InputKeyBuffer := '';
+	end;
+
+procedure MultiInput;
+	var
+		regs: Registers;
+	begin
+		regs.ah := $04;
+		regs.al := $01;
+		regs.cx := $1515;
+		Intr($A5, regs);
+	end;
+
+procedure FastInput;
+	var
+		regs: Registers;
+	begin
+		regs.ah := $03;
+		regs.al := $05;
+		regs.bh := $00;
+		regs.bl := $06;
+		Intr($16, regs);
+	end;
+
+procedure SlowInput;
+	var
+		regs: Registers;
+	begin
+		regs.ah := $03;
+		regs.al := $05;
+		regs.bh := $02;
+		regs.bl := $07;
+		Intr($16, regs);
+	end;
+
 procedure InputUpdate;
 	var
 		joyXraw, joyYraw: integer;
 		joyX, joyY: integer;
 		regs: Registers;
 	begin
+		InputJoystickMoved := false;
+		InputKeyBuffer := '';
 		InputDeltaX := 0;
 		InputDeltaY := 0;
-		InputShiftPressed := false;
-		InputJoystickMoved := false;
 		while KeyPressed do begin
 			InputKeyPressed := ReadKey;
+
 			if (InputKeyPressed = #0) or (InputKeyPressed = #1) or (InputKeyPressed = #2) then
 				InputKeyBuffer := InputKeyBuffer + Chr(Ord(ReadKey) or $80)
 			else
-				InputKeyBuffer := InputKeyBuffer + InputKeyPressed;
-		end;
-		if Length(InputKeyBuffer) <> 0 then begin
-			InputKeyPressed := InputKeyBuffer[1];
-			if Length(InputKeyBuffer) = 1 then
-				InputKeyBuffer := ''
-			else
-				InputKeyBuffer := Copy(InputKeyBuffer, Length(InputKeyBuffer) - 1, 1);
+				InputKeyBuffer := InputKeyBuffer + InputKeyPressed;	
 
-			case InputKeyPressed of
+			case InputKeyBuffer[Length(InputKeyBuffer)] of
 				KEY_UP, '8': begin
-					InputDeltaX := 0;
 					InputDeltaY := -1;
 				end;
 				KEY_LEFT, '4': begin
 					InputDeltaX := -1;
-					InputDeltaY := 0;
 				end;
 				KEY_RIGHT, '6': begin
 					InputDeltaX := 1;
-					InputDeltaY := 0;
 				end;
 				KEY_DOWN, '2': begin
-					InputDeltaX := 0;
 					InputDeltaY := 1;
 				end;
 			end;
-		end else begin
-			InputKeyPressed := #0;
 		end;
+
+		if Length(InputKeyBuffer) = 0 then begin
+			InputDeltaX := 0;
+			InputDeltaY := 0;
+			InputKeyPressed := #0;
+		end else
+			InputKeyPressed := InputKeyBuffer[Length(InputKeyBuffer)];
 
 		if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
 			{ keyboard movement }
 			KeysUpdateModifiers;
-			InputShiftPressed := KeysShiftHeld;
 		end else if InputJoystickEnabled then begin
 			InputJoystickGetCoords(joyXraw, joyYraw);
 
@@ -265,10 +315,7 @@ procedure InputUpdate;
 			end;
 
 			if InputIsJoystickButtonPressed then begin
-				if not InputShiftAccepted then
-					InputShiftPressed := true;
-			end else begin
-				InputShiftAccepted := false;
+				InputKeyPressed := KEY_ENTER;
 			end;
 		end else if InputMouseEnabled then begin
 			regs.AX := $0B;
@@ -299,10 +346,7 @@ procedure InputUpdate;
 
 			{ left mouse button }
 			if (regs.BX and 1) <> 0 then begin
-				if not InputShiftAccepted then
-					InputShiftPressed := true;
-			end else begin
-				InputShiftAccepted := false;
+				InputKeyPressed := KEY_ENTER;
 			end;
 
 			{ right/middle mouse button }
@@ -320,10 +364,13 @@ procedure InputUpdate;
 			end;
 		end;
 
-		if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-			InputLastDeltaX := InputDeltaX;
-			InputLastDeltaY := InputDeltaY;
+		if InputKeyPressed = KEY_ENTER then begin
+			InputDeltaX := 0;
+			InputDeltaY := 0;
+			InputKeyBuffer := '';
 		end;
+		{InputLastDeltaX := InputDeltaX;}
+		{InputLastDeltaY := InputDeltaY;}
 	end;
 
 function InputInitMouse: boolean;
@@ -393,8 +440,6 @@ begin
 	InputLastDeltaY := 0;
 	InputDeltaX := 0;
 	InputDeltaY := 0;
-	InputShiftPressed := false;
-	InputShiftAccepted := false;
 	InputMouseX := 0;
 	InputMouseY := 0;
 	InputMouseActivationX := 60;

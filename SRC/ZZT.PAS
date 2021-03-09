@@ -26,13 +26,14 @@
 {$I-}
 {$M 49152,163840,655360}
 program ZZT;
-uses Crt, Dos, Video, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+uses Crt, Dos, Video, Keys, Sounds, Input, TxtWind, GameVars, Elements, Oop, Game;
 
 procedure ParseArguments;
 	var
 		i: integer;
 		pArg: string;
 	begin
+		ConfigPaper := false;
 		for i := 1 to ParamCount do begin
 			pArg := ParamStr(i);
 			if pArg[1] = '/' then begin
@@ -50,6 +51,10 @@ procedure ParseArguments;
 				end;
 			end;
 		end;
+		if StartupWorldFileName[1] = '!' then begin
+			ConfigPaper := true;
+			StartupWorldFileName := Copy(StartupWorldFileName, 2, Length(StartupWorldFileName) - 1);
+		end;
 	end;
 
 procedure GameConfigure;
@@ -59,8 +64,6 @@ procedure GameConfigure;
 		cfgFile: text;
 	begin
 		ParsingConfigFile := true;
-		EditorEnabled := true;
-		ConfigRegistration := '';
 		ConfigWorldFile := '';
 		GameVersion := '3.2';
 
@@ -68,10 +71,8 @@ procedure GameConfigure;
 		Reset(cfgFile);
 		if IOResult = 0 then begin
 			Readln(cfgFile, ConfigWorldFile);
-			Readln(cfgFile, ConfigRegistration);
 		end;
 		if ConfigWorldFile[1] = '*' then begin
-			EditorEnabled := false;
 			ConfigWorldFile := Copy(ConfigWorldFile, 2, Length(ConfigWorldFile) - 1);
 		end;
 		if Length(ConfigWorldFile) <> 0 then begin
@@ -90,13 +91,10 @@ procedure GameConfigure;
 		TextColor(White);
 		TextColor(White);
 		Writeln;
-		Writeln('                                 <=-  ZZT  -=>');
+		Writeln('                              <=-  WeaveZZT  -=>');
 		TextColor(Yellow);
-		if Length(ConfigRegistration) = 0 then
-			Writeln('                             Shareware version 3.2')
-		else
-			Writeln('                                  Version  3.2');
-		Writeln('                            Created by Tim Sweeney');
+		Writeln('                                 Version 1.4s');
+		Writeln('                        Created by The Guild of Weavers');
 		GotoXY(1, 7);
 		TextColor(Blue);
 		Write('================================================================================');
@@ -106,7 +104,7 @@ procedure GameConfigure;
 		GotoXY(30, 7);
 		Write(' Game Configuration ');
 		GotoXY(1, 25);
-		Write(' Copyright (c) 1991 Epic MegaGames                         Press ... to abort');
+		Write(' You are a Weaver.  You may not know it yet, but you are.  Press ... to abort');
 		TextColor(Black);
 		TextBackground(LightGray);
 		GotoXY(66, 25);
@@ -127,27 +125,12 @@ procedure GameConfigure;
 	end;
 
 begin
-	WorldFileDescCount := 7;
-	WorldFileDescKeys[1] := 'TOWN';
-	WorldFileDescValues[1] := 'TOWN       The Town of ZZT';
-	WorldFileDescKeys[2] := 'DEMO';
-	WorldFileDescValues[2] := 'DEMO       Demo of the ZZT World Editor';
-	WorldFileDescKeys[3] := 'CAVES';
-	WorldFileDescValues[3] := 'CAVES      The Caves of ZZT';
-	WorldFileDescKeys[4] := 'DUNGEONS';
-	WorldFileDescValues[4] := 'DUNGEONS   The Dungeons of ZZT';
-	WorldFileDescKeys[5] := 'CITY';
-	WorldFileDescValues[5] := 'CITY       Underground City of ZZT';
-	WorldFileDescKeys[6] := 'BEST';
-	WorldFileDescValues[6] := 'BEST       The Best of ZZT';
-	WorldFileDescKeys[7] := 'TOUR';
-	WorldFileDescValues[7] := 'TOUR       Guided Tour ZZT'#39's Other Worlds';
 
 	Randomize;
 	SetCBreak(false);
 	InitialTextAttr := TextAttr;
 
-	StartupWorldFileName := 'TOWN';
+	StartupWorldFileName := 'BINB';
 	ResourceDataFileName := 'ZZT.DAT';
 	ResetConfig := false;
 	GameTitleExitRequested := false;
@@ -164,11 +147,20 @@ begin
 		ClrScr;
 
 		TickSpeed := 4;
+		GlobalLen := 0;
+		BigTimer := 0;
+		FlashInv := 0;
+		DisplayClock := 0;
+		FlashHint := 0;
 		DebugEnabled := false;
-		SavedGameFileName := 'SAVED';
-		SavedBoardFileName := 'TEMP';
-		GenerateTransitionTable;
 		WorldCreate;
+
+		SetNoBlink;
+		SetFont;
+		SetExpr(1,0);
+		SetPal(1);
+		SlowInput;
+		MultiInput;
 
 		GameTitleLoop;
 
@@ -182,14 +174,6 @@ begin
 	Port[PORT_CGA_PALETTE] := 0;
 	TextAttr := InitialTextAttr;
 	ClrScr;
-
-	if Length(ConfigRegistration) = 0 then begin
-		GamePrintRegisterMessage;
-	end else begin
-		Writeln;
-		Writeln('  Registered version -- Thank you for playing ZZT.');
-		Writeln;
-	end;
 
 	VideoShowCursor;
 end.

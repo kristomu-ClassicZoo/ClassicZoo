@@ -126,8 +126,14 @@ procedure SoundInitDrumTable;
 			SoundDrumTable[7].Data[i] := 700 - (i * 12);
 		for i := 1 to 14 do
 			SoundDrumTable[8].Data[i] := (i * 20 + 1200) - Random(i * 40);
-		for i := 1 to 14 do
+		for i := 1 to 14 do begin
 			SoundDrumTable[9].Data[i] := Random(440) + 220;
+		end;
+		SoundDrumTable[3].Len := 48;
+		for i:= 1 to 24 do begin
+			SoundDrumTable[3].Data[i * 2 - 1] := 173 - (i mod 6);
+			SoundDrumTable[3].Data[i * 2] := 341 - (i mod 6);
+		end;
 	end;
 
 procedure SoundPlayDrum(var drum: TDrumData);
@@ -264,10 +270,6 @@ function SoundParse(input: string): string;
 				end;
 				'.': begin
 					noteDuration := (noteDuration * 3) div 2;
-					AdvanceInput;
-				end;
-				'3': begin
-					noteDuration := noteDuration div 3;
 					AdvanceInput;
 				end;
 				'+': begin
