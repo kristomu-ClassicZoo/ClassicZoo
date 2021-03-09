@@ -345,59 +345,28 @@ procedure SetColor(c, r, g, b: byte);
 procedure VideoWriteTextCO80(x, y, color: byte; text: TVideoLine);
 	begin
 		inline(
-			$1E/                 { PUSH DS }
-			$1E/                 { PUSH DS }
+			$8B/$06/VideoTextSegment/{ MOV AX, VideoTextSegment }
+			$8E/$C0/             { MOV ES, AX }
 			$8A/$86/y/           { MOV AL, byte ptr [BP + y] }
-			$B3/$50/             { MOV BL, 0x50 }
-			$F6/$E3/             { MUL BL }
-			$2B/$DB/             { SUB BX, BX }
-			$8A/$9E/x/           { MOV BL, byte ptr [BP + x] }
-			$03/$C3/             { ADD AX, BX }
-			$03/$C0/             { ADD AX, AX }
+			$F6/$26/VideoColumns/{ MUL VideoColumns }
+			$31/$C9/             { XOR CX, CX }
+			$89/$CE/             { MOV SI, CX }
+			$8A/$8E/x/           { MOV CL, byte ptr [BP + x] }
+			$01/$C8/             { ADD AX, CX }
+			$D1/$E0/             { SHL AX, 1 }
 			$8B/$F8/             { MOV DI, AX }
-			$BE/$00/$00/         { MOV SI, 0x0 }
-			$8A/$BE/color/       { MOV BH, byte ptr [BP + color] }
+			$8A/$A6/color/       { MOV AH, byte ptr [BP + color] }
 			$8A/$8E/text/        { MOV CL, byte ptr [BP + text] }
 			$22/$C9/             { AND CL, CL }
-			$74/$3E/             { JZ label_0084 }
-			$2B/$C0/             { SUB AX, AX }
-			$8E/$D8/             { MOV DS, AX }
-			$A0/$0449/           { MOV AL, [BiosBDA.VideoMode] }
-			$1F/                 { POP DS }
-			$2C/$07/             { SUB AL, 0x7 }
-			$74/$22/             { JZ label_0074 }
-			$BA/$B800/           { MOV DX, 0xB800 }
-			$8E/$DA/             { MOV DS, DX }
-			$BA/$03DA/           { MOV DX, 0x03DA }
-			{ label_005a }
-			$46/                 { INC SI }
-			$8A/$9A/text/        { MOV BL, byte ptr [BP + SI + text] }
-			{ label_005f }
-			$EC/                 { IN AL, DX }
-			$A8/$01/             { TEST AL, 0x1 }
-			$75/$FB/             { JNZ label_005f }
+			$74/$0A/             { JZ finish }
 			$FA/                 { CLI }
-			{ label_0065 }
-			$EC/                 { IN AL, DX }
-			$A8/$01/             { TEST AL, 0x1 }
-			$74/$FB/             { JZ label_0065 }
-			$89/$1D/             { MOV word ptr [bufIdx], BX }
-			$47/$47/             { INC bufIdx x 2 }
-			$E2/$EA/             { LOOP label_005a }
-			$2A/$C0/             { SUB AL, AL }
-			$74/$10/             { JZ label_0084 }
-			{ label_0074 }
-			$BA/$B000/           { MOV DX, 0xB000 }
-			$8E/$DA/             { MOV DS, DX }
-			{ label_0079 }
+		{ next_char: }
 			$46/                 { INC SI }
-			$8A/$9A/text/        { MOV BL, byte ptr [BP + SI + text] }
-			$89/$1D/             { MOV word ptr [bufIdx], BX }
-			$47/$47/             { INC bufIdx x 2 }
-			$E2/$F5/             { LOOP label_0079 }
-			{ label_0084 }
-			$1F/                 { POP DS }
+			$8A/$82/text/        { MOV AL, byte ptr [BP + SI + text] }
+			$AB/                 { STOSW }
+			$E2/$F8/             { LOOP next_char }
 			$FB                  { STI }
+		{ finish: }
 		);
 	end;
 
