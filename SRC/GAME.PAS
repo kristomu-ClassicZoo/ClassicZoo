@@ -107,7 +107,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop;
+uses Dos, Crt, ZxtMgr, Video, Sounds, Input, Elements, Editor, Oop;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -713,12 +713,18 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 
 		if not DisplayIOError then begin
 			WorldUnload;
-			BlockRead(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE);
+			BlockRead(f, World.BoardCount, 2);
 
 			if not DisplayIOError then begin
+				if not ZxtLoadExtensions(f, filename) then begin
+					VideoWriteText(63, 5, $1E, ' .ZXT extension');
+					VideoWriteText(63, 6, $1E, ' loading error!');
+					exit;
+				end;
+
+				BlockRead(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE - 2);
 				ptr := IoTmpBuf;
-				Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
-				AdvancePointer(ptr, SizeOf(World.BoardCount));
+				if DisplayIOError then exit;
 
 				if World.BoardCount < 0 then begin
 					if World.BoardCount <> -1 then begin
@@ -832,6 +838,7 @@ function GameWorldLoad(extension: TString50): boolean;
 		fileSearchRec: SearchRec;
 		entryName: string;
 		i: integer;
+		zxtDividePos: integer;
 	begin
 		TextWindowInitState(textWindow);
 		if extension = '.ZZT' then
@@ -840,6 +847,17 @@ function GameWorldLoad(extension: TString50): boolean;
 			textWindow.Title := 'Saved Games';
 		GameWorldLoad := false;
 		textWindow.Selectable := true;
+
+		zxtDividePos := -1;
+		if extension = '.ZZT' then begin
+			FindFirst('*.ZXT', AnyFile, fileSearchRec);
+			while DosError = 0 do begin
+				entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - 4);
+				TextWindowAppend(textWindow, entryName);
+				FindNext(fileSearchRec);
+			end;
+			zxtDividePos := textWindow.LineCount;
+		end;
 
 		FindFirst('*' + extension, AnyFile, fileSearchRec);
 		while DosError = 0 do begin
@@ -852,6 +870,7 @@ function GameWorldLoad(extension: TString50): boolean;
 			TextWindowAppend(textWindow, entryName);
 			FindNext(fileSearchRec);
 		end;
+
 		TextWindowAppend(textWindow, 'Exit');
 
 		TextWindowDrawOpen(textWindow);
@@ -862,7 +881,8 @@ function GameWorldLoad(extension: TString50): boolean;
 			entryName := textWindow.Lines[textWindow.LinePos]^;
 			if Pos(' ', entryName) <> 0 then
 				entryName := Copy(entryName, 1, Pos(' ', entryName) - 1);
-
+			if textWindow.LinePos <= zxtDividePos then
+				extension := '.ZXT';
 			GameWorldLoad := WorldLoad(entryName, extension, false);
 			TransitionDrawToFill(#219, $44);
 		end;
