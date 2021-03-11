@@ -1514,7 +1514,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 			if Length(StartupWorldFileName) <> 0 then begin
 				SidebarClearLine(8);
 				VideoWriteText(69, 8, $1F, StartupWorldFileName);
-				if not WorldLoad(StartupWorldFileName, '.ZZT', true) then WorldCreate;
+				if not WorldLoad(StartupWorldFileName, '.ZZT', true) then WorldCreate
+				else if ZxtShowFlagError(false) then begin end;
 			end;
 			ReturnBoardId := World.Info.CurrentBoard;
 			BoardChange(0);
@@ -1652,6 +1653,7 @@ procedure GameTitleLoop;
 				case UpCase(InputKeyPressed) of
 					'W': begin
 						if GameWorldLoad('.ZZT') then begin
+							if ZxtShowFlagError(false) then begin end;
 							ReturnBoardId := World.Info.CurrentBoard;
 							boardChanged := true;
 						end;
@@ -1682,6 +1684,7 @@ procedure GameTitleLoop;
 					end;
 					'R': begin
 						if GameWorldLoad('.SAV') then begin
+							if ZxtShowFlagError(false) then begin end;
 							ReturnBoardId := World.Info.CurrentBoard;
 							BoardChange(ReturnBoardId);
 							startPlay := true;

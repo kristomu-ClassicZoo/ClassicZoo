@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game;
+uses Dos, Crt, ZxtMgr, Video, Sounds, Input, Elements, Oop, Game;
 
 type
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
@@ -618,7 +618,7 @@ procedure EditorLoop;
 		end;
 
 	begin
-		if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) then begin
+		if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) or ZxtShowFlagError(true) then begin
 			WorldUnload;
 			WorldCreate;
 		end;
@@ -747,6 +747,10 @@ procedure EditorLoop;
 									WorldUnload;
 									WorldCreate;
 								end;
+							end;
+							if ZxtShowFlagError(true) then begin
+								WorldUnload;
+								WorldCreate;
 							end;
 							wasModified := false;
 							EditorDrawRefresh;

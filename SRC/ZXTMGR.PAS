@@ -53,11 +53,12 @@ interface
 	function ExtensionEnabledById(eowner: longint; eselector: word): boolean;
 	function ZxtLoadExtensions(var worldFile: file; filename: TString50): boolean;
 	function ZxtWriteExtensions(var extFile: file): boolean;
+	function ZxtShowFlagError(isEditing: boolean): boolean;
 	procedure ZxtRegisterExtensionReadHandler(handler: TExtensionReadHandlerFunc);
 	procedure ZxtRegisterExtensionWriteHandler(handler: TExtensionWriteHandlerFunc);
 
 implementation
-uses Dos;
+uses Dos, TxtWind;
 
 type
 	TExtensionId = record
@@ -78,7 +79,7 @@ const
 	ZXT_MAGIC = -3545; { $F227 }
 	ExtensionIdList: array[0 .. (Ord(ExtTypeEnd) - 1)] of TExtensionID =
 	(
-		(Owner: $00000000; Selector: $0001) { ExtUnlockExtensions }
+		(Owner: $00000000; Selector: $0002) { ExtUnlockExtensions }
 	);
 var
 	ZxtExtensionReadHandlerFunc: TExtensionReadHandlerFunc;
@@ -244,6 +245,11 @@ var
 	i: word;
 	lenpos, retpos: longint;
 begin
+	if not ExtensionWriteCan then begin
+		ZxtWriteExtensions := false;
+		exit;
+	end;
+
 	hdr.Magic := ZXT_MAGIC;
 	hdr.BlockCount := 0;
 	for i := 0 to (Ord(ExtTypeEnd) - 1) do
@@ -287,6 +293,40 @@ begin
 		end;
 
 	ZxtWriteExtensions := true;
+end;
+
+function ZxtShowFlagError(isEditing: boolean): boolean;
+var
+	textWindow: TTextWindowState;
+	isFatal: boolean;
+begin
+	isFatal := (isEditing) and (not ExtensionWriteCan);
+	ZxtShowFlagError := isFatal;
+
+	if isFatal then
+		textWindow.Title := 'Error'
+	else begin
+		if (isEditing and ExtensionEditShould) or ((not isEditing) and ExtensionPlayShould) then
+			exit;
+		textWindow.Title := 'Warning';
+	end;
+
+	TextWindowInitState(textWindow);
+	TextWindowAppend(textWindow, 'This world uses extensions which are');
+	TextWindowAppend(textWindow, 'not supported by this version of the');
+	TextWindowAppend(textWindow, 'game engine.');
+	TextWindowAppend(textWindow, '');
+	if isFatal then
+		TextWindowAppend(textWindow, 'This action is unavailable.')
+	else if isEditing then
+		TextWindowAppend(textWindow, 'Editing may be negatively impacted.')
+	else
+		TextWindowAppend(textWindow, 'Playing may be negatively impacted.');
+
+	TextWindowDrawOpen(textWindow);
+	TextWindowSelect(textWindow, false, false);
+	TextWindowDrawClose(textWindow);
+	TextWindowFree(textWindow);
 end;
 
 procedure ZxtRegisterExtensionReadHandler(handler: TExtensionReadHandlerFunc);
