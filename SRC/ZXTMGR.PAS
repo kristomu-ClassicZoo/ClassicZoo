@@ -87,14 +87,15 @@ var
 
 {$F+}
 
-function ZxtExtensionReadHandlerDummy(extType: TExtensionType; var flags: word; fieldLength: word; var extFile: file): boolean;
+function ZxtExtensionReadHandlerDefault(extType: TExtensionType; var flags: word;
+	fieldLength: word; var extFile: file): boolean;
 begin
-	ZxtExtensionReadHandlerDummy := true;
+	ZxtExtensionReadHandlerDefault := true;
 end;
 
-function ZxtExtensionWriteHandlerDummy(extType: TExtensionType; var extFile: file): boolean;
+function ZxtExtensionWriteHandlerDefault(extType: TExtensionType; var extFile: file): boolean;
 begin
-	ZxtExtensionWriteHandlerDummy := true;
+	ZxtExtensionWriteHandlerDefault := true;
 end;
 
 {$F-}
@@ -340,6 +341,6 @@ begin
 end;
 
 begin
-	ZxtExtensionReadHandlerFunc := ZxtExtensionReadHandlerDummy;
-	ZxtExtensionWriteHandlerFunc := ZxtExtensionWriteHandlerDummy;
+	ZxtExtensionReadHandlerFunc := ZxtExtensionReadHandlerDefault;
+	ZxtExtensionWriteHandlerFunc := ZxtExtensionWriteHandlerDefault;
 end.
