@@ -782,6 +782,10 @@ procedure WorldSave(filename, extension: TString50);
 		Rewrite(f, 1);
 
 		if not DisplayIOError then begin
+			if ExtensionAnyEnabled then begin
+				if not ZxtWriteExtensions(f) then goto OnError;
+			end;
+
 			ptr := IoTmpBuf;
 			FillChar(IoTmpBuf^, WORLD_FILE_HEADER_SIZE, 0);
 			version := -1;
