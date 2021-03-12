@@ -272,8 +272,10 @@ var
 	bhdr: TExtensionBlockHeader;
 	i: word;
 	lenpos, retpos: longint;
+label OnError;
 begin
 	if not ExtensionWriteCan then begin
+	OnError:
 		ZxtWriteExtensions := false;
 		exit;
 	end;
@@ -284,32 +286,19 @@ begin
 		if ExtensionEnabled[TExtensionType(i)] then
 			Inc(hdr.BlockCount);
 	BlockWrite(extFile, hdr, SizeOf(hdr));
-	if IOResult <> 0 then begin
-		ZxtWriteExtensions := false;
-		exit;
-	end;
+	if IOResult <> 0 then goto OnError;
 
 	for i := 0 to (Ord(ExtTypeEnd) - 1) do
 		if ExtensionEnabled[TExtensionType(i)] then begin
 			bhdr.Flags := ExtensionFlags[TExtensionType(i)];
-			with ExtensionIdList[i] do begin
-				bhdr.Id.Owner := Owner;
-				bhdr.Id.Selector := Selector;
-			end;
+			bhdr.Id := ExtensionIdList[i];
 			bhdr.FieldType := $00;
 			bhdr.FieldLength := 0;
 			BlockWrite(extFile, bhdr, SizeOf(bhdr));
 			lenpos := FilePos(extFile);
 
-			if IOResult <> 0 then begin
-				ZxtWriteExtensions := false;
-				exit;
-			end;
-
-			if not ZxtExtensionWriteHandlerFunc(TExtensionType(i), extFile) then begin
-				ZxtWriteExtensions := false;
-				exit;
-			end;
+			if (IOResult <> 0) or (not ZxtExtensionWriteHandlerFunc(TExtensionType(i), extFile))
+			then goto OnError;
 
 			retpos := FilePos(extFile);
 			if (retpos <> lenpos) then begin
