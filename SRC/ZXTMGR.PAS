@@ -79,7 +79,7 @@ const
 	ZXT_MAGIC = -3545; { $F227 }
 	ExtensionIdList: array[0 .. (Ord(ExtTypeEnd) - 1)] of TExtensionID =
 	(
-		(Owner: $00000000; Selector: $0002) { ExtUnlockExtensions }
+		(Owner: $00000000; Selector: $0001) { ExtUnlockExtensions }
 	);
 var
 	ZxtExtensionReadHandlerFunc: TExtensionReadHandlerFunc;
