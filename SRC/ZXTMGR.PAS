@@ -29,6 +29,8 @@ interface
 		{ Return true if the extension was read successfully. }
 		TExtensionReadHandlerFunc = function(extType: TExtensionType; var flags: word;
 			fieldLength: word; var extFile: file): boolean;
+		{ Return true if the extension was unloaded successfully. }
+		TExtensionUnloadHandlerFunc = function(extType: TExtensionType): boolean;
 		{ Return true if the extension was written successfully. }
 		TExtensionWriteHandlerFunc = function(extType: TExtensionType; var extFile: file): boolean;
 	const
@@ -52,9 +54,11 @@ interface
 	function ExtensionAnyEnabled: boolean;
 	function ExtensionEnabledById(eowner: longint; eselector: word): boolean;
 	function ZxtLoadExtensions(var worldFile: file; filename: TString50): boolean;
+	function ZxtUnloadExtensions: boolean;
 	function ZxtWriteExtensions(var extFile: file): boolean;
 	function ZxtShowFlagError(isEditing: boolean): boolean;
 	procedure ZxtRegisterExtensionReadHandler(handler: TExtensionReadHandlerFunc);
+	procedure ZxtRegisterExtensionUnloadHandler(handler: TExtensionUnloadHandlerFunc);
 	procedure ZxtRegisterExtensionWriteHandler(handler: TExtensionWriteHandlerFunc);
 
 implementation
@@ -83,6 +87,7 @@ const
 	);
 var
 	ZxtExtensionReadHandlerFunc: TExtensionReadHandlerFunc;
+	ZxtExtensionUnloadHandlerFunc: TExtensionUnloadHandlerFunc;
 	ZxtExtensionWriteHandlerFunc: TExtensionWriteHandlerFunc;
 
 {$F+}
@@ -91,6 +96,11 @@ function ZxtExtensionReadHandlerDefault(extType: TExtensionType; var flags: word
 	fieldLength: word; var extFile: file): boolean;
 begin
 	ZxtExtensionReadHandlerDefault := true;
+end;
+
+function ZxtExtensionUnloadHandlerDefault(extType: TExtensionType): boolean;
+begin
+	ZxtExtensionUnloadHandlerDefault := true;
 end;
 
 function ZxtExtensionWriteHandlerDefault(extType: TExtensionType; var extFile: file): boolean;
@@ -128,6 +138,23 @@ begin
 	end;
 
 	ExtensionEnabledById := false;
+end;
+
+function ZxtUnloadExtensions: boolean;
+var
+	extId: word;
+begin
+	for extId := 0 to (Ord(ExtTypeEnd) - 1) do begin
+		if ExtensionEnabled[TExtensionType(extId)] then begin
+			if not ZxtExtensionUnloadHandlerFunc(TExtensionType(extId)) then begin
+				ZxtUnloadExtensions := false;
+				exit;
+			end;
+			ExtensionEnabled[TExtensionType(extId)] := false;
+		end;
+	end;
+
+	ZxtUnloadExtensions := true;
 end;
 
 function ZxtLoadExtensions(var worldFile: file; filename: TString50): boolean;
@@ -335,6 +362,11 @@ begin
 	ZxtExtensionReadHandlerFunc := handler;
 end;
 
+procedure ZxtRegisterExtensionUnloadHandler(handler: TExtensionUnloadHandlerFunc);
+begin
+	ZxtExtensionUnloadHandlerFunc := handler;
+end;
+
 procedure ZxtRegisterExtensionWriteHandler(handler: TExtensionWriteHandlerFunc);
 begin
 	ZxtExtensionWriteHandlerFunc := handler;
@@ -342,5 +374,6 @@ end;
 
 begin
 	ZxtExtensionReadHandlerFunc := ZxtExtensionReadHandlerDefault;
+	ZxtExtensionUnloadHandlerFunc := ZxtExtensionUnloadHandlerDefault;
 	ZxtExtensionWriteHandlerFunc := ZxtExtensionWriteHandlerDefault;
 end.

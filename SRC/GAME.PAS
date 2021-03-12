@@ -684,6 +684,7 @@ procedure WorldUnload;
 		i: integer;
 	begin
 		BoardClose;
+		if ZxtUnloadExtensions then begin end;
 		for i := 0 to World.BoardCount do
 			FreeMem(World.BoardData[i], World.BoardLen[i]);
 	end;
