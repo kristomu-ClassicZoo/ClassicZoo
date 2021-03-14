@@ -578,7 +578,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 				if ElementDefs[Element].Cycle > -1 then
 					statIds[i] := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i])
 			end;
-			i := i + direction;
+			Inc(i, direction);
 		until i = iMax;
 
 		i := iMin;
@@ -610,7 +610,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 				else if not ElementDefs[Element].Pushable then
 					canMove := false;
 			end;
-			i := i + direction;
+			Inc(i, direction);
 		until i = iMax;
 	end;
 
