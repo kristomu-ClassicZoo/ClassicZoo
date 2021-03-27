@@ -140,7 +140,7 @@ begin
 	if not GameTitleExitRequested then begin
 		VideoInstall(80, Blue);
 		OrderPrintId := @GameVersion;
-		TextWindowInit(5, 3, 50, 18);
+		TextWindowInit; { (5, 3, 50, 18) }
 		New(IoTmpBuf);
 
 		VideoHideCursor;

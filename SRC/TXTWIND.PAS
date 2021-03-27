@@ -31,6 +31,10 @@ interface
 	const
 		MAX_TEXT_WINDOW_LINES = 1024;
 		MAX_RESOURCE_DATA_FILES = 24;
+		TextWindowX = 5;
+		TextWindowY = 3;
+		TextWindowWidth = 50;
+		TextWindowHeight = 18;
 	type
 		TTextWindowLine = string[50];
 		TTextWindowState = record
@@ -49,8 +53,6 @@ interface
 			FileOffset: array[1 .. MAX_RESOURCE_DATA_FILES] of longint;
 		end;
 	var
-		TextWindowX, TextWindowY: integer;
-		TextWindowWidth, TextWindowHeight: integer;
 		TextWindowStrInnerEmpty: TVideoLine;
 		TextWindowStrText: TVideoLine;
 		TextWindowStrInnerLine: TVideoLine;
@@ -72,7 +74,7 @@ interface
 	procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewingFile: boolean);
 	procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowState);
 	procedure TextWindowDisplayFile(filename, title: string);
-	procedure TextWindowInit(x, y, width, height: integer);
+	procedure TextWindowInit;
 	procedure DrawInventoryItem(x,y: integer; InvItem: string);
 
 implementation
@@ -441,19 +443,15 @@ procedure TextWindowDisplayFile(filename, title: string);
 		TextWindowFree(state);
 	end;
 
-procedure TextWindowInit(x, y, width, height: integer);
+procedure TextWindowInit;
 	var
 		i: integer;
 	begin
-		TextWindowX := x;
-		TextWindowWidth := width;
-		TextWindowY := y;
-		TextWindowHeight := height;
-		TextWindowStrInnerEmpty := '';
-		TextWindowStrInnerLine := '';
+		TextWindowStrInnerEmpty[0] := Chr(TextWindowWidth - 5);
+		TextWindowStrInnerLine[0] := Chr(TextWindowWidth - 5);
 		for i := 1 to (TextWindowWidth - 5) do begin
-			TextWindowStrInnerEmpty := TextWindowStrInnerEmpty + ' ';
-			TextWindowStrInnerLine := TextWindowStrInnerLine + #127;
+			TextWindowStrInnerEmpty[i] := ' ';
+			TextWindowStrInnerLine[i] := #127;
 		end;
 		TextWindowStrTop    := #222#29 + TextWindowStrInnerLine  + #31 + #221;
 		TextWindowStrBottom := #222#18 + TextWindowStrInnerLine  + #12 + #221;
