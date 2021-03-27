@@ -80,7 +80,7 @@ interface
 	function InputCheck(c: Char): boolean;
 
 implementation
-uses Dos, Crt, Keys, Sounds;
+uses Dos, Crt, Keys, Sounds, ZetaSupp;
 
 const
 	PORT_JOYSTICK = $0201;
@@ -218,6 +218,7 @@ procedure MultiInput;
 	var
 		regs: Registers;
 	begin
+		if not ZetaDetected then exit;
 		regs.ah := $04;
 		regs.al := $01;
 		regs.cx := $1515;

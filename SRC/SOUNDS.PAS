@@ -55,7 +55,7 @@ interface
 	function SoundParse(input: string): string;
 
 implementation
-uses Crt, Dos;
+uses Crt, Dos, ZetaSupp, AccDelay;
 
 const
 	SoundParseNoteTable: array['A' .. 'G'] of byte = (9, 11, 0, 2, 4, 5, 7);
@@ -145,7 +145,7 @@ procedure SoundPlayDrum(var drum: TDrumData);
 	begin
 		for i := 1 to drum.Len do begin
 			Sound(drum.Data[i]);
-			Delay(1);
+			if ZetaDetected then Delay(1) else AccurateDelay(1);
 		end;
 		NoSound;
 	end;

@@ -190,21 +190,16 @@ interface
 	function FadeWhite: boolean;
 	function FadeIn(value: integer): boolean;
 	function FadeDown(value: integer): boolean;
-	procedure TrueDelay(value: integer);
+	procedure TrueDelay(value: word);
 
 implementation
-uses Crt, Dos, Binb4;
+uses Crt, Dos, ZetaSupp, AccDelay, Binb4;
 
-{$F+}
-
-procedure TrueDelay(value: integer);
+procedure TrueDelay(value: word);
 	var
 		regs: Registers;
 	begin
-		regs.ah := $03;
-		regs.dx := value;
-		regs.cx := $1515;
-		Intr($A5, regs);
+		if ZetaDetected then ZetaDelay(value) else AccurateDelay(value);
 	end;
 
 procedure FadePalSet(value: integer);
@@ -339,6 +334,8 @@ procedure SetColor(c, r, g, b: byte);
 		intr($10, regs);
 	end;
 
+{$F+}
+
 procedure VideoWriteTextCO80(x, y, color: byte; text: TVideoLine);
 	begin
 		inline(
@@ -366,6 +363,8 @@ procedure VideoWriteTextCO80(x, y, color: byte; text: TVideoLine);
 		{ finish: }
 		);
 	end;
+
+{$F-}
 
 function VideoConfigure: boolean;
 	var
@@ -453,4 +452,5 @@ begin
 	VideoColumns := 80;
 	VideoWriteText := VideoWriteTextCO80;
 	VideoTextSegment := $B800;
+	if not ZetaDetected then AccurateDelayCalibrate;
 end.
