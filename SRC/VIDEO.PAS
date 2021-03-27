@@ -173,10 +173,7 @@ interface
 	var
 		VideoWriteText: TVideoWriteTextProc;
 		VideoColumns: integer;
-		VideoBorderColor: integer;
 		VideoTextSegment: word;
-		VideoTextPointer: pointer;
-		VideoCursorVisible: boolean;
 	function VideoConfigure: boolean;
 	procedure VideoInstall(columns, borderColor: integer);
 	procedure VideoUninstall;
@@ -398,8 +395,7 @@ procedure VideoInstall(columns, borderColor: integer);
 		VideoWriteText := VideoWriteTextCO80;
 		TextBackground(borderColor);
 		ClrScr;
-		if not VideoCursorVisible then
-			VideoHideCursor;
+		VideoHideCursor;
 		VideoSetBorderColor(borderColor);
 	end;
 
@@ -429,19 +425,16 @@ procedure VideoSetCursorShape(value: integer);
 procedure VideoShowCursor;
 	begin
 		VideoSetCursorShape($0607);
-		VideoCursorVisible := true;
 	end;
 
 procedure VideoHideCursor;
 	begin
 		VideoSetCursorShape($2000);
-		VideoCursorVisible := false;
 	end;
 
 procedure VideoSetBorderColor(value: integer);
 	begin
 		Port[PORT_CGA_PALETTE] := value;
-		VideoBorderColor := value;
 	end;
 
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
@@ -449,7 +442,6 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 		offset: integer;
 	begin
 		offset := (y * VideoColumns + x) * 2;
-		VideoWriteTextCO80(0, 0, 0, '');
 		if toVideo then
 			Move(data^, Ptr(VideoTextSegment, offset)^, chars * 2)
 		else
@@ -458,10 +450,7 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 
 
 begin
-	VideoBorderColor := 0;
 	VideoColumns := 80;
 	VideoWriteText := VideoWriteTextCO80;
 	VideoTextSegment := $B800;
-	VideoTextPointer := Ptr(VideoTextSegment, $0000);
-	VideoCursorVisible := true;
 end.
