@@ -527,14 +527,14 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 				goto ColorFound;
 			end;
 		end;
-		if OopWord = OopStringToWord('Wet') then begin
+		if OopWord = 'WET' then begin
 			case Random(5) of
 				0,3: tile.Color := $01;
 				1,4: tile.Color := $31;
 			else tile.Color := $10 end;
 			OopReadWord(statId, position);
 			goto ColorFound;
-		end else if OopWord = OopStringToWord('Bleeding') then begin
+		end else if OopWord = 'BLEEDING' then begin
 			case Random(8) of
 				1,4: tile.Color := $04;
 				2,3: tile.Color := $4C;
@@ -542,7 +542,7 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 			else tile.Color := $40 end;
 			OopReadWord(statId, position);
 			goto ColorFound;
-		end else if OopWord = OopStringToWord('Watery') then begin
+		end else if OopWord = 'WATERY' then begin
 			case Random(20) of
 				0,3: tile.Color := $01;
 				1,4: tile.Color := $31;
@@ -551,7 +551,7 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 			else tile.Color := $11 end;
 			OopReadWord(statId, position);
 			goto ColorFound;
-		end else if OopWord = OopStringToWord('Burning') then begin
+		end else if OopWord = 'BURNING' then begin
 			case Random(25) of
 				0,3,9: tile.Color := $0E;
 				1,4: tile.Color := $4C;
@@ -561,39 +561,39 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 			else tile.Color := $4E end;
 			OopReadWord(statId, position);
 			goto ColorFound;
-		end else if OopWord = OopStringToWord('Leafy') then begin
+		end else if OopWord = 'LEAFY' then begin
 			case Random(8) of
 				0,2,4,6: tile.Color := $20;
 				1,7,3: tile.Color := $2A;
 			else tile.Color := $02 end;
 			OopReadWord(statId, position);
 			goto ColorFound;
-		end else if OopWord = OopStringToWord('Wooden') then begin
+		end else if OopWord = 'WOODEN' then begin
 			case Random(3) of
 				0: tile.Color := $76;
 				1: tile.Color := $68;
 			else tile.Color := $60 end;
 			OopReadWord(statId, position);
 			goto ColorFound;
-		end else if OopWord = OopStringToWord('Rusty') then begin
+		end else if OopWord = 'RUSTY' then begin
 			case Random(3) of
 				1: tile.Color := $06;
 			else tile.Color := $08 end;
 			OopReadWord(statId, position);
 			goto ColorFound;
-		end else if OopWord = OopStringToWord('Bblack') then begin
+		end else if OopWord = 'BBLACK' then begin
 			tile.Color := $80;
 			OopReadWord(statId, position);
 			goto ColorFound;
-		end else if OopWord = OopStringToWord('Drab') then begin
+		end else if OopWord = 'DRAB' then begin
 			tile.Color := $08;
 			OopReadWord(statId, position);
 			goto ColorFound;
-		end else if OopWord = OopStringToWord('Bloody') then begin
+		end else if OopWord = 'BLOODY' then begin
 			tile.Color := $04;
 			OopReadWord(statId, position);
 			goto ColorFound;
-		end else if OopWord = OopStringToWord('Canvas') then begin
+		end else if OopWord = 'CANVAS' then begin
 			case Random(4) of
 				0: tile.Color := $76;
 				1: tile.Color := $77;
