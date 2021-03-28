@@ -45,12 +45,8 @@ procedure ParseArguments;
 		for i := 1 to ParamCount do begin
 			pArg := ParamStr(i);
 			if pArg[1] = '/' then begin
-				case UpCase(pArg[2]) of
-					'T': begin
-						SoundTimeCheckCounter := 0;
-						UseSystemTimeForElapsed := false;
-					end;
-				end;
+				{ case UpCase(pArg[2]) of
+				end; }
 
 				if pArg = '/NOEMS' then
 					enableEms := false
