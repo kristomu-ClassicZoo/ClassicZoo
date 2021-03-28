@@ -52,7 +52,7 @@ fi
 
 echo "Preparing Pascal code..."
 
-for i in DOC RES SRC SYSTEM TOOLS VENDOR LICENSE.TXT; do
+for i in RES SRC SYSTEM VENDOR LICENSE.TXT; do
 	cp -R "$i" "$TEMP_PATH"/
 done
 cp -R "$TEMP_PATH"/SYSTEM/*.BAT "$TEMP_PATH"/
@@ -83,24 +83,12 @@ if [ -n "$FREE_PASCAL" ]; then
 		exit 1
 	fi
 
-	echo "[ Building DATPACK.EXE ]"
-	cd TOOLS
-	cp ../SYSTEM/fpc.cfg .
-	"$FPC_PATH"/bin/ppcross8086 DATPACK.PAS
-	cp DATPACK.exe ../BUILD/DATPACK.EXE
-	cd ..
-
 	echo "[ Building ZZT.EXE ]"
 	cd SRC
 	cp ../SYSTEM/fpc.cfg .
 	"$FPC_PATH"/bin/ppcross8086 $FPC_ARGS ZZT.PAS
 	cp ZZT.exe ../BUILD/ZZT.EXE
 	cd ..
-
-	sed -i -e "s/^BUILD$/PACKDAT/" SYSTEM/dosbox.conf
-	touch BUILD.LOG
-	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
-	tail --pid $! -n +1 -f BUILD.LOG
 else
 	touch BUILD.LOG
 	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &

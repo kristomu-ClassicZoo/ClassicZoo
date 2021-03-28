@@ -30,7 +30,6 @@ interface
 	uses Video;
 	const
 		MAX_TEXT_WINDOW_LINES = 1024;
-		MAX_RESOURCE_DATA_FILES = 24;
 		TextWindowX = 5;
 		TextWindowY = 3;
 		TextWindowWidth = 50;
@@ -47,11 +46,6 @@ interface
 			LoadedFilename: string[50];
 			ScreenCopy: array[1 .. 25] of string[160];
 		end;
-		TResourceDataHeader = record
-			EntryCount: integer;
-			Name: array[1 .. MAX_RESOURCE_DATA_FILES] of string[50];
-			FileOffset: array[1 .. MAX_RESOURCE_DATA_FILES] of longint;
-		end;
 	var
 		TextWindowStrInnerEmpty: TVideoLine;
 		TextWindowStrText: TVideoLine;
@@ -62,8 +56,6 @@ interface
 		TextWindowStrInnerSep: TVideoLine;
 		TextWindowStrInnerArrows: TVideoLine;
 		TextWindowRejected: boolean;
-		ResourceDataFileName: string[50];
-		ResourceDataHeader: TResourceDataHeader;
 		OrderPrintId: ^string;
 	procedure TextWindowInitState(var state: TTextWindowState);
 	procedure TextWindowDrawOpen(var state: TTextWindowState);
@@ -351,7 +343,6 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 		f: file;
 		tf: text;
 		i: integer;
-		entryPos: integer;
 		retVal: boolean;
 		line: ^string;
 		lineLen: byte;
@@ -365,65 +356,20 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 
 			if filename[1] = '*' then begin
 				filename := Copy(filename, 2, Length(filename) - 1);
-				entryPos := -1;
 			end else begin
-				entryPos := 0;
 			end;
 
 			TextWindowInitState(state);
 			LoadedFilename := UpCaseString(filename);
-			if ResourceDataHeader.EntryCount = 0 then begin
-				Assign(f, ResourceDataFileName);
-				Reset(f, 1);
-				if IOResult = 0 then
-					BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
-				if IOResult <> 0 then
-					ResourceDataHeader.EntryCount := -1;
-				Close(f);
-			end;
 
-			if entryPos = 0 then begin
-				for i := 1 to ResourceDataHeader.EntryCount do begin
-					if UpCaseString(ResourceDataHeader.Name[i]) = UpCaseString(filename) then
-						entryPos := i;
-				end;
+			Assign(tf, filename);
+			Reset(tf);
+			while (IOResult = 0) and (not Eof(tf)) do begin
+				Inc(LineCount);
+				New(Lines[LineCount]);
+				ReadLn(tf, Lines[LineCount]^);
 			end;
-
-			if entryPos <= 0 then begin
-				Assign(tf, filename);
-				Reset(tf);
-				while (IOResult = 0) and (not Eof(tf)) do begin
-					Inc(LineCount);
-					New(Lines[LineCount]);
-					ReadLn(tf, Lines[LineCount]^);
-				end;
-				Close(tf);
-			end else begin
-				Assign(f, ResourceDataFilename);
-				Reset(f, 1);
-				Seek(f, ResourceDataHeader.FileOffset[entryPos]);
-				if IOResult = 0 then begin
-					retVal := true;
-					while (IOResult = 0) and retVal do begin
-						Inc(LineCount);
-						New(Lines[LineCount]);
-
-						BlockRead(f, Lines[LineCount]^, 1);
-						line := Ptr(Seg(Lines[LineCount]^), Ofs(Lines[LineCount]^) + 1);
-						lineLen := Ord(Lines[LineCount]^[0]);
-						if lineLen = 0 then begin
-							Lines[LineCount]^ := '';
-						end else begin
-							BlockRead(f, line^, lineLen);
-							if Lines[LineCount]^ = '@' then begin
-								retVal := false;
-								Lines[LineCount]^ := '';
-							end;
-						end;
-					end;
-					Close(f);
-				end;
-			end;
+			Close(tf);
 		end;
 	end;
 
@@ -877,7 +823,4 @@ procedure DrawInventoryItem(x,y: integer; InvItem: string);
 		VideoWriteText(ix + ((8 - Length(invitem)) div 2), iy, $17, invitem);
 	end;
 
-begin
-	ResourceDataFileName := '';
-	ResourceDataHeader.EntryCount := 0;
 end.

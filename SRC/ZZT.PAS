@@ -131,7 +131,6 @@ begin
 	InitialTextAttr := TextAttr;
 
 	StartupWorldFileName := 'BINB';
-	ResourceDataFileName := 'ZZT.DAT';
 	ResetConfig := false;
 	GameTitleExitRequested := false;
 	GameConfigure;

@@ -1923,7 +1923,7 @@ procedure GameDebugPrompt;
 
 procedure GameAboutScreen;
 	begin
-		TextWindowDisplayFile('ABOUT.HLP', 'MIT License');
+		TextWindowDisplayFile('LICENSE.TXT', 'MIT License');
 	end;
 
 procedure GameDrawSidebar;
