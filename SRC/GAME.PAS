@@ -391,7 +391,7 @@ procedure BoardChange(boardId: integer);
 
 procedure BoardCreate;
 	var
-		ix, iy, i: integer;
+		ix, iy: integer;
 	begin
 		Board.Name := '';
 		Board.Info.Message := '';
@@ -399,8 +399,12 @@ procedure BoardCreate;
 		Board.Info.IsDark := false;
 		Board.Info.ReenterWhenZapped := false;
 		Board.Info.TimeLimitSec := 0;
-		for i := 0 to 3 do
-			Board.Info.NeighborBoards[i] := 0;
+
+		{ Unrolled - takes up a bit less code. }
+		Board.Info.NeighborBoards[0] := 0;
+		Board.Info.NeighborBoards[1] := 0;
+		Board.Info.NeighborBoards[2] := 0;
+		Board.Info.NeighborBoards[3] := 0;
 
 		FillChar(Board.Tiles, SizeOf(Board.Tiles), 0);
 
@@ -2053,8 +2057,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 						MoveStat(0, Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY)
 					else begin
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
-						Board.Stats[0].X := Board.Stats[0].X + InputDeltaX;
-						Board.Stats[0].Y := Board.Stats[0].Y + InputDeltaY;
+						Inc(Board.Stats[0].X, InputDeltaX);
+						Inc(Board.Stats[0].Y, InputDeltaY);
 						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
 						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
