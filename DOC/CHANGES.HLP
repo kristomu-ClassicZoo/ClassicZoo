@@ -5,6 +5,18 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
+$< ClassicZoo dev >
+
++ Editor improvements.
+  * Copy/pasting board data now preserves
+    the start order.
+* Minor filesize/CPU optimizations have
+  been made to the engine.
+/ Fixed paste highlights being drawn out
+  of bounds and in an off-by-one way.
+/ Fixed the NOCLIP cheat not working with
+  board edges.
+
 $< ClassicZoo 4.12 >
 
 + The file selection menu now remembers,
