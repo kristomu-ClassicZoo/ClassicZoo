@@ -911,8 +911,7 @@ procedure EditorLoop;
 						tx := ox + X;
 						ty := oy + Y;
 					end;
-					ist := GetStatIdAt(tx, ty);
-					if ist < 0 then begin
+					if (tx >= 1) and (ty >= 1) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then begin
 						if Board.StatCount < MAX_STAT then begin
 							Inc(Board.StatCount);
 							EditorCopyStat(stats^[ix], Board.Stats[Board.StatCount]);
@@ -921,7 +920,10 @@ procedure EditorLoop;
 								Inc(Y, oy);
 							end;
 						end else begin
-							Board.Tiles[tx][ty].Element := E_EMPTY;
+							ist := GetStatIdAt(tx, ty);
+							if ist < 0 then begin
+								Board.Tiles[tx][ty].Element := E_EMPTY;
+							end;
 						end;
 					end;
 				end;
@@ -932,10 +934,18 @@ procedure EditorLoop;
 
 	procedure EditorAskAndPasteCopyBuffer(ox, oy: integer);
 		procedure InvertSel;
+			var
+				maxX, maxY: integer;
 			begin
 				Dec(ox);
 				Dec(oy);
-				VideoInvert(ox, oy, ox + copyBuffer.width, oy + copyBuffer.height);
+				maxX := ox + copyBuffer.width;
+				maxY := oy + copyBuffer.height;
+				if maxX > BOARD_WIDTH then maxX := BOARD_WIDTH;
+				if maxY > BOARD_HEIGHT then maxY := BOARD_HEIGHT;
+				Dec(maxX);
+				Dec(maxY);
+				VideoInvert(ox, oy, maxX, maxY);
 				Inc(ox);
 				Inc(oy);
 			end;
@@ -981,7 +991,7 @@ procedure EditorLoop;
 				height := oy2 - oy1;
 				statCount := 0;
 
-				{ Copy - Tiles, count stats }
+				{ Copy - Tiles }
 				GetMem(tiles, Integer(width) * Integer(height) * SizeOf(TTile));
 				ip := 0;
 				for iy := 1 to height do begin
@@ -995,10 +1005,8 @@ procedure EditorLoop;
 						end;
 
 						if (tx >= 1) and (ty >= 1) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then begin
-							ist := GetStatIdAt(tx, ty);
-							if ist <> 0 then begin
+							if (tx <> Board.Stats[0].X) or (ty <> Board.Stats[0].Y) then begin
 								tiles^[ip] := Board.Tiles[tx][ty];
-								if ist > 0 then Inc(statCount);
 							end;
 						end;
 
@@ -1006,28 +1014,32 @@ procedure EditorLoop;
 					end;
 				end;
 
+				{ Copy - Stats, count }
+				for ist := 1 to Board.StatCount do begin
+					with Board.Stats[ist] do begin
+						if (X > ox1) and (Y > oy1) and (X <= (ox1 + width)) and (Y <= (oy1 + height)) then begin
+							Inc(statCount);
+						end;
+					end;
+				end;
+
 				{ Copy - Stats }
 				if statCount > 0 then begin
 					GetMem(stats, statCount * SizeOf(TStat));
 					ip := 0;
-					for iy := 1 to height do begin
-						for ix := 1 to width do begin
-							tx := ox1 + ix;
-							ty := oy1 + iy;
-							if (tx >= 1) and (ty >= 1) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then begin
-								ist := GetStatIdAt(tx, ty);
-								if ist > 0 then begin
-									Inc(ip);
-									EditorCopyStat(Board.Stats[ist], stats^[ip]);
-									with stats^[ip] do begin
-										X := ix;
-										Y := iy;
-									end;
+					for ist := 1 to Board.StatCount do begin
+						with Board.Stats[ist] do begin
+							if (X > ox1) and (Y > oy1) and (X <= (ox1 + width)) and (Y <= (oy1 + height)) then begin
+								Inc(ip);
+								EditorCopyStat(Board.Stats[ist], stats^[ip]);
+								with stats^[ip] do begin
+									Dec(X, ox1);
+									Dec(Y, oy1);
 								end;
 							end;
 						end;
 					end;
-					{ if ip <> statCount then RunError(201); }
+					if ip <> statCount then RunError(201);
 				end;
 
 				if doCut then begin
