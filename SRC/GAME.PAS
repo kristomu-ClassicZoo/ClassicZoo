@@ -1937,6 +1937,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 	var
 		exitLoop: boolean;
 		pauseBlink: boolean;
+		pausedElement: byte;
 	procedure GameDrawSidebar;
 		begin
 			SidebarClear;
@@ -2057,8 +2058,14 @@ procedure GamePlayLoop(boardChanged: boolean);
 						Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				end;
 
+				pausedElement := Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element;
 				if ((InputDeltaX <> 0) or (InputDeltaY <> 0))
-					and ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element].Walkable
+					and (
+						(ElementDefs[pausedElement].Walkable)
+{$IFDEF EXTCHEAT}
+						or (CheatNoClip and (pausedElement <> E_BOARD_EDGE))
+{$ENDIF}
+					)
 				then begin
 					{ Move player }
 					if Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER then
@@ -2067,8 +2074,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
 						Inc(Board.Stats[0].X, InputDeltaX);
 						Inc(Board.Stats[0].Y, InputDeltaY);
-						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
+						with Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y] do begin
+							Element := E_PLAYER;
+							Color := ElementDefs[E_PLAYER].Color;
+						end;
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
 						DrawPlayerSurroundings(Board.Stats[0].X, Board.Stats[0].Y, 0);
 						DrawPlayerSurroundings(Board.Stats[0].X - InputDeltaX, Board.Stats[0].Y - InputDeltaY, 0);
