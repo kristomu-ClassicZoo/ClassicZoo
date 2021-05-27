@@ -1697,10 +1697,14 @@ function DebugPromptParseElem(input: TString50; offset: integer): integer;
 	var
 		substr: TString50;
 		i: integer;
+		j: byte;
 	begin
-		substr := '';
-		for i := offset + 2 to Length(input) do
-			substr := substr + UpCase(input[i]);
+		j := 0;
+		for i := offset + 2 to Length(input) do begin
+			Inc(j);
+			substr[j] := UpCase(input[i]);
+		end;
+		substr[0] := Chr(j);
 		if substr = 'ALL' then begin
 			DebugPromptParseElem := -1;
 			exit;
@@ -1718,10 +1722,14 @@ function DebugPromptParseColor(input: TString50; offset: integer): integer;
 	var
 		substr: TString50;
 		i: integer;
+		j: byte;
 	begin
-		substr := '';
-		for i := offset + 2 to Length(input) do
-			substr := substr + UpCase(input[i]);
+		j := 0;
+		for i := offset + 2 to Length(input) do begin
+			Inc(j);
+			substr[j] := UpCase(input[i]);
+		end;
+		substr[0] := Chr(j);
 		for i := 1 to 7 do begin
 			if substr = OopStringToWord(ColorNames[i]) then begin
 				DebugPromptParseColor := i;
