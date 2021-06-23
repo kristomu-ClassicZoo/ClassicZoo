@@ -521,8 +521,9 @@ spaces removed.  Examples:
                  'the board into gems.
 #CHANGE KEY SLIDEREW  'Changes all keys
                  'into east-west sliders.
-#CHANGE RED KEY CONVEYOR1 'Changes all red
-                 'keys into conveyors.
+#CHANGE RED KEY COUNTER  'Changes all red
+                 'keys into counter-
+                 'clockwise conveyors.
 
 
 :put;#PUT <direction> <kind>
