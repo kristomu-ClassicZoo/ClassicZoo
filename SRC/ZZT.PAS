@@ -153,6 +153,9 @@ procedure GameConfigure;
 		TextBackground(Black);
 		ClrScr;
 		TextColor(Yellow);
+{$ELSE}
+		Writeln('%NAME% %VERSION%');
+		Writeln('%COPYRIGHT%');
 {$ENDIF}
 		if not InputConfigure then
 			GameTitleExitRequested := true

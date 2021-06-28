@@ -154,7 +154,57 @@ procedure InputUpdate;
 			InputShiftPressed := KeysShiftHeld;
 		end;
 
-		{ TODO: Joystick, mouse? }
+		{ TODO: Joystick? }
+
+		if InputMouseEnabled then begin
+			regs.AX := $0B;
+			Intr($33, regs);
+			Inc(InputMouseX, Integer(regs.CX));
+			Inc(InputMouseY, Integer(regs.DX));
+
+			if Abs(InputMouseX) > Abs(InputMouseY) then begin
+				if Abs(InputMouseX) > InputMouseActivationX then begin
+					if InputMouseX > 0 then
+						InputDeltaX := 1
+					else
+						InputDeltaX := -1;
+					InputMouseX := 0;
+				end;
+			end else if Abs(InputMouseY) > Abs(InputMouseX) then begin
+				if Abs(InputMouseY) > InputMouseActivationY then begin
+					if InputMouseY > 0 then
+						InputDeltaY := 1
+					else
+						InputDeltaY := -1;
+					InputMouseY := 0;
+				end;
+			end;
+
+			regs.AX := $03;
+			Intr($33, regs);
+
+			{ left mouse button }
+			if (regs.BX and 1) <> 0 then begin
+				if not InputShiftAccepted then
+					InputShiftPressed := true;
+			end else begin
+				InputShiftAccepted := false;
+			end;
+
+			{ right/middle mouse button }
+			if (regs.BX and 6) <> 0 then begin
+				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+					InputMouseButtonX := InputDeltaX;
+					InputMouseButtonY := InputDeltaY;
+				end else begin
+					InputDeltaX := InputMouseButtonX;
+					InputDeltaY := InputMouseButtonY;
+				end;
+			end else begin
+				InputMouseButtonX := 0;
+				InputMouseButtonY := 0;
+			end;
+		end;
 
 		if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
 			InputLastDeltaX := InputDeltaX;
@@ -162,15 +212,55 @@ procedure InputUpdate;
 		end;
 	end;
 
+function InputInitMouse: boolean;
+	var
+		vec: pointer;
+		regs: Registers;
+	begin
+		InputInitMouse := false;
+		GetIntVec($33, vec);
+		if Seg(vec) <> $0000 then begin
+			regs.AX := 0;
+			Intr($33, regs);
+			InputInitMouse := (regs.AX <> 0);
+		end;
+	end;
+
 procedure InputInitDevices;
 	begin
-		{ TODO }
+		InputMouseEnabled := InputInitMouse;
 	end;
 
 function InputConfigure: boolean;
+	var
+		charTyped: char;
 	begin
-		{ TODO }
-		InputConfigure := true;
+		charTyped := ' ';
+		if InputJoystickEnabled or InputMouseEnabled then begin
+			Writeln;
+			Write('Game controller:  K)eyboard');
+			if InputMouseEnabled then
+				Write(',  M)ouse');
+			Write('?  ');
+
+			repeat
+				repeat until KeyPressed;
+				charTyped := UpCase(ReadKey);
+			until (charTyped = 'K')
+				or (InputJoystickEnabled and (charTyped = 'J'))
+				or (InputMouseEnabled and (charTyped = 'M'))
+				or (charTyped = #27);
+			Writeln;
+
+			InputMouseEnabled := false;
+			case charTyped of
+				'M': begin
+					InputMouseEnabled := true;
+				end;
+			end;
+			Writeln;
+		end;
+		InputConfigure := charTyped <> #27;
 	end;
 
 procedure InputReadWaitKey;
