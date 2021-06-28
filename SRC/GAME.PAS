@@ -281,10 +281,10 @@ procedure BoardClose;
 			end;
 		end;
 
-		ExtMemFree(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
-		World.BoardLen[World.Info.CurrentBoard] := Ofs(ptr^) - Ofs(IoTmpBuf^);
-		if ExtMemGet(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]) then begin
-			ExtMemWrite(World.BoardData[World.Info.CurrentBoard], IoTmpBuf^, World.BoardLen[World.Info.CurrentBoard]);
+		ExtMemFree(WorldExt.BoardData[World.Info.CurrentBoard], WorldExt.BoardLen[World.Info.CurrentBoard]);
+		WorldExt.BoardLen[World.Info.CurrentBoard] := Ofs(ptr^) - Ofs(IoTmpBuf^);
+		if ExtMemGet(WorldExt.BoardData[World.Info.CurrentBoard], WorldExt.BoardLen[World.Info.CurrentBoard]) then begin
+			ExtMemWrite(WorldExt.BoardData[World.Info.CurrentBoard], IoTmpBuf^, WorldExt.BoardLen[World.Info.CurrentBoard]);
 		end else RunError(203);
 	end;
 
@@ -329,12 +329,12 @@ procedure BoardOpen(boardId: integer);
 		if boardId > World.BoardCount then
 			boardId := World.Info.CurrentBoard;
 
-		case EnsureIoTmpBufSize(World.BoardLen[boardId]) of
+		case EnsureIoTmpBufSize(WorldExt.BoardLen[boardId]) of
 			0, 1: begin end;
 			2: RunError(203);
 		end;
 
-		ExtMemRead(World.BoardData[boardId], IoTmpBuf^, World.BoardLen[boardId]);
+		ExtMemRead(WorldExt.BoardData[boardId], IoTmpBuf^, WorldExt.BoardLen[boardId]);
 
 		ptr := IoTmpBuf;
 
@@ -444,7 +444,7 @@ procedure WorldCreate;
 	begin
 		InitElementsGame;
 		World.BoardCount := 0;
-		World.BoardLen[0] := 0;
+		WorldExt.BoardLen[0] := 0;
 		InitEditorStatSettings;
 		ResetMessageNotShownFlags;
 		BoardCreate;
@@ -884,7 +884,7 @@ procedure WorldUnload;
 	begin
 		BoardClose;
 		for i := 0 to World.BoardCount do
-			ExtMemFree(World.BoardData[i], World.BoardLen[i]);
+			ExtMemFree(WorldExt.BoardData[i], WorldExt.BoardLen[i]);
 	end;
 
 function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
@@ -948,23 +948,23 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 
 				for boardId := 0 to World.BoardCount do begin
 					SidebarAnimateLoading;
-					BlockRead(f, World.BoardLen[boardId], 2);
+					BlockRead(f, WorldExt.BoardLen[boardId], 2);
 
 					{ Try to un-corrupt Super Locked worlds. }
-					if (boardId = World.BoardCount) and (World.BoardLen[boardId] <= 51) then begin
+					if (boardId = World.BoardCount) and (WorldExt.BoardLen[boardId] <= 51) then begin
 						newLength := FileSize(f) - FilePos(f);
 						if (newLength > 51) and (newLength <= 32767) then
-							World.BoardLen[boardId] := newLength;
+							WorldExt.BoardLen[boardId] := newLength;
 					end;
 
-					if ExtMemGet(World.BoardData[boardId], World.BoardLen[boardId]) then begin
-						case EnsureIoTmpBufSize(World.BoardLen[boardId]) of
+					if ExtMemGet(WorldExt.BoardData[boardId], WorldExt.BoardLen[boardId]) then begin
+						case EnsureIoTmpBufSize(WorldExt.BoardLen[boardId]) of
 							0, 1: begin end;
 							2: RunError(203);
 						end;
 
-						BlockRead(f, IoTmpBuf^, World.BoardLen[boardId]);
-						ExtMemWrite(World.BoardData[boardId], IoTmpBuf^, World.BoardLen[boardId]);
+						BlockRead(f, IoTmpBuf^, WorldExt.BoardLen[boardId]);
+						ExtMemWrite(WorldExt.BoardData[boardId], IoTmpBuf^, WorldExt.BoardLen[boardId]);
 					end else RunError(203);
 				end;
 
@@ -1018,11 +1018,11 @@ procedure WorldSave(filename, extension: TString50);
 			if DisplayIOError then goto OnError;
 
 			for i := 0 to World.BoardCount do begin
-				BlockWrite(f, World.BoardLen[i], 2);
+				BlockWrite(f, WorldExt.BoardLen[i], 2);
 				if DisplayIOError then goto OnError;
 
-				ExtMemRead(World.BoardData[i], IoTmpBuf^, World.BoardLen[i]);
-				BlockWrite(f, IoTmpBuf^, World.BoardLen[i]);
+				ExtMemRead(WorldExt.BoardData[i], IoTmpBuf^, WorldExt.BoardLen[i]);
+				BlockWrite(f, IoTmpBuf^, WorldExt.BoardLen[i]);
 				if DisplayIOError then goto OnError;
 			end;
 		end;

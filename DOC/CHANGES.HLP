@@ -5,6 +5,12 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
+$< ClassicZoo dev >
+
++ Increased the board limit from 101 to
+  256 boards.
+/ Minor documentation fixes.
+
 $< ClassicZoo 4.13 >
 
 + Editor improvements.

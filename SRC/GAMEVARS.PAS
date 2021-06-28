@@ -30,7 +30,7 @@ interface
 	const
 		MAX_STAT = 150;
 		MAX_ELEMENT = 53;
-		MAX_BOARD = 100;
+		MAX_BOARD = 255;
 		MAX_FLAG = 10;
 		BOARD_WIDTH = 60;
 		BOARD_HEIGHT = 25;
@@ -151,11 +151,14 @@ interface
 		end;
 		TWorld = record
 			BoardCount: integer;
-			{ TODO: This shifts the memory layout. Can we make this pointer-sized again? }
-			BoardData: array[0 .. MAX_BOARD] of TExtMemBlock;
-			BoardLen: array[0 .. MAX_BOARD] of word;
+			BoardDataOld: array[0 .. 100] of pointer;
+			BoardLenOld: array[0 .. 100] of word;
 			Info: TWorldInfo;
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
+		end;
+		TWorldExt = record
+			BoardData: array[0 .. MAX_BOARD] of TExtMemBlock;
+			BoardLen: array[0 .. MAX_BOARD] of word;
 		end;
 		THighScoreEntry = record
 			Name: TString50;
@@ -236,6 +239,8 @@ interface
 		WorldFileDescKeys: array[1 .. 10] of TString50;
 		WorldFileDescValues: array[1 .. 10] of TString50;
 {$ENDIF}
+
+		WorldExt: TWorldExt;
 
 {$IFDEF EXTCHEAT}
 		CheatColorModifiers: array[0 .. MAX_ELEMENT] of byte;

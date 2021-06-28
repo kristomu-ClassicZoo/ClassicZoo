@@ -84,7 +84,7 @@ procedure EditorAppendBoard;
 
 			Inc(World.BoardCount);
 			World.Info.CurrentBoard := World.BoardCount;
-			World.BoardLen[World.BoardCount] := 0;
+			WorldExt.BoardLen[World.BoardCount] := 0;
 			BoardCreate;
 
 			TransitionDrawToBoard;
@@ -775,18 +775,18 @@ procedure EditorLoop;
 						end;
 
 						BoardClose;
-						ExtMemFree(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
-						BlockRead(f, World.BoardLen[World.Info.CurrentBoard], 2);
+						ExtMemFree(WorldExt.BoardData[World.Info.CurrentBoard], WorldExt.BoardLen[World.Info.CurrentBoard]);
+						BlockRead(f, WorldExt.BoardLen[World.Info.CurrentBoard], 2);
 						if not DisplayIOError then begin
-							case EnsureIoTmpBufSize(World.BoardLen[World.Info.CurrentBoard]) of
+							case EnsureIoTmpBufSize(WorldExt.BoardLen[World.Info.CurrentBoard]) of
 								2: memoryError := true;
 								0, 1: begin
-									if ExtMemGet(World.BoardData[World.Info.CurrentBoard],
-									World.BoardLen[World.Info.CurrentBoard]) then begin
+									if ExtMemGet(WorldExt.BoardData[World.Info.CurrentBoard],
+									WorldExt.BoardLen[World.Info.CurrentBoard]) then begin
 										BlockRead(f, IoTmpBuf^,
-											  World.BoardLen[World.Info.CurrentBoard]);
-										ExtMemWrite(World.BoardData[World.Info.CurrentBoard], IoTmpBuf^,
-											  World.BoardLen[World.Info.CurrentBoard]);
+											  WorldExt.BoardLen[World.Info.CurrentBoard]);
+										ExtMemWrite(WorldExt.BoardData[World.Info.CurrentBoard], IoTmpBuf^,
+											  WorldExt.BoardLen[World.Info.CurrentBoard]);
 									end else memoryError := true;
 								end;
 							end;
@@ -796,7 +796,7 @@ procedure EditorLoop;
 
 						if DisplayIOError or memoryError then begin
 							{ TODO: Show out of memory error. }
-							World.BoardLen[World.Info.CurrentBoard] := 0;
+							WorldExt.BoardLen[World.Info.CurrentBoard] := 0;
 							BoardCreate;
 							EditorDrawRefresh;
 						end else begin
@@ -809,7 +809,7 @@ procedure EditorLoop;
 				end else if i = 1 then begin
 					SidebarPromptString('Export board', '.BRD', SavedBoardFileName, PROMPT_ALPHANUM);
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
-						case EnsureIoTmpBufSize(World.BoardLen[World.Info.CurrentBoard]) of
+						case EnsureIoTmpBufSize(WorldExt.BoardLen[World.Info.CurrentBoard]) of
 							0, 1: begin
 								Assign(f, SavedBoardFileName + '.BRD');
 								Rewrite(f, 1);
@@ -819,11 +819,11 @@ procedure EditorLoop;
 								end;
 
 								BoardClose;
-								BlockWrite(f, World.BoardLen[World.Info.CurrentBoard], 2);
-								ExtMemRead(World.BoardData[World.Info.CurrentBoard], IoTmpBuf^,
-									World.BoardLen[World.Info.CurrentBoard]);
+								BlockWrite(f, WorldExt.BoardLen[World.Info.CurrentBoard], 2);
+								ExtMemRead(WorldExt.BoardData[World.Info.CurrentBoard], IoTmpBuf^,
+									WorldExt.BoardLen[World.Info.CurrentBoard]);
 								BlockWrite(f, IoTmpBuf^,
-									World.BoardLen[World.Info.CurrentBoard]);
+									WorldExt.BoardLen[World.Info.CurrentBoard]);
 								BoardOpen(World.Info.CurrentBoard);
 
 								Close(f);
@@ -1733,7 +1733,7 @@ function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TStri
 		else if (boardId = World.Info.CurrentBoard) then
 			EditorGetBoardName := Board.Name
 		else begin
-			ExtMemRead(World.BoardData[boardId], copiedName, SizeOf(copiedName));
+			ExtMemRead(WorldExt.BoardData[boardId], copiedName, SizeOf(copiedName));
 			EditorGetBoardName := copiedName;
 		end;
 	end;
