@@ -630,6 +630,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 		insCount: integer;
 		argTile: TTile;
 		argTile2: TTile;
+		movePlayerToStat: boolean;
 	label StartParsing;
 	label ReadInstruction;
 	label ReadCommand;
@@ -641,6 +642,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 			stopRunning := false;
 			repeatInsNextTick := false;
 			replaceStat := false;
+			movePlayerToStat := false;
 			endOfProgram := false;
 			insCount := 0;
 			repeat
@@ -847,7 +849,8 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							else if ((X + deltaX) > 0)
 								and ((X + deltaX) <= BOARD_WIDTH)
 								and ((Y + deltaY) > 0)
-								and ((Y + deltaY) < BOARD_HEIGHT) then
+								and (((Y + deltaY) < BOARD_HEIGHT)
+								or (ExtensionEnabled[ExtFixPutBottomRow] and ((Y + deltaY) <= BOARD_HEIGHT))) then
 							begin
 								if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 									ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
@@ -886,8 +889,17 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							end;
 						end else if OopWord = 'DIE' then begin
 							replaceStat := true;
-							replaceTile.Element := E_EMPTY;
-							replaceTile.Color := $0F;
+							if ExtensionEnabled[ExtDieUnderTile] then begin
+								replaceTile := Under;
+							end else begin
+								replaceTile.Element := E_EMPTY;
+								replaceTile.Color := $0F;	
+							end;
+
+							OopReadWord(statId, position);
+							if ExtensionEnabled[ExtDieItem] and (OopWord = 'ITEM') then begin
+								movePlayerToStat := true;
+							end;
 						end else if OopWord = 'BIND' then begin
 							OopReadWord(statId, position);
 							bindStatId := 0;
@@ -963,6 +975,10 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 				iy := Y;
 				DamageStat(statId);
 				OopPlaceTile(ix, iy, replaceTile);
+
+				if movePlayerToStat then begin
+					MoveStat(0, ix, iy);
+				end;
 			end;
 		end;
 	end;

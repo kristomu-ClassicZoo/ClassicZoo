@@ -43,7 +43,7 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-ZVideo, Sounds, Input, TxtWind, Editor, Oop, Game;
+ZxtMgr, ZVideo, Sounds, Input, TxtWind, Editor, Oop, Game;
 
 const
 	TransporterNSChars: string = '^~^-v_v-';
@@ -460,7 +460,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 		i: integer;
 		iStat: integer;
 		ix, iy: integer;
-		canMove: boolean;
+		canMove, isStatted: boolean;
 		tiles: array[0..7] of TTile;
 		statIds: array[0..7] of integer;
 		iMin, iMax: integer;
@@ -481,15 +481,14 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			tx := x + DiagonalDeltaX[i];
 			ty := y + DiagonalDeltaY[i];
 			tiles[i] := Board.Tiles[tx][ty];
+			{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
+			{ Pre-find stat IDs to prevent such a scenario from occuring. }
+			statIds[i] := GetStatIdAt(tx, ty);
 			with tiles[i] do begin
 				if Element = E_EMPTY then
 					canMove := true
 				else if not ElementDefs[Element].Pushable then
 					canMove := false;
-				{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
-				{ Pre-find stat IDs to prevent such a scenario from occuring. }
-				if ElementDefs[Element].Cycle > -1 then
-					statIds[i] := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i])
 			end;
 			Inc(i, direction);
 		until i = iMax;
@@ -504,7 +503,12 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 						tx := x + DiagonalDeltaX[i];
 						ty := y + DiagonalDeltaY[i];
 
-						if ElementDefs[Element].Cycle > -1 then begin
+						if ExtensionEnabled[ExtFixConveyorStatCheck] then
+							isStatted := statIds[i] >= 0
+						else
+							isStatted := ElementDefs[Element].Cycle > -1;
+
+						if isStatted then begin
 							tmpTile := Board.Tiles[tx][ty];
 							iStat := statIds[i];
 							Board.Tiles[tx][ty] := tiles[i];
@@ -1017,7 +1021,10 @@ procedure ElementObjectTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 procedure ElementDuplicatorTick(statId: integer);
 	var
 		sourceStatId: integer;
+		lastCurrentBoard: integer;
 	begin
+		lastCurrentBoard := World.Info.CurrentBoard;
+
 		with Board.Stats[statId] do begin
 			if P1 <= 4 then begin
 				Inc(P1);
@@ -1052,6 +1059,9 @@ procedure ElementDuplicatorTick(statId: integer);
 						SoundQueue(3, #24#1#22#1);
 					end;
 				end;
+
+				if ExtensionEnabled[ExtFixKoopoBug] then
+					if lastCurrentBoard <> World.Info.CurrentBoard then exit;
 
 				P1 := 0;
 				BoardDrawTile(X, Y);

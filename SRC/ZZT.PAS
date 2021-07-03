@@ -217,7 +217,16 @@ begin
 		VideoHideCursor;
 		ClrScr;
 
+		ZxtRegisterExtensionSimple(ExtFixPutBottomRow, $00000001, $0001);
+		ZxtRegisterExtensionSimple(ExtFixBindDoubleFree, $00000001, $0002);
+		ZxtRegisterExtensionSimple(ExtFixKoopoBug, $00000001, $0003);
+		ZxtRegisterExtensionSimple(ExtFixRecursiveElementPush, $00000001, $0004);
+		ZxtRegisterExtensionSimple(ExtFixConveyorStatCheck, $00000001, $0005);
+		ZxtRegisterExtensionSimple(ExtFixConveyorMissingFinalDraw, $00000001, $0006);
+		ZxtRegisterExtensionSimple(ExtFixConveyorStatSwapping, $00000001, $0007);
 		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);
+		ZxtRegisterExtensionSimple(ExtDieItem, $0000A51E, $0001);
+		ZxtRegisterExtensionSimple(ExtDieUnderTile, $0000A51E, $0002);
 
 		TickSpeed := 4;
 		DebugEnabled := false;
