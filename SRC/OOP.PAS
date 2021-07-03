@@ -132,10 +132,14 @@ function OopCheckZxtExtension(statId: integer; var position: integer): boolean;
 	var
 		eowner: longint;
 		eselector: word;
+		etype: TExtensionType;
 	begin
 		eowner := OopReadHex(statId, position);
 		eselector := OopReadHex(statId, position);
-		OopCheckZxtExtension := ExtensionEnabledById(eowner, eselector);
+		if ZxtGetExtType(eowner, eselector, etype) then
+			OopCheckZxtExtension := ExtensionEnabled[eType]
+		else
+			OopCheckZxtExtension := false;
 	end;
 
 procedure OopSkipLine(statId: integer; var position: integer);

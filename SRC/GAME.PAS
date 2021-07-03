@@ -783,7 +783,7 @@ procedure WorldSave(filename, extension: TString50);
 		Rewrite(f, 1);
 
 		if not DisplayIOError then begin
-			if ExtensionAnyEnabled then begin
+			if ZxtBlockGetCount > 0 then begin
 				if not ZxtWriteExtensions(f) then goto OnError;
 			end;
 

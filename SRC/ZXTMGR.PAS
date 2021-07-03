@@ -5,6 +5,8 @@
 	- ZXTCONF.INC (configuration)
 	- ZXTTYPES.INC (extension type enum)
 
+	For API documentation, follow the comments in the "interface" section.
+
 	Copyright (c) 2021 Adrian Siekierka
 
 	Permission to use, copy, modify, and/or distribute this software for any
@@ -25,6 +27,7 @@ unit ZxtMgr;
 
 interface
 	uses GameVars;
+	{ Type definitions. }
 	type
 {$I ZXTTYPES.INC}
 		TExtensionId = record
@@ -42,6 +45,7 @@ interface
 			Header: TExtensionBlockHeader;
 			Data: pointer;
 		end;
+		PTExtensionBlock = ^TExtensionBlock;
 		TExtensionHandlerAction = (
 			ExtActionLoad,
 			ExtActionUnload
@@ -49,9 +53,13 @@ interface
 		TExtensionHandlerState = record
 			Action: TExtensionHandlerAction;
 		end;
-		{ Return true if the extension was read successfully. }
+		{ Return true if the handler action was performed successfully. }
 		TExtensionHandlerFunc = function(var block: TExtensionBlock; var state: TExtensionHandlerState): boolean;
 	const
+		NULL_EXT_BLOCK = PTExtensionBlock(0);
+		ZXT_APPEND_START = 0;
+		ZXT_APPEND_END = 65535;
+		{ .ZXT extension block flags (TExtensionBlockHeader.Flags) }
 		FZxtExtParsingMust = $0001;
 		FZxtExtReadingMust = $0002;
 		FZxtExtWritingMust = $0004;
@@ -61,21 +69,49 @@ interface
 		FZxtExtPreserveShould = $0040;
 		FZxtExtBlockHeaderKnown = $007F;
 	var
+		{ This is the primary way of checking if an extension is enabled.
+		  ExtensionEnabled[ExtUnlockExtensions] will return true if at least
+		  one extension of type ExtUnlockExtensions is active.
+		  As Turbo Pascal 5.5 can fold these two constants into a direct memory
+		  load, there are no major performance concerns involved. }
 		ExtensionEnabled: array[ExtUnlockExtensions .. ExtTypeEnd] of boolean;
+		{ True if the current world satisfies the "playing_should" requirement. }
 		ExtensionPlayShould: boolean;
+		{ True if the current world satisfies the "edit_should" requirement. }
 		ExtensionEditShould: boolean;
+		{ True if the current world satisfies the "writing_must" requirement. }
 		ExtensionWriteCan: boolean;
-	{ Assumes that the engine MUST be capable of reading and playing this world. }
-	{ As such, the only flags exposed above are ExtensionPlayShould, ExtensionEditShould }
-	{ and ExtensionWriteCan. }
-	function ExtensionAnyEnabled: boolean;
-	function ExtensionEnabledById(eowner: longint; eselector: word): boolean;
+	{ --- HOOKS --- }
+	{ Load the .ZXT header or a separate .ZAX file for a given world file. }
 	function ZxtLoadExtensions(var worldFile: file; filename: TString50): boolean;
+	{ Unload the extension data for the current world file. }
 	function ZxtUnloadExtensions: boolean;
+	{ Write the .ZXT header to a given file. }
 	function ZxtWriteExtensions(var extFile: file): boolean;
+	{ Show all warnings based on the above requirement flags.
+	  For errors, the above methods will return false. }
 	function ZxtShowFlagError(isEditing: boolean): boolean;
+	{ Get the TExtensionType for a given owner/selector pair. }
+	function ZxtGetExtType(ownerId: longint; selectorId: word; var extType: TExtensionType): boolean;
+	{ --- REGISTRATION --- }
+	{ Register a simple extension, with no additional handler function.
+	  This is useful for extensions which store no data, or store metadata not used
+	  as part of the gameplay process. }
 	procedure ZxtRegisterExtensionSimple(extType: TExtensionType; ownerId: longint; selectorId: word);
+	{ Register an extension with a handler function. }
 	procedure ZxtRegisterExtension(extType: TExtensionType; ownerId: longint; selectorId: word; handler: TExtensionHandlerFunc);
+	{ --- BLOCK API --- }
+	function ZxtBlockGetCount: word;
+	{ Extension blocks are counted from 1 to ZxtBlockGetCount. }
+	function ZxtBlockGet(i: word): PTExtensionBlock;
+	function ZxtBlockGetCountByType(targetExtType: TExtensionType): word;
+	{ Will return < 0, if not found. }
+	function ZxtBlockGetIdByType(targetExtType: TExtensionType; offset: word): integer;
+	{ May return NULL_EXT_BLOCK, if offset >= ZxtBlockGetCountByType. }
+	function ZxtBlockGetByType(targetExtType: TExtensionType; offset: word): PTExtensionBlock;
+	procedure ZxtBlockRemove(i: word);
+	procedure ZxtBlockRemoveByType(targetExtType: TExtensionType);
+	function ZxtBlockAppend(offset: word; var block: TExtensionBlock): boolean;
 
 implementation
 uses Dos, TxtWind;
@@ -85,6 +121,7 @@ const
 	MAX_EXTENSION_BLOCKS = 3072;
 type
 	TExtBlockArray = array[1 .. MAX_EXTENSION_BLOCKS] of TExtensionBlock;
+	PTExtBlockArray = ^TExtBlockArray;
 	TExtensionHeader = record
 		Magic: integer;
 		BlockCount: longint;
@@ -94,10 +131,12 @@ type
 		HandlerFunc: TExtensionHandlerFunc;
 	end;
 var
-	ExtensionBlocks: ^TExtBlockArray;
+	ExtensionBlocks: PTExtBlockArray;
 	ExtensionBlockCount: word; { actually loaded extensions }
 	ExtensionBlockSize: word; { array size }
 	ExtensionHandlers: array[0 .. (Ord(ExtTypeEnd) - 1)] of TExtensionHandler;
+
+{ --- HOOKS/INTERNAL --- }
 
 {$F+}
 
@@ -106,36 +145,16 @@ begin
 	ZxtDefaultExtensionHandler := true;
 end;
 
-function ExtensionAnyEnabled: boolean;
-var
-	extId: word;
+{$F-}
+
+procedure ZxtClearExtensions;
 begin
-	for extId := 0 to (Ord(ExtTypeEnd) - 1) do begin
-		if ExtensionEnabled[TExtensionType(extId)] then begin
-			ExtensionAnyEnabled := true;
-			exit;
-		end;
-	end;
+	ExtensionPlayShould := true;
+	ExtensionEditShould := true;
+	ExtensionWriteCan := true;
 
-	ExtensionAnyEnabled := false;
-end;
-
-function ExtensionEnabledById(eowner: longint; eselector: word): boolean;
-var
-	extId: word;
-begin
-	for extId := 0 to (Ord(ExtTypeEnd) - 1) do begin
-		if ExtensionEnabled[TExtensionType(extId)] then begin
-			with ExtensionHandlers[extId].Id do begin
-				if (Owner = eowner) and (Selector = eselector) then begin
-					ExtensionEnabledById := true;
-					exit;
-				end;
-			end;
-		end;
-	end;
-
-	ExtensionEnabledById := false;
+	ExtensionBlockCount := 0;
+	ExtensionBlockSize := 0;
 end;
 
 function ZxtUnloadExtensions: boolean;
@@ -161,7 +180,7 @@ begin
 	end;
 
 	FreeMem(ExtensionBlocks, SizeOf(TExtensionBlock) * ExtensionBlockSize);
-	ExtensionBlockSize := 0;
+	ZxtClearExtensions;
 	ZxtUnloadExtensions := true;
 end;
 
@@ -179,9 +198,6 @@ label OnExtFound;
 label OnError;
 begin
 	ZxtLoadExtensions := true;
-	ExtensionPlayShould := true;
-	ExtensionEditShould := true;
-	ExtensionWriteCan := true;
 
 	{ Clear all enabled extensions. }
 	FillChar(ExtensionEnabled, Ord(ExtTypeEnd), 0);
@@ -362,6 +378,25 @@ begin
 	TextWindowFree(textWindow);
 end;
 
+{ Get the TExtensionType for a given owner/selector pair, if one exists. }
+function ZxtGetExtType(ownerId: longint; selectorId: word; var extType: TExtensionType): boolean;
+var
+	i: word;
+begin
+	for i := 0 to (Ord(ExtTypeEnd) - 1) do begin
+		with ExtensionHandlers[i].Id do begin
+			if (ownerId = Owner) and (selectorId = Selector) then begin
+				extType := TExtensionType(i);
+				ZxtGetExtType := true;
+				exit;
+			end;
+		end;
+	end;
+	ZxtGetExtType := false;
+end;
+
+{ --- REGISTRATION --- }
+
 procedure ZxtRegisterExtensionSimple(extType: TExtensionType; ownerId: longint; selectorId: word);
 begin
 	ZxtRegisterExtension(extType, ownerId, selectorId, ZxtDefaultExtensionHandler);
@@ -376,6 +411,110 @@ begin
 	end;
 end;
 
+{ --- BLOCK API --- }
+
+function ZxtBlockGetCount: word;
+begin
+	ZxtBlockGetCount := ExtensionBlockCount;
+end;
+
+function ZxtBlockGet(i: word): PTExtensionBlock;
+begin
+	if (i >= 1) and (i <= ExtensionBlockCount) then
+		ZxtBlockGet := @ExtensionBlocks^[i];
+end;
+
+function ZxtBlockGetCountByType(targetExtType: TExtensionType): word;
+var
+	i, j: word;
+begin
+	j := 0;
+	for i := 1 to ExtensionBlockCount do begin
+		with ExtensionBlocks^[i] do begin
+			if ExtType = targetExtType then
+				Inc(j);
+		end;
+	end;
+	ZxtBlockGetCountByType := j;
+end;
+
+function ZxtBlockGetIdByType(targetExtType: TExtensionType; offset: word): integer;
+var
+	i: word;
+begin
+	for i := 1 to ExtensionBlockCount do begin
+		with ExtensionBlocks^[i] do begin
+			if ExtType = targetExtType then begin
+				if offset = 0 then begin
+					ZxtBlockGetIdByType := i;
+					exit;
+				end;
+				Dec(offset);
+			end;
+		end;
+	end;
+	ZxtBlockGetIdByType := -1;
+end;
+
+function ZxtBlockGetByType(targetExtType: TExtensionType; offset: word): PTExtensionBlock;
+var
+	i: word;
+begin
+	i := ZxtBlockGetIdByType(targetExtType, offset);
+	if i >= 0 then
+		ZxtBlockGetByType := @ExtensionBlocks^[i]
+	else
+		ZxtBlockGetByType := NULL_EXT_BLOCK;
+end;
+
+procedure ZxtBlockRemove(i: word);
+var
+	j: word;
+begin
+	if (i >= 1) and (i <= ExtensionBlockCount) then begin
+		for j := (i) to (ExtensionBlockCount - 1) do
+			ExtensionBlocks^[j] := ExtensionBlocks^[j + 1];
+		Dec(ExtensionBlockCount);
+	end;
+end;
+
+procedure ZxtBlockRemoveByType(targetExtType: TExtensionType);
+var
+	i: integer;
+begin
+	repeat
+		i := ZxtBlockGetIdByType(targetExtType, 0);
+		if i > 0 then ZxtBlockRemove(i) else exit;
+	until 1 = 0;
+end;
+
+function ZxtBlockAppend(offset: word; var block: TExtensionBlock): boolean;
+var
+	newBlocks: PTExtBlockArray;
+	newSize, i: word;
+begin
+	if offset > ExtensionBlockCount then offset := ExtensionBlockCount;
+
+	{ If the ExtensionBlockSize is too small, copy it first. }
+	if ExtensionBlockSize <= ExtensionBlockCount then begin
+		newSize := ExtensionBlockCount + 4;
+		GetMem(newBlocks, SizeOf(TExtensionBlock) * newSize);
+		for i := 1 to ExtensionBlockCount do
+			newBlocks^[i] := ExtensionBlocks^[i];
+		FreeMem(ExtensionBlocks, SizeOf(TExtensionBlock) * ExtensionBlockSize);
+		ExtensionBlocks := newBlocks;
+		ExtensionBlockSize := newSize;
+	end;
+
+	{ Make room... }
+	for i := ExtensionBlockCount downto (offset + 1) do begin
+		ExtensionBlocks^[i + 1] := ExtensionBlocks^[i];
+	end;
+	ExtensionBlocks^[offset + 1] := block;
+	Inc(ExtensionBlockCount);
+end;
+
 begin
 	FillChar(ExtensionHandlers, SizeOf(ExtensionHandlers), 0);
+	ZxtClearExtensions;
 end.
