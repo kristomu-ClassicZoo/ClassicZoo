@@ -129,7 +129,7 @@ DebugWnd,
 {$IFDEF ZETAEMU}
 ZetaSupp,
 {$ENDIF}
-Dos, FileSel, ExtMem, ZVideo, Sounds, Input, Elements, Editor, Oop;
+Dos, FileSel, ExtMem, ZxtMgr, ZVideo, Sounds, Input, Elements, Editor, Oop;
 
 function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
 	begin
@@ -883,6 +883,7 @@ procedure WorldUnload;
 		i: integer;
 	begin
 		BoardClose;
+		if ZxtUnloadExtensions then begin end;
 		for i := 0 to World.BoardCount do
 			ExtMemFree(WorldExt.BoardData[i], WorldExt.BoardLen[i]);
 	end;
@@ -908,17 +909,27 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 		SidebarClearLine(5);
 		VideoWriteText(62, 5, $1F, 'Loading.....');
 
+		{ .ZXT files - hack }
+		if (extension = '.ZZT') and FileExists(filename + '.ZXT') then
+			extension := '.ZXT';
+
 		Assign(f, filename + extension);
 		Reset(f, 1);
 
 		if not DisplayIOError then begin
 			WorldUnload;
-			BlockRead(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE);
+			BlockRead(f, World.BoardCount, 2);
 
 			if not DisplayIOError then begin
+				if not ZxtLoadExtensions(f, filename) then begin
+					VideoWriteText(63, 5, $1E, ' .ZXT extension');
+					VideoWriteText(63, 6, $1E, ' loading error!');
+					exit;
+				end;
+
+				BlockRead(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE - 2);
 				ptr := IoTmpBuf;
-				Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
-				AdvancePointer(ptr, SizeOf(World.BoardCount));
+				if DisplayIOError then exit;
 
 				if World.BoardCount < 0 then begin
 					if World.BoardCount <> -1 then begin
@@ -1002,6 +1013,10 @@ procedure WorldSave(filename, extension: TString50);
 		Rewrite(f, 1);
 
 		if not DisplayIOError then begin
+			if ZxtBlockGetCount > 0 then begin
+				if not ZxtWriteExtensions(f) then goto OnError;
+			end;
+
 			ptr := IoTmpBuf;
 			FillChar(IoTmpBuf^, WORLD_FILE_HEADER_SIZE, 0);
 			version := -1;
@@ -1922,7 +1937,8 @@ procedure GameOnStart;
 	begin
 		GameAboutScreen;
 		if Length(StartupWorldFileName) <> 0 then begin
-			if FileExists(StartupWorldFileName + '.ZZT') and WorldLoad(StartupWorldFileName, '.ZZT', true) then begin
+			if FileExists(StartupWorldFileName + '.ZZT') and WorldLoad(StartupWorldFileName, '.ZZT', true)
+			and not ZxtShowFlagError(false) then begin
 				SidebarClearLine(8);
 				VideoWriteText(69, 8, $1F, StartupWorldFileName);
 			end else begin
@@ -2162,6 +2178,7 @@ procedure GameTitleLoop;
 				case UpCase(InputKeyPressed) of
 					'W': begin
 						if GameWorldLoad('.ZZT') then begin
+							if ZxtShowFlagError(false) then begin end;
 							ReturnBoardId := World.Info.CurrentBoard;
 							boardChanged := true;
 						end;
@@ -2194,6 +2211,7 @@ procedure GameTitleLoop;
 					end;
 					'R': begin
 						if GameWorldLoad('.SAV') then begin
+							if ZxtShowFlagError(false) then begin end;
 							ReturnBoardId := World.Info.CurrentBoard;
 							BoardChange(ReturnBoardId);
 							startPlay := true;

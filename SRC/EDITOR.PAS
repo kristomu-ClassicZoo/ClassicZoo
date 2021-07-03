@@ -45,7 +45,7 @@ interface
 		windowAlreadyOpen: boolean): integer;
 
 implementation
-uses Dos, FileSel, ExtMem, ZVideo, Sounds, Input, Elements, Oop, Game;
+uses Dos, FileSel, ExtMem, ZxtMgr, ZVideo, Sounds, Input, Elements, Oop, Game;
 
 type
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
@@ -127,7 +127,7 @@ procedure EditorWorldCanOpenCheck(closeSavesSilently: boolean);
 				VideoWriteText(63, 5, $1E, '    locked!');
 			PauseOnError;
 		end;
-		if World.Info.IsSave and (not DebugEnabled) then begin
+		if (World.Info.IsSave and (not DebugEnabled)) or ZxtShowFlagError(true) then begin
 			WorldUnload;
 			WorldCreate;
 		end;

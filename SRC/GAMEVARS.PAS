@@ -151,8 +151,10 @@ interface
 		end;
 		TWorld = record
 			BoardCount: integer;
+{
 			BoardDataOld: array[0 .. 100] of pointer;
 			BoardLenOld: array[0 .. 100] of word;
+}
 			Info: TWorldInfo;
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
 		end;

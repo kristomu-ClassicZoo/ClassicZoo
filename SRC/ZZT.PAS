@@ -38,7 +38,7 @@ Pc98,
 {$ELSE}
 Crt,
 {$ENDIF}
-Dos, ExtMem, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+Dos, ExtMem, ZxtMgr, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
 
 procedure ParseArguments;
 	var
@@ -216,6 +216,8 @@ begin
 
 		VideoHideCursor;
 		ClrScr;
+
+		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);
 
 		TickSpeed := 4;
 		DebugEnabled := false;
