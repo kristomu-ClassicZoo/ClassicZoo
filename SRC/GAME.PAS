@@ -70,7 +70,7 @@ interface
 	function DisplayIOError: boolean;
 	procedure WorldUnload;
 	function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
-	procedure WorldSave(filename, extension: TString50);
+	procedure WorldSave(filename, extension: TString50; saveZxts: boolean);
 	procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: TString50);
 	function GameWorldLoad(extension: TString50): boolean;
 	procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState);
@@ -997,7 +997,21 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 		Close(f);
 	end;
 
-procedure WorldSave(filename, extension: TString50);
+procedure WorldSaveZax(filename: TString50);
+	var
+		f: file;
+	begin
+		Assign(f, filename + '.ZAX');
+		Rewrite(f, 1);
+		if not ZxtWriteExtensions(f) then begin
+			Close(f);
+			Erase(f);
+			exit;
+		end;
+		Close(f);
+	end;
+
+procedure WorldSave(filename, extension: TString50; saveZxts: boolean);
 	var
 		f: file;
 		i: integer;
@@ -1013,7 +1027,7 @@ procedure WorldSave(filename, extension: TString50);
 		Rewrite(f, 1);
 
 		if not DisplayIOError then begin
-			if ZxtBlockGetCount > 0 then begin
+			if saveZxts and (ZxtBlockGetCount > 0) then begin
 				if not ZxtWriteExtensions(f) then goto OnError;
 			end;
 
@@ -1062,9 +1076,16 @@ procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: T
 		SidebarPromptString(prompt, extension, newFilename, PROMPT_ALPHANUM);
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(newFilename) <> 0) then begin
 			filename := newFilename;
-			if extension = '.ZZT' then
+			if extension <> '.SAV' then
 				World.Info.Name := filename;
-			WorldSave(filename, extension);
+
+			if extension = '.ZZT' then begin
+				WorldSave(filename, extension, false);
+				if ZxtBlockGetCount > 0 then
+					WorldSaveZax(filename);
+			end else begin
+				WorldSave(filename, extension, true);
+			end;
 		end;
 	end;
 
