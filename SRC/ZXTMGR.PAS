@@ -37,7 +37,7 @@ interface
 		TExtensionBlockHeader = record
 			Flags: word;
 			Id: TExtensionId;
-			FieldType: byte;
+			Reserved1: byte;
 			FieldLength: word;
 		end;
 		TExtensionBlock = record
