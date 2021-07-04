@@ -287,10 +287,12 @@ begin
 						goto OnError;
 					end;
 					ExtResultFailure: begin
-						if Header.FieldLength > 0 then begin
-							FreeMem(Data, Header.FieldLength);
+						if ((bhdr.Flags and FZxtExtPreserveShould) = 0) then begin
+							if Header.FieldLength > 0 then begin
+								FreeMem(Data, Header.FieldLength);
+							end;
+							Dec(ExtensionBlockCount);
 						end;
-						Dec(ExtensionBlockCount);
 						extFound := false;
 					end;
 					ExtResultSuccess: begin
