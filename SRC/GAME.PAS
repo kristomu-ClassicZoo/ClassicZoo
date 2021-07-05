@@ -1320,44 +1320,43 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 		iUnder: TTile;
 		ix, iy: integer;
 		oldX, oldY: integer;
-		oldBgColor: integer;
 	begin
 		with Board.Stats[statId] do begin
-			oldBgColor := Board.Tiles[newX][newY].Color and $F0;
+			oldX := X;
+			oldY := Y;
 
 			iUnder := Under;
 			Under := Board.Tiles[newX][newY];
 
-			if Board.Tiles[X][Y].Element = E_PLAYER then
-				Board.Tiles[newX][newY].Color := Board.Tiles[X][Y].Color
+			if Board.Tiles[oldX][oldY].Element = E_PLAYER then
+				Board.Tiles[newX][newY].Color := Board.Tiles[oldX][oldY].Color
 			else if Board.Tiles[newX][newY].Element = E_EMPTY then
-				Board.Tiles[newX][newY].Color := Board.Tiles[X][Y].Color and $0F
+				Board.Tiles[newX][newY].Color := Board.Tiles[oldX][oldY].Color and $0F
 			else
-				Board.Tiles[newX][newY].Color := (Board.Tiles[X][Y].Color and $0F) + (Board.Tiles[newX][newY].Color and $70);
+				Board.Tiles[newX][newY].Color := (Board.Tiles[oldX][oldY].Color and $0F)
+					or (Board.Tiles[newX][newY].Color and $70);
 
-			Board.Tiles[newX][newY].Element := Board.Tiles[X][Y].Element;
-			Board.Tiles[X][Y] := iUnder;
+			Board.Tiles[newX][newY].Element := Board.Tiles[oldX][oldY].Element;
+			Board.Tiles[oldX][oldY] := iUnder;
 
-			oldX := X;
-			oldY := Y;
 			X := newX;
 			Y := newY;
 
-			BoardDrawTile(X, Y);
+			BoardDrawTile(newX, newY);
 			BoardDrawTile(oldX, oldY);
 
 			if (statId = 0) and Board.Info.IsDark and (World.Info.TorchTicks > 0) then begin
-				if (Sqr(oldX-X) + Sqr(oldY-Y)) = 1 then begin
-					for ix := (X - TORCH_DX - 3) to (X + TORCH_DX + 3) do
+				if (Sqr(oldX-newX) + Sqr(oldY-newY)) = 1 then begin
+					for ix := (newX - TORCH_DX - 3) to (newX + TORCH_DX + 3) do
 						if (ix >= 1) and (ix <= BOARD_WIDTH) then
-							for iy := (Y - TORCH_DY - 3) to (Y + TORCH_DY + 3) do
+							for iy := (newY - TORCH_DY - 3) to (newY + TORCH_DY + 3) do
 								if (iy >= 1) and (iy <= BOARD_HEIGHT) then
 									if (((Sqr(ix-oldX))+(Sqr(iy-oldY)*2)) < TORCH_DIST_SQR) xor
 										(((Sqr(ix-newX))+(Sqr(iy-newY)*2)) < TORCH_DIST_SQR) then
 										BoardDrawTile(ix, iy);
 				end else begin
 					DrawPlayerSurroundings(oldX, oldY, 0);
-					DrawPlayerSurroundings(X, Y, 0);
+					DrawPlayerSurroundings(newX, newY, 0);
 				end;
 			end;
 
@@ -1935,7 +1934,6 @@ procedure GameOnStart;
 
 procedure GamePlayLoop(boardChanged: boolean);
 	var
-		exitLoop: boolean;
 		pauseBlink: boolean;
 		pausedElement: byte;
 	procedure GameDrawSidebar;
@@ -2026,7 +2024,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 		TickTimeDuration := TickSpeed * 2;
 		GamePlayExitRequested := false;
-		exitLoop := false;
 
 		CurrentTick := Random(100);
 		CurrentStatTicked := Board.StatCount + 1;
@@ -2123,7 +2120,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 {$ENDIF}
 				end;
 			end;
-		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
+		until GamePlayExitRequested;
 
 		SoundClearQueue;
 

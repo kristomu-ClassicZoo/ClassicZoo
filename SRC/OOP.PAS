@@ -257,46 +257,50 @@ function OopFindString(statId: integer; startPos: integer; s: string): integer;
 function OopIterateStat(statId: integer; var iStat: integer; lookup: string): boolean;
 	var
 		pos: integer;
-		found: boolean;
 	begin
 		Inc(iStat);
-		found := false;
 
 		if lookup = 'ALL' then begin
-			if iStat <= Board.StatCount then
-				found := true;
+			if iStat <= Board.StatCount then begin
+				OopIterateStat := true;
+				exit;
+			end;
 		end else if lookup = 'OTHERS' then begin
 			if iStat <= Board.StatCount then begin
-				if iStat <> statId then
-					found := true
-				else begin
+				if iStat <> statId then begin
+					OopIterateStat := true;
+					exit;
+				end else begin
 					Inc(iStat);
-					found := (iStat <= Board.StatCount);
+					OopIterateStat := (iStat <= Board.StatCount);
+					exit;
 				end;
 			end;
 		end else if lookup = 'SELF' then begin
 			if (statId > 0) and (iStat <= statId) then begin
 				iStat := statId;
-				found := true;
+				OopIterateStat := true;
+				exit;
 			end;
 		end else begin
-			while (iStat <= Board.StatCount) and not found do begin
+			while (iStat <= Board.StatCount) do begin
 				if Board.Stats[iStat].Data <> nil then begin
 					pos := 0;
 					OopReadChar(iStat, pos);
 					if OopChar = '@' then begin
 						OopReadWord(iStat, pos);
-						if OopWord = lookup then
-							found := true;
+						if OopWord = lookup then begin
+							OopIterateStat := true;
+							exit;
+						end;
 					end;
 				end;
 
-				if not found then
-					Inc(iStat);
+				Inc(iStat);
 			end;
 		end;
 
-		OopIterateStat := found;
+		OopIterateStat := false;
 	end;
 
 function OopFindLabel(statId: integer; sendLabel: string; var iStat, iDataPos: integer; labelPrefix: string): boolean;
