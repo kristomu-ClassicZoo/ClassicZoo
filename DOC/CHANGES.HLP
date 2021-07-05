@@ -10,6 +10,8 @@ $< ClassicZoo dev >
 + PC-9801: Ported mouse support.
 + Increased the board limit from 101 to
   256 boards.
+* Minor filesize/CPU optimizations have
+  been made to the engine.
 / Minor documentation fixes.
 
 $< ClassicZoo 4.13 >
