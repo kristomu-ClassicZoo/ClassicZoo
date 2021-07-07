@@ -1158,8 +1158,9 @@ procedure ElementPusherTick(statId: integer);
 			startX := X;
 			startY := Y;
 
-			if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then begin
-				ElementPushablePush(X + StepX, Y + StepY, StepX, StepY);
+			{ Microoptimization: X + StepX, but startX currently == X, etc. }
+			if not ElementDefs[Board.Tiles[startX + StepX][startY + StepY].Element].Walkable then begin
+				ElementPushablePush(startX + StepX, startY + StepY, StepX, StepY);
 			end;
 		end;
 
@@ -1172,7 +1173,7 @@ procedure ElementPusherTick(statId: integer);
 				if Board.Tiles[X - (StepX * 2)][Y - (StepY * 2)].Element = E_PUSHER then begin
 					i := GetStatIdAt(X - (StepX * 2), Y - (StepY * 2));
 					if (Board.Stats[i].StepX = StepX) and (Board.Stats[i].StepY = StepY) then
-						ElementDefs[E_PUSHER].TickProc(i);
+						ElementPusherTick(i);
 				end;
 			end;
 		end;
