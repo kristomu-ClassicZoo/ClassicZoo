@@ -72,7 +72,8 @@ interface
 		FZxtExtPlayingMust = $0010;
 		FZxtExtEditingShould = $0020;
 		FZxtExtPreserveShould = $0040;
-		FZxtExtBlockHeaderKnown = $007F;
+		FZxtExtVanillaBehavior = $0080;
+		FZxtExtBlockHeaderKnown = $00FF;
 	var
 		{ This is the primary way of checking if an extension is enabled.
 		  ExtensionEnabled[ExtUnlockExtensions] will return true if at least
@@ -305,12 +306,18 @@ begin
 
 		if not extFound then begin
 			{ Un-set flags, if we don't recognize it. }
-			if (bhdr.Flags and (FZxtExtParsingMust or FZxtExtReadingMust or FZxtExtPlayingMust)) <> 0 then begin
+			if (bhdr.Flags and (FZxtExtParsingMust or FZxtExtReadingMust)) <> 0 then begin
 				ZxtLoadExtensions := false;
 				goto OnError;
 			end;
-			if (bhdr.Flags and FZxtExtPlayingShould) <> 0 then
-				ExtensionPlayShould := false;
+			if (bhdr.Flags and FZxtExtVanillaBehavior) = 0 then begin
+				if (bhdr.Flags and FZxtExtPlayingMust) <> 0 then begin
+					ZxtLoadExtensions := false;
+					goto OnError;
+				end;
+				if (bhdr.Flags and FZxtExtPlayingShould) <> 0 then
+					ExtensionPlayShould := false;
+			end;
 			if (bhdr.Flags and FZxtExtEditingShould) <> 0 then
 				ExtensionEditShould := false;
 			if (bhdr.Flags and FZxtExtWritingMust) <> 0 then
