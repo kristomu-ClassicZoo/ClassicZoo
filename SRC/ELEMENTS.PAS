@@ -366,7 +366,6 @@ procedure ElementBulletTick(statId: integer);
 				SoundQueue(1, #249#1);
 				firstTry := false;
 				goto TryMove;
-				exit;
 			end;
 
 			if (Board.Tiles[X - StepY][Y - StepX].Element = E_RICOCHET) and firstTry then begin
@@ -376,7 +375,6 @@ procedure ElementBulletTick(statId: integer);
 				SoundQueue(1, #249#1);
 				firstTry := false;
 				goto TryMove;
-				exit;
 			end;
 
 			RemoveStat(statId);
@@ -604,50 +602,41 @@ procedure ElementBombTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 procedure ElementTransporterMove(x, y, deltaX, deltaY: integer);
 	var
 		ix, iy: integer;
-		newX, newY: integer;
 		iStat: integer;
-		finishSearch: boolean;
 		isValidDest: boolean;
+	label ETLoop;
 	begin
 		with Board.Stats[GetStatIdAt(x + deltaX, y + deltaY)] do begin
 			if (deltaX = StepX) and (deltaY = StepY) then begin
 				ix := X;
 				iy := Y;
-				newX := -1;
-				finishSearch := false;
 				isValidDest := true;
-				repeat
-					Inc(ix, deltaX);
-					Inc(iy, deltaY);
-					with Board.Tiles[ix][iy] do begin
-						if Element = E_BOARD_EDGE then
-							finishSearch := true
-						else if isValidDest then begin
-							isValidDest := false;
+ETLoop:
+				Inc(ix, deltaX);
+				Inc(iy, deltaY);
+				with Board.Tiles[ix][iy] do begin
+					if Element = E_BOARD_EDGE then
+						exit
+					else if isValidDest then begin
+						isValidDest := false;
 
-							if not ElementDefs[Element].Walkable then
-								ElementPushablePush(ix, iy, deltaX, deltaY);
+						if not ElementDefs[Element].Walkable then
+							ElementPushablePush(ix, iy, deltaX, deltaY);
 
-							if ElementDefs[Element].Walkable then begin
-								finishSearch := true;
-								newX := ix;
-								newY := iy;
-							end else begin
-								newX := -1
-							end;
-						end;
-						if Element = E_TRANSPORTER then begin
-							iStat := GetStatIdAt(ix, iy);
-							with Board.Stats[iStat] do
-								if (StepX = -deltaX) and (StepY = -deltaY) then
-									isValidDest := true;
+						if ElementDefs[Element].Walkable then begin
+							ElementMove(X - deltaX, Y - deltaY, ix, iy);
+							SoundQueue(3, #48#1#66#1#52#1#70#1#56#1#74#1#64#1#82#1);
+							exit;
 						end;
 					end;
-				until finishSearch;
-				if newX <> -1 then begin
-					ElementMove(X - deltaX, Y - deltaY, newX, newY);
-					SoundQueue(3, #48#1#66#1#52#1#70#1#56#1#74#1#64#1#82#1);
+					if Element = E_TRANSPORTER then begin
+						iStat := GetStatIdAt(ix, iy);
+						with Board.Stats[iStat] do
+							if (StepX = -deltaX) and (StepY = -deltaY) then
+								isValidDest := true;
+					end;
 				end;
+				goto ETLoop;
 			end;
 		end;
 	end;
