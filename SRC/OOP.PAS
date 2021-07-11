@@ -560,6 +560,8 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				ix := 0;
 				iy := 1;
 				OopCheckCondition := FindTileOnBoard(ix, iy, tile);
+			end else if ExtensionEnabled[ExtIfRnd] and (OopWord = 'RND') then begin
+				OopCheckCondition := Random(2) > 0;
 			end else begin
 				OopCheckCondition := WorldGetFlagPosition(OopWord) >= 0;
 			end;
