@@ -425,11 +425,7 @@ procedure EditorLoop;
 			state.Title := 'Board Information';
 			TextWindowDrawOpen(state);
 			state.LinePos := 1;
-			state.LineCount := 9;
-			state.Selectable := true;
 			exitRequested := false;
-			for i := 1 to state.LineCount do
-				New(state.Lines[i]);
 
 			repeat
 				state.Selectable := true;
@@ -502,17 +498,18 @@ procedure EditorLoop;
 					exitRequested := true;
 					TextWindowDrawClose(state);
 				end;
-			until exitRequested;
 
-			TextWindowFree(state);
+				TextWindowFree(state);
+			until exitRequested;
 		end;
 
 	procedure EditorEditStatText(statId: integer; prompt: string);
 		var
 			state: TTextWindowState;
-			iLine, iChar: integer;
+			iLine, iChar, iStat: integer;
 			dataChar: char;
 			dataPtr: pointer;
+			affectedStats: array[0 .. MAX_STAT + 1] of boolean;
 		begin
 			with Board.Stats[statId] do begin
 				state.Title := prompt;
@@ -521,15 +518,33 @@ procedure EditorLoop;
 				CopyStatDataToTextWindow(statId, state);
 
 				if DataLen > 0 then begin
+					{ Mark every other object that uses our data so that
+					  we can update its DataLen afterwards. }
+					for iStat := 0 to Board.StatCount do
+						affectedStats[iStat] := (Board.Stats[iStat].Data = Data);
 					FreeMem(Data, DataLen);
 					DataLen := 0;
+				end else begin
+					{ No other stats are affected. }
+					FillChar(affectedStats, Board.StatCount + 1, false);
 				end;
 
 				EditorOpenEditTextWindow(state, true);
 
 				for iLine := 1 to state.LineCount do
 					DataLen := DataLen + Length(state.Lines[iLine]^) + 1;
-				GetMem(Data, DataLen);
+
+				if DataLen > 0 then begin
+					GetMem(Data, DataLen);
+				end;
+
+				{ Update every bound object to have our possibly new pointer
+					and new DataLen. }
+				for iStat := 0 to Board.StatCount do
+					if (iStat <> statId) and affectedStats[iStat] then begin
+						Board.Stats[iStat].Data := Data;
+						Board.Stats[iStat].DataLen := DataLen;
+					end;
 
 				dataPtr := Data;
 				for iLine := 1 to state.LineCount do begin

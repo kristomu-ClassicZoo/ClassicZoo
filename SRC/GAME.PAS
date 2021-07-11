@@ -937,7 +937,7 @@ procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState)
 			dataStr := '';
 			dataPtr := Data;
 
-			for i := 0 to DataLen do begin
+			for i := 1 to DataLen do begin
 				Move(dataPtr^, dataChr, 1);
 				if dataChr = KEY_ENTER then begin
 					TextWindowAppendEdit(state, dataStr);
@@ -947,6 +947,9 @@ procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState)
 				end;
 				AdvancePointer(dataPtr, 1);
 			end;
+
+			if dataStr <> '' then
+				TextWindowAppend(state, dataStr);
 		end;
 	end;
 
