@@ -244,15 +244,12 @@ procedure SoundTimerHandler;
 			if SoundDurationCounter <= 0 then begin
 				NoSound;
 				if SoundBufferPos >= Length(SoundBuffer) then begin
-					NoSound;
 					SoundIsPlaying := false;
 				end else begin
 					if (SoundBuffer[SoundBufferPos] >= #16) and (SoundBuffer[SoundBufferPos] < #112) then
 						Sound(SoundFreqTable[Ord(SoundBuffer[SoundBufferPos])])
 					else if (SoundBuffer[SoundBufferPos] >= #240) and (SoundBuffer[SoundBufferPos] < #250) then
-						SoundPlayDrum(SoundDrumTable[Ord(SoundBuffer[SoundBufferPos]) - 240])
-					else
-						NoSound;
+						SoundPlayDrum(SoundDrumTable[Ord(SoundBuffer[SoundBufferPos]) - 240]);
 					Inc(SoundBufferPos);
 
 					SoundDurationCounter := SoundDurationMultiplier * Ord(SoundBuffer[SoundBufferPos]);

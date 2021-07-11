@@ -223,8 +223,8 @@ procedure ElementCentipedeHeadTick(statId: integer);
 			begin
 				ix := StepX;
 				iy := StepY;
-				tmp := ((Random(2) * 2) - 1) * StepY;
-				StepY := ((Random(2) * 2) - 1) * StepX;
+				tmp := ((Random(2) * 2) - 1) * iy;
+				StepY := ((Random(2) * 2) - 1) * ix;
 				StepX := tmp;
 				if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
 					and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER) then
@@ -473,6 +473,9 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			iMax := -1;
 		end;
 
+		{ Moved from CWTick/CCWTick }
+		BoardDrawTile(X, Y);
+
 		canMove := true;
 		i := iMin;
 		repeat
@@ -487,7 +490,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 				{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
 				{ Pre-find stat IDs to prevent such a scenario from occuring. }
 				if ElementDefs[Element].Cycle > -1 then
-					statIds[i] := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i])
+					statIds[i] := GetStatIdAt(tx, ty);
 			end;
 			Inc(i, direction);
 		until i = iMax;
@@ -504,10 +507,9 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 
 						if ElementDefs[Element].Cycle > -1 then begin
 							tmpTile := Board.Tiles[tx][ty];
-							iStat := statIds[i];
 							Board.Tiles[tx][ty] := tiles[i];
 							Board.Tiles[ix][iy].Element := E_EMPTY;
-							MoveStat(iStat, ix, iy);
+							MoveStat(statIds[i], ix, iy);
 
 							Board.Tiles[tx][ty] := tmpTile;
 							{ FIX: Add missing BoardDrawTile. }
@@ -544,7 +546,6 @@ procedure ElementConveyorCWDraw(x, y: integer; var ch: byte);
 procedure ElementConveyorCWTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			BoardDrawTile(X, Y);
 			ElementConveyorTick(X, Y, 1);
 		end;
 	end;
@@ -561,7 +562,6 @@ procedure ElementConveyorCCWDraw(x, y: integer; var ch: byte);
 procedure ElementConveyorCCWTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			BoardDrawTile(X, Y);
 			ElementConveyorTick(X, Y, -1);
 		end;
 	end;
@@ -757,10 +757,10 @@ procedure ElementSlimeTick(statId: integer);
 			if P1 < P2 then
 				Inc(P1)
 			else begin
-				colorCopy := Board.Tiles[X][Y].Color;
 				P1 := 0;
 				startX := X;
 				startY := Y;
+				colorCopy := Board.Tiles[startX][startY].Color;
 				changedTiles := 0;
 
 				for dir := 0 to 3 do begin
@@ -860,7 +860,6 @@ procedure ElementBlinkWallTick(statId: integer);
 					BoardDrawTile(ix, iy);
 					Inc(ix, StepX);
 					Inc(iy, StepY);
-					P3 := (P2) * 2 + 1;
 				end;
 
 				if ((X + StepX) = ix) and ((Y + StepY) = iy) then begin
@@ -901,9 +900,9 @@ procedure ElementBlinkWallTick(statId: integer);
 						Inc(ix, StepX);
 						Inc(iy, StepY);
 					until hitBoundary;
-
-					P3 := (P2 * 2) + 1;
 				end;
+
+				P3 := (P2 * 2) + 1;
 			end else begin
 				Dec(P3);
 			end;
@@ -1197,8 +1196,8 @@ procedure ElementPusherTick(statId: integer);
 			startX := X;
 			startY := Y;
 
-			if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then begin
-				ElementPushablePush(X + StepX, Y + StepY, StepX, StepY);
+			if not ElementDefs[Board.Tiles[startX + StepX][startY + StepY].Element].Walkable then begin
+				ElementPushablePush(startX + StepX, startY + StepY, StepX, StepY);
 			end;
 		end;
 
@@ -1345,7 +1344,7 @@ procedure DrawPlayerSurroundings(x, y: integer; bombPhase: integer);
 									if (Element = E_EMPTY) or (Element = E_BREAKABLE) then begin
 										Element := E_BREAKABLE;
 										Color := $09 + Random(7);
-										BoardDrawTile(ix, iy);
+										{ BoardDrawTile(ix, iy); (duplicate) }
 									end;
 								end else begin
 									if Element = E_BREAKABLE then
