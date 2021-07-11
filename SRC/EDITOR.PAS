@@ -139,12 +139,10 @@ function EditorShiftBoard(bidFrom, bidTo: integer; mode: TBoardShiftMode): boole
 		BoardShiftDelete: begin
 			SidebarAnimateLoading(loadProgress);
 			BoardClose;
-			BoardOpen(bidFrom);
-			BoardClose;
 			ExtMemFree(WorldExt.BoardData[bidFrom], WorldExt.BoardLen[bidFrom]);
 			Dec(World.BoardCount);
 			for i := bidFrom to World.BoardCount do begin
-				WorldExt.BoardData[i] := WorldExt.BoardData[i + 1];
+				ExtMemMoveBlockPtr(WorldExt.BoardData[i + 1], WorldExt.BoardData[i]);
 				WorldExt.BoardLen[i] := WorldExt.BoardLen[i + 1];
 			end;
 			BoardOpen(prevBoard);
@@ -848,7 +846,7 @@ procedure EditorLoop;
 						(Length(ElementDefs[element].ParamBoardName) <> 0) then
 					begin
 						if selected then begin
-							selectedBoard := EditorSelectBoard(ElementDefs[element].ParamBoardName, P3, true, false, true);
+							selectedBoard := EditorSelectBoard(ElementDefs[element].ParamBoardName, P3, false, false, true);
 							if selectedBoard <> 0 then begin
 								P3 := selectedBoard;
 								World.EditorStatSettings[element].P3 := World.Info.CurrentBoard;
