@@ -658,8 +658,8 @@ procedure EditorLoop;
 
 									state.Lines[1]^ := '$Warning';
 									state.Lines[2]^ := '';
-									state.Lines[3]^ := 'Some board exits and/or passages have had';
-									state.Lines[4]^ := 'their destinations reset.';
+									state.Lines[3]^ := 'Some passages have had their destination';
+									state.Lines[4]^ := 'boards reset.';
 
 									TextWindowSelect(state, 0);
 								end;
