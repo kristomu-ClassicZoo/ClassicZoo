@@ -192,7 +192,9 @@ interface
 		MessageEnergizerNotShown: boolean;
 
 		IoTmpBufSize: word; { Borrowed: unkVar_4ABA[0..1] }
-		unkVar_4ABA: array[2 .. 14] of byte;
+		FileWorldCachedLinePos: integer; { Borrowed: unkVar_4ABA[2..3] }
+		FileSaveCachedLinePos: integer; { Borrowed: unkVar_4ABA[4..5] }
+		unkVar_4ABA: array[6 .. 14] of byte;
 
 		GameTitleExitRequested: boolean;
 		GamePlayExitRequested: boolean;
@@ -257,8 +259,6 @@ interface
 		FileBoardCachedLinePos: integer;
 		FileTextCachedLinePos: integer;
 {$ENDIF}
-		FileWorldCachedLinePos: integer;
-		FileSaveCachedLinePos: integer;
 	const
 		E_EMPTY = 0;
 		E_BOARD_EDGE = 1;

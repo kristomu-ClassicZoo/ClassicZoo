@@ -223,8 +223,8 @@ procedure ElementCentipedeHeadTick(statId: integer);
 			begin
 				ix := StepX;
 				iy := StepY;
-				tmp := ((Random(2) * 2) - 1) * StepY;
-				StepY := ((Random(2) * 2) - 1) * StepX;
+				tmp := ((Random(2) * 2) - 1) * iy;
+				StepY := ((Random(2) * 2) - 1) * ix;
 				StepX := tmp;
 				if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
 					and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER) then
@@ -375,7 +375,6 @@ procedure ElementBulletTick(statId: integer);
 				SoundQueue(1, #249#1);
 				firstTry := false;
 				goto TryMove;
-				exit;
 			end;
 
 			if (Board.Tiles[X - StepY][Y - StepX].Element = E_RICOCHET) and firstTry then begin
@@ -385,7 +384,6 @@ procedure ElementBulletTick(statId: integer);
 				SoundQueue(1, #249#1);
 				firstTry := false;
 				goto TryMove;
-				exit;
 			end;
 
 			RemoveStat(statId);
@@ -475,6 +473,9 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			iMax := -1;
 		end;
 
+		{ Moved from CWTick/CCWTick }
+		BoardDrawTile(X, Y);
+
 		canMove := true;
 		i := iMin;
 		repeat
@@ -510,10 +511,9 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 
 						if isStatted then begin
 							tmpTile := Board.Tiles[tx][ty];
-							iStat := statIds[i];
 							Board.Tiles[tx][ty] := tiles[i];
 							Board.Tiles[ix][iy].Element := E_EMPTY;
-							MoveStat(iStat, ix, iy);
+							MoveStat(statIds[i], ix, iy);
 
 							Board.Tiles[tx][ty] := tmpTile;
 							{ FIX: Add missing BoardDrawTile. }
@@ -550,7 +550,6 @@ procedure ElementConveyorCWDraw(x, y: integer; var ch: byte);
 procedure ElementConveyorCWTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			BoardDrawTile(X, Y);
 			ElementConveyorTick(X, Y, 1);
 		end;
 	end;
@@ -567,7 +566,6 @@ procedure ElementConveyorCCWDraw(x, y: integer; var ch: byte);
 procedure ElementConveyorCCWTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			BoardDrawTile(X, Y);
 			ElementConveyorTick(X, Y, -1);
 		end;
 	end;
@@ -625,50 +623,41 @@ procedure ElementBombTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 procedure ElementTransporterMove(x, y, deltaX, deltaY: integer);
 	var
 		ix, iy: integer;
-		newX, newY: integer;
 		iStat: integer;
-		finishSearch: boolean;
 		isValidDest: boolean;
+	label ETLoop;
 	begin
 		with Board.Stats[GetStatIdAt(x + deltaX, y + deltaY)] do begin
 			if (deltaX = StepX) and (deltaY = StepY) then begin
 				ix := X;
 				iy := Y;
-				newX := -1;
-				finishSearch := false;
 				isValidDest := true;
-				repeat
-					Inc(ix, deltaX);
-					Inc(iy, deltaY);
-					with Board.Tiles[ix][iy] do begin
-						if Element = E_BOARD_EDGE then
-							finishSearch := true
-						else if isValidDest then begin
-							isValidDest := false;
+ETLoop:
+				Inc(ix, deltaX);
+				Inc(iy, deltaY);
+				with Board.Tiles[ix][iy] do begin
+					if Element = E_BOARD_EDGE then
+						exit
+					else if isValidDest then begin
+						isValidDest := false;
 
-							if not ElementDefs[Element].Walkable then
-								ElementPushablePush(ix, iy, deltaX, deltaY);
+						if not ElementDefs[Element].Walkable then
+							ElementPushablePush(ix, iy, deltaX, deltaY);
 
-							if ElementDefs[Element].Walkable then begin
-								finishSearch := true;
-								newX := ix;
-								newY := iy;
-							end else begin
-								newX := -1
-							end;
-						end;
-						if Element = E_TRANSPORTER then begin
-							iStat := GetStatIdAt(ix, iy);
-							with Board.Stats[iStat] do
-								if (StepX = -deltaX) and (StepY = -deltaY) then
-									isValidDest := true;
+						if ElementDefs[Element].Walkable then begin
+							ElementMove(X - deltaX, Y - deltaY, ix, iy);
+							SoundQueue(3, #48#1#66#1#52#1#70#1#56#1#74#1#64#1#82#1);
+							exit;
 						end;
 					end;
-				until finishSearch;
-				if newX <> -1 then begin
-					ElementMove(X - deltaX, Y - deltaY, newX, newY);
-					SoundQueue(3, #48#1#66#1#52#1#70#1#56#1#74#1#64#1#82#1);
+					if Element = E_TRANSPORTER then begin
+						iStat := GetStatIdAt(ix, iy);
+						with Board.Stats[iStat] do
+							if (StepX = -deltaX) and (StepY = -deltaY) then
+								isValidDest := true;
+					end;
 				end;
+				goto ETLoop;
 			end;
 		end;
 	end;
@@ -772,10 +761,10 @@ procedure ElementSlimeTick(statId: integer);
 			if P1 < P2 then
 				Inc(P1)
 			else begin
-				colorCopy := Board.Tiles[X][Y].Color;
 				P1 := 0;
 				startX := X;
 				startY := Y;
+				colorCopy := Board.Tiles[startX][startY].Color;
 				changedTiles := 0;
 
 				for dir := 0 to 3 do begin
@@ -875,7 +864,6 @@ procedure ElementBlinkWallTick(statId: integer);
 					BoardDrawTile(ix, iy);
 					Inc(ix, StepX);
 					Inc(iy, StepY);
-					P3 := (P2) * 2 + 1;
 				end;
 
 				if ((X + StepX) = ix) and ((Y + StepY) = iy) then begin
@@ -916,9 +904,9 @@ procedure ElementBlinkWallTick(statId: integer);
 						Inc(ix, StepX);
 						Inc(iy, StepY);
 					until hitBoundary;
-
-					P3 := (P2 * 2) + 1;
 				end;
+
+				P3 := (P2 * 2) + 1;
 			end else begin
 				Dec(P3);
 			end;
@@ -1218,8 +1206,8 @@ procedure ElementPusherTick(statId: integer);
 			startX := X;
 			startY := Y;
 
-			if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then begin
-				ElementPushablePush(X + StepX, Y + StepY, StepX, StepY);
+			if not ElementDefs[Board.Tiles[startX + StepX][startY + StepY].Element].Walkable then begin
+				ElementPushablePush(startX + StepX, startY + StepY, StepX, StepY);
 			end;
 		end;
 
@@ -1366,7 +1354,7 @@ procedure DrawPlayerSurroundings(x, y: integer; bombPhase: integer);
 									if (Element = E_EMPTY) or (Element = E_BREAKABLE) then begin
 										Element := E_BREAKABLE;
 										Color := $09 + Random(7);
-										BoardDrawTile(ix, iy);
+										{ BoardDrawTile(ix, iy); (duplicate) }
 									end;
 								end else begin
 									if Element = E_BREAKABLE then
