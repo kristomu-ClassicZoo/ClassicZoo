@@ -883,7 +883,10 @@ procedure ElementBlinkWallTick(statId: integer);
 								if Board.Tiles[ix + 1][iy].Element = E_EMPTY then
 									MoveStat(playerStatId, ix + 1, iy)
 								else if Board.Tiles[ix - 1][iy].Element = E_EMPTY then
-									MoveStat(playerStatId, ix + 1, iy);
+									if ExtensionEnabled[ExtFixBlinkWallShift] then
+										MoveStat(playerStatId, ix - 1, iy)
+									else
+										MoveStat(playerStatId, ix + 1, iy);
 							end;
 
 							if Board.Tiles[ix][iy].Element = E_PLAYER then begin

@@ -9,7 +9,9 @@ TExtensionType = (
 	ExtFixConveyorStatCheck,
 	ExtFixConveyorMissingFinalDraw, { on by default }
 	ExtFixConveyorStatSwapping, { on by default }
+	ExtFixBlinkWallShift,
 	ExtDieItem,
 	ExtDieUnderTile,
+	ExtIfRnd,
 	ExtTypeEnd { This one has to be last. }
 );

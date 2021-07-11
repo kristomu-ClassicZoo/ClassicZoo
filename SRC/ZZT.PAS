@@ -224,9 +224,11 @@ begin
 		ZxtRegisterExtensionSimple(ExtFixConveyorStatCheck, $00000001, $0005);
 		ZxtRegisterExtensionSimple(ExtFixConveyorMissingFinalDraw, $00000001, $0006);
 		ZxtRegisterExtensionSimple(ExtFixConveyorStatSwapping, $00000001, $0007);
+		ZxtRegisterExtensionSimple(ExtFixBlinkWallShift, $00000001, $0008);
 		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);
 		ZxtRegisterExtensionSimple(ExtDieItem, $0000A51E, $0001);
 		ZxtRegisterExtensionSimple(ExtDieUnderTile, $0000A51E, $0002);
+		ZxtRegisterExtensionSimple(ExtIfRnd, $0000A51E, $0004);
 
 		TickSpeed := 4;
 		DebugEnabled := false;
