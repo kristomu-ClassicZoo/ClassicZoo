@@ -69,6 +69,7 @@ interface
 	procedure PauseOnError;
 	function DisplayIOError: boolean;
 	procedure WorldUnload;
+	procedure SidebarAnimateLoading(var loadProgress: integer);
 	function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 	procedure WorldSave(filename, extension: TString50);
 	procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: TString50);
@@ -887,6 +888,12 @@ procedure WorldUnload;
 			ExtMemFree(WorldExt.BoardData[i], WorldExt.BoardLen[i]);
 	end;
 
+procedure SidebarAnimateLoading(var loadProgress: integer);
+	begin
+		VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
+		loadProgress := (loadProgress + 1) mod 8;
+	end;
+
 function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 	var
 		f: file;
@@ -895,11 +902,6 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 		loadProgress: integer;
 		newLength: longint;
 	label OnError;
-	procedure SidebarAnimateLoading;
-		begin
-			VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
-			loadProgress := (loadProgress + 1) and 7;
-		end;
 	begin
 		WorldLoad := false;
 		loadProgress := 0;
@@ -947,7 +949,7 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 				end;
 
 				for boardId := 0 to World.BoardCount do begin
-					SidebarAnimateLoading;
+					SidebarAnimateLoading(loadProgress);
 					BlockRead(f, WorldExt.BoardLen[boardId], 2);
 
 					{ Try to un-corrupt Super Locked worlds. }
@@ -1876,7 +1878,7 @@ procedure GameDebugPrompt;
 {$IFDEF EXTCHEAT}
 				if input = 'PASSAGE' then begin
 					if GameStateElement = E_PLAYER then begin
-						BoardChange(EditorSelectBoard('Teleport to', World.Info.CurrentBoard, false, false));
+						BoardChange(EditorSelectBoard('Teleport to', World.Info.CurrentBoard, false, false, false));
 						GamePaused := true;
 						TransitionDrawBoardChange;
 						BoardEnter;
