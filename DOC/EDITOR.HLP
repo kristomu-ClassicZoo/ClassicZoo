@@ -8,7 +8,7 @@ Help is available on the following topics:
 !-terrain;Terrains
 !-item;Items
 !-lang;ZZT-OOP Programming Language
-!-info;Board information menu
+!-info;Board Information menu
 
 :start;Getting started
 
@@ -96,6 +96,9 @@ the screen.  These are:
      A board from one world can be
      written to a file, then read back
      into a different world.
+[W]  World Information:  Change the
+     characteristics of the particular
+     world being edited.
 [!]  Edit text file. Useful for planning
      the layout of text windows.
 [f5] Place advanced elements on the

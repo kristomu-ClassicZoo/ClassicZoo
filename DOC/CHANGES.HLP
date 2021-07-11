@@ -5,8 +5,16 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
-$< ClassicZoo dev >
+$< ClassicZoo 4.14 >
 
++ Editor improvements.
+  + Added "World Information" menu
+    under the W key.
+    . Change starting health!
+    . Delete boards!
+  * The passage destination menu now
+    correctly lists the title screen.
+  * Minor fixes.
 + PC-9801: Ported mouse support.
 + Increased the board limit from 101 to
   256 boards.
