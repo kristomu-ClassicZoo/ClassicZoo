@@ -57,6 +57,7 @@ interface
 	procedure PauseOnError;
 	function DisplayIOError: boolean;
 	procedure WorldUnload;
+	procedure SidebarAnimateLoading(var loadProgress: integer);
 	function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 	procedure WorldSave(filename, extension: TString50);
 	procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: TString50);
@@ -743,17 +744,18 @@ procedure WorldUnload;
 			FreeMem(World.BoardData[i], World.BoardLen[i]);
 	end;
 
+procedure SidebarAnimateLoading(var loadProgress: integer);
+	begin
+		VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
+		loadProgress := (loadProgress + 1) mod 8;
+	end;
+
 function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 	var
 		f: file;
 		ptr: pointer;
 		boardId: integer;
 		loadProgress: integer;
-	procedure SidebarAnimateLoading;
-		begin
-			VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
-			loadProgress := (loadProgress + 1) mod 8;
-		end;
 	begin
 		WorldLoad := false;
 		loadProgress := 0;
@@ -796,7 +798,7 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 				end;
 
 				for boardId := 0 to World.BoardCount do begin
-					SidebarAnimateLoading;
+					SidebarAnimateLoading(loadProgress);
 					BlockRead(f, World.BoardLen[boardId], 2);
 					GetMem(World.BoardData[boardId], World.BoardLen[boardId]);
 					BlockRead(f, World.BoardData[boardId]^, World.BoardLen[boardId]);
