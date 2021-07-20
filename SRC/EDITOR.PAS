@@ -1840,7 +1840,11 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 		for i := 0 to World.BoardCount do begin
 			TextWindowAppend(textWindow, EditorGetBoardName(i, titleScreenIsNone));
 		end;
-		if showAddNewBoard then TextWindowAppend(textWindow, 'Add new board');
+		if showAddNewBoard then begin
+			if World.BoardCount < MAX_BOARD then begin
+				TextWindowAppend(textWindow, 'Add new board');
+			end;
+		end;
 		if not windowAlreadyOpen then TextWindowDrawOpen(textWindow);
 		TextWindowSelect(textWindow, false, false);
 		if not windowAlreadyOpen then TextWindowDrawClose(textWindow);
