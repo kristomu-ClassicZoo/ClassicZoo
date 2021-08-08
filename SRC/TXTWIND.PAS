@@ -76,6 +76,7 @@ interface
 		ResourceDataFileName: TFilenameString;
 		ResourceDataHeader: TResourceDataHeader;
 		{ OrderPrintId: ^string; }
+	function UpCaseString(input: string): string;
 	procedure TextWindowPromptFilename(title: TString50; var filename: TFilenameString);
 	procedure TextWindowInitState(var state: TTextWindowState);
 	procedure TextWindowDrawOpen(var state: TTextWindowState);

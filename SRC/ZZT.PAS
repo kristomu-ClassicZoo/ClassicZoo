@@ -53,9 +53,7 @@ procedure ParseArguments;
 		for i := 1 to ParamCount do begin
 			pArg := ParamStr(i);
 			if pArg[1] = '/' then begin
-				case UpCase(pArg[2]) of
-					'R': ResetConfig := true;
-				end;
+				pArg := UpCaseString(pArg);
 
 				if pArg = '/NOEMS' then
 					enableEms := false

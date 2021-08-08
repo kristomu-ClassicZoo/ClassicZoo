@@ -5,6 +5,11 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
+$< ClassicZoo dev >
+
+/ Fixed /NOEMS and /NOXMS arguments being
+  case-sensitive.
+
 $< ClassicZoo 4.14 >
 
 + Editor improvements.
