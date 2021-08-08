@@ -218,24 +218,28 @@ procedure ElementCentipedeHeadTick(statId: integer);
 				CalcDirectionRnd(StepX, StepY);
 			end;
 
-			if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
-				and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER) then
+			with Board.Tiles[X + StepX][Y + StepY] do
+			if not ElementDefs[Element].Walkable
+				and (Element <> E_PLAYER) then
 			begin
 				ix := StepX;
 				iy := StepY;
 				tmp := ((Random(2) * 2) - 1) * iy;
 				StepY := ((Random(2) * 2) - 1) * ix;
 				StepX := tmp;
-				if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
-					and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER) then
+				with Board.Tiles[X + StepX][Y + StepY] do
+				if not ElementDefs[Element].Walkable
+					and (Element <> E_PLAYER) then
 				begin
 					StepX := -StepX;
 					StepY := -StepY;
-					if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
-						and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER) then
+					with Board.Tiles[X + StepX][Y + StepY] do
+					if not ElementDefs[Element].Walkable
+						and (Element <> E_PLAYER) then
 					begin
-						if ElementDefs[Board.Tiles[X - ix][Y - iy].Element].Walkable
-							or (Board.Tiles[X - ix][Y - iy].Element = E_PLAYER) then
+						with Board.Tiles[X - ix][Y - iy] do
+						if ElementDefs[Element].Walkable
+							or (Element = E_PLAYER) then
 						begin
 							StepX := -ix;
 							StepY := -iy;
@@ -1009,41 +1013,43 @@ procedure ElementDuplicatorTick(statId: integer);
 		with Board.Stats[statId] do begin
 			if P1 <= 4 then begin
 				Inc(P1);
-				BoardDrawTile(X, Y);
 			end else begin
 				P1 := 0;
-				if Board.Tiles[X - StepX][Y - StepY].Element = E_PLAYER then begin
-					ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element]
-						.TouchProc(X + StepX, Y + StepY, 0, InputDeltaX, InputDeltaY);
-				end else begin
-					if Board.Tiles[X - StepX][Y - StepY].Element <> E_EMPTY then
-						ElementPushablePush(X - StepX, Y - StepY, -StepX, -StepY);
+				with Board.Tiles[X - StepX][Y - StepY] do begin
+					if Element = E_PLAYER then begin
+						ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element]
+							.TouchProc(X + StepX, Y + StepY, 0, InputDeltaX, InputDeltaY);
+					end else begin
+						if Element <> E_EMPTY then
+							ElementPushablePush(X - StepX, Y - StepY, -StepX, -StepY);
 
-					if Board.Tiles[X - StepX][Y - StepY].Element = E_EMPTY then begin
-						sourceStatId := GetStatIdAt(X + StepX, Y + StepY);
-						if sourceStatId > 0 then begin
-							if Board.StatCount < (MAX_STAT + 24) then begin
-								AddStat(X - StepX, Y - StepY,
-									Board.Tiles[X + StepX][Y + StepY].Element,
-									Board.Tiles[X + StepX][Y + StepY].Color,
-									Board.Stats[sourceStatId].Cycle, Board.Stats[sourceStatId]);
+						if Element = E_EMPTY then begin
+							sourceStatId := GetStatIdAt(X + StepX, Y + StepY);
+							if sourceStatId > 0 then begin
+								{ Below is always true }
+								{ if Board.StatCount < (MAX_STAT + 24) then begin }
+								with Board.Tiles[X + StepX][Y + StepY] do begin
+									AddStat(X - StepX, Y - StepY,
+										Element, Color,
+										Board.Stats[sourceStatId].Cycle, Board.Stats[sourceStatId]);
+									BoardDrawTile(X - StepX, Y - StepY);
+								end;
+							end else if sourceStatId <> 0 then begin
+								Board.Tiles[X - StepX][Y - StepY]
+									:= Board.Tiles[X + StepX][Y + StepY];
 								BoardDrawTile(X - StepX, Y - StepY);
 							end;
-						end else if sourceStatId <> 0 then begin
-							Board.Tiles[X - StepX][Y - StepY]
-								:= Board.Tiles[X + StepX][Y + StepY];
-							BoardDrawTile(X - StepX, Y - StepY);
-						end;
 
-						SoundQueue(3, #48#2#50#2#52#2#53#2#55#2);
-					end else begin
-						SoundQueue(3, #24#1#22#1);
+							SoundQueue(3, #48#2#50#2#52#2#53#2#55#2);
+						end else begin
+							SoundQueue(3, #24#1#22#1);
+						end;
 					end;
 				end;
 
 				P1 := 0;
-				BoardDrawTile(X, Y);
 			end;
+			BoardDrawTile(X, Y);
 
 			Cycle := (9 - P2) * 3;
 		end;
@@ -1096,17 +1102,19 @@ procedure ElementKeyTouch(x, y: integer; sourceStatId: integer; var deltaX, delt
 	var
 		key: integer;
 	begin
-		key := Board.Tiles[x][y].Color and 7;
+		with Board.Tiles[x][y] do begin
+			key := Color and 7;
 
-		if World.Info.Keys[key] then begin
-			DisplayMessage(200, 'You already have a '+ColorNames[key]+' key!');
-			SoundQueue(2, #48#2#32#2);
-		end else begin
-			World.Info.Keys[key] := true;
-			Board.Tiles[x][y].Element := E_EMPTY;
-			GameUpdateSidebar;
-			DisplayMessage(200, 'You now have the '+ColorNames[key]+' key.');
-			SoundQueue(2, #64#1#68#1#71#1#64#1#68#1#71#1#64#1#68#1#71#1#80#2);
+			if World.Info.Keys[key] then begin
+				DisplayMessage(200, 'You already have a '+ColorNames[key]+' key!');
+				SoundQueue(2, #48#2#32#2);
+			end else begin
+				World.Info.Keys[key] := true;
+				Element := E_EMPTY;
+				GameUpdateSidebar;
+				DisplayMessage(200, 'You now have the '+ColorNames[key]+' key.');
+				SoundQueue(2, #64#1#68#1#71#1#64#1#68#1#71#1#64#1#68#1#71#1#80#2);
+			end;
 		end;
 	end;
 
@@ -1151,20 +1159,22 @@ procedure ElementDoorTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 	var
 		key: integer;
 	begin
-		key := (Board.Tiles[x][y].Color shr 4) and 7;
+		with Board.Tiles[x][y] do begin
+			key := (Color shr 4) and 7;
 
-		if World.Info.Keys[key] then begin
-			Board.Tiles[x][y].Element := E_EMPTY;
-			BoardDrawTile(x, y);
+			if World.Info.Keys[key] then begin
+				Element := E_EMPTY;
+				BoardDrawTile(x, y);
 
-			World.Info.Keys[key] := false;
-			GameUpdateSidebar;
+				World.Info.Keys[key] := false;
+				GameUpdateSidebar;
 
-			DisplayMessage(200, 'The '+ColorNames[key]+' door is now open.');
-			SoundQueue(3, #48#1#55#1#59#1#48#1#55#1#59#1#64#4);
-		end else begin
-			DisplayMessage(200, 'The '+ColorNames[key]+' door is locked!');
-			SoundQueue(3, #23#1#16#1);
+				DisplayMessage(200, 'The '+ColorNames[key]+' door is now open.');
+				SoundQueue(3, #48#1#55#1#59#1#48#1#55#1#59#1#64#4);
+			end else begin
+				DisplayMessage(200, 'The '+ColorNames[key]+' door is locked!');
+				SoundQueue(3, #23#1#16#1);
+			end;
 		end;
 	end;
 
@@ -1196,6 +1206,7 @@ procedure ElementPusherTick(statId: integer);
 			startX := X;
 			startY := Y;
 
+			{ Microoptimization: X + StepX, but startX currently == X, etc. }
 			if not ElementDefs[Board.Tiles[startX + StepX][startY + StepY].Element].Walkable then begin
 				ElementPushablePush(startX + StepX, startY + StepY, StepX, StepY);
 			end;
@@ -1210,7 +1221,7 @@ procedure ElementPusherTick(statId: integer);
 				if Board.Tiles[X - (StepX * 2)][Y - (StepY * 2)].Element = E_PUSHER then begin
 					i := GetStatIdAt(X - (StepX * 2), Y - (StepY * 2));
 					if (Board.Stats[i].StepX = StepX) and (Board.Stats[i].StepY = StepY) then
-						ElementDefs[E_PUSHER].TickProc(i);
+						ElementPusherTick(i);
 				end;
 			end;
 		end;
