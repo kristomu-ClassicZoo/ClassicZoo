@@ -1458,6 +1458,7 @@ procedure GameUpdateSidebar;
 			if DebugEnabled then begin
 				Str(MemAvail, numStr);
 				VideoWriteText(62, 3, $1E, 'm' + numStr + ' ');
+{$IFNDEF NOEXTMEM}
 				if ExtMemEmsActive then begin
 					Str(ExtMemEmsAvailPages, numstr);
 					VideoWriteText(70, 3, $1E, 'e' + numStr + 'p ');
@@ -1466,6 +1467,7 @@ procedure GameUpdateSidebar;
 					Str(ExtMemXmsAvail, numStr);
 					VideoWriteText(62, 4, $1E, 'x' + numStr + ' ');
 				end;
+{$ENDIF}
 			end;
 		end;
 	end;

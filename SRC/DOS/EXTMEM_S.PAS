@@ -94,43 +94,6 @@ function ExtMemEmsAvailPages: word;
 		ExtMemEmsAvailPages := 0;
 	end;
 
-function ConvGet(var block: TExtMemBlock; size: word): boolean;
-	begin
-{$IFNDEF FPC}
-		HeapError := @ConvErrorHandler;
-		ConvError := false;
-
-		block.MemType := Conv;
-		GetMem(block.Ptr, size);
-
-		HeapError := @ConvDefErrorHandler;
-		ConvGet := not ConvError;
-{$ELSE}
-		ReturnNilIfGrowHeapfails := true;
-
-		block.MemType := Conv;
-		GetMem(block.Ptr, size);
-
-		ReturnNilIfGrowHeapfails := false;
-		ConvGet := block.Ptr <> nil;
-{$ENDIF}
-	end;
-
-procedure ConvWrite(var block: TExtMemBlock; var data; count: word);
-	begin
-		Move(data, block.Ptr^, count);
-	end;
-
-procedure ConvRead(var block: TExtMemBlock; var data; count: word);
-	begin
-		Move(block.Ptr^, data, count);
-	end;
-
-procedure ConvFree(var block: TExtMemBlock; size: word);
-	begin
-		FreeMem(block.Ptr, size);
-	end;
-
 procedure ExtMemInstall(useEms: boolean; useXms: boolean);
 	begin
 {$IFNDEF FPC}
@@ -145,7 +108,24 @@ function ExtMemGet(var block: TExtMemBlock; size: word): boolean;
 	begin
 		block.MemType := NoMem;
 		if size = 0 then goto Done;
-		if ConvGet(block, size) then goto Done;
+{$IFNDEF FPC}
+		HeapError := @ConvErrorHandler;
+		ConvError := false;
+
+		block.MemType := Conv;
+		GetMem(block.Ptr, size);
+
+		HeapError := @ConvDefErrorHandler;
+		if not ConvError then goto Done;
+{$ELSE}
+		ReturnNilIfGrowHeapfails := true;
+
+		block.MemType := Conv;
+		GetMem(block.Ptr, size);
+
+		ReturnNilIfGrowHeapfails := false;
+		if block.Ptr <> nil then goto Done;
+{$ENDIF}
 		ExtMemGet := false;
 		exit;
 	Done:
@@ -155,7 +135,7 @@ function ExtMemGet(var block: TExtMemBlock; size: word): boolean;
 procedure ExtMemWrite(var block: TExtMemBlock; var data; count: word);
 	begin
 		case block.MemType of
-			Conv: ConvWrite(block, data, count);
+			Conv: Move(data, block.Ptr^, count);
 		else
 			if count <> 0 then RunError(204)
 		end;
@@ -164,7 +144,7 @@ procedure ExtMemWrite(var block: TExtMemBlock; var data; count: word);
 procedure ExtMemRead(var block: TExtMemBlock; var data; count: word);
 	begin
 		case block.MemType of
-			Conv: ConvRead(block, data, count);
+			Conv: Move(block.Ptr^, data, count);
 		else
 			if count <> 0 then RunError(204)
 		end;
@@ -173,7 +153,7 @@ procedure ExtMemRead(var block: TExtMemBlock; var data; count: word);
 procedure ExtMemFree(var block: TExtMemBlock; size: word);
 	begin
 		case block.MemType of
-			Conv: ConvFree(block, size);
+			Conv: FreeMem(block.Ptr, size);
 		else
 			if size <> 0 then RunError(204)
 		end;
