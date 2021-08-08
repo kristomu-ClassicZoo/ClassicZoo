@@ -1330,16 +1330,18 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			iUnder := Under;
 			Under := Board.Tiles[newX][newY];
 
-			if Board.Tiles[oldX][oldY].Element = E_PLAYER then
-				Board.Tiles[newX][newY].Color := Board.Tiles[oldX][oldY].Color
-			else if Board.Tiles[newX][newY].Element = E_EMPTY then
-				Board.Tiles[newX][newY].Color := Board.Tiles[oldX][oldY].Color and $0F
-			else
-				Board.Tiles[newX][newY].Color := (Board.Tiles[oldX][oldY].Color and $0F)
-					or (Board.Tiles[newX][newY].Color and $70);
+			with Board.Tiles[oldX][oldY] do begin
+				if Element = E_PLAYER then
+					Board.Tiles[newX][newY].Color := Color
+				else if Board.Tiles[newX][newY].Element = E_EMPTY then
+					Board.Tiles[newX][newY].Color := Color and $0F
+				else
+					Board.Tiles[newX][newY].Color := (Color and $0F)
+						or (Board.Tiles[newX][newY].Color and $70);
 
-			Board.Tiles[newX][newY].Element := Board.Tiles[oldX][oldY].Element;
-			Board.Tiles[oldX][oldY] := iUnder;
+				Board.Tiles[newX][newY].Element := Element;
+				Board.Tiles[oldX][oldY] := iUnder;
+			end;
 
 			X := newX;
 			Y := newY;
