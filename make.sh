@@ -13,6 +13,7 @@ FPC_BINARY=ppcross8086
 PLATFORM=msdos
 PLATFORM_UNIT_LOWER=dos
 PLATFORM_UNIT=DOS
+EXTMEM_STUB=
 DEBUG_BUILD=
 
 # Parse arguments
@@ -61,6 +62,9 @@ while getopts "a:d:e:o:p:rg" opt; do
 		PLATFORM_UNIT="${PLATFORM_UNIT_LOWER^^}"
 		;;
 	d)
+		if [ "$OPTARG" = "NOEXTMEM" ]; then
+			EXTMEM_STUB=true
+		fi
 		FPC_DEFINES=$FPC_DEFINES" -d"$OPTARG
 		if [ -n "$TPC_DEFINES" ]; then
 			TPC_DEFINES=$TPC_DEFINES","$OPTARG
@@ -223,6 +227,10 @@ else
 
 	cp SRC/"$PLATFORM_UNIT"/*.PAS SRC/ 2>/dev/null
 	cp SRC/"$PLATFORM_UNIT"/*.INC SRC/ 2>/dev/null
+
+	if [ "$EXTMEM_STUB" = "true" ]; then
+		cp SRC/EXTMEM_S.PAS SRC/EXTMEM.PAS 2>/dev/null
+	fi
 
 	touch BUILD.LOG
 	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &

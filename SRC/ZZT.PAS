@@ -47,18 +47,22 @@ procedure ParseArguments;
 		enableEms: boolean;
 		enableXms: boolean;
 	begin
+{$IFNDEF NOEXTMEM}
 		enableEms := true;
 		enableXms := true;
+{$ENDIF}
 
 		for i := 1 to ParamCount do begin
 			pArg := ParamStr(i);
 			if pArg[1] = '/' then begin
 				pArg := UpCaseString(pArg);
 
+{$IFNDEF NOEXTMEM}
 				if pArg = '/NOEMS' then
 					enableEms := false
 				else if pArg = '/NOXMS' then
 					enableXms := false;
+{$ENDIF}
 			end else begin
 				StartupWorldFileName := pArg;
 				if (Length(StartupWorldFileName) > 4) and (StartupWorldFileName[Length(StartupWorldFileName) - 3] = '.') then begin

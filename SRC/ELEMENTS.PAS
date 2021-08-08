@@ -1333,7 +1333,11 @@ procedure DrawPlayerSurroundings(x, y: integer; bombPhase: integer);
 {$IFNDEF EDITONLY}
 							if (bombPhase > 0) and ((Sqr(ix-x) + Sqr(iy-y)*2) < TORCH_DIST_SQR) then begin
 								if bombPhase = 1 then begin
+{$IFNDEF RUNTINY}
 									if Length(ElementDefs[Element].ParamTextName) <> 0 then begin
+{$ELSE}
+									if ElementDefs[Element].HasText then begin
+{$ENDIF}
 										istat := GetStatIdAt(ix, iy);
 										if istat > 0 then
 											result := OopSend(-istat, 'BOMBED', false);
@@ -1600,9 +1604,12 @@ procedure InitElementDefs;
 			TickProc := ElementDefaultTick;
 			DrawProc := ElementDefaultDraw;
 			TouchProc := ElementDefaultTouch;
+{$IFNDEF RUNTINY}
 			EditorCategory := 0;
 			EditorShortcut := #0;
+{$ENDIF}
 			Name := '';
+{$IFNDEF RUNTINY}
 			CategoryName := '';
 			Param1Name := '';
 			Param2Name := '';
@@ -1610,6 +1617,9 @@ procedure InitElementDefs;
 			ParamBoardName := '';
 			ParamDirName := '';
 			ParamTextName := '';
+{$ELSE}
+			HasText := false;
+{$ENDIF}
 			ScoreValue := 0;
 		end;
 		for i := 1 to MAX_ELEMENT do
@@ -1632,13 +1642,15 @@ procedure InitElementDefs;
 		ElementDefs[19].Character := #176;
 		ElementDefs[19].Color := $F9;
 		ElementDefs[19].PlaceableOnTop := true;
-		ElementDefs[19].EditorCategory := CATEGORY_TERRAIN;
 {$IFNDEF EDITONLY}
 		ElementDefs[19].TouchProc := ElementWaterTouch;
 {$ENDIF}
-		ElementDefs[19].EditorShortcut := 'W';
 		ElementDefs[19].Name := 'Water';
+{$IFNDEF RUNTINY}
+		ElementDefs[19].EditorCategory := CATEGORY_TERRAIN;
+		ElementDefs[19].EditorShortcut := 'W';
 		ElementDefs[19].CategoryName := 'Terrains:';
+{$ENDIF}
 
 		ElementDefs[20].Character := #176;
 		ElementDefs[20].Color := $20;
@@ -1646,9 +1658,11 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[20].TouchProc := ElementForestTouch;
 {$ENDIF}
+		ElementDefs[20].Name := 'Forest';
+{$IFNDEF RUNTINY}
 		ElementDefs[20].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[20].EditorShortcut := 'F';
-		ElementDefs[20].Name := 'Forest';
+{$ENDIF}
 
 		ElementDefs[4].Character := #2;
 		ElementDefs[4].Color := $1F;
@@ -1659,10 +1673,12 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[4].TickProc := ElementPlayerTick;
 {$ENDIF}
+		ElementDefs[4].Name := 'Player';
+{$IFNDEF RUNTINY}
 		ElementDefs[4].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[4].EditorShortcut := 'Z';
-		ElementDefs[4].Name := 'Player';
 		ElementDefs[4].CategoryName := 'Items:';
+{$ENDIF}
 
 		ElementDefs[41].Character := #234;
 		ElementDefs[41].Color := $0C;
@@ -1673,12 +1689,14 @@ procedure InitElementDefs;
 		ElementDefs[41].TickProc := ElementLionTick;
 		ElementDefs[41].TouchProc := ElementDamagingTouch;
 {$ENDIF}
-		ElementDefs[41].EditorCategory := CATEGORY_CREATURE;
-		ElementDefs[41].EditorShortcut := 'L';
 		ElementDefs[41].Name := 'Lion';
+		ElementDefs[41].ScoreValue := 1;
+{$IFNDEF RUNTINY}
 		ElementDefs[41].CategoryName := 'Beasts:';
 		ElementDefs[41].Param1Name := 'Intelligence?';
-		ElementDefs[41].ScoreValue := 1;
+		ElementDefs[41].EditorCategory := CATEGORY_CREATURE;
+		ElementDefs[41].EditorShortcut := 'L';
+{$ENDIF}
 
 		ElementDefs[42].Character := #227;
 		ElementDefs[42].Color := $0B;
@@ -1689,13 +1707,15 @@ procedure InitElementDefs;
 		ElementDefs[42].TickProc := ElementTigerTick;
 		ElementDefs[42].TouchProc := ElementDamagingTouch;
 {$ENDIF}
+		ElementDefs[42].Name := 'Tiger';
+		ElementDefs[42].ScoreValue := 2;
+{$IFNDEF RUNTINY}
 		ElementDefs[42].EditorCategory := CATEGORY_CREATURE;
 		ElementDefs[42].EditorShortcut := 'T';
-		ElementDefs[42].Name := 'Tiger';
 		ElementDefs[42].Param1Name := 'Intelligence?';
 		ElementDefs[42].Param2Name := 'Firing rate?';
 		ElementDefs[42].ParamBulletTypeName := 'Firing type?';
-		ElementDefs[42].ScoreValue := 2;
+{$ENDIF}
 
 		ElementDefs[44].Character := #233;
 		ElementDefs[44].Destructible := true;
@@ -1704,13 +1724,15 @@ procedure InitElementDefs;
 		ElementDefs[44].TickProc := ElementCentipedeHeadTick;
 		ElementDefs[44].TouchProc := ElementDamagingTouch;
 {$ENDIF}
-		ElementDefs[44].EditorCategory := CATEGORY_CREATURE;
-		ElementDefs[44].EditorShortcut := 'H';
 		ElementDefs[44].Name := 'Head';
+		ElementDefs[44].ScoreValue := 1;
+{$IFNDEF RUNTINY}
 		ElementDefs[44].CategoryName := 'Centipedes';
 		ElementDefs[44].Param1Name := 'Intelligence?';
 		ElementDefs[44].Param2Name := 'Deviance?';
-		ElementDefs[44].ScoreValue := 1;
+		ElementDefs[44].EditorCategory := CATEGORY_CREATURE;
+		ElementDefs[44].EditorShortcut := 'H';
+{$ENDIF}
 
 		ElementDefs[45].Character := 'O';
 		ElementDefs[45].Destructible := true;
@@ -1719,10 +1741,12 @@ procedure InitElementDefs;
 		ElementDefs[45].TickProc := ElementCentipedeSegmentTick;
 		ElementDefs[45].TouchProc := ElementDamagingTouch;
 {$ENDIF}
-		ElementDefs[45].EditorCategory := CATEGORY_CREATURE;
-		ElementDefs[45].EditorShortcut := 'S';
 		ElementDefs[45].Name := 'Segment';
 		ElementDefs[45].ScoreValue := 3;
+{$IFNDEF RUNTINY}
+		ElementDefs[45].EditorCategory := CATEGORY_CREATURE;
+		ElementDefs[45].EditorShortcut := 'S';
+{$ENDIF}
 
 		ElementDefs[18].Character := #248;
 		ElementDefs[18].Color := $0F;
@@ -1751,9 +1775,11 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[8].TouchProc := ElementKeyTouch;
 {$ENDIF}
+		ElementDefs[8].Name := 'Key';
+{$IFNDEF RUNTINY}
 		ElementDefs[8].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[8].EditorShortcut := 'K';
-		ElementDefs[8].Name := 'Key';
+{$ENDIF}
 
 		ElementDefs[5].Character := #132;
 		ElementDefs[5].Color := $03;
@@ -1761,9 +1787,11 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[5].TouchProc := ElementAmmoTouch;
 {$ENDIF}
+		ElementDefs[5].Name := 'Ammo';
+{$IFNDEF RUNTINY}
 		ElementDefs[5].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[5].EditorShortcut := 'A';
-		ElementDefs[5].Name := 'Ammo';
+{$ENDIF}
 
 		ElementDefs[7].Character := #4;
 		ElementDefs[7].Pushable := true;
@@ -1771,9 +1799,11 @@ procedure InitElementDefs;
 		ElementDefs[7].TouchProc := ElementGemTouch;
 {$ENDIF}
 		ElementDefs[7].Destructible := true;
+		ElementDefs[7].Name := 'Gem';
+{$IFNDEF RUNTINY}
 		ElementDefs[7].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[7].EditorShortcut := 'G';
-		ElementDefs[7].Name := 'Gem';
+{$ENDIF}
 
 		ElementDefs[11].Character := #240;
 		ElementDefs[11].Color := COLOR_WHITE_ON_CHOICE;
@@ -1782,19 +1812,23 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[11].TouchProc := ElementPassageTouch;
 {$ENDIF}
+		ElementDefs[11].Name := 'Passage';
+{$IFNDEF RUNTINY}
+		ElementDefs[11].ParamBoardName := 'Room thru passage?';
 		ElementDefs[11].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[11].EditorShortcut := 'P';
-		ElementDefs[11].Name := 'Passage';
-		ElementDefs[11].ParamBoardName := 'Room thru passage?';
+{$ENDIF}
 
 		ElementDefs[9].Character := #10;
 		ElementDefs[9].Color := COLOR_WHITE_ON_CHOICE;
 {$IFNDEF EDITONLY}
 		ElementDefs[9].TouchProc := ElementDoorTouch;
 {$ENDIF}
+		ElementDefs[9].Name := 'Door';
+{$IFNDEF RUNTINY}
 		ElementDefs[9].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[9].EditorShortcut := 'D';
-		ElementDefs[9].Name := 'Door';
+{$ENDIF}
 
 		ElementDefs[10].Character := #232;
 		ElementDefs[10].Color := $0F;
@@ -1804,10 +1838,14 @@ procedure InitElementDefs;
 {$ENDIF}
 		ElementDefs[10].Pushable := true;
 		ElementDefs[10].Cycle := 1;
+		ElementDefs[10].Name := 'Scroll';
+{$IFNDEF RUNTINY}
 		ElementDefs[10].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[10].EditorShortcut := 'S';
-		ElementDefs[10].Name := 'Scroll';
 		ElementDefs[10].ParamTextName := 'Edit text of scroll';
+{$ELSE}
+		ElementDefs[10].HasText := true;
+{$ENDIF}
 
 		ElementDefs[12].Character := #250;
 		ElementDefs[12].Color := $0F;
@@ -1817,11 +1855,13 @@ procedure InitElementDefs;
 {$ENDIF}
 		ElementDefs[12].HasDrawProc := true;
 		ElementDefs[12].DrawProc := ElementDuplicatorDraw;
+		ElementDefs[12].Name := 'Duplicator';
+{$IFNDEF RUNTINY}
 		ElementDefs[12].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[12].EditorShortcut := 'U';
-		ElementDefs[12].Name := 'Duplicator';
 		ElementDefs[12].ParamDirName := 'Source direction?';
 		ElementDefs[12].Param2Name := 'Duplication rate?;SF';
+{$ENDIF}
 
 		ElementDefs[6].Character := #157;
 		ElementDefs[6].Color := $06;
@@ -1829,9 +1869,11 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[6].TouchProc := ElementTorchTouch;
 {$ENDIF}
+		ElementDefs[6].Name := 'Torch';
+{$IFNDEF RUNTINY}
 		ElementDefs[6].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[6].EditorShortcut := 'T';
-		ElementDefs[6].Name := 'Torch';
+{$ENDIF}
 
 		ElementDefs[39].Character := #24;
 		ElementDefs[39].Cycle := 2;
@@ -1840,12 +1882,14 @@ procedure InitElementDefs;
 {$ENDIF}
 		ElementDefs[39].HasDrawProc := true;
 		ElementDefs[39].DrawProc := ElementSpinningGunDraw;
+		ElementDefs[39].Name := 'Spinning gun';
+{$IFNDEF RUNTINY}
 		ElementDefs[39].EditorCategory := CATEGORY_CREATURE;
 		ElementDefs[39].EditorShortcut := 'G';
-		ElementDefs[39].Name := 'Spinning gun';
 		ElementDefs[39].Param1Name := 'Intelligence?';
 		ElementDefs[39].Param2Name := 'Firing rate?';
 		ElementDefs[39].ParamBulletTypeName := 'Firing type?';
+{$ENDIF}
 
 		ElementDefs[35].Character := #5;
 		ElementDefs[35].Color := $0D;
@@ -1856,12 +1900,14 @@ procedure InitElementDefs;
 		ElementDefs[35].TickProc := ElementRuffianTick;
 		ElementDefs[35].TouchProc := ElementDamagingTouch;
 {$ENDIF}
+		ElementDefs[35].Name := 'Ruffian';
+		ElementDefs[35].ScoreValue := 2;
+{$IFNDEF RUNTINY}
 		ElementDefs[35].EditorCategory := CATEGORY_CREATURE;
 		ElementDefs[35].EditorShortcut := 'R';
-		ElementDefs[35].Name := 'Ruffian';
 		ElementDefs[35].Param1Name := 'Intelligence?';
 		ElementDefs[35].Param2Name := 'Resting time?';
-		ElementDefs[35].ScoreValue := 2;
+{$ENDIF}
 
 		ElementDefs[34].Character := #153;
 		ElementDefs[34].Color := $06;
@@ -1872,12 +1918,14 @@ procedure InitElementDefs;
 		ElementDefs[34].TickProc := ElementBearTick;
 		ElementDefs[34].TouchProc := ElementDamagingTouch;
 {$ENDIF}
+		ElementDefs[34].Name := 'Bear';
+		ElementDefs[34].ScoreValue := 1;
+{$IFNDEF RUNTINY}
 		ElementDefs[34].EditorCategory := CATEGORY_CREATURE;
 		ElementDefs[34].EditorShortcut := 'B';
-		ElementDefs[34].Name := 'Bear';
 		ElementDefs[34].CategoryName := 'Creatures:';
 		ElementDefs[34].Param1Name := 'Sensitivity?';
-		ElementDefs[34].ScoreValue := 1;
+{$ENDIF}
 
 		ElementDefs[37].Character := '*';
 		{ ElementDefs[37].Color := COLOR_CHOICE_ON_BLACK; -- default }
@@ -1887,10 +1935,12 @@ procedure InitElementDefs;
 		ElementDefs[37].TickProc := ElementSlimeTick;
 		ElementDefs[37].TouchProc := ElementSlimeTouch;
 {$ENDIF}
+		ElementDefs[37].Name := 'Slime';
+{$IFNDEF RUNTINY}
 		ElementDefs[37].EditorCategory := CATEGORY_CREATURE;
 		ElementDefs[37].EditorShortcut := 'V';
-		ElementDefs[37].Name := 'Slime';
 		ElementDefs[37].Param2Name := 'Movement speed?;FS';
+{$ENDIF}
 
 		ElementDefs[38].Character := '^';
 		ElementDefs[38].Color := $07;
@@ -1899,10 +1949,12 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[38].TickProc := ElementSharkTick;
 {$ENDIF}
+		ElementDefs[38].Name := 'Shark';
+{$IFNDEF RUNTINY}
 		ElementDefs[38].EditorCategory := CATEGORY_CREATURE;
 		ElementDefs[38].EditorShortcut := 'Y';
-		ElementDefs[38].Name := 'Shark';
 		ElementDefs[38].Param1Name := 'Intelligence?';
+{$ENDIF}
 
 		ElementDefs[16].Character := '/';
 		ElementDefs[16].Cycle := 3;
@@ -1911,10 +1963,12 @@ procedure InitElementDefs;
 		ElementDefs[16].TickProc := ElementConveyorCWTick;
 {$ENDIF}
 		ElementDefs[16].DrawProc := ElementConveyorCWDraw;
+		ElementDefs[16].Name := 'Clockwise';
+{$IFNDEF RUNTINY}
 		ElementDefs[16].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[16].EditorShortcut := '1';
-		ElementDefs[16].Name := 'Clockwise';
 		ElementDefs[16].CategoryName := 'Conveyors:';
+{$ENDIF}
 
 		ElementDefs[17].Character := '\';
 		ElementDefs[17].Cycle := 2;
@@ -1923,19 +1977,25 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[17].TickProc := ElementConveyorCCWTick;
 {$ENDIF}
+		ElementDefs[17].Name := 'Counter';
+{$IFNDEF RUNTINY}
 		ElementDefs[17].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[17].EditorShortcut := '2';
-		ElementDefs[17].Name := 'Counter';
+{$ENDIF}
 
 		ElementDefs[21].Character := #219;
+{$IFNDEF RUNTINY}
 		ElementDefs[21].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[21].CategoryName := 'Walls:';
 		ElementDefs[21].EditorShortcut := 'S';
+{$ENDIF}
 		ElementDefs[21].Name := 'Solid';
 
 		ElementDefs[22].Character := #178;
+{$IFNDEF RUNTINY}
 		ElementDefs[22].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[22].EditorShortcut := 'N';
+{$ENDIF}
 		ElementDefs[22].Name := 'Normal';
 
 		ElementDefs[31].Character := #206;
@@ -1949,14 +2009,18 @@ procedure InitElementDefs;
 
 		ElementDefs[32].Character := '*';
 		ElementDefs[32].Color := $0A;
+{$IFNDEF RUNTINY}
 		ElementDefs[32].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[32].EditorShortcut := 'R';
+{$ENDIF}
 		ElementDefs[32].Name := 'Ricochet';
 
 		ElementDefs[23].Character := #177;
 		{ ElementDefs[23].Destructible := false; -- default }
+{$IFNDEF RUNTINY}
 		ElementDefs[23].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[23].EditorShortcut := 'B';
+{$ENDIF}
 		ElementDefs[23].Name := 'Breakable';
 
 		ElementDefs[24].Character := #254;
@@ -1964,24 +2028,30 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[24].TouchProc := ElementPushableTouch;
 {$ENDIF}
+{$IFNDEF RUNTINY}
 		ElementDefs[24].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[24].EditorShortcut := 'O';
+{$ENDIF}
 		ElementDefs[24].Name := 'Boulder';
 
 		ElementDefs[25].Character := #18;
 {$IFNDEF EDITONLY}
 		ElementDefs[25].TouchProc := ElementPushableTouch;
 {$ENDIF}
+{$IFNDEF RUNTINY}
 		ElementDefs[25].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[25].EditorShortcut := '1';
+{$ENDIF}
 		ElementDefs[25].Name := 'Slider (NS)';
 
 		ElementDefs[26].Character := #29;
 {$IFNDEF EDITONLY}
 		ElementDefs[26].TouchProc := ElementPushableTouch;
 {$ENDIF}
+{$IFNDEF RUNTINY}
 		ElementDefs[26].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[26].EditorShortcut := '2';
+{$ENDIF}
 		ElementDefs[26].Name := 'Slider (EW)';
 
 		ElementDefs[30].Character := #197;
@@ -1994,10 +2064,12 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[30].TickProc := ElementTransporterTick;
 {$ENDIF}
+		ElementDefs[30].Name := 'Transporter';
+{$IFNDEF RUNTINY}
 		ElementDefs[30].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[30].EditorShortcut := 'T';
-		ElementDefs[30].Name := 'Transporter';
 		ElementDefs[30].ParamDirName := 'Direction?';
+{$ENDIF}
 
 		ElementDefs[40].Character := #16;
 		{ ElementDefs[40].Color := COLOR_CHOICE_ON_BLACK; -- default }
@@ -2007,10 +2079,12 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[40].TickProc := ElementPusherTick;
 {$ENDIF}
+		ElementDefs[40].Name := 'Pusher';
+{$IFNDEF RUNTINY}
 		ElementDefs[40].EditorCategory := CATEGORY_CREATURE;
 		ElementDefs[40].EditorShortcut := 'P';
-		ElementDefs[40].Name := 'Pusher';
 		ElementDefs[40].ParamDirName := 'Push direction?';
+{$ENDIF}
 
 		ElementDefs[13].Character := #11;
 		ElementDefs[13].HasDrawProc := true;
@@ -2021,8 +2095,10 @@ procedure InitElementDefs;
 		ElementDefs[13].TickProc := ElementBombTick;
 		ElementDefs[13].TouchProc := ElementBombTouch;
 {$ENDIF}
+{$IFNDEF RUNTINY}
 		ElementDefs[13].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[13].EditorShortcut := 'B';
+{$ENDIF}
 		ElementDefs[13].Name := 'Bomb';
 
 		ElementDefs[14].Character := #127;
@@ -2030,8 +2106,10 @@ procedure InitElementDefs;
 {$IFNDEF EDITONLY}
 		ElementDefs[14].TouchProc := ElementEnergizerTouch;
 {$ENDIF}
+{$IFNDEF RUNTINY}
 		ElementDefs[14].EditorCategory := CATEGORY_ITEM;
 		ElementDefs[14].EditorShortcut := 'E';
+{$ENDIF}
 		ElementDefs[14].Name := 'Energizer';
 
 		ElementDefs[29].Character := #206;
@@ -2041,33 +2119,38 @@ procedure InitElementDefs;
 {$ENDIF}
 		ElementDefs[29].HasDrawProc := true;
 		ElementDefs[29].DrawProc := ElementBlinkWallDraw;
+		ElementDefs[29].Name := 'Blink wall';
+{$IFNDEF RUNTINY}
 		ElementDefs[29].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[29].EditorShortcut := 'L';
-		ElementDefs[29].Name := 'Blink wall';
 		ElementDefs[29].Param1Name := 'Starting time';
 		ElementDefs[29].Param2Name := 'Period';
 		ElementDefs[29].ParamDirName := 'Wall direction';
+{$ENDIF}
 
 		ElementDefs[27].Character := #178;
-		ElementDefs[27].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[27].PlaceableOnTop := true;
 		ElementDefs[27].Walkable := true;
 {$IFNDEF EDITONLY}
 		ElementDefs[27].TouchProc := ElementFakeTouch;
 {$ENDIF}
+{$IFNDEF RUNTINY}
+		ElementDefs[27].EditorCategory := CATEGORY_TERRAIN;
 		ElementDefs[27].EditorShortcut := 'A';
+{$ENDIF}
 		ElementDefs[27].Name := 'Fake';
 
 		{ ElementDefs[28].Character := ' '; -- default }
+{$IFNDEF RUNTINY}
 		ElementDefs[28].EditorCategory := CATEGORY_TERRAIN;
+		ElementDefs[28].EditorShortcut := 'I';
+{$ENDIF}
 {$IFNDEF EDITONLY}
 		ElementDefs[28].TouchProc := ElementInvisibleTouch;
 {$ENDIF}
-		ElementDefs[28].EditorShortcut := 'I';
 		ElementDefs[28].Name := 'Invisible';
 
 		ElementDefs[36].Character := #2;
-		ElementDefs[36].EditorCategory := CATEGORY_CREATURE;
 		ElementDefs[36].Cycle := 3;
 		ElementDefs[36].HasDrawProc := true;
 		ElementDefs[36].DrawProc := ElementObjectDraw;
@@ -2075,10 +2158,15 @@ procedure InitElementDefs;
 		ElementDefs[36].TickProc := ElementObjectTick;
 		ElementDefs[36].TouchProc := ElementObjectTouch;
 {$ENDIF}
-		ElementDefs[36].EditorShortcut := 'O';
 		ElementDefs[36].Name := 'Object';
+{$IFNDEF RUNTINY}
+		ElementDefs[36].EditorCategory := CATEGORY_CREATURE;
+		ElementDefs[36].EditorShortcut := 'O';
 		ElementDefs[36].Param1Name := 'Character?';
 		ElementDefs[36].ParamTextName := 'Edit Program';
+{$ELSE}
+		ElementDefs[36].HasText := true;
+{$ENDIF}
 
 {$IFNDEF EDITONLY}
 		ElementDefs[2].TickProc := ElementMessageTimerTick;
@@ -2116,8 +2204,10 @@ procedure InitElementsEditor;
 		ElementDefs[1].Character := 'E';
 		ElementDefs[1].Color := COLOR_CHOICE_ON_BLACK;
 
+{$IFNDEF RUNTINY}
 		ElementDefs[E_BULLET].ParamDirName := 'Direction?';
 		ElementDefs[44].CategoryName := 'Centipedes:';
+{$ENDIF}
 
 		ForceDarknessOff := true;
 	end;
@@ -2135,6 +2225,7 @@ procedure InitEditorStatSettings;
 		PlayerDirX := 0;
 		PlayerDirY := 0;
 
+{$IFNDEF RUNTINY}
 		for i := 0 to MAX_ELEMENT do
 			with World.EditorStatSettings[i] do begin
 				P1 := 4;
@@ -2146,6 +2237,7 @@ procedure InitEditorStatSettings;
 
 		World.EditorStatSettings[E_OBJECT].P1 := 1;
 		World.EditorStatSettings[E_BEAR].P1 := 8;
+{$ENDIF}
 	end;
 
 end.

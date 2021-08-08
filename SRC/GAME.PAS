@@ -249,7 +249,7 @@ procedure BoardClose;
 
 		{ We will always have enough size to store the above in the default IoTmpBuf. }
 		{ From here, do size estimation. }
-		iy := (Ofs(ptr^) - Ofs(IoTmpBuf^)) + ((Board.StatCount + 1) * SizeOf(TStat));
+		iy := (Ofs(ptr^) - Ofs(IoTmpBuf^)) + ((Board.StatCount + 1) * STAT_SIZE_BYTES);
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
@@ -273,7 +273,7 @@ procedure BoardClose;
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
 				Move(Board.Stats[ix], ptr^, SizeOf(TStat));
-				AdvancePointer(ptr, SizeOf(TStat));
+				AdvancePointer(ptr, STAT_SIZE_BYTES);
 				if DataLen > 0 then begin
 					Move(Data^, ptr^, DataLen);
 					FreeMem(Data, DataLen);
@@ -368,7 +368,7 @@ procedure BoardOpen(boardId: integer);
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
 				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
-				AdvancePointer(ptr, SizeOf(TStat));
+				AdvancePointer(ptr, STAT_SIZE_BYTES);
 				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
