@@ -44,6 +44,7 @@ interface
 		IO_BUFFER_DEFAULT_SIZE = 20000;
 		IO_BUFFER_MAXIMUM_SIZE = 65500;
 		IO_BUFFER_SIZE_INCREMENT = 500;
+		STAT_SIZE_BYTES = 33;
 		{ UI-only }
 		MAX_BOARD_NAME_LENGTH = 42;
 		MAX_HIGH_SCORE_NAME_LENGTH = 34;
@@ -75,9 +76,12 @@ interface
 			Cycle: integer;
 			TickProc: TElementTickProc;
 			TouchProc: TElementTouchProc;
+{$IFNDEF RUNTINY}
 			EditorCategory: integer;
 			EditorShortcut: char;
+{$ENDIF}
 			Name: string[20];
+{$IFNDEF RUNTINY}
 			CategoryName: string[20];
 			Param1Name: string[20];
 			Param2Name: string[20];
@@ -85,6 +89,9 @@ interface
 			ParamBoardName: string[20];
 			ParamDirName: string[20];
 			ParamTextName: string[20];
+{$ELSE}
+			HasText: boolean;
+{$ENDIF}
 			ScoreValue: integer;
 		end;
 		TStat = record
@@ -103,7 +110,9 @@ interface
 			{$ENDIF}
 			DataPos: integer;
 			DataLen: integer;
+{$IFNDEF RUNTINY}
 			unk1, unk2: pointer;
+{$ENDIF}
 		end;
 		TRleTile = record
 			Count: byte;
@@ -151,12 +160,14 @@ interface
 		end;
 		TWorld = record
 			BoardCount: integer;
-{
+{$IFNDEF RUNTINY}
 			BoardDataOld: array[0 .. 100] of pointer;
 			BoardLenOld: array[0 .. 100] of word;
-}
+{$ENDIF}
 			Info: TWorldInfo;
+{$IFNDEF RUNTINY}
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
+{$ENDIF}
 		end;
 		TWorldExt = record
 			BoardData: array[0 .. MAX_BOARD] of TExtMemBlock;
@@ -170,8 +181,10 @@ interface
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
+{$IFNDEF RUNTINY}
 		unkVar_0476: integer;
 		unkVar_0478: integer;
+{$ENDIF}
 
 		LoadedGameFileName: TString50;
 		SavedGameFileName: TString50;
@@ -194,7 +207,9 @@ interface
 		IoTmpBufSize: word; { Borrowed: unkVar_4ABA[0..1] }
 		FileWorldCachedLinePos: integer; { Borrowed: unkVar_4ABA[2..3] }
 		FileSaveCachedLinePos: integer; { Borrowed: unkVar_4ABA[4..5] }
+{$IFNDEF RUNTINY}
 		unkVar_4ABA: array[6 .. 14] of byte;
+{$ENDIF}
 
 		GameTitleExitRequested: boolean;
 		GamePlayExitRequested: boolean;

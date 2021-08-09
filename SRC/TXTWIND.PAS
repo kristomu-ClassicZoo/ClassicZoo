@@ -76,6 +76,7 @@ interface
 		ResourceDataFileName: TFilenameString;
 		ResourceDataHeader: TResourceDataHeader;
 		{ OrderPrintId: ^string; }
+	function UpCaseString(input: string): string;
 	procedure TextWindowPromptFilename(title: TString50; var filename: TFilenameString);
 	procedure TextWindowInitState(var state: TTextWindowState);
 	procedure TextWindowDrawOpen(var state: TTextWindowState);
@@ -262,7 +263,7 @@ procedure TextWindowAppend(var state: TTextWindowState; line: TTextWindowLine);
 			len := Length(line);
 			if len > MAX_LINE_LENGTH then len := MAX_LINE_LENGTH;
 
-			LineCount := LineCount + 1;
+			Inc(LineCount);
 			GetMem(Lines[LineCount], len + 1);
 			Lines[LineCount]^ := Copy(line, 1, len);
 		end;
@@ -283,7 +284,7 @@ procedure TextWindowFree(var state: TTextWindowState);
 		with state do begin
 			while LineCount > 0 do begin
 				FreeMem(Lines[LineCount], Ord(Lines[LineCount]^[0]) + 1);
-				LineCount := LineCount - 1;
+				Dec(LineCount);
 			end;
 			LoadedFilename := '';
 		end;

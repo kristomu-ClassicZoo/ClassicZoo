@@ -69,6 +69,7 @@ interface
 	procedure PauseOnError;
 	function DisplayIOError: boolean;
 	procedure WorldUnload;
+	procedure SidebarAnimateLoading(var loadProgress: integer);
 	function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 	procedure WorldSave(filename, extension: TString50; saveZxts: boolean);
 	procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: TString50);
@@ -248,7 +249,7 @@ procedure BoardClose;
 
 		{ We will always have enough size to store the above in the default IoTmpBuf. }
 		{ From here, do size estimation. }
-		iy := (Ofs(ptr^) - Ofs(IoTmpBuf^)) + ((Board.StatCount + 1) * SizeOf(TStat));
+		iy := (Ofs(ptr^) - Ofs(IoTmpBuf^)) + ((Board.StatCount + 1) * STAT_SIZE_BYTES);
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
@@ -272,7 +273,7 @@ procedure BoardClose;
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
 				Move(Board.Stats[ix], ptr^, SizeOf(TStat));
-				AdvancePointer(ptr, SizeOf(TStat));
+				AdvancePointer(ptr, STAT_SIZE_BYTES);
 				if DataLen > 0 then begin
 					Move(Data^, ptr^, DataLen);
 					FreeMem(Data, DataLen);
@@ -367,7 +368,7 @@ procedure BoardOpen(boardId: integer);
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
 				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
-				AdvancePointer(ptr, SizeOf(TStat));
+				AdvancePointer(ptr, STAT_SIZE_BYTES);
 				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
@@ -888,6 +889,12 @@ procedure WorldUnload;
 			ExtMemFree(WorldExt.BoardData[i], WorldExt.BoardLen[i]);
 	end;
 
+procedure SidebarAnimateLoading(var loadProgress: integer);
+	begin
+		VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
+		loadProgress := (loadProgress + 1) mod 8;
+	end;
+
 function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 	var
 		f: file;
@@ -896,11 +903,6 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 		loadProgress: integer;
 		newLength: longint;
 	label OnError;
-	procedure SidebarAnimateLoading;
-		begin
-			VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
-			loadProgress := (loadProgress + 1) and 7;
-		end;
 	begin
 		WorldLoad := false;
 		loadProgress := 0;
@@ -958,7 +960,7 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 				end;
 
 				for boardId := 0 to World.BoardCount do begin
-					SidebarAnimateLoading;
+					SidebarAnimateLoading(loadProgress);
 					BlockRead(f, WorldExt.BoardLen[boardId], 2);
 
 					{ Try to un-corrupt Super Locked worlds. }
@@ -1364,16 +1366,18 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			iUnder := Under;
 			Under := Board.Tiles[newX][newY];
 
-			if Board.Tiles[oldX][oldY].Element = E_PLAYER then
-				Board.Tiles[newX][newY].Color := Board.Tiles[oldX][oldY].Color
-			else if Board.Tiles[newX][newY].Element = E_EMPTY then
-				Board.Tiles[newX][newY].Color := Board.Tiles[oldX][oldY].Color and $0F
-			else
-				Board.Tiles[newX][newY].Color := (Board.Tiles[oldX][oldY].Color and $0F)
-					or (Board.Tiles[newX][newY].Color and $70);
+			with Board.Tiles[oldX][oldY] do begin
+				if Element = E_PLAYER then
+					Board.Tiles[newX][newY].Color := Color
+				else if Board.Tiles[newX][newY].Element = E_EMPTY then
+					Board.Tiles[newX][newY].Color := Color and $0F
+				else
+					Board.Tiles[newX][newY].Color := (Color and $0F)
+						or (Board.Tiles[newX][newY].Color and $70);
 
-			Board.Tiles[newX][newY].Element := Board.Tiles[oldX][oldY].Element;
-			Board.Tiles[oldX][oldY] := iUnder;
+				Board.Tiles[newX][newY].Element := Element;
+				Board.Tiles[oldX][oldY] := iUnder;
+			end;
 
 			X := newX;
 			Y := newY;
@@ -1492,6 +1496,7 @@ procedure GameUpdateSidebar;
 			if DebugEnabled then begin
 				Str(MemAvail, numStr);
 				VideoWriteText(62, 3, $1E, 'm' + numStr + ' ');
+{$IFNDEF NOEXTMEM}
 				if ExtMemEmsActive then begin
 					Str(ExtMemEmsAvailPages, numstr);
 					VideoWriteText(70, 3, $1E, 'e' + numStr + 'p ');
@@ -1500,6 +1505,7 @@ procedure GameUpdateSidebar;
 					Str(ExtMemXmsAvail, numStr);
 					VideoWriteText(62, 4, $1E, 'x' + numStr + ' ');
 				end;
+{$ENDIF}
 			end;
 		end;
 	end;
@@ -1912,7 +1918,7 @@ procedure GameDebugPrompt;
 {$IFDEF EXTCHEAT}
 				if input = 'PASSAGE' then begin
 					if GameStateElement = E_PLAYER then begin
-						BoardChange(EditorSelectBoard('Teleport to', World.Info.CurrentBoard, false, false));
+						BoardChange(EditorSelectBoard('Teleport to', World.Info.CurrentBoard, false, false, false));
 						GamePaused := true;
 						TransitionDrawBoardChange;
 						BoardEnter;
@@ -1943,7 +1949,9 @@ procedure GameDebugPrompt;
 		SoundQueue(10, #39#4);
 		SidebarClearLine(4);
 		SidebarClearLine(5);
+{$IFNDEF EDITONLY}
 		GameUpdateSidebar;
+{$ENDIF}
 	end;
 
 procedure GameAboutScreen;

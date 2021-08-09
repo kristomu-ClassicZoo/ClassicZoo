@@ -42,12 +42,13 @@ interface
 	procedure HighScoresAdd(score: integer);
 	function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TString50;
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean;
-		windowAlreadyOpen: boolean): integer;
+		windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 
 implementation
 uses Dos, FileSel, ExtMem, ZxtMgr, ZVideo, Sounds, Input, Elements, Oop, Game;
 
 type
+	TBoardShiftMode = (BoardShiftDelete);
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
 	TEditorCopiedTile = record
 		stat: TStat;
@@ -76,6 +77,78 @@ const
 		'DGray  ', 'Blue   ', 'Green  ', 'Cyan   ', 'Red    ', 'Purple ', 'Yellow ', 'White  ');}
 	ColorNames: array[0 .. 15] of string[3] =
 		('Blk', 'DBl', 'DGn', 'DCy', 'DRe', 'DMa', 'Bro', 'LGr', 'DGr', 'LBl', 'LGn', 'LCy', 'LRe', 'LMa', 'Yel', 'Wht');
+
+function EditorShiftBoard(bidFrom, bidTo: integer; mode: TBoardShiftMode): boolean;
+	var
+		i, j, prevBoard, newBid, loadProgress: integer;
+	function AdjustId(boardId: integer): integer;
+		begin
+			AdjustId := boardId;
+			case mode of
+			BoardShiftDelete: begin
+				if boardId > bidFrom then
+					AdjustId := boardId - 1
+				else if boardId = bidFrom then
+					AdjustId := -1;
+			end;
+			{ BoardShiftAdd: begin
+				if boardId >= bidTo then
+					AdjustId := boardId + 1;
+			end; }
+			end;
+		end;
+	begin
+		SidebarClearLine(4);
+		SidebarClearLine(5);
+		VideoWriteText(62, 5, $1F, 'Editing.....');
+
+		loadProgress := 0;
+
+		EditorShiftBoard := true;
+		prevBoard := AdjustId(World.Info.CurrentBoard);
+		if prevBoard < 0 then begin
+			prevBoard := 0;
+		end;
+
+		for i := 0 to World.BoardCount do begin
+			{ Skip boards about to be deleted. }
+			if AdjustId(i) < 0 then begin end;
+
+			SidebarAnimateLoading(loadProgress);
+			BoardChange(i);
+			for j := 0 to 3 do begin
+				newBid := AdjustId(Board.Info.NeighborBoards[j]);
+				if newBid < 0 then begin
+					newBid := 0;
+				end;
+				Board.Info.NeighborBoards[j] := newBid;
+			end;
+			for j := 1 to Board.StatCount do with Board.Stats[j] do begin
+				if Board.Tiles[X][Y].Element = E_PASSAGE then begin
+					newBid := AdjustId(P3);
+					if newBid < 0 then begin
+						newBid := 0;
+						EditorShiftBoard := false;
+					end;
+					P3 := newBid;
+				end;
+			end;
+		end;
+
+		case mode of
+		BoardShiftDelete: begin
+			SidebarAnimateLoading(loadProgress);
+			BoardClose;
+			ExtMemFree(WorldExt.BoardData[bidFrom], WorldExt.BoardLen[bidFrom]);
+			Dec(World.BoardCount);
+			for i := bidFrom to World.BoardCount do begin
+				ExtMemMoveBlockPtr(WorldExt.BoardData[i + 1], WorldExt.BoardData[i]);
+				WorldExt.BoardLen[i] := WorldExt.BoardLen[i + 1];
+			end;
+			BoardOpen(prevBoard);
+		end;
+		end;
+	end;
 
 procedure EditorAppendBoard;
 	begin
@@ -459,7 +532,7 @@ procedure EditorLoop;
 
 			repeat
 				state.Selectable := true;
-				state.LineCount := 10;
+				state.LineCount := 11;
 				for i := 1 to state.LineCount do
 					New(state.Lines[i]);
 
@@ -480,10 +553,11 @@ procedure EditorLoop;
 				Str(Board.Info.TimeLimitSec, numStr);
 				state.Lines[9]^ := '  Time limit, 0=None: ' + numStr + ' sec.';
 
-				state.Lines[10]^ := '          Quit!';
+				state.Lines[10]^ := '';
+				state.Lines[11]^ := '!;Exit';
 
-				TextWindowSelect(state, 0);
-				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 10) then begin
+				TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
+				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 11) then begin
 					wasModified := true;
 					case state.LinePos of
 						1: begin
@@ -506,7 +580,7 @@ procedure EditorLoop;
 								:= EditorSelectBoard(
 									NeighborBoardStrs[state.LinePos - 4],
 									Board.Info.NeighborBoards[state.LinePos - 4],
-									true, true
+									true, true, true
 								);
 							if Board.Info.NeighborBoards[state.LinePos - 4] > World.BoardCount then begin
 								EditorAppendBoard;
@@ -529,7 +603,77 @@ procedure EditorLoop;
 					TextWindowDrawClose(state);
 				end;
 
-				TextWindowFree(state);
+				TextWindowFreeEdit(state);
+			until exitRequested;
+		end;
+
+	procedure EditorEditWorldInfo;
+		var
+			state: TTextWindowState;
+			i: integer;
+			numStr: TString50;
+			exitRequested: boolean;
+		begin
+			state.Title := 'World Information';
+			TextWindowDrawOpen(state);
+			state.LinePos := 1;
+			exitRequested := false;
+
+			repeat
+				state.Selectable := true;
+				state.LineCount := 4;
+				for i := 1 to state.LineCount do
+					New(state.Lines[i]);
+
+				Str(World.Info.Health, numStr);
+				state.Lines[1]^  := ' Starting health: ' + numStr;
+				state.Lines[2]^  := '';
+				state.Lines[3]^  := '!;Delete board';
+				state.Lines[4]^ := '!;Exit';
+
+				TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
+				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 4) then begin
+					wasModified := true;
+					case state.LinePos of
+						1: begin
+							Str(World.Info.Health, numStr);
+							SidebarPromptString('Health?', '', numStr, PROMPT_NUMERIC);
+							if Length(numStr) <> 0 then
+								Val(numStr, World.Info.Health, i);
+							EditorDrawSidebar;
+						end;
+						3: begin
+							i := EditorSelectBoard(
+								'Delete board',
+								World.Info.CurrentBoard,
+								true, true, false
+							);
+							if i > 0 then begin
+								if not EditorShiftBoard(i, -1, BoardShiftDelete) then begin
+									TextWindowFreeEdit(state);
+									
+									state.LineCount := 4;
+									for i := 1 to state.LineCount do
+										New(state.Lines[i]);
+
+									state.Lines[1]^ := '$Warning';
+									state.Lines[2]^ := '';
+									state.Lines[3]^ := 'Some passages have had their destination';
+									state.Lines[4]^ := 'boards reset.';
+
+									TextWindowSelect(state, 0);
+								end;
+								EditorDrawSidebar;
+							end;
+							exitRequested := true;
+						end;
+					end
+				end else begin
+					exitRequested := true;
+					TextWindowDrawClose(state);
+				end;
+
+				TextWindowFreeEdit(state);
 			until exitRequested;
 		end;
 
@@ -702,7 +846,7 @@ procedure EditorLoop;
 						(Length(ElementDefs[element].ParamBoardName) <> 0) then
 					begin
 						if selected then begin
-							selectedBoard := EditorSelectBoard(ElementDefs[element].ParamBoardName, P3, true, false);
+							selectedBoard := EditorSelectBoard(ElementDefs[element].ParamBoardName, P3, false, false, true);
 							if selectedBoard <> 0 then begin
 								P3 := selectedBoard;
 								World.EditorStatSettings[element].P3 := World.Info.CurrentBoard;
@@ -1380,7 +1524,7 @@ procedure EditorLoop;
 						end;
 					end;
 					'B': begin
-						i := EditorSelectBoard('Switch boards', World.Info.CurrentBoard, false, false);
+						i := EditorSelectBoard('Switch boards', World.Info.CurrentBoard, false, false, true);
 						if (InputKeyPressed <> KEY_ESCAPE) then begin
 							if (i > World.BoardCount) then
 								if SidebarPromptYesNo('Add new board? ', false) then
@@ -1536,6 +1680,10 @@ procedure EditorLoop;
 					end;
 					'I': begin
 						EditorEditBoardInfo;
+						TransitionDrawToBoard;
+					end;
+					'W': begin
+						EditorEditWorldInfo;
 						TransitionDrawToBoard;
 					end;
 					KEY_CTRL_X: begin
@@ -1739,7 +1887,7 @@ function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TStri
 	end;
 
 function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean;
-	windowAlreadyOpen: boolean): integer;
+	windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 	var
 		i: integer;
 		textWindow: TTextWindowState;
@@ -1751,7 +1899,7 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 		for i := 0 to World.BoardCount do begin
 			TextWindowAppend(textWindow, EditorGetBoardName(i, titleScreenIsNone));
 		end;
-		TextWindowAppend(textWindow, 'Add new board');
+		if showAddNewBoard then TextWindowAppend(textWindow, 'Add new board');
 		if not windowAlreadyOpen then TextWindowDrawOpen(textWindow);
 		TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
 		if not windowAlreadyOpen then TextWindowDrawClose(textWindow);

@@ -61,6 +61,9 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 {$ENDIF}
 		searching: boolean;
 		i: integer;
+{$IFDEF SUBDIRS}
+		lastDirLinePos: integer;
+{$ENDIF}
 		curPath: TFilenameString;
 		startPath: TFilenameString;
 		previewPath: string[PATH_PREVIEW_LENGTH + 4];
@@ -101,6 +104,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 				end;
 				FindNext(fileSearchRec);
 			end;
+			lastDirLinePos := textWindow.LineCount;
 {$ENDIF}
 		
 			{ Files }
@@ -149,15 +153,17 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 				searching := false;
 {$IFDEF SUBDIRS}
 				ChDir(startPath);
-			end else if Length(textWindow.Hyperlink) > 0 then begin
+			end else if textWindow.LinePos <= lastDirLinePos then begin
 				{ Directory }
 				ChDir(textWindow.Hyperlink);
 {$ENDIF}
 			end else begin
 				{ File }
 				entryName := textWindow.Lines[textWindow.LinePos]^;
+{$IFDEF WORLDDSC}
 				if Pos(' ', entryName) <> 0 then
 					entryName := Copy(entryName, 1, Pos(' ', entryName) - 1);
+{$ENDIF}
 				FileSelect := entryName;
 				searching := false;
 
