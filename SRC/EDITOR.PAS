@@ -67,6 +67,11 @@ type
 		width: byte;
 		height: byte;
 	end;
+	TEditorZxtInfo = record
+		ExtType: TExtensionType;
+		ExtFlags: word;
+		Name: string[36];
+	end;
 
 const
 	COPIED_TILES_COUNT = 10;
@@ -77,6 +82,46 @@ const
 		'DGray  ', 'Blue   ', 'Green  ', 'Cyan   ', 'Red    ', 'Purple ', 'Yellow ', 'White  ');}
 	ColorNames: array[0 .. 15] of string[3] =
 		('Blk', 'DBl', 'DGn', 'DCy', 'DRe', 'DMa', 'Bro', 'LGr', 'DGr', 'LBl', 'LGn', 'LCy', 'LRe', 'LMa', 'Yel', 'Wht');
+	EDITOR_ZXT_INFOS_COUNT = 12;
+	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
+		(
+			(ExtType: ExtFixPutBottomRow;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: #PUT on bottom row'),
+			(ExtType: ExtFixBlinkWallShift;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Blink wall shift to left'),
+			(ExtType: ExtFixConveyorStatSwapping;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Conveyor stat swapping'),
+			(ExtType: ExtFixConveyorStatCheck;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Conveyor statless movement'),
+			(ExtType: ExtFixConveyorMissingFinalDraw;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Conveyor visual bug'),
+			(ExtType: ExtFixKoopoBug;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Duplicator "Koopo" bug'),
+			(ExtType: ExtFixBindDoubleFree;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Nested #BIND calls'),
+			(ExtType: ExtFixRecursiveElementPush;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Recursive element push'),
+			(ExtType: ExtDieItem;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: #DIE ITEM'),
+			(ExtType: ExtDieUnderTile;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: #DIE preserves tile under'),
+			(ExtType: ExtIfRnd;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: #IF RND'),
+			(ExtType: ExtUnlockExtensions;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: #IFEXT')
+		);
 
 function EditorShiftBoard(bidFrom, bidTo: integer; mode: TBoardShiftMode): boolean;
 	var
@@ -607,6 +652,62 @@ procedure EditorLoop;
 			until exitRequested;
 		end;
 
+	procedure EditorEditZxtInfo(var state: TTextWindowState);
+		var
+			i: integer;
+			extBlock: TExtensionBlock;
+			extBlockO: PTExtensionBlock;
+			exitRequested: boolean;
+		begin
+			state.Title := 'Extension Settings';
+			state.LinePos := 1;
+			exitRequested := false;
+
+			repeat
+				state.Selectable := true;
+				state.LineCount := EDITOR_ZXT_INFOS_COUNT + 1;
+				for i := 1 to EDITOR_ZXT_INFOS_COUNT do begin
+					New(state.Lines[i]);
+					with EditorZxtInfos[i] do begin
+						if ExtensionEnabled[ExtType] then begin
+							extBlockO := ZxtBlockGetByType(ExtType, 0);
+							if (extBlockO^.Header.Flags and $1F) = $08 then
+								state.Lines[i]^ := '[x] ' + Name
+							else
+								state.Lines[i]^ := '[X] ' + Name;
+						end else
+							state.Lines[i]^ := '[ ] ' + Name;
+					end;
+				end;
+				New(state.Lines[state.LineCount]);
+				state.Lines[state.LineCount]^ := '!;Exit';
+
+				TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
+				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
+					with EditorZxtInfos[state.LinePos] do begin
+						{ [ ] -> [x] -> [X] -> [ ] }
+						ZxtBlockRemoveByType(ExtType);
+						if state.Lines[state.LinePos]^[2] <> 'X' then begin
+							extBlock.ExtType := ExtType;
+							ZxtGetExtId(ExtType, extBlock.Header.Id);
+							if state.Lines[state.LinePos]^[2] = ' ' then
+								extBlock.Header.Flags := (ExtFlags and $EF) or $40
+							else
+								extBlock.Header.Flags := ExtFlags;
+							extBlock.Header.FieldLength := 0;
+							if ZxtBlockAppend(ZXT_APPEND_END, extBlock) then begin end;
+						end;
+					end;
+					wasModified := true;
+				end else begin
+					exitRequested := true;
+					TextWindowDrawClose(state);
+				end;
+
+				TextWindowFreeEdit(state);
+			until exitRequested;
+		end;
+
 	procedure EditorEditWorldInfo;
 		var
 			state: TTextWindowState;
@@ -629,10 +730,11 @@ procedure EditorLoop;
 				state.Lines[1]^  := ' Starting health: ' + numStr;
 				state.Lines[2]^  := '';
 				state.Lines[3]^  := '!;Delete board';
-				state.Lines[4]^ := '!;Exit';
+				state.Lines[4]^  := '!;Configure extensions';
+				state.Lines[5]^ := '!;Exit';
 
 				TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
-				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 4) then begin
+				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 5) then begin
 					wasModified := true;
 					case state.LinePos of
 						1: begin
@@ -666,6 +768,11 @@ procedure EditorLoop;
 								EditorDrawSidebar;
 							end;
 							exitRequested := true;
+						end;
+						4: begin
+							TextWindowFreeEdit(state);
+							EditorEditZxtInfo(state);
+							exit;
 						end;
 					end
 				end else begin

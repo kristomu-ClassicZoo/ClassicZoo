@@ -1073,8 +1073,14 @@ procedure WorldSave(filename, extension: TString50; saveZxts: boolean);
 procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: TString50);
 	var
 		newFilename: TString50;
+		zxtChoice: byte;
 	begin
 		newFilename := filename;
+		if extension = '.ZZT' then if ZxtBlockGetCount > 0 then begin
+			zxtChoice := 1;
+			SidebarPromptChoice(true, 3, 'Save as:', '.ZZT .ZXT', zxtChoice);
+			if zxtChoice > 0 then extension := '.ZXT';
+		end;
 		SidebarPromptString(prompt, extension, newFilename, PROMPT_ALPHANUM);
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(newFilename) <> 0) then begin
 			filename := newFilename;
