@@ -869,36 +869,38 @@ procedure ElementBlinkWallTick(statId: integer);
 				if ((X + StepX) = ix) and ((Y + StepY) = iy) then begin
 					hitBoundary := false;
 					repeat
-						if (Board.Tiles[ix][iy].Element <> E_EMPTY) and (ElementDefs[Board.Tiles[ix][iy].Element].Destructible) then
-							BoardDamageTile(ix, iy);
+						with Board.Tiles[ix][iy] do begin
+							if (Element <> E_EMPTY) and (ElementDefs[Element].Destructible) then
+								BoardDamageTile(ix, iy);
 
-						if Board.Tiles[ix][iy].Element = E_PLAYER then begin
-							playerStatId := GetStatIdAt(ix, iy);
-							if StepX <> 0 then begin
-								if Board.Tiles[ix][iy - 1].Element = E_EMPTY then
-									MoveStat(playerStatId, ix, iy - 1)
-								else if Board.Tiles[ix][iy + 1].Element = E_EMPTY then
-									MoveStat(playerStatId, ix, iy + 1);
-							end else begin
-								if Board.Tiles[ix + 1][iy].Element = E_EMPTY then
-									MoveStat(playerStatId, ix + 1, iy)
-								else if Board.Tiles[ix - 1][iy].Element = E_EMPTY then
-									MoveStat(playerStatId, ix + 1, iy);
+							if Element = E_PLAYER then begin
+								playerStatId := GetStatIdAt(ix, iy);
+								if StepX <> 0 then begin
+									if Board.Tiles[ix][iy - 1].Element = E_EMPTY then
+										MoveStat(playerStatId, ix, iy - 1)
+									else if Board.Tiles[ix][iy + 1].Element = E_EMPTY then
+										MoveStat(playerStatId, ix, iy + 1);
+								end else begin
+									if Board.Tiles[ix + 1][iy].Element = E_EMPTY then
+										MoveStat(playerStatId, ix + 1, iy)
+									else if Board.Tiles[ix - 1][iy].Element = E_EMPTY then
+										MoveStat(playerStatId, ix + 1, iy);
+								end;
+
+								if Element = E_PLAYER then begin
+									while World.Info.Health > 0 do
+										DamageStat(playerStatId);
+									hitBoundary := true;
+								end;
 							end;
 
-							if Board.Tiles[ix][iy].Element = E_PLAYER then begin
-								while World.Info.Health > 0 do
-									DamageStat(playerStatId);
+							if Element = E_EMPTY then begin
+								Element := el;
+								Color := Board.Tiles[X][Y].Color;
+								BoardDrawTile(ix, iy);
+							end else begin
 								hitBoundary := true;
 							end;
-						end;
-
-						if Board.Tiles[ix][iy].Element = E_EMPTY then begin
-							Board.Tiles[ix][iy].Element := el;
-							Board.Tiles[ix][iy].Color := Board.Tiles[X][Y].Color;
-							BoardDrawTile(ix, iy);
-						end else begin
-							hitBoundary := true;
 						end;
 
 						Inc(ix, StepX);
