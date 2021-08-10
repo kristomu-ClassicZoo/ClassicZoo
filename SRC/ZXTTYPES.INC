@@ -13,6 +13,9 @@ TExtensionType = (
 	ExtDieItem,
 	ExtDieUnderTile,
 	ExtIfRnd,
+{$IFNDEF NEC98}
+	ExtZZOCustomCharset,
+{$ENDIF}
 	ExtGMDirByAt,
 	ExtGMPutPlayer,
 	ExtTypeEnd { This one has to be last. }

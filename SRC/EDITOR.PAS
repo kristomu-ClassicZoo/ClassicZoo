@@ -82,7 +82,12 @@ const
 		'DGray  ', 'Blue   ', 'Green  ', 'Cyan   ', 'Red    ', 'Purple ', 'Yellow ', 'White  ');}
 	ColorNames: array[0 .. 15] of string[3] =
 		('Blk', 'DBl', 'DGn', 'DCy', 'DRe', 'DMa', 'Bro', 'LGr', 'DGr', 'LBl', 'LGn', 'LCy', 'LRe', 'LMa', 'Yel', 'Wht');
+{$IFDEF NEC98}
 	EDITOR_ZXT_INFOS_COUNT = 14;
+{$ELSE}
+	EDITOR_ZXT_INFOS_COUNT = 15;
+{$ENDIF}
+	FZxtEditorCustomAdd = $8000;
 	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
 		(
 			(ExtType: ExtFixPutBottomRow;
@@ -109,6 +114,11 @@ const
 			(ExtType: ExtFixRecursiveElementPush;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
 			Name: 'FIX: Recursive element push'),
+{$IFNDEF NEC98}
+			(ExtType: ExtZZOCustomCharset;
+			ExtFlags: FZxtExtPlayingShould or FZxtEditorCustomAdd;
+			Name: 'GFX: Custom character set'),
+{$ENDIF}
 			(ExtType: ExtGMDirByAt;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
 			Name: 'OOP: BY/AT directions'),
@@ -658,12 +668,50 @@ procedure EditorLoop;
 			until exitRequested;
 		end;
 
+	procedure EditorZxtFree(var extBlock: TExtensionBlock);
+		begin
+			with extBlock do begin
+				if Header.FieldLength > 0 then
+					FreeMem(Data, Header.FieldLength);
+			end;
+		end;
+
+	procedure EditorZxtUnloadFreeRemove(i: word);
+		var
+			extBlockO: PTExtensionBlock;
+		begin
+			extBlockO := ZxtBlockGet(i);
+			if ZxtBlockUnload(i) <> ExtResultSuccess then begin end;
+			EditorZxtFree(extBlockO^);
+			ZxtBlockRemove(i);
+		end;
+
+	procedure EditorZxtUnloadFreeRemoveByType(targetExtType: TExtensionType);
+		var
+			i: integer;
+		begin
+			repeat
+				i := ZxtBlockGetIdByType(targetExtType, 0);
+				if i >= 0 then EditorZxtUnloadFreeRemove(i) else exit;
+			until 1 = 0;
+		end;
+
 	procedure EditorEditZxtInfo(var state: TTextWindowState);
 		var
 			i: integer;
+			iPos: integer;
 			extBlock: TExtensionBlock;
 			extBlockO: PTExtensionBlock;
+			filename: TFilenameString;
+			tmpPtr: pointer;
 			exitRequested: boolean;
+			posToEditorInfo: array[1 .. 64] of byte;
+		procedure AppendInfoLine;
+			begin
+				Inc(iPos);
+				New(state.Lines[iPos]);
+				posToEditorInfo[iPos] := i;
+			end;
 		begin
 			state.Title := 'Extension Settings';
 			state.LinePos := 1;
@@ -671,37 +719,76 @@ procedure EditorLoop;
 
 			repeat
 				state.Selectable := true;
-				state.LineCount := EDITOR_ZXT_INFOS_COUNT + 1;
+				iPos := 0;
 				for i := 1 to EDITOR_ZXT_INFOS_COUNT do begin
-					New(state.Lines[i]);
+					AppendInfoLine;
 					with EditorZxtInfos[i] do begin
 						if ExtensionEnabled[ExtType] then begin
 							extBlockO := ZxtBlockGetByType(ExtType, 0);
 							if (extBlockO^.Header.Flags and $1F) = $08 then
-								state.Lines[i]^ := '[x] ' + Name
+								state.Lines[iPos]^ := '[x] ' + Name
 							else
-								state.Lines[i]^ := '[X] ' + Name;
+								state.Lines[iPos]^ := '[X] ' + Name;
 						end else
-							state.Lines[i]^ := '[ ] ' + Name;
+							state.Lines[iPos]^ := '[ ] ' + Name;
+{$IFNDEF NEC98}
+						if ExtType = ExtZZOCustomCharset then begin
+							if VideoEGAInstalled then begin
+								AppendInfoLine;
+								state.Lines[iPos]^ := '!loadchr;Load character set from .CHR';
+							end;
+						end;
+{$ENDIF}
 					end;
 				end;
-				New(state.Lines[state.LineCount]);
-				state.Lines[state.LineCount]^ := '!;Exit';
+				AppendInfoLine;
+				state.Lines[iPos]^ := '!;Exit';
+				state.LineCount := iPos;
 
 				TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
 				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
-					with EditorZxtInfos[state.LinePos] do begin
-						{ [ ] -> [x] -> [X] -> [ ] }
-						ZxtBlockRemoveByType(ExtType);
-						if state.Lines[state.LinePos]^[2] <> 'X' then begin
-							extBlock.ExtType := ExtType;
-							ZxtGetExtId(ExtType, extBlock.Header.Id);
-							if state.Lines[state.LinePos]^[2] = ' ' then
-								extBlock.Header.Flags := (ExtFlags and $EF) or $40
-							else
-								extBlock.Header.Flags := ExtFlags;
-							extBlock.Header.FieldLength := 0;
-							if ZxtBlockAppend(ZXT_APPEND_END, extBlock) then begin end;
+					with EditorZxtInfos[posToEditorInfo[state.LinePos]] do begin
+						{ Prepare extBlock }
+						extBlock.ExtType := ExtType;
+						ZxtGetExtId(ExtType, extBlock.Header.Id);
+						extBlock.Header.Flags := (ExtFlags and $EF) or $40;
+
+						if state.Hyperlink = 'loadchr' then begin
+{$IFNDEF NEC98}
+							i := 0;
+							filename := FileSelect('Load character set', '.CHR', i);
+							if Length(filename) <> 0 then begin
+								i := 0;
+								extBlock.Header.FieldLength := FileReadAll(filename + '.CHR', extBlock.Data, 256 * 14);
+								if extBlock.Header.FieldLength = 256 * 14 then begin
+									if VideoSetCharset(extBlock.Data, 14) then begin
+										if ZxtBlockAppend(ZXT_APPEND_END, extBlock) then begin
+											i := 1;
+										end;
+									end;
+								end;
+								if i = 0 then EditorZxtFree(extBlock);
+							end else begin
+								EditorZxtUnloadFreeRemoveByType(ExtType);
+							end;
+{$ENDIF}
+						end else case state.Lines[state.LinePos]^[2] of
+							{ [ ] -> [x] -> [X] -> [ ] }
+							' ': if (ExtFlags and FZxtEditorCustomAdd) = 0 then begin
+								extBlock.Header.FieldLength := 0;
+								if ZxtBlockAppend(ZXT_APPEND_END, extBlock) then begin end;
+							end;
+							'x': if (ExtFlags and $10) <> 0 then begin 
+								if ZxtBlockGetCountByType(ExtType) = 1 then begin
+									extBlockO := ZxtBlockGetByType(ExtType, 0);
+									extBlockO^.Header.Flags := ExtFlags;
+								end;
+							end else begin
+								EditorZxtUnloadFreeRemoveByType(ExtType);
+							end;
+							'X': begin
+								EditorZxtUnloadFreeRemoveByType(ExtType);
+							end;
 						end;
 					end;
 					wasModified := true;

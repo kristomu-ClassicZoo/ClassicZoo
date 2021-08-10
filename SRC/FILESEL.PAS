@@ -30,6 +30,7 @@ unit FileSel;
 interface
 	uses GameVars;
 	function FileExists(name: TFilenameString): boolean;
+	function FileReadAll(name: TFilenameString; var fdata: pointer; maxSize: word): word;
 	function FileSelect(title, extension: TString50; var cachedLinePos: integer): TFilenameString;
 
 implementation
@@ -49,6 +50,28 @@ function FileExists(name: TFilenameString): boolean;
 		end else begin
 			FileExists := false;
 		end;
+	end;
+
+function FileReadAll(name: TFilenameString; var fdata: pointer; maxSize: word): word;
+	var
+		f: file;
+		fsize: longint;
+		bsize: word;
+	begin
+		bsize := 0;
+
+		Assign(f, name);
+		Reset(f, 1);
+		if IOResult = 0 then begin
+			fsize := FileSize(f);
+			bsize := maxSize;
+			if (fsize < bsize) then bsize := fsize;
+			GetMem(fdata, bsize);
+			BlockRead(f, fdata^, bsize);
+			Close(f);
+		end;
+
+		FileReadAll := bsize;
 	end;
 
 function FileSelect(title, extension: TString50; var cachedLinePos: integer): TFilenameString;

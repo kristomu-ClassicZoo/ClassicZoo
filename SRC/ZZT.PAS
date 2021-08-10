@@ -38,7 +38,7 @@ Pc98,
 {$ELSE}
 Crt,
 {$ENDIF}
-Dos, ExtMem, ZxtMgr, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+Dos, ExtMem, ZxtMgr, ZxtZoo, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
 
 procedure ParseArguments;
 	var
@@ -231,6 +231,10 @@ begin
 		ZxtRegisterExtensionSimple(ExtDieItem, $0000A51E, $0001);
 		ZxtRegisterExtensionSimple(ExtDieUnderTile, $0000A51E, $0002);
 		ZxtRegisterExtensionSimple(ExtIfRnd, $0000A51E, $0004);
+{$IFNDEF NEC98}
+		ZxtRegisterExtension(ExtZZOCustomCharset, $00022038, $0003,
+			ZxtZZOCustomCharsetHandler);
+{$ENDIF}
 		ZxtRegisterExtensionSimple(ExtGMDirByAt, $79656D74, $0001);
 		ZxtRegisterExtensionSimple(ExtGMPutPlayer, $79656D74, $0002);
 

@@ -44,6 +44,7 @@ interface
 		VideoMDAInstalled: boolean;
 		VideoLastMode: word;
 	function VideoConfigure: boolean;
+	function VideoSetCharset(data: pointer; height: integer): boolean;
 	procedure VideoInstall(borderColor: integer);
 	procedure VideoUninstall;
 	procedure VideoShowCursor;
@@ -273,6 +274,31 @@ function VideoConfigure: boolean;
 			end;
 		end;
 		VideoConfigure := charTyped <> #27;
+	end;
+
+function VideoSetCharset(data: pointer; height: integer): boolean;
+	var
+		regs: Registers;
+	begin
+		VideoSetCharset := false;
+		if not VideoEGAInstalled then exit;
+		if height <> 14 then exit;
+
+		regs.BX := (height shl 8);
+		regs.CX := 256;
+		regs.DX := 0;
+
+		if Seg(data^) <> 0 then begin
+			regs.AX := $1100;
+			regs.ES := Seg(data^);
+			regs.BP := Ofs(data^);
+		end else begin
+			regs.AX := $1101;
+		end;
+		Intr($10, regs);
+
+		VideoHideCursor;
+		VideoSetCharset := true;
 	end;
 
 procedure VideoInstall(borderColor: integer);
