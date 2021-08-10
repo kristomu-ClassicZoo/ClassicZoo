@@ -82,7 +82,7 @@ const
 		'DGray  ', 'Blue   ', 'Green  ', 'Cyan   ', 'Red    ', 'Purple ', 'Yellow ', 'White  ');}
 	ColorNames: array[0 .. 15] of string[3] =
 		('Blk', 'DBl', 'DGn', 'DCy', 'DRe', 'DMa', 'Bro', 'LGr', 'DGr', 'LBl', 'LGn', 'LCy', 'LRe', 'LMa', 'Yel', 'Wht');
-	EDITOR_ZXT_INFOS_COUNT = 12;
+	EDITOR_ZXT_INFOS_COUNT = 14;
 	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
 		(
 			(ExtType: ExtFixPutBottomRow;
@@ -109,6 +109,9 @@ const
 			(ExtType: ExtFixRecursiveElementPush;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
 			Name: 'FIX: Recursive element push'),
+			(ExtType: ExtGMDirByAt;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: BY/AT directions'),
 			(ExtType: ExtDieItem;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
 			Name: 'OOP: #DIE ITEM'),
@@ -120,7 +123,10 @@ const
 			Name: 'OOP: #IF RND'),
 			(ExtType: ExtUnlockExtensions;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'OOP: #IFEXT')
+			Name: 'OOP: #IFEXT'),
+			(ExtType: ExtGMPutPlayer;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: #PUTPLAYER')
 		);
 
 function EditorShiftBoard(bidFrom, bidTo: integer; mode: TBoardShiftMode): boolean;

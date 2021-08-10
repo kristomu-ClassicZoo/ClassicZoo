@@ -231,6 +231,8 @@ begin
 		ZxtRegisterExtensionSimple(ExtDieItem, $0000A51E, $0001);
 		ZxtRegisterExtensionSimple(ExtDieUnderTile, $0000A51E, $0002);
 		ZxtRegisterExtensionSimple(ExtIfRnd, $0000A51E, $0004);
+		ZxtRegisterExtensionSimple(ExtGMDirByAt, $79656D74, $0001);
+		ZxtRegisterExtensionSimple(ExtGMPutPlayer, $79656D74, $0002);
 
 		TickSpeed := 4;
 		DebugEnabled := false;

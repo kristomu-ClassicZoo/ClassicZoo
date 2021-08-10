@@ -13,5 +13,7 @@ TExtensionType = (
 	ExtDieItem,
 	ExtDieUnderTile,
 	ExtIfRnd,
+	ExtGMDirByAt,
+	ExtGMPutPlayer,
 	ExtTypeEnd { This one has to be last. }
 );
