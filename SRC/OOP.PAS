@@ -827,11 +827,6 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							P2 := 1;
 						end else if OopWord = 'UNLOCK' then begin
 							P2 := 0;
-							if ExtensionEnabled[ExtUnlockExtensions] then begin
-								OopReadWord(statId, position);
-								if OopWord = 'EXTENSIONS' then
-									goto ReadCommand;
-							end;
 						end else if ExtensionEnabled[ExtUnlockExtensions] and (OopWord = 'IFEXT') then begin
 							if OopCheckZxtExtension(statId, position) then
 								goto ReadCommand;
