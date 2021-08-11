@@ -903,7 +903,10 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							end else begin
 								OopError(statId, 'Bad #BECOME');
 							end;
-						end else if OopWord = 'PUT' then begin
+						end else if (OopWord = 'PUT')
+						or ExtensionEnabled[ExtGMPutPlayer] and (OopWord = 'PUTPLAYER') then begin
+							counterSubtract := (OopWord = 'PUTPLAYER');
+
 							OopReadDirection(statId, position, deltaX, deltaY);
 							if (deltaX = 0) and (deltaY = 0) then
 								OopError(statId, 'Bad #PUT')
@@ -918,23 +921,12 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 								if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 									ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 
-								OopPlaceTile(X + deltaX, Y + deltaY, argTile);
-							end;
-						end else if ExtensionEnabled[ExtGMPutPlayer] and (OopWord = 'PUTPLAYER') then begin
-							{ Extension 79656D74:0002: putplayer command }
-							OopReadDirection(statId, position, deltaX, deltaY);
-							if (deltaX = 0) and (deltaY = 0) then
-								OopError(statId, 'Bad #PUTPLAYER')
-							else if ((X + deltaX) > 0)
-								and ((X + deltaX) <= BOARD_WIDTH)
-								and ((Y + deltaY) > 0)
-								and ((Y + deltaY) <= BOARD_HEIGHT) then
-							begin
-								if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
-									ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
-
-								if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
-									MoveStat(0, X + deltaX, Y + deltaY);
+								if counterSubtract then begin
+									if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
+										MoveStat(0, X + deltaX, Y + deltaY);
+									end;
+								end else begin
+									OopPlaceTile(X + deltaX, Y + deltaY, argTile);
 								end;
 							end;
 						end else if OopWord = 'CHANGE' then begin
