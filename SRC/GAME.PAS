@@ -1349,6 +1349,12 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			BoardDrawTile(X, Y);
 			BoardDrawTile(oldX, oldY);
 
+{$IFDEF DEBUGWND}
+			if DebugUndefEnabled and ((X > 61) or (Y > 26)) then begin
+				DebugShowElementMessage('Move out of bounds!', X, Y);
+			end;
+{$ENDIF}
+
 			if (statId = 0) and Board.Info.IsDark and (World.Info.TorchTicks > 0) then begin
 				if (Sqr(oldX-X) + Sqr(oldY-Y)) = 1 then begin
 					for ix := (X - TORCH_DX - 3) to (X + TORCH_DX + 3) do
@@ -1846,6 +1852,8 @@ procedure GameDebugPrompt;
 {$IFDEF DEBUGWND}
 			end else if input = 'DCOMPAT' then begin
 				DebugCompatEnabled := isYes;
+			end else if input = 'DUNDEF' then begin
+				DebugUndefEnabled := isYes;
 {$ENDIF}
 {$IFDEF EXTCHEAT}
 			end else if DebugPromptStarts(input, 'SHOW') then begin
