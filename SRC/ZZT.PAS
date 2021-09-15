@@ -246,6 +246,7 @@ begin
 {$ENDIF}
 {$IFDEF DEBUGWND}
 		DebugCompatEnabled := false;
+		DebugUndefEnabled := false;
 {$ENDIF}
 		SavedGameFileName := 'SAVED';
 		SavedBoardFileName := 'TEMP';

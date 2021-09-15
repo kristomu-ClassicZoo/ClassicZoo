@@ -269,6 +269,7 @@ interface
 {$ENDIF}
 {$IFDEF DEBUGWND}
 		DebugCompatEnabled: boolean;
+		DebugUndefEnabled: boolean;
 {$ENDIF}
 {$IFDEF EDITOR}
 		FileBoardCachedLinePos: integer;

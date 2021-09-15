@@ -1388,21 +1388,27 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			X := newX;
 			Y := newY;
 
-			BoardDrawTile(newX, newY);
+			BoardDrawTile(X, Y);
 			BoardDrawTile(oldX, oldY);
 
+{$IFDEF DEBUGWND}
+			if DebugUndefEnabled and ((X > 61) or (Y > 26)) then begin
+				DebugShowElementMessage('Move out of bounds!', X, Y);
+			end;
+{$ENDIF}
+
 			if (statId = 0) and Board.Info.IsDark and (World.Info.TorchTicks > 0) then begin
-				if (Sqr(oldX-newX) + Sqr(oldY-newY)) = 1 then begin
-					for ix := (newX - TORCH_DX - 3) to (newX + TORCH_DX + 3) do
+				if (Sqr(oldX-X) + Sqr(oldY-Y)) = 1 then begin
+					for ix := (X - TORCH_DX - 3) to (X + TORCH_DX + 3) do
 						if (ix >= 1) and (ix <= BOARD_WIDTH) then
-							for iy := (newY - TORCH_DY - 3) to (newY + TORCH_DY + 3) do
+							for iy := (Y - TORCH_DY - 3) to (Y + TORCH_DY + 3) do
 								if (iy >= 1) and (iy <= BOARD_HEIGHT) then
 									if (((Sqr(ix-oldX))+(Sqr(iy-oldY)*2)) < TORCH_DIST_SQR) xor
-										(((Sqr(ix-newX))+(Sqr(iy-newY)*2)) < TORCH_DIST_SQR) then
+										(((Sqr(ix-X))+(Sqr(iy-Y)*2)) < TORCH_DIST_SQR) then
 										BoardDrawTile(ix, iy);
 				end else begin
 					DrawPlayerSurroundings(oldX, oldY, 0);
-					DrawPlayerSurroundings(newX, newY, 0);
+					DrawPlayerSurroundings(X, Y, 0);
 				end;
 			end;
 
@@ -1888,6 +1894,8 @@ procedure GameDebugPrompt;
 {$IFDEF DEBUGWND}
 			end else if input = 'DCOMPAT' then begin
 				DebugCompatEnabled := isYes;
+			end else if input = 'DUNDEF' then begin
+				DebugUndefEnabled := isYes;
 {$ENDIF}
 {$IFDEF EXTCHEAT}
 			end else if DebugPromptStarts(input, 'SHOW') then begin
