@@ -5,6 +5,18 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
+$< ClassicZoo dev >
+
++ Add /NOSNOW argument to disable CGA
+  snow checks on machines which do not
+  have the issue.
++ Add ?DUNDEF as a debug flag to check
+  for undefined engine behaviour.
+* Minor filesize/CPU optimizations have
+  been made to the engine.
+/ Minor fixes have been made to edge case
+  implementations in the engine.
+
 $< ClassicZoo 4.15 >
 
 * Minor filesize/CPU optimizations have

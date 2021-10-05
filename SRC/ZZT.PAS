@@ -57,8 +57,10 @@ procedure ParseArguments;
 			if pArg[1] = '/' then begin
 				pArg := UpCaseString(pArg);
 
+				if pArg = '/NOSNOW' then
+					VideoForceNoSnow := true
 {$IFNDEF NOEXTMEM}
-				if pArg = '/NOEMS' then
+				else if pArg = '/NOEMS' then
 					enableEms := false
 				else if pArg = '/NOXMS' then
 					enableXms := false;
