@@ -48,7 +48,9 @@ procedure ParseArguments;
 				{ case UpCase(pArg[2]) of
 				end; }
 
-				if pArg = '/NOEMS' then
+				if pArg = '/NOSNOW' then
+					VideoForceNoSnow := true
+				else if pArg = '/NOEMS' then
 					enableEms := false
 				else if pArg = '/NOXMS' then
 					enableXms := false;

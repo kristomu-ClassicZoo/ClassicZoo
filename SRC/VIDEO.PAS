@@ -34,6 +34,7 @@ interface
 		PORT_CGA_PALETTE = $03D9;
 	var
 		VideoWriteText: TVideoWriteTextProc;
+		VideoForceNoSnow: boolean;
 		VideoMonochrome: boolean;
 		VideoColumns: integer;
 		VideoTextSegment: word;
@@ -348,7 +349,7 @@ procedure VideoInstall(columns, borderColor: integer);
 
 		VideoColumns := columns;
 		if VideoMonochrome then begin
-			if VideoEGAInstalled or VideoMDAInstalled then
+			if VideoEGAInstalled or VideoMDAInstalled or VideoForceNoSnow then
 				VideoWriteText := VideoWriteTextFastBW
 			else
 				VideoWriteText := VideoWriteTextCGABW;
@@ -364,7 +365,7 @@ procedure VideoInstall(columns, borderColor: integer);
 				VideoColumns := 80;
 			end;
 		end else begin
-			if VideoEGAInstalled or VideoMDAInstalled then
+			if VideoEGAInstalled or VideoMDAInstalled or VideoForceNoSnow then
 				VideoWriteText := VideoWriteTextFast
 			else
 				VideoWriteText := VideoWriteTextCGA;
