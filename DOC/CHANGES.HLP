@@ -14,8 +14,10 @@ $< ClassicZoo dev >
   for undefined engine behaviour.
 * Minor filesize/CPU optimizations have
   been made to the engine.
+/ Fixed board selection dialogs not
+  respecting exiting with ESC correctly.
 / Minor fixes have been made to edge case
-  implementations in the engine.
+  engine behaviour in the engine.
 
 $< ClassicZoo 4.15 >
 
