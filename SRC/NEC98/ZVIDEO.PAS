@@ -32,6 +32,7 @@ interface
 		TScreenCopyLine = string[200];
 	var
 		VideoEightColor: boolean;
+		VideoForceNoSnow: boolean;
 		VideoMonochrome: boolean;
 		VideoBlinkMask: byte;
 	function VideoConfigure: boolean;

@@ -637,15 +637,18 @@ procedure EditorLoop;
 							Board.Info.IsDark := not Board.Info.IsDark;
 						end;
 						4, 5, 6, 7: begin
-							Board.Info.NeighborBoards[state.LinePos - 4]
-								:= EditorSelectBoard(
-									NeighborBoardStrs[state.LinePos - 4],
-									Board.Info.NeighborBoards[state.LinePos - 4],
-									true, true, true
-								);
-							if Board.Info.NeighborBoards[state.LinePos - 4] > World.BoardCount then begin
-								EditorAppendBoard;
-								exitRequested := true;
+							i := EditorSelectBoard(
+								NeighborBoardStrs[state.LinePos - 4],
+								Board.Info.NeighborBoards[state.LinePos - 4],
+								true, true, true
+							);
+							if not TextWindowRejected then begin
+								if i > World.BoardCount then begin
+									EditorAppendBoard;
+									exitRequested := true;
+								end else begin
+									Board.Info.NeighborBoards[state.LinePos - 4] := i;
+								end;
 							end;
 						end;
 						8: begin
@@ -843,7 +846,7 @@ procedure EditorLoop;
 								World.Info.CurrentBoard,
 								true, true, false
 							);
-							if i > 0 then begin
+							if (not TextWindowRejected) and (i > 0) then begin
 								if not EditorShiftBoard(i, -1, BoardShiftDelete) then begin
 									TextWindowFreeEdit(state);
 									
@@ -1047,7 +1050,7 @@ procedure EditorLoop;
 					begin
 						if selected then begin
 							selectedBoard := EditorSelectBoard(ElementDefs[element].ParamBoardName, P3, false, false, true);
-							if selectedBoard <> 0 then begin
+							if (not TextWindowRejected) then begin
 								P3 := selectedBoard;
 								World.EditorStatSettings[element].P3 := World.Info.CurrentBoard;
 								if P3 > World.BoardCount then begin
@@ -1725,7 +1728,7 @@ procedure EditorLoop;
 					end;
 					'B': begin
 						i := EditorSelectBoard('Switch boards', World.Info.CurrentBoard, false, false, true);
-						if (InputKeyPressed <> KEY_ESCAPE) then begin
+						if (not TextWindowRejected) then begin
 							if (i > World.BoardCount) then
 								if SidebarPromptYesNo('Add new board? ', false) then
 									EditorAppendBoard;
@@ -2104,10 +2107,7 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 		TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
 		if not windowAlreadyOpen then TextWindowDrawClose(textWindow);
 		TextWindowFree(textWindow);
-		if InputKeyPressed = KEY_ESCAPE then
-			EditorSelectBoard := 0
-		else
-			EditorSelectBoard := textWindow.LinePos - 1;
+		EditorSelectBoard := textWindow.LinePos - 1;
 	end;
 
 end.
