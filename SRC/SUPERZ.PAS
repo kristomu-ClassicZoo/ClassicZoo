@@ -24,7 +24,9 @@
 }
 
 {$I-}
+{$IFNDEF FPC}
 {$M 24576,163840,655360}
+{$ENDIF}
 program SUPERZ;
 uses Crt, Dos, Video, Keys, Sounds, Input, TxtWind, GameVars,
 	Elements, Editor, Oop, Game, Uncrlib,
