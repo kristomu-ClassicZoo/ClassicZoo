@@ -1633,14 +1633,6 @@ procedure GamePlayLoop(isTitle: boolean);
 		GameDrawSidebar;
 		GameUpdateSidebar;
 
-		if Length(World.Info.Name) = 0 then begin
-			if not WorldLoad(StartupWorldFileName, '.SZT', true) then
-				WorldCreate;
-
-			ReturnBoardId := World.Info.CurrentBoard;
-			JustStarted := false;
-		end;
-
 		if isTitle then
 			BoardChange(0)
 		else
@@ -1767,11 +1759,34 @@ procedure GamePlayLoop(isTitle: boolean);
 		SoundBlockQueueing := false;
 	end;
 
+function GameIsWorldLoaded: boolean;
+	begin
+		if Length(World.Info.Name) = 0 then begin
+			if FileExists(StartupWorldFileName + '.SZT') then begin
+				GameIsWorldLoaded := true;
+
+				if not WorldLoad(StartupWorldFileName, '.SZT', true) then begin
+					WorldCreate;
+					GameIsWorldLoaded := false;
+				end;
+
+				ReturnBoardId := World.Info.CurrentBoard;
+				JustStarted := false;
+			end else begin
+				GameIsWorldLoaded := false;
+			end;
+		end else begin
+			GameIsWorldLoaded := true;
+		end;
+	end;
+
 procedure GameTitleLoop;
 	var
 		runPlay: boolean;
 		runTitle: boolean;
 		returningFromGame: boolean;	
+		needsTitleRefresh: boolean;
+	label LoadWorldSelect;
 	begin
 		GameTitleExitRequested := false;
 		JustStarted := true;
@@ -1785,23 +1800,39 @@ procedure GameTitleLoop;
 					returningFromGame := false;
 				end;
 				runPlay := false;
-				VideoClear(Black);
-				UnCrunch(MenuScrPointer^, VideoTextPointer^, MenuScrLen);
+				if needsTitleRefresh then begin
+					VideoClear(Black);
+					UnCrunch(MenuScrPointer^, VideoTextPointer^, MenuScrLen);
+				end;
+				needsTitleRefresh := true;
 				InputReadWaitKey;
 				case UpCase(InputKeyPressed) of
 					'W': begin
+LoadWorldSelect:
 						if GameWorldLoad('.SZT') then begin
 							ReturnBoardId := World.Info.CurrentBoard;
 							returningFromGame := true;
 							runTitle := true;
+						end else begin
+							needsTitleRefresh := false;
 						end;
 					end;
 					'P': begin
-						if World.Info.IsSave and not DebugEnabled then begin
-							runPlay := WorldLoad(World.Info.Name, '.SZT', false);
-							ReturnBoardId := World.Info.CurrentBoard;
+						if GameIsWorldLoaded then begin
+							if World.Info.IsSave and not DebugEnabled then begin
+								runPlay := WorldLoad(World.Info.Name, '.SZT', false);
+								ReturnBoardId := World.Info.CurrentBoard;
+							end else begin
+								runPlay := true;
+							end;
 						end else begin
-							runPlay := true;
+							if GameWorldLoad('.SZT') then begin
+								ReturnBoardId := World.Info.CurrentBoard;
+								returningFromGame := true;
+								runPlay := true;
+							end else begin
+								needsTitleRefresh := false;
+							end;
 						end;
 						runTitle := runPlay;
 					end;
@@ -1815,16 +1846,24 @@ procedure GameTitleLoop;
 						end;
 					end;
 					'I': begin
-						runTitle := true;
+						if GameIsWorldLoaded then begin
+							runTitle := true;
+						end else begin
+							goto LoadWorldSelect;
+						end;
 					end;
 					'Q', KEY_ESCAPE: begin
 						GameTitleExitRequested := PromptYesNo('Quit ZZT?  ', true, $4F);
 					end;
 					'H': begin
-						HighScoresLoad;
-						HighScoresDisplay(1);
+						needsTitleRefresh := false;
+						if GameIsWorldLoaded then begin
+							HighScoresLoad;
+							HighScoresDisplay(1);
+						end;
 					end;
 					'A': begin
+						needsTitleRefresh := false;
 						TextWindowDisplayFile('ABOUT.HLP', 'About...');
 					end;
 					'|': begin
