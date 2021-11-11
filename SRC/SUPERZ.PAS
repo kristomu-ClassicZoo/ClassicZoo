@@ -117,6 +117,7 @@ begin
 	MenuScrPointer := WorldFileMenuScrPtrs[3];
 	MenuScrLen := WorldFileMenuScrLens[3];
 	ResourceDataFileName := '';
+	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
 
 	GameTitleExitRequested := false;
 {$IFDEF EDITOR}
@@ -131,7 +132,7 @@ begin
 	if not GameTitleExitRequested then begin
 		VideoInstall(80, Blue);
 		TextWindowInit(1, 2, 38, 22);
-		New(IoTmpBuf);
+		GetMem(IoTmpBuf, IoTmpBufSize);
 
 		VideoHideCursor;
 		TickSpeed := 4;
@@ -145,7 +146,7 @@ begin
 
 		GameTitleLoop;
 
-		Dispose(IoTmpBuf);
+		FreeMem(IoTmpBuf, IoTmpBufSize);
 		ExtMemUninstall;
 	end;
 

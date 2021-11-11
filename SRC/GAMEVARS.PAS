@@ -50,6 +50,9 @@ interface
 		TORCH_DY = 8;
 		TORCH_DIST_SQR = 64 { 8 * 8 };
 		OOP_TOKEN_LENGTH = 20;
+		IO_BUFFER_DEFAULT_SIZE = 20000;
+		IO_BUFFER_MAXIMUM_SIZE = 65500;
+		IO_BUFFER_SIZE_INCREMENT = 500;
 	type
 		TSmallString = string[60];
 		TCoord = record
@@ -160,7 +163,6 @@ interface
 			Score: integer;
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
-		TIoTmpBuf = array[0 .. 19999] of byte;
 	var
 		ForestSoundTableIdx: integer;
 		TransitionTable: array[1 .. TRANSITION_TABLE_COUNT] of TCoord;
@@ -179,7 +181,8 @@ interface
 		MessageFakeNotShown: boolean;
 		MessageGemNotShown: boolean;
 		MessageEnergizerNotShown: boolean;
-		unkVar_7c12: array[0 .. 15] of byte;
+		IoTmpBufSize: word; { Borrowed: unkVar_7c12[0..1] }
+		unkVar_7c12: array[2 .. 15] of byte;
 
 		MessageLine1: TSmallString;
 		MessageLine2: TSmallString;
@@ -192,7 +195,7 @@ interface
 
 		TickSpeed: byte;
 
-		IoTmpBuf: ^TIoTmpBuf;
+		IoTmpBuf: pointer;
 
 		ElementDefs: array[0 .. MAX_ELEMENT] of TElementDef;
 		EditorPatternCount: integer;

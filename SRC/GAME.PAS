@@ -33,6 +33,7 @@ interface
 		PROMPT_NUMERIC = 0;
 		PROMPT_ALPHANUM = 1;
 		PROMPT_ANY = 2;
+	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
 	procedure GenerateTransitionTable;
 {$IFNDEF FPC}
 {$IFDEF CPU86}
@@ -131,6 +132,25 @@ procedure SidebarClear;
 			SidebarClearLine(i);
 	end;
 
+function EnsureIoTmpBufSize(newSize: word): integer;
+	var
+		oldSize: word;
+	begin
+		if newSize > IO_BUFFER_MAXIMUM_SIZE then begin
+			EnsureIoTmpBufSize := 2;
+			exit;
+		end;
+		oldSize := IoTmpBufSize;
+		EnsureIoTmpBufSize := 0;
+		while IoTmpBufSize < newSize do
+			Inc(IoTmpBufSize, IO_BUFFER_SIZE_INCREMENT);
+		if oldSize <> IoTmpBufSize then begin
+			FreeMem(IoTmpBuf, oldSize);
+			GetMem(IoTmpBuf, IoTmpBufSize);
+			EnsureIoTmpBufSize := 1;
+		end;
+	end;
+
 procedure GenerateTransitionTable;
 	var
 		i, ix, iy: integer;
@@ -173,7 +193,21 @@ procedure BoardClose;
 		ix, iy: integer;
 		ptr: pointer;
 		rle: TRleTile;
+	label RestartWrite;
 	begin
+		{ Bind stats early. }
+		for ix := 0 to Board.StatCount do begin
+			with Board.Stats[ix] do begin
+				if DataLen > 0 then begin
+					for iy := 1 to (ix - 1) do begin
+						if Board.Stats[iy].Data = Data then
+							DataLen := -iy;
+					end;
+				end;
+			end;
+		end;
+
+	RestartWrite:
 		ptr := IoTmpBuf;
 
 		Move(Board.Name, ptr^, SizeOf(Board.Name));
@@ -208,14 +242,25 @@ procedure BoardClose;
 		Move(Board.StatCount, ptr^, SizeOf(Board.StatCount));
 		AdvancePointer(ptr, SizeOf(Board.StatCount));
 
+		{ We will always have enough size to store the above in the default IoTmpBuf. }
+		{ From here, do size estimation. }
+		iy := (Ofs(ptr^) - Ofs(IoTmpBuf^)) + ((Board.StatCount + 1) * SizeOf(TStat));
+
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
-				if DataLen > 0 then begin
-					for iy := 1 to (ix - 1) do begin
-						if Board.Stats[iy].Data = Data then
-							DataLen := -iy;
-					end;
-				end;
+				if DataLen > 0 then
+					Inc(iy, DataLen);
+			end;
+		end;
+
+		case EnsureIoTmpBufSize(iy) of
+			0: begin end; { We good. }
+			1: goto RestartWrite; { Not so good. }
+			2: RunError(203);
+		end;
+
+		for ix := 0 to Board.StatCount do begin
+			with Board.Stats[ix] do begin
 				Move(Board.Stats[ix], ptr^, SizeOf(TStat));
 				AdvancePointer(ptr, SizeOf(TStat));
 				if DataLen > 0 then begin
@@ -241,6 +286,11 @@ procedure BoardOpen(boardId: integer);
 	begin
 		if boardId > World.BoardCount then
 			boardId := World.Info.CurrentBoard;
+
+		case EnsureIoTmpBufSize(World.BoardLen[boardId]) of
+			0, 1: begin end;
+			2: RunError(203);
+		end;
 
 		ExtMemRead(World.BoardData[boardId], IoTmpBuf^, World.BoardLen[boardId]);
 
@@ -632,7 +682,13 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 				for i := 0 to World.BoardCount do begin
 					SidebarAnimateLoading;
 					BlockRead(f, World.BoardLen[i], 2);
+
 					if ExtMemGet(World.BoardData[i], World.BoardLen[i]) then begin
+						case EnsureIoTmpBufSize(World.BoardLen[i]) of
+							0, 1: begin end;
+							2: RunError(203);
+						end;
+
 						BlockRead(f, IoTmpBuf^, World.BoardLen[i]);
 						ExtMemWrite(World.BoardData[i], IoTmpBuf^, World.BoardLen[i]);
 					end else RunError(203);
