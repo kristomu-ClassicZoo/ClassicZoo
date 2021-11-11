@@ -31,7 +31,7 @@ interface
 		MAX_STAT = 128;
 		MAX_ELEMENT = 79;
 		MAX_FLAG = 16;
-		MAX_BOARD = 32;
+		MAX_BOARD = 255;
 		BOARD_WIDTH = 96;
 		BOARD_HEIGHT = 80;
 		BOARD_DRAW_X = 14;
