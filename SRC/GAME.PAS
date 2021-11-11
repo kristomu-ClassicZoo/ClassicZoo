@@ -1726,15 +1726,6 @@ procedure GameTitleLoop;
 					'Q', KEY_ESCAPE: begin
 						GameTitleExitRequested := PromptYesNo('Quit ZZT?  ', true, $4F);
 					end;
-					'O': begin
-						VideoClear(Black);
-						UnCrunch(
-							WorldFileMenuScrPtrs[0]^,
-							VideoTextPointer^,
-							WorldFileMenuScrLens[0]
-						);
-						InputReadWaitKey;
-					end;
 					'H': begin
 						HighScoresLoad;
 						HighScoresDisplay(1);

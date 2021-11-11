@@ -30,7 +30,7 @@
 program SUPERZ;
 uses Crt, Dos, ExtMem, Video, Keys, Sounds, Input, TxtWind, GameVars,
 	Elements, Editor, Oop, Game, Uncrlib,
-	S_REGIST, M_MONSTE, M_FOREST, M_PROVIN, S_ORDER, S_CONFIG;
+	S_CONFIG, M_MONSTE, M_FOREST, M_PROVIN;
 
 procedure ParseArguments;
 	var
@@ -73,18 +73,12 @@ procedure GameConfigure;
 		regFile: text;
 	begin
 		ResetConfig := true;
-		Assign(regFile, 'REGISTER.DOC');
-		Reset(regFile);
-		Close(regFile);
-		IsRegistered := IOResult = 0;
+		IsRegistered := true;
 
 		InputInitDevices;
 		VideoInstall(80, Blue);
 		Window(1, 1, 80, 25);
 		UnCrunch(S_CONFIGCSIData, VideoTextPointer^, S_CONFIGCSISize);
-		if IsRegistered then begin
-			VideoWriteText(35, 24, $70, ' Registered version -- Please do not copy!');
-		end;
 
 		Window(3, 8, 78, 23);
 		VideoClear(Blue);
@@ -116,9 +110,6 @@ begin
 	WorldFileMenuScrPtrs[3] := @M_MONSTECSIData;
 	WorldFileMenuScrLens[3] := M_MONSTECSISize;
 
-	WorldFileMenuScrPtrs[0] := @S_ORDERCSIData;
-	WorldFileMenuScrLens[0] := S_ORDERCSISize;
-
 	Randomize;
 	SetCBreak(false);
 	InitialTextAttr := TextAttr;
@@ -130,7 +121,6 @@ begin
 
 	GameTitleExitRequested := false;
 	EditorEnabled := false;
-	IsRegistered := false;
 
 	ParseArguments;
 	GameConfigure;
@@ -160,13 +150,6 @@ begin
 	SoundClearQueue;
 
 	VideoUninstall;
-	if IsRegistered then begin
-		Writeln;
-		Writeln('  Registered Version -- Thank you for playing Super ZZT.');
-		Writeln;
-	end else begin
-		UnCrunch(S_REGISTCSIData, VideoTextPointer^, S_REGISTCSISize);
-	end;
 
 	TextAttr := InitialTextAttr;
 	GotoXY(1, 24);
