@@ -1,6 +1,6 @@
 Copyright (c) 2020 Adrian Siekierka
 
-Based on a reconstruction of code from ZZT,
+Based on a reconstruction of code from Super ZZT,
 Copyright 1991 Epic MegaGames, used with permission.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

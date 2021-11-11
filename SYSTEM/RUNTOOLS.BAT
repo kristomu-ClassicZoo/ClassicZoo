@@ -1,13 +1,5 @@
 @echo off
 
-echo [ Building BIN2PAS.EXE ] >> BUILD.LOG
-TPC /B /Q /EBUILD /ITOOLS /UTOOLS TOOLS\BIN2PAS.PAS >> BUILD.LOG
-if errorlevel 1 goto error
-
-echo [ Building CSIPACK.EXE ] >> BUILD.LOG
-TPC /B /Q /EBUILD /ITOOLS /UTOOLS TOOLS\CSIPACK.PAS >> BUILD.LOG
-if errorlevel 1 goto error
-
 echo [ Converting screens ] >> BUILD.LOG
 
 BUILD\CSIPACK /C SCREENS\M_FOREST.BIN BUILD\M_FOREST.CSI >> BUILD.LOG
@@ -34,11 +26,6 @@ BUILD\CSIPACK /C SCREENS\S_REGIST.BIN BUILD\S_REGIST.CSI >> BUILD.LOG
 if errorlevel 1 goto error
 BUILD\BIN2PAS BUILD\S_REGIST.CSI SRC\S_REGIST.PAS >> BUILD.LOG
 if errorlevel 1 goto error
-
-echo [ Building SUPERZ.EXE ] >> BUILD.LOG
-TPC /B /Q /EBUILD /GD /ISRC /USRC %COMPARGS% SRC\SUPERZ.PAS >> BUILD.LOG
-if errorlevel 1 goto error
-goto done
 
 :error
 echo.

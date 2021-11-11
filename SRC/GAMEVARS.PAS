@@ -1,7 +1,7 @@
 {
 	Copyright (c) 2020 Adrian Siekierka
 
-	Based on a reconstruction of code from ZZT,
+	Based on a reconstruction of code from Super ZZT,
 	Copyright 1991 Epic MegaGames, used with permission.
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,20 +27,29 @@ unit GameVars;
 
 interface
 	const
-		MAX_STAT = 150;
-		MAX_ELEMENT = 53;
-		MAX_BOARD = 100;
-		MAX_FLAG = 10;
-		BOARD_WIDTH = 60;
-		BOARD_HEIGHT = 25;
-		WORLD_FILE_HEADER_SIZE = 512;
+		MAX_STAT = 128;
+		MAX_ELEMENT = 79;
+		MAX_FLAG = 16;
+		MAX_BOARD = 32;
+		BOARD_WIDTH = 96;
+		BOARD_HEIGHT = 80;
+		BOARD_DRAW_X = 14;
+		BOARD_DRAW_Y = 2;
+		BOARD_DRAW_WIDTH = 24;
+		BOARD_DRAW_HEIGHT = 20;
+		BOARD_DRAW_OX_MIN = 1;
+		BOARD_DRAW_OX_MAX = BOARD_WIDTH - BOARD_DRAW_WIDTH + 1;
+		BOARD_DRAW_OY_MIN = 1;
+		BOARD_DRAW_OY_MAX = BOARD_HEIGHT - BOARD_DRAW_HEIGHT + 1;
+		WORLD_FILE_HEADER_SIZE = 1024;
+		WORLD_FILE_DESC_COUNT = 3;
+		TRANSITION_TABLE_COUNT = 480;
 		HIGH_SCORE_COUNT = 30;
-		TORCH_DURATION = 200;
 		TORCH_DX = 8;
-		TORCH_DY = 5;
-		TORCH_DIST_SQR = 50;
+		TORCH_DY = 8;
+		TORCH_DIST_SQR = 64 { 8 * 8 };
 	type
-		TString50 = string[50];
+		TSmallString = string[60];
 		TCoord = record
 			X: integer;
 			Y: integer;
@@ -57,7 +66,6 @@ interface
 			Color: byte;
 			Destructible: boolean;
 			Pushable: boolean;
-			VisibleInDark: boolean;
 			PlaceableOnTop: boolean;
 			Walkable: boolean;
 			HasDrawProc: boolean;
@@ -88,7 +96,6 @@ interface
 			Data: ^string;
 			DataPos: integer;
 			DataLen: integer;
-			unk1, unk2: pointer;
 		end;
 		TRleTile = record
 			Count: byte;
@@ -96,14 +103,14 @@ interface
 		end;
 		TBoardInfo = record
 			MaxShots: byte;
-			IsDark: boolean;
 			NeighborBoards: array[0 .. 3] of byte;
 			ReenterWhenZapped: boolean;
-			Message: string[58];
 			StartPlayerX: byte;
 			StartPlayerY: byte;
+			DrawXOffset: integer;
+			DrawYOffset: integer;
 			TimeLimitSec: integer;
-			unk1: array[70 .. 85] of byte;
+			unk1: array[14 .. 27] of byte;
 		end;
 		TWorldInfo = record
 			Ammo: integer;
@@ -111,28 +118,28 @@ interface
 			Keys: array [1..7] of boolean;
 			Health: integer;
 			CurrentBoard: integer;
-			Torches: integer;
-			TorchTicks: integer;
-			EnergizerTicks: integer;
 			unk1: integer;
+			EnergizerTicks: integer;
+			unk2: integer;
 			Score: integer;
 			Name: string[20];
 			Flags: array[1 .. MAX_FLAG] of string[20];
 			BoardTimeSec: integer;
 			BoardTimeHsec: integer;
 			IsSave: boolean;
-			unkPad: array[0 .. 13] of byte;
+			StonesOfPower: integer;
+			unk3: array[387 .. 398] of byte;
 		end;
 		TEditorStatSetting = record
 			P1, P2, P3: byte;
 			StepX, StepY: integer;
 		end;
 		TBoard = record
-			Name: TString50;
+			Name: TSmallString;
 			Tiles: array[0 .. BOARD_WIDTH + 1] of array[0 .. BOARD_HEIGHT + 1] of TTile;
 			StatCount: integer;
 			Stats: array[0 .. MAX_STAT + 1] of TStat;
-			Info: TBoardInfo;      
+			Info: TBoardInfo;
 		end;
 		TWorld = record
 			BoardCount: integer;
@@ -142,43 +149,40 @@ interface
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
 		end;
 		THighScoreEntry = record
-			Name: TString50;
+			Name: string[60];
 			Score: integer;
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
 		TIoTmpBuf = array[0 .. 19999] of byte;
 	var
-		PlayerDirX: integer;
-		PlayerDirY: integer;
-		unkVar_0476: integer;
-		unkVar_0478: integer;
+		ForestSoundTableIdx: integer;
+		TransitionTable: array[1 .. TRANSITION_TABLE_COUNT] of TCoord;
 
-		TransitionTable: array[1 .. 80*25] of TCoord;
-		LoadedGameFileName: TString50;
-		SavedGameFileName: TString50;
-		SavedBoardFileName: TString50;
-		StartupWorldFileName: TString50;
+		LoadedGameFileName: TSmallString;
+		SavedGameFileName: TSmallString;
+		SavedBoardFileName: TSmallString;
+		StartupWorldFileName: TSmallString;
+
 		Board: TBoard;
 		World: TWorld;
 		MessageAmmoNotShown: boolean;
 		MessageOutOfAmmoNotShown: boolean;
 		MessageNoShootingNotShown: boolean;
-		MessageTorchNotShown: boolean;
-		MessageOutOfTorchesNotShown: boolean;
-		MessageRoomNotDarkNotShown: boolean;
-		MessageHintTorchNotShown: boolean;
 		MessageForestNotShown: boolean;
 		MessageFakeNotShown: boolean;
 		MessageGemNotShown: boolean;
 		MessageEnergizerNotShown: boolean;
-		unkVar_4ABA: array[0 .. 14] of byte;
+		unkVar_7c12: array[0 .. 15] of byte;
+
+		MessageLine1: TSmallString;
+		MessageLine2: TSmallString;
 
 		GameTitleExitRequested: boolean;
 		GamePlayExitRequested: boolean;
+		GamePlayStartRequested: boolean;
 		GameStateElement: integer;
 		ReturnBoardId: integer;
 
-		TransitionTableSize: integer;
 		TickSpeed: byte;
 
 		IoTmpBuf: ^TIoTmpBuf;
@@ -203,25 +207,27 @@ interface
 		DebugEnabled: boolean;
 
 		HighScoreList: THighScoreList;
-		ConfigRegistration: string;
-		ConfigWorldFile: TString50;
+
 		EditorEnabled: boolean;
-		GameVersion: TString50;
-		ParsingConfigFile: boolean;
-		ResetConfig: boolean; { This flag is a remnant from ZZT 3.0. }
+		IsRegistered: boolean;
+		ResetConfig: boolean;
 		JustStarted: boolean;
 
 		WorldFileDescCount: integer;
-		WorldFileDescKeys: array[1 .. 10] of TString50;
-		WorldFileDescValues: array[1 .. 10] of TString50;
+		WorldFileDescKeys: array[1 .. WORLD_FILE_DESC_COUNT] of TSmallString;
+		WorldFileDescValues: array[1 .. WORLD_FILE_DESC_COUNT] of TSmallString;
+
+		WorldFileMenuScrPtrs: array[-1 .. WORLD_FILE_DESC_COUNT] of pointer;
+		WorldFileMenuScrLens: array[-1 .. WORLD_FILE_DESC_COUNT] of word;
+		MenuScrPointer: pointer;
+		MenuScrLen: word;
 	const
 		E_EMPTY = 0;
 		E_BOARD_EDGE = 1;
 		E_MESSAGE_TIMER = 2;
-		E_MONITOR = 3; { State - Title screen }
-		E_PLAYER = 4; { State - Playing }
+		E_MONITOR = 3;
+		E_PLAYER = 4;
 		E_AMMO = 5;
-		E_TORCH = 6;
 		E_GEM = 7;
 		E_KEY = 8;
 		E_DOOR = 9;
@@ -230,11 +236,9 @@ interface
 		E_DUPLICATOR = 12;
 		E_BOMB = 13;
 		E_ENERGIZER = 14;
-		E_STAR = 15;
 		E_CONVEYOR_CW = 16;
 		E_CONVEYOR_CCW = 17;
-		E_BULLET = 18;
-		E_WATER = 19;
+		E_LAVA = 19;
 		E_FOREST = 20;
 		E_SOLID = 21;
 		E_NORMAL = 22;
@@ -248,32 +252,46 @@ interface
 		E_TRANSPORTER = 30;
 		E_LINE = 31;
 		E_RICOCHET = 32;
-		E_BLINK_RAY_EW = 33;
 		E_BEAR = 34;
 		E_RUFFIAN = 35;
 		E_OBJECT = 36;
 		E_SLIME = 37;
-		E_SHARK = 38;
 		E_SPINNING_GUN = 39;
 		E_PUSHER = 40;
 		E_LION = 41;
 		E_TIGER = 42;
-		E_BLINK_RAY_NS = 43;
 		E_CENTIPEDE_HEAD = 44;
 		E_CENTIPEDE_SEGMENT = 45;
-		E_TEXT_BLUE = 47;
-		E_TEXT_GREEN = 48;
-		E_TEXT_CYAN = 49;
-		E_TEXT_RED = 50;
-		E_TEXT_PURPLE = 51;
-		E_TEXT_YELLOW = 52;
-		E_TEXT_WHITE = 53;
+		E_FLOOR = 47;
+		E_WATER_N = 48;
+		E_WATER_S = 49;
+		E_WATER_W = 50;
+		E_WATER_E = 51;
+		E_ROTON = 59;
+		E_DRAGON_PUP = 60;
+		E_PAIRER = 61;
+		E_SPIDER = 62;
+		E_WEB = 63;
+		E_STONE = 64;
+		E_BULLET = 69;
+		E_BLINK_RAY_EW = 70;
+		E_BLINK_RAY_NS = 71;
+		E_STAR = 72;
 		{}
-		E_TEXT_MIN = E_TEXT_BLUE;
+		E_TEXT_MIN = 73;
+		E_TEXT_BLUE = (E_TEXT_MIN);
+		E_TEXT_GREEN = (E_TEXT_MIN + 1);
+		E_TEXT_CYAN = (E_TEXT_MIN + 2);
+		E_TEXT_RED = (E_TEXT_MIN + 3);
+		E_TEXT_PURPLE = (E_TEXT_MIN + 4);
+		E_TEXT_YELLOW = (E_TEXT_MIN + 5);
+		E_TEXT_WHITE = (E_TEXT_MIN + 6);
 		{}
 		CATEGORY_ITEM = 1;
 		CATEGORY_CREATURE = 2;
 		CATEGORY_TERRAIN = 3;
+		CATEGORY_UGLIES = 4;
+		CATEGORY_TERRAIN2 = 5;
 		{}
 		COLOR_SPECIAL_MIN = $F0;
 		COLOR_CHOICE_ON_BLACK = $FF;

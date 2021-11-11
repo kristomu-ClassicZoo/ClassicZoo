@@ -1,7 +1,7 @@
 {
 	Copyright (c) 2020 Adrian Siekierka
 
-	Based on a reconstruction of code from ZZT,
+	Based on a reconstruction of code from Super ZZT,
 	Copyright 1991 Epic MegaGames, used with permission.
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -40,6 +40,7 @@ interface
 		VideoTextSegment: word;
 		VideoTextPointer: pointer;
 		VideoCursorVisible: boolean;
+	procedure VideoScroll(x, y, width, height, dx, dy: integer);
 	function VideoConfigure: boolean;
 	procedure VideoInstall(columns, borderColor: integer);
 	procedure VideoUninstall;
@@ -47,6 +48,7 @@ interface
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
+	procedure VideoClear(bgColor: integer);
 
 implementation
 uses Crt, Dos;
@@ -313,6 +315,63 @@ procedure VideoWriteTextBW40(x, y, color: byte; text: TVideoLine);
 
 {$F-}
 
+procedure VideoScroll(x, y, width, height, dx, dy: integer);
+	var
+		iy: integer;
+		srcOfs, destOfs: integer;
+		unk1: string;
+	begin
+		if dy = 0 then begin
+			if dx >= 0 then begin
+				{ move right }
+				srcOfs := (y * VideoColumns + x) * 2;
+				destOfs := srcOfs + (dx * 2);
+				for iy := 1 to height do begin
+ 					if (iy mod 2) = 1 then
+						VideoWriteTextCO80(0, 0, 0, '');
+					Move(Ptr(VideoTextSegment, srcOfs)^, Ptr(VideoTextSegment, destOfs)^, (width - dx) * 2);
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end else begin
+				{ move left }
+				destOfs := (y * VideoColumns + x) * 2;
+				srcOfs := destOfs - (dx * 2);
+				for iy := 1 to height do begin
+ 					if (iy mod 2) = 1 then
+						VideoWriteTextCO80(0, 0, 0, '');
+					Move(Ptr(VideoTextSegment, srcOfs)^, Ptr(VideoTextSegment, destOfs)^, (width + dx) * 2);
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end;
+		end else begin
+			if dy > 0 then begin
+				{ move down }
+				srcOfs := ((y + height - 2) * VideoColumns + x) * 2;
+				destOfs := VideoColumns * 2 + srcOfs;
+				for iy := 1 to (height - 1) do begin
+ 					if (iy mod 2) = 1 then
+						VideoWriteTextCO80(0, 0, 0, '');
+					Move(Ptr(VideoTextSegment, srcOfs)^, Ptr(VideoTextSegment, destOfs)^, width * 2);
+					srcOfs := srcOfs - (VideoColumns * 2);
+					destOfs := destOfs - (VideoColumns * 2);
+				end;
+			end else begin
+				{ move up }
+				destOfs := (y * VideoColumns + x) * 2;
+				srcOfs := VideoColumns * 2 + destOfs;
+				for iy := 1 to (height - 1) do begin
+ 					if (iy mod 2) = 1 then
+						VideoWriteTextCO80(0, 0, 0, '');
+					Move(Ptr(VideoTextSegment, srcOfs)^, Ptr(VideoTextSegment, destOfs)^, width * 2);
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end;
+		end;
+	end;
+
 function VideoConfigure: boolean;
 	var
 		charTyped: Char;
@@ -436,6 +495,16 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 			Move(Ptr(VideoTextSegment, offset)^, data^, chars * 2);
 	end;
 
+procedure VideoClear(bgColor: integer);
+	begin
+		if not VideoMonochrome then
+			TextBackground(bgColor)
+		else if bgColor = 0 then
+			TextBackground(0)
+		else	
+			TextBackground(7);
+		ClrScr;
+	end;
 
 begin
 	VideoBorderColor := 0;

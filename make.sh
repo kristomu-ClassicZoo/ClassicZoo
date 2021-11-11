@@ -1,8 +1,8 @@
 #!/bin/bash
 
 PROPERTIES_FILE=build.properties
-EXECUTABLE_NAME=ZZT.EXE
-OUTPUT_ARCHIVE=zoo.zip
+EXECUTABLE_NAME=SUPERZ.EXE
+OUTPUT_ARCHIVE=superzoo.zip
 TPC_DEFINES=""
 TEMP_PATH=$(mktemp -d /tmp/zoo.XXXXXXXXXXXX)
 CLEANUP=yes
@@ -52,7 +52,7 @@ fi
 
 echo "Preparing Pascal code..."
 
-for i in DOC RES SRC SYSTEM TOOLS VENDOR LICENSE.TXT; do
+for i in DOC RES SCREENS SRC SYSTEM TOOLS VENDOR LICENSE.TXT; do
 	cp -R "$i" "$TEMP_PATH"/
 done
 cp -R "$TEMP_PATH"/SYSTEM/*.BAT "$TEMP_PATH"/
@@ -83,31 +83,33 @@ if [ -n "$FREE_PASCAL" ]; then
 		exit 1
 	fi
 
-	echo "[ Building DATPACK.EXE ]"
+	echo "[ Building tools ]"
 	cd TOOLS
 	cp ../SYSTEM/fpc.cfg .
-	"$FPC_PATH"/bin/ppcross8086 DATPACK.PAS
-	cp DATPACK.exe ../BUILD/DATPACK.EXE
+	"$FPC_PATH"/bin/ppcross8086 BIN2PAS.PAS
+	cp BIN2PAS.exe ../BUILD/BIN2PAS.EXE
+	"$FPC_PATH"/bin/ppcross8086 CSIPACK.PAS
+	cp CSIPACK.exe ../BUILD/CSIPACK.EXE
 	cd ..
 
-	echo "[ Building ZZT.EXE ]"
-	cd SRC
-	cp ../SYSTEM/fpc.cfg .
-	"$FPC_PATH"/bin/ppcross8086 $FPC_ARGS ZZT.PAS
-	cp ZZT.exe ../BUILD/ZZT.EXE
-	cd ..
-
-	sed -i -e "s/^BUILD$/PACKDAT/" SYSTEM/dosbox.conf
+	sed -i -e "s/^BUILD$/RUNTOOLS/" SYSTEM/dosbox.conf
 	touch BUILD.LOG
 	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
 	tail --pid $! -n +1 -f BUILD.LOG
+
+	echo "[ Building SUPERZ.EXE ]"
+	cd SRC
+	cp ../SYSTEM/fpc.cfg .
+	"$FPC_PATH"/bin/ppcross8086 $FPC_ARGS SUPERZ.PAS
+	cp SUPERZ.exe ../BUILD/SUPERZ.EXE
+	cd ..
 else
 	touch BUILD.LOG
 	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
 	tail --pid $! -n +1 -f BUILD.LOG
 fi
 
-if [ ! -f BUILD/ZZT.EXE ]; then
+if [ ! -f BUILD/SUPERZ.EXE ]; then
 	cd "$RETURN_PATH"
 	rm -r "$TEMP_PATH"
 	exit 1
@@ -119,17 +121,16 @@ echo "Packaging..."
 
 if [ ! -x "$(command -v upx)" ]; then
 	echo "Not compressing - UPX is not installed!"
-	cp BUILD/ZZT.EXE DIST/"$EXECUTABLE_NAME"
+	cp BUILD/SUPERZ.EXE DIST/"$EXECUTABLE_NAME"
 else
 	echo "Compressing..."
-	upx --8086 -9 -o DIST/"$EXECUTABLE_NAME" BUILD/ZZT.EXE
+	upx --8086 -9 -o DIST/"$EXECUTABLE_NAME" BUILD/SUPERZ.EXE
 fi
 
-if [ -f BUILD/ZZT.DAT ]; then
-	cp BUILD/ZZT.DAT DIST/
-fi
 cp LICENSE.TXT DIST/
-cp RES/* DIST/
+if [ -d RES ]; then
+	cp RES/* DIST/
+fi
 
 cd DIST
 zip -9 -r "$RETURN_PATH"/OUTPUT/"$OUTPUT_ARCHIVE" .

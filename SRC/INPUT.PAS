@@ -1,7 +1,7 @@
 {
 	Copyright (c) 2020 Adrian Siekierka
 
-	Based on a reconstruction of code from ZZT,
+	Based on a reconstruction of code from Super ZZT,
 	Copyright 1991 Epic MegaGames, used with permission.
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -51,8 +51,8 @@ interface
 		KEY_PAGE_DOWN = #209;
 		KEY_INSERT = #210;
 		KEY_DELETE = #211;
-		KEY_HOME = #212;
-		KEY_END = #213;
+		KEY_HOME = #199;
+		KEY_END = #207;
 	var
 		InputDeltaX, InputDeltaY: integer;
 		InputShiftPressed: boolean;

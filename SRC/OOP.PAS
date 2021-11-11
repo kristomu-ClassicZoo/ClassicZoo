@@ -1,7 +1,7 @@
 {
 	Copyright (c) 2020 Adrian Siekierka
 
-	Based on a reconstruction of code from ZZT,
+	Based on a reconstruction of code from Super ZZT,
 	Copyright 1991 Epic MegaGames, used with permission.
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -28,11 +28,11 @@ unit Oop;
 
 interface
 	uses GameVars;
-	function WorldGetFlagPosition(name: TString50): integer;
-	procedure WorldSetFlag(name: TString50);
-	procedure WorldClearFlag(name: TString50);
+	function WorldGetFlagPosition(name: TSmallString): integer;
+	procedure WorldSetFlag(name: TSmallString);
+	procedure WorldClearFlag(name: TSmallString);
 	function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
-	procedure OopExecute(statId: integer; var position: integer; name: TString50);
+	function OopExecute(statId: integer; var position: integer; name: TSmallString): boolean;
 
 implementation
 uses Sounds, TxtWind, Game, Elements;
@@ -40,7 +40,7 @@ uses Sounds, TxtWind, Game, Elements;
 procedure OopError(statId: integer; message: string);
 	begin
 		with Board.Stats[statId] do begin
-			DisplayMessage(200, 'ERR: ' + message);
+			DisplayMessage(200, '', 'ERR: ' + message);
 			SoundQueue(5, #80#10);
 			DataPos := -1;
 		end;
@@ -300,7 +300,7 @@ function OopFindLabel(statId: integer; sendLabel: string; var iStat, iDataPos: i
 		OopFindLabel := foundStat;
 	end;
 
-function WorldGetFlagPosition(name: TString50): integer;
+function WorldGetFlagPosition(name: TSmallString): integer;
 	var
 		i: integer;
 	begin
@@ -311,7 +311,7 @@ function WorldGetFlagPosition(name: TString50): integer;
 		end;
 	end;
 
-procedure WorldSetFlag(name: TString50);
+procedure WorldSetFlag(name: TSmallString);
 	var
 		i: integer;
 	begin
@@ -323,7 +323,7 @@ procedure WorldSetFlag(name: TString50);
 		end;
 	end;
 
-procedure WorldClearFlag(name: TString50);
+procedure WorldClearFlag(name: TSmallString);
 	var
 		i: integer;
 	begin
@@ -331,9 +331,9 @@ procedure WorldClearFlag(name: TString50);
 			World.Info.Flags[WorldGetFlagPosition(name)] := '';
 	end;
 
-function OopStringToWord(input: TString50): TString50;
+function OopStringToWord(input: TSmallString): TSmallString;
 	var
-		output: TString50;
+		output: TSmallString;
 		i: integer;
 	begin
 		output := '';
@@ -379,9 +379,9 @@ function GetColorForTileMatch(var tile: TTile): byte;
 		if ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN then
 			GetColorForTileMatch := ElementDefs[tile.Element].Color and $07
 		else if ElementDefs[tile.Element].Color = COLOR_WHITE_ON_CHOICE then
-			GetColorForTileMatch := ((tile.Color shr 4) and $0F) + 8
+			GetColorForTileMatch := ((tile.Color shr 4) and $07)
 		else
-			GetColorForTileMatch := (tile.Color and $0F);
+			GetColorForTileMatch := (tile.Color and $07);
 	end;
 
 function FindTileOnBoard(var x, y: integer; tile: TTile): boolean;
@@ -397,7 +397,7 @@ function FindTileOnBoard(var x, y: integer; tile: TTile): boolean;
 			end;
 
 			if Board.Tiles[x][y].Element = tile.Element then
-				if ((tile.Color = 0) or (GetColorForTileMatch(Board.Tiles[x][y]) = tile.Color)) then begin
+				if ((tile.Color = 0) or (GetColorForTileMatch(Board.Tiles[x][y]) = (tile.Color and $07))) then begin
 					FindTileOnBoard := true;
 					exit;
 				end;
@@ -487,31 +487,35 @@ function OopReadLineToEnd(statId: integer; var position: integer) : string;
 function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
 	var
 		iDataPos, iStat: integer;
-		ignoreSelfLock: boolean;
+		respectSelfLock: boolean;
 	begin
+		{ If the statId passed is positive, the passed stat will always }
+		{ receive the label irrespective of whether it has been locked }
+		{ or not. ZZT uses positive stat IDs for labels sent by objects, }
+		{ and negative stat IDs for labels sent by in-world events (like }
+		{ touch, shot or energize). }
 		if statId < 0 then begin
-			{ if statId is negative, label send will always succeed on self }
-			{ this is used for in-game events (f.e. TOUCH, SHOT) }
 			statId := -statId;
-			ignoreSelfLock := true;
+			respectSelfLock := true;
 		end else begin
-			ignoreSelfLock := false;
+			respectSelfLock := false;
 		end;
 
 		OopSend := false;
 		iStat := 0;
 
 		while OopFindLabel(statId, sendLabel, iStat, iDataPos, #13':') do begin
-			if ((Board.Stats[iStat].P2 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
+			if ((Board.Stats[iStat].P3 = 0) or ignoreLock) or ((statId = iStat) and not respectSelfLock) then begin
 				if iStat = statId then
 					OopSend := true;
 
 				Board.Stats[iStat].DataPos := iDataPos;
+				Board.Stats[iStat].P2 := 0;
 			end;
 		end;
 	end;
 
-procedure OopExecute(statId: integer; var position: integer; name: TString50);
+function OopExecute(statId: integer; var position: integer; name: TSmallString): boolean;
 	var
 		textWindow: TTextWindowState;
 		textLine: string;
@@ -566,22 +570,19 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 				end else if OopChar = '@' then begin
 					OopSkipLine(statId, position);
 				end else if (OopChar = '/') or (OopChar = '?') then begin
-					if OopChar = '/' then
-						repeatInsNextTick := true;
+					counterSubtract := (OopChar = '?');
 
 					OopReadWord(statId, position);
 					if OopParseDirection(statId, position, deltaX, deltaY) then begin
-						if (deltaX <> 0) or (deltaY <> 0) then begin
-							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
-								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+						OopReadValue(statId, position);
+						if OopValue < 0 then
+							OopValue := 1;
 
-							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
-								MoveStat(statId, X + deltaX, Y + deltaY);
-								repeatInsNextTick := false;
-							end;
-						end else begin
-							repeatInsNextTick := false;
-						end;
+						StepX := deltaX;
+						StepY := deltaY;
+						P2 := OopValue;
+						if counterSubtract then
+							P2 := -P2;
 
 						OopReadChar(statId, position);
 						if OopChar <> #13 then
@@ -660,10 +661,10 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 								counterPtr := @World.Info.Health
 							else if OopWord = 'AMMO' then
 								counterPtr := @World.Info.Ammo
+							else if OopWord = 'Z' then
+								counterPtr := @World.Info.StonesOfPower
 							else if OopWord = 'GEMS' then
 								counterPtr := @World.Info.Gems
-							else if OopWord = 'TORCHES' then
-								counterPtr := @World.Info.Torches
 							else if OopWord = 'SCORE' then
 								counterPtr := @World.Info.Score
 							else if OopWord = 'TIME' then
@@ -720,9 +721,9 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 									labelDataPos := OopFindString(labelStatId, #13#39 + OopWord + #13);
 								until labelDataPos <= 0;
 						end else if OopWord = 'LOCK' then begin
-							P2 := 1;
+							P3 := 1;
 						end else if OopWord = 'UNLOCK' then begin
-							P2 := 0;
+							P3 := 0;
 						end else if OopWord = 'SEND' then begin
 							OopReadWord(statId, position);
 							if OopSend(statId, OopWord, false) then
@@ -825,7 +826,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 			if OopChar = #0 then
 				position := -1;
 
-			if textWindow.LineCount > 1 then begin
+			if textWindow.LineCount > 2 then begin
 				namePosition := 0;
 				OopReadChar(statId, namePosition);
 				if OopChar = '@' then begin
@@ -844,18 +845,22 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 				if Length(textWindow.Hyperlink) <> 0 then
 					if OopSend(statId, textWindow.Hyperlink, false) then
 						goto StartParsing;
+			end else if textWindow.LineCount = 2 then begin
+				DisplayMessage(200, textWindow.Lines[1]^, textWindow.Lines[2]^);
+				TextWindowFree(textWindow);
 			end else if textWindow.LineCount = 1 then begin
-				DisplayMessage(200, textWindow.Lines[1]^);
+				DisplayMessage(200, '', textWindow.Lines[1]^);
 				TextWindowFree(textWindow);
 			end;
 
 			if replaceStat then begin
 				ix := X;
 				iy := Y;
-				DamageStat(statId);
 				OopPlaceTile(ix, iy, replaceTile);
 			end;
 		end;
+
+		OopExecute := replaceStat;
 	end;
 
 begin

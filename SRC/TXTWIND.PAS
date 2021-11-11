@@ -1,7 +1,7 @@
 {
 	Copyright (c) 2020 Adrian Siekierka
 
-	Based on a reconstruction of code from ZZT,
+	Based on a reconstruction of code from Super ZZT,
 	Copyright 1991 Epic MegaGames, used with permission.
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -32,7 +32,7 @@ interface
 		MAX_TEXT_WINDOW_LINES = 1024;
 		MAX_RESOURCE_DATA_FILES = 24;
 	type
-		TTextWindowLine = string[50];
+		TTextWindowLine = string[60];
 		TTextWindowState = record
 			Selectable: boolean;
 			LineCount: integer;
@@ -40,12 +40,12 @@ interface
 			Lines: array[1 .. MAX_TEXT_WINDOW_LINES] of ^TTextWindowLine;
 			Hyperlink: string[20];
 			Title: TTextWindowLine;
-			LoadedFilename: string[50];
-			ScreenCopy: array[1 .. 25] of string[160];
+			LoadedFilename: string[60];
+			ScreenCopy: array[1 .. 25] of string[90];
 		end;
 		TResourceDataHeader = record
 			EntryCount: integer;
-			Name: array[1 .. MAX_RESOURCE_DATA_FILES] of string[50];
+			Name: array[1 .. MAX_RESOURCE_DATA_FILES] of string[60];
 			FileOffset: array[1 .. MAX_RESOURCE_DATA_FILES] of longint;
 		end;
 	var
@@ -60,7 +60,7 @@ interface
 		TextWindowStrInnerSep: TVideoLine;
 		TextWindowStrInnerArrows: TVideoLine;
 		TextWindowRejected: boolean;
-		ResourceDataFileName: string[50];
+		ResourceDataFileName: string[60];
 		ResourceDataHeader: TResourceDataHeader;
 		OrderPrintId: ^string;
 	procedure TextWindowInitState(var state: TTextWindowState);
@@ -282,6 +282,7 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 			Hyperlink := '';
 			TextWindowDraw(state, false, viewingFile);
 			repeat
+				Delay(20);
 				InputUpdate;
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
