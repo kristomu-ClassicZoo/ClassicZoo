@@ -601,19 +601,21 @@ procedure TextWindowSaveFile(filename: TTextWindowLine; var state: TTextWindowSt
 	var
 		f: text;
 		i: integer;
+	label OnError;
 	begin
-		with state do begin
-			Assign(f, filename);
-			Rewrite(f);
-			if IOResult <> 0 then exit;
+		Assign(f, filename);
+		Rewrite(f);
+		if IOResult <> 0 then goto OnError;
 
+		with state do begin
 			for i := 1 to LineCount do begin
 				WriteLn(f, Lines[i]^);
-				if IOResult <> 0 then exit;
+				if IOResult <> 0 then goto OnError;
 			end;
-
-			Close(f);
 		end;
+
+	OnError:
+		Close(f);
 	end;
 
 procedure TextWindowDisplayFile(filename, title: string);

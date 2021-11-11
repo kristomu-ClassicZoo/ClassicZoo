@@ -589,6 +589,7 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 		ptr: pointer;
 		i: integer;
 		loadProgress: integer;
+	label OnError;
 	procedure SidebarAnimateLoading;
 		begin
 			VideoWriteText(22, 24, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
@@ -617,7 +618,7 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 						DrawStatusMessage('Wrong ZZT version!');
 						PauseOnError;
 						ClearDisplayMessage;
-						exit;
+						goto OnError;
 					end else begin
 						Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
 						AdvancePointer(ptr, SizeOf(World.BoardCount));
@@ -636,8 +637,6 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 					end else RunError(203);
 				end;
 
-				Close(f);
-
 				BoardOpen(World.Info.CurrentBoard);
 				LoadedGameFileName := filename;
 				WorldLoad := true;
@@ -653,6 +652,9 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 				end;
 			end;
 		end;
+
+	OnError:
+		Close(f);
 	end;
 
 procedure SidebarPromptString(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
