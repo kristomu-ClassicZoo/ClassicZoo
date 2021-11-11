@@ -11,6 +11,9 @@ $< Super ClassicZoo 4.00 >
   effectively ends the ~350-400KB world
   size limit for anyone with extended
   memory. (Mr_Alert)
++ Automatically load and use a dedicated
+  8x8 font, optimized for looking good
+  with Super ZZT, on VGA+ platforms.
 + Dynamic IoTmpBuf size scaling. This
   effectively ends the 20000-byte board
   size limit, bumping it to 65500 bytes.

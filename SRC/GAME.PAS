@@ -126,12 +126,18 @@ const
 	LineChars: TSmallString = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, ExtMem, FileSel, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop;
+uses Dos, Crt, ExtMem, FileSel, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop,
+	FONT;
 
 procedure GameVideoInstall(columns, borderColor, mode: integer);
+	var
+		setCharset: boolean;
 	begin
-		if borderColor >= 0 then
-			VideoInstall(columns, borderColor);
+		setCharset := VideoSetCharHeight(FONTBINSize shr 8);
+		VideoInstall(columns, borderColor);
+		if setCharset then begin
+			if VideoSetCharset(@FONTBINData, FONTBINSize shr 8) then begin end;
+		end;
 
 		if mode = VIEW_TITLE then
 			TextWindowInit(15, 3, 50, 18)

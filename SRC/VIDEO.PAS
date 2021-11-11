@@ -30,6 +30,8 @@ interface
 	type
 		TVideoLine = string[80];
 		TVideoWriteTextProc = procedure(x, y, color: byte; text: TVideoLine);
+		TCharsetData = array[0 .. 31999] of byte;
+		PTCharsetData = ^TCharsetData;
 	const
 		PORT_CGA_PALETTE = $03D9;
 	var
@@ -44,6 +46,8 @@ interface
 		VideoMDAInstalled: boolean;
 	procedure VideoScroll(x, y, width, height, dx, dy: integer);
 	function VideoConfigure: boolean;
+	function VideoSetCharHeight(height: integer): boolean;
+	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 	procedure VideoInstall(columns, borderColor: integer);
 	procedure VideoUninstall;
 	procedure VideoShowCursor;
@@ -307,6 +311,49 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 		end;
 	end;
 
+function VideoSetCharHeight(height: integer): boolean;
+	var
+		regs: Registers;
+	begin
+		VideoSetCharHeight := false;
+
+		if VideoEGAInstalled then begin
+			if height = 8 then
+				regs.AX := $1200
+			else
+				regs.AX := $1201;
+			regs.BL := $30;
+			Intr($10, regs);
+
+			VideoSetCharHeight := (regs.AL = $12);
+		end;
+	end;
+
+function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
+	var
+		regs: Registers;
+	begin
+		VideoSetCharset := false;
+		if not VideoEGAInstalled then exit;
+		if (height <> 8) and (height <> 14) then exit;
+
+		regs.BX := (height shl 8);
+		regs.CX := 256;
+		regs.DX := 0;
+
+		if Seg(data^) <> 0 then begin
+			regs.AX := $1110;
+			regs.ES := Seg(data^);
+			regs.BP := Ofs(data^);
+		end else begin
+			regs.AX := $1111;
+		end;
+		Intr($10, regs);
+
+		VideoHideCursor;
+		VideoSetCharset := true;
+	end;
+
 function VideoConfigure: boolean;
 	var
 		charTyped: Char;
@@ -331,7 +378,7 @@ function VideoConfigure: boolean;
 		VideoConfigure := charTyped <> #27;
 	end;
 
-procedure VideoInstall(columns, borderColor: integer);
+procedure VideoPreInstall;
 	var
 		regs: Registers;
 	begin
@@ -340,13 +387,12 @@ procedure VideoInstall(columns, borderColor: integer);
 		Intr($10, regs);
 		VideoEGAInstalled := regs.BH <> $FF;
 		VideoMDAInstalled := LastMode = 7;
+	end;
 
-		if VideoEGAInstalled then begin
-			regs.AX := $1201;
-			regs.BL := $30;
-			Intr($10, regs);
-		end;
-
+procedure VideoInstall(columns, borderColor: integer);
+	var
+		regs: Registers;
+	begin
 		VideoColumns := columns;
 		if VideoMonochrome then begin
 			if VideoEGAInstalled or VideoMDAInstalled or VideoForceNoSnow then
@@ -490,4 +536,6 @@ begin
 	VideoTextPointer := Ptr(VideoTextSegment, $0000);
 	VideoCursorVisible := true;
 	VideoForceNoSnow := false;
+
+	VideoPreInstall;
 end.
