@@ -127,7 +127,7 @@ begin
 	InitialTextAttr := TextAttr;
 
 	StartupWorldFileName := 'MONSTER';
-	ResourceDataFileName := '';
+	ResourceDataFileName := 'SUPERZ.DAT';
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
 
 	MenuScrPointer := @M_MONSTECSIData;

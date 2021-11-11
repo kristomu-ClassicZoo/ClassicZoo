@@ -92,6 +92,8 @@ if [ -n "$FREE_PASCAL" ]; then
 	cp BIN2PAS.exe ../BUILD/BIN2PAS.EXE
 	"$FPC_PATH"/bin/ppcross8086 CSIPACK.PAS
 	cp CSIPACK.exe ../BUILD/CSIPACK.EXE
+	"$FPC_PATH"/bin/ppcross8086 DATPACK.PAS
+	cp DATPACK.exe ../BUILD/DATPACK.EXE
 	cd ..
 
 	sed -i -e "s/^BUILD$/RUNTOOLS/" SYSTEM/dosbox.conf
@@ -130,6 +132,7 @@ else
 fi
 
 cp LICENSE.TXT DIST/
+cp BUILD/SUPERZ.DAT DIST/
 if [ -d RES ]; then
 	cp RES/* DIST/
 fi

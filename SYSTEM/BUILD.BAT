@@ -8,6 +8,10 @@ echo [ Building CSIPACK.EXE ] >> BUILD.LOG
 TPC /B /Q /EBUILD /ITOOLS /UTOOLS TOOLS\CSIPACK.PAS >> BUILD.LOG
 if errorlevel 1 goto error
 
+echo [ Building DATPACK.EXE ] >> BUILD.LOG
+TPC /B /Q /EBUILD /ITOOLS /UTOOLS TOOLS\DATPACK.PAS >> BUILD.LOG
+if errorlevel 1 goto error
+
 echo [ Converting screens ] >> BUILD.LOG
 
 BUILD\CSIPACK /C SCREENS\M_FOREST.BIN BUILD\M_FOREST.CSI >> BUILD.LOG
@@ -26,6 +30,12 @@ BUILD\CSIPACK /C SCREENS\S_CONFIG.BIN BUILD\S_CONFIG.CSI >> BUILD.LOG
 if errorlevel 1 goto error
 BUILD\BIN2PAS BUILD\S_CONFIG.CSI SRC\S_CONFIG.PAS >> BUILD.LOG
 if errorlevel 1 goto error
+
+echo [ Building SUPERZ.DAT ] >> BUILD.LOG
+cd DOC
+..\BUILD\DATPACK.EXE /C ..\BUILD\SUPERZ.DAT *.* >> BUILD.LOG
+if errorlevel 1 goto error
+cd ..
 
 echo [ Building SUPERZ.EXE ] >> BUILD.LOG
 TPC /B /Q /EBUILD /GD /ISRC /USRC %COMPARGS% SRC\SUPERZ.PAS >> BUILD.LOG

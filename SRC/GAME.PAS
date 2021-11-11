@@ -1824,6 +1824,9 @@ procedure GameTitleLoop;
 						HighScoresLoad;
 						HighScoresDisplay(1);
 					end;
+					'A': begin
+						TextWindowDisplayFile('ABOUT.HLP', 'About...');
+					end;
 					'|': begin
 						GameDebugPrompt;
 					end;

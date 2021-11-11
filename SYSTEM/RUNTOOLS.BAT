@@ -19,6 +19,13 @@ if errorlevel 1 goto error
 BUILD\BIN2PAS BUILD\S_CONFIG.CSI SRC\S_CONFIG.PAS >> BUILD.LOG
 if errorlevel 1 goto error
 
+echo [ Building SUPERZ.DAT ] >> BUILD.LOG
+cd DOC
+..\BUILD\DATPACK.EXE /C ..\BUILD\SUPERZ.DAT *.* >> BUILD.LOG
+if errorlevel 1 goto error
+cd ..
+goto done
+
 :error
 echo.
 echo [ Error detected! Stopping. ]

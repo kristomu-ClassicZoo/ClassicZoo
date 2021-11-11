@@ -46,8 +46,9 @@ interface
 			ScreenCopy: array[1 .. 25] of string[100];
 		end;
 		TResourceDataHeader = record
+			Version: integer;
 			EntryCount: integer;
-			Name: array[1 .. MAX_RESOURCE_DATA_FILES] of string[60];
+			Name: array[1 .. MAX_RESOURCE_DATA_FILES] of string[12];
 			FileOffset: array[1 .. MAX_RESOURCE_DATA_FILES] of longint;
 		end;
 	var
@@ -778,7 +779,7 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 				Reset(f, 1);
 				if IOResult = 0 then
 					BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
-				if IOResult <> 0 then
+				if (IOResult <> 0) or (ResourceDataHeader.Version <> -2) then
 					ResourceDataHeader.EntryCount := -1;
 				Close(f);
 			end;

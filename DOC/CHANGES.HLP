@@ -1,0 +1,52 @@
+$Changelog
+
+Legend:
+
++ Additions         * Changes
+- Removals          / Bugfixes
+
+$< Super ClassicZoo 4.00 >
+
++ EMS/XMS extended memory support. This
+  effectively ends the ~350-400KB world
+  size limit for anyone with extended
+  memory. (Mr_Alert)
++ Dynamic IoTmpBuf size scaling. This
+  effectively ends the 20000-byte board
+  size limit, bumping it to 65500 bytes.
++ New file selector, with support for
+  directory traversal.
++ Enhanced editor from ClassicZoo 4.15
+- Removed the slightly glitchy-on-more-
+  modern-platforms player step sound.
+- Removed the shareware/registered
+  distinction and order messages.
+* Many documentation improvements.
+* Tons of CPU optimizations and memory
+  usage improvements have been made.
+/ Fixed the following Super ZZT bugs.
+  (Note that, in ClassicZoo, fixes are
+  only done for game behaviour which
+  leads to a crash or soft-lock - this
+  is to preserve compatibility with
+  existing games.)
+  . Gameplay
+    . Fixed conveyors swapping stats in
+      some scenarios, which could lead
+      to a game soft-lock (no player).
+    . Fixed conveyors not rendering an
+      item in some edge cases.
+    . Fixed crash when a stat recursively
+      pushed itself. (GreaseMonkey)
+    . Fixed 0-cycle transporter crash.
+      (zzo38)
+    . Fixed double frees in #BIND.
+    . Fixed being unable to exit the game
+      while paused by pressing Q.
+  . Editor
+    . Most of ClassicZoo's fixes.
+  . General
+    . Fixed text window memory corruption
+      for texts longer than 1024 lines.
+
+!-about;Return
