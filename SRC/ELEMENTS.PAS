@@ -514,6 +514,9 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 							isStatted := ElementDefs[Element].Cycle > -1;
 
 						if isStatted then begin
+							if not ExtensionEnabled[ExtFixConveyorStatSwapping] then
+								statIds[i] := GetStatIdAt(tx, ty);
+
 							tmpTile := Board.Tiles[tx][ty];
 							Board.Tiles[tx][ty] := tiles[i];
 							Board.Tiles[ix][iy].Element := E_EMPTY;
@@ -521,7 +524,8 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 
 							Board.Tiles[tx][ty] := tmpTile;
 							{ FIX: Add missing BoardDrawTile. }
-							BoardDrawTile(tx, ty);
+							if ExtensionEnabled[ExtFixConveyorStatSwapping] then
+								BoardDrawTile(tx, ty);
 						end else begin
 							Board.Tiles[ix][iy] := tiles[i];
 							BoardDrawTile(ix, iy);

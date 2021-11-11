@@ -18,5 +18,6 @@ TExtensionType = (
 {$ENDIF}
 	ExtGMDirByAt,
 	ExtGMPutPlayer,
+	ExtQuirkArgTile2,
 	ExtTypeEnd { This one has to be last. }
 );

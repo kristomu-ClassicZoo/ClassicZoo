@@ -83,9 +83,9 @@ const
 	ColorNames: array[0 .. 15] of string[3] =
 		('Blk', 'DBl', 'DGn', 'DCy', 'DRe', 'DMa', 'Bro', 'LGr', 'DGr', 'LBl', 'LGn', 'LCy', 'LRe', 'LMa', 'Yel', 'Wht');
 {$IFDEF NEC98}
-	EDITOR_ZXT_INFOS_COUNT = 14;
-{$ELSE}
 	EDITOR_ZXT_INFOS_COUNT = 15;
+{$ELSE}
+	EDITOR_ZXT_INFOS_COUNT = 16;
 {$ENDIF}
 	FZxtEditorCustomAdd = $8000;
 	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
@@ -136,7 +136,10 @@ const
 			Name: 'OOP: #IFEXT'),
 			(ExtType: ExtGMPutPlayer;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'OOP: #PUTPLAYER')
+			Name: 'OOP: #PUTPLAYER'),
+			(ExtType: ExtQuirkArgTile2;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'QUIRK: World uses argTile2 trick')
 		);
 
 function EditorShiftBoard(bidFrom, bidTo: integer; mode: TBoardShiftMode): boolean;

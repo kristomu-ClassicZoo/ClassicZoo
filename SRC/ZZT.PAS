@@ -230,6 +230,7 @@ begin
 		ZxtRegisterExtensionSimple(ExtFixConveyorStatSwapping, $00000001, $0007);
 		ZxtRegisterExtensionSimple(ExtFixBlinkWallShift, $00000001, $0008);
 		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);
+		ZxtRegisterExtensionSimple(ExtQuirkArgTile2, $00000000, $1001);
 		ZxtRegisterExtensionSimple(ExtDieItem, $0000A51E, $0001);
 		ZxtRegisterExtensionSimple(ExtDieUnderTile, $0000A51E, $0002);
 		ZxtRegisterExtensionSimple(ExtIfRnd, $0000A51E, $0004);
