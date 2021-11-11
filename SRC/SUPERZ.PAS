@@ -50,9 +50,6 @@ procedure ParseArguments;
 						SoundTimeCheckCounter := 0;
 						UseSystemTimeForElapsed := false;
 					end;
-{$IFDEF EDITOR}
-					'E': EditorEnabled := true;
-{$ENDIF}
 				end;
 
 				if pArg = '/NOEMS' then
@@ -122,7 +119,11 @@ begin
 	ResourceDataFileName := '';
 
 	GameTitleExitRequested := false;
+{$IFDEF EDITOR}
+	EditorEnabled := true;
+{$ELSE}
 	EditorEnabled := false;
+{$ENDIF}
 
 	ParseArguments;
 	GameConfigure;
