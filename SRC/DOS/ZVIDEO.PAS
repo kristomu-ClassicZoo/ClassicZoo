@@ -422,4 +422,5 @@ begin
 		VideoTextSegment := $B800;
 		VideoMonochrome := false;
 	end;
+	VideoForceNoSnow := false;
 end.
