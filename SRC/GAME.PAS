@@ -103,7 +103,20 @@ const
 	LineChars: TSmallString = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop;
+uses Dos, Crt, ExtMem, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop;
+
+procedure SidebarClearLine(y: integer);
+	begin
+		VideoWriteText(60, y, $11, #179'                   ');
+	end;
+
+procedure SidebarClear;
+	var
+		i: integer;
+	begin
+		for i := 3 to 24 do
+			SidebarClearLine(i);
+	end;
 
 procedure GenerateTransitionTable;
 	var
@@ -190,10 +203,11 @@ procedure BoardClose;
 			end;
 		end;
 
-		FreeMem(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
+		ExtMemFree(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
 		World.BoardLen[World.Info.CurrentBoard] := Ofs(ptr^) - Ofs(IoTmpBuf^);
-		GetMem(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
-		Move(IoTmpBuf^, World.BoardData[World.Info.CurrentBoard]^, World.BoardLen[World.Info.CurrentBoard]);
+		if ExtMemGet(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]) then begin
+			ExtMemWrite(World.BoardData[World.Info.CurrentBoard], IoTmpBuf^, World.BoardLen[World.Info.CurrentBoard]);
+		end else RunError(203);
 	end;
 
 procedure BoardOpen(boardId: integer);
@@ -205,7 +219,9 @@ procedure BoardOpen(boardId: integer);
 		if boardId > World.BoardCount then
 			boardId := World.Info.CurrentBoard;
 
-		ptr := World.BoardData[boardId];
+		ExtMemRead(World.BoardData[boardId], IoTmpBuf^, World.BoardLen[boardId]);
+
+		ptr := IoTmpBuf;
 
 		Move(ptr^, Board.Name, SizeOf(Board.Name));
 		AdvancePointer(ptr, SizeOf(Board.Name));
@@ -542,7 +558,7 @@ procedure WorldUnload;
 	begin
 		BoardClose;
 		for i := 0 to World.BoardCount do
-			FreeMem(World.BoardData[i], World.BoardLen[i]);
+			ExtMemFree(World.BoardData[i], World.BoardLen[i]);
 	end;
 
 function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boolean;
@@ -592,8 +608,10 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 				for i := 0 to World.BoardCount do begin
 					SidebarAnimateLoading;
 					BlockRead(f, World.BoardLen[i], 2);
-					GetMem(World.BoardData[i], World.BoardLen[i]);
-					BlockRead(f, World.BoardData[i]^, World.BoardLen[i]);
+					if ExtMemGet(World.BoardData[i], World.BoardLen[i]) then begin
+						BlockRead(f, IoTmpBuf^, World.BoardLen[i]);
+						ExtMemWrite(World.BoardData[i], IoTmpBuf^, World.BoardLen[i]);
+					end else RunError(203);
 				end;
 
 				Close(f);
@@ -662,7 +680,8 @@ procedure WorldSave(filename, extension: TSmallString);
 				BlockWrite(f, World.BoardLen[i], 2);
 				if DisplayIOError then goto OnError;
 
-				BlockWrite(f, World.BoardData[i]^, World.BoardLen[i]);
+				ExtMemRead(World.BoardData[i], IoTmpBuf^, World.BoardLen[i]);
+				BlockWrite(f, IoTmpBuf^, World.BoardLen[i]);
 				if DisplayIOError then goto OnError;
 			end;
 
@@ -1125,6 +1144,14 @@ procedure GameUpdateSidebar;
 			if DebugEnabled then begin
 				Str(MemAvail, numStr);
 				VideoWriteText(0, 0, $1E, 'm' + numStr + ' ');
+				if ExtMemEmsActive then begin
+					Str(ExtMemEmsAvailPages, numstr);
+					VideoWriteText(0, 1, $1E, 'e' + numStr + 'p ');
+				end;
+				if ExtMemXmsActive then begin
+					Str(ExtMemXmsAvail, numStr);
+					VideoWriteText(0, 2, $1E, 'x' + numStr + ' ');
+				end;
 			end;
 		end;
 	end;

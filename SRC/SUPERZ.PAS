@@ -28,7 +28,7 @@
 {$M 24576,163840,655360}
 {$ENDIF}
 program SUPERZ;
-uses Crt, Dos, Video, Keys, Sounds, Input, TxtWind, GameVars,
+uses Crt, Dos, ExtMem, Video, Keys, Sounds, Input, TxtWind, GameVars,
 	Elements, Editor, Oop, Game, Uncrlib,
 	S_REGIST, M_MONSTE, M_FOREST, M_PROVIN, S_ORDER, S_CONFIG;
 
@@ -36,7 +36,12 @@ procedure ParseArguments;
 	var
 		i: integer;
 		pArg: string;
+		enableEms: boolean;
+		enableXms: boolean;
 	begin
+		enableEms := true;
+		enableXms := true;
+
 		for i := 1 to ParamCount do begin
 			pArg := ParamStr(i);
 			if pArg[1] = '/' then begin
@@ -47,6 +52,11 @@ procedure ParseArguments;
 					end;
 					'E': EditorEnabled := true;
 				end;
+
+				if pArg = '/NOEMS' then
+					enableEms := false
+				else if pArg = '/NOXMS' then
+					enableXms := false;
 			end else begin
 				StartupWorldFileName := pArg;
 				if (Length(StartupWorldFileName) > 4) and (StartupWorldFileName[Length(StartupWorldFileName) - 3] = '.') then begin
@@ -54,6 +64,8 @@ procedure ParseArguments;
 				end;
 			end;
 		end;
+
+		ExtMemInstall(enableEms, enableXms);
 	end;
 
 procedure GameConfigure;
@@ -141,6 +153,7 @@ begin
 		GameTitleLoop;
 
 		Dispose(IoTmpBuf);
+		ExtMemUninstall;
 	end;
 
 	SoundUninstall;
