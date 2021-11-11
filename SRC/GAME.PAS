@@ -1710,11 +1710,13 @@ procedure GameTitleLoop;
 					'|': begin
 						GameDebugPrompt;
 					end;
+{$IFDEF EDITOR}
 					'E': if EditorEnabled then begin
 						EditorLoop;
 						ReturnBoardId := World.Info.CurrentBoard;
 						returningFromGame := true;
 					end;
+{$ENDIF}
 				end;
 			end;
 			if runTitle then begin
