@@ -1986,6 +1986,8 @@ procedure EditorLoop;
 						EditorEditWorldInfo;
 						TransitionDrawToBoard;
 					end;
+					{ TODO: Fix cut/copy/paste rendering for Super ZZT. }
+{
 					KEY_CTRL_X: begin
 						EditorSelectAndCopyCopyBuffer(cursorX, cursorY, true);
 					end;
@@ -1995,6 +1997,7 @@ procedure EditorLoop;
 					KEY_CTRL_V: begin
 						EditorAskAndPasteCopyBuffer(cursorX, cursorY);
 					end;
+}
 				end;
 			end;
 
