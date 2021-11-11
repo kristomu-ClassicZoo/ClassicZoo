@@ -2012,7 +2012,6 @@ procedure EditorLoop;
 			EditorClearPattern(copiedTiles[i], false);
 		InputKeyPressed := #0;
 		InitElementsGame;
-		GameVideoInstall(40, Blue, VIEW_PLAY);
 	end;
 
 procedure HighScoresLoad;
