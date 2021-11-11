@@ -75,7 +75,7 @@ procedure GameConfigure;
 		IsRegistered := true;
 
 		InputInitDevices;
-		VideoInstall(80, Blue);
+		GameVideoInstall(80, Blue, VIEW_TITLE);
 		Window(1, 1, 80, 25);
 		UnCrunch(S_CONFIGCSIData, VideoTextPointer^, S_CONFIGCSISize);
 
@@ -130,8 +130,7 @@ begin
 	GameConfigure;
 
 	if not GameTitleExitRequested then begin
-		VideoInstall(80, Blue);
-		TextWindowInit(1, 2, 38, 22);
+		GameVideoInstall(80, Blue, VIEW_TITLE);
 		GetMem(IoTmpBuf, IoTmpBufSize);
 
 		VideoHideCursor;

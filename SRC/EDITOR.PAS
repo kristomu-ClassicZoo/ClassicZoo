@@ -1613,7 +1613,7 @@ procedure EditorLoop;
 		end;
 
 	begin
-		VideoInstall(80, Blue);
+		GameVideoInstall(80, Blue, VIEW_EDITOR);
 
 		if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) then begin
 			WorldUnload;
@@ -2012,7 +2012,7 @@ procedure EditorLoop;
 			EditorClearPattern(copiedTiles[i], false);
 		InputKeyPressed := #0;
 		InitElementsGame;
-		VideoInstall(40, Blue);
+		GameVideoInstall(40, Blue, VIEW_PLAY);
 	end;
 
 procedure HighScoresLoad;

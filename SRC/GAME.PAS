@@ -33,6 +33,10 @@ interface
 		PROMPT_NUMERIC = 0;
 		PROMPT_ALPHANUM = 1;
 		PROMPT_ANY = 2;
+		VIEW_TITLE = 0;
+		VIEW_PLAY = 1;
+		VIEW_EDITOR = 2;
+	procedure GameVideoInstall(columns, borderColor, mode: integer);
 	procedure SidebarClearLine(y: integer);
 	procedure SidebarClear;
 	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
@@ -122,6 +126,19 @@ const
 
 implementation
 uses Dos, Crt, ExtMem, FileSel, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop;
+
+procedure GameVideoInstall(columns, borderColor, mode: integer);
+	begin
+		VideoInstall(columns, borderColor);
+		if mode = VIEW_TITLE then
+			TextWindowInit(15, 3, 50, 18)
+{$IFDEF EDITOR}
+		else if mode = VIEW_EDITOR then
+			TextWindowInit(5, 3, 50, 18)
+{$ENDIF}
+		else if mode = VIEW_PLAY then
+			TextWindowInit(1, 2, 38, 22);
+	end;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -1755,7 +1772,7 @@ procedure GameTitleLoop;
 			runTitle := false;
 			if not GamePlayStartRequested then begin
 				if returningFromGame then begin
-					VideoInstall(80, Black);
+					GameVideoInstall(80, Black, VIEW_TITLE);
 					returningFromGame := false;
 				end;
 				runPlay := false;
@@ -1785,7 +1802,7 @@ procedure GameTitleLoop;
 					end;
 					'R': begin
 						if GameWorldLoad('.SAV') then begin
-							VideoInstall(40, Blue);
+							GameVideoInstall(40, Blue, VIEW_PLAY);
 							ReturnBoardId := World.Info.CurrentBoard;
 							BoardChange(ReturnBoardId);
 							runPlay := true;
@@ -1815,7 +1832,7 @@ procedure GameTitleLoop;
 				end;
 			end;
 			if runTitle then begin
-				VideoInstall(40, Blue);
+				GameVideoInstall(40, Blue, VIEW_PLAY);
 				GameStateElement := E_MONITOR;
 				GamePaused := false;
 				GamePlayLoop(true);
@@ -1825,7 +1842,7 @@ procedure GameTitleLoop;
 				GameStateElement := E_PLAYER;
 				GamePaused := true;
 				if (not runTitle) and (not GamePlayStartRequested) then begin
-					VideoInstall(40, Blue);
+					GameVideoInstall(40, Blue, VIEW_PLAY);
 				end;
 				GamePlayStartRequested := false;
 				GamePlayLoop(false);
