@@ -737,13 +737,6 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 
 				HighScoresLoad;
 				ClearDisplayMessage;
-
-				for i := 1 to WorldFileDescCount do begin
-					if World.Info.Name = WorldFileDescKeys[i] then begin
-						MenuScrPointer := WorldFileMenuScrPtrs[i];
-						MenuScrLen := WorldFileMenuScrLens[i];
-					end;
-				end;
 			end;
 		end;
 
@@ -1794,10 +1787,6 @@ procedure GameTitleLoop;
 				runPlay := false;
 				VideoClear(Black);
 				UnCrunch(MenuScrPointer^, VideoTextPointer^, MenuScrLen);
-				if IsRegistered and (MenuScrPointer = WorldFileMenuScrPtrs[3]) then begin
-					VideoWriteText(6, 17, $0F, 'W');
-					VideoWriteText(10, 17, $0E, 'World Menu      ');
-				end;
 				InputReadWaitKey;
 				case UpCase(InputKeyPressed) of
 					'W': begin

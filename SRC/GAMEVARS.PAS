@@ -233,12 +233,14 @@ interface
 		ResetConfig: boolean;
 		JustStarted: boolean;
 
+{$IFDEF WORLDDSC}
 		WorldFileDescCount: integer;
 		WorldFileDescKeys: array[1 .. WORLD_FILE_DESC_COUNT] of TSmallString;
 		WorldFileDescValues: array[1 .. WORLD_FILE_DESC_COUNT] of TSmallString;
+{$ENDIF}
 
-		WorldFileMenuScrPtrs: array[-1 .. WORLD_FILE_DESC_COUNT] of pointer;
-		WorldFileMenuScrLens: array[-1 .. WORLD_FILE_DESC_COUNT] of word;
+		{ WorldFileMenuScrPtrs: array[-1 .. WORLD_FILE_DESC_COUNT] of pointer;
+		WorldFileMenuScrLens: array[-1 .. WORLD_FILE_DESC_COUNT] of word; }
 		MenuScrPointer: pointer;
 		MenuScrLen: word;
 	const

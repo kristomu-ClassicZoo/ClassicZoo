@@ -67,6 +67,12 @@ procedure ParseArguments;
 		ExtMemInstall(enableEms, enableXms);
 	end;
 
+procedure WriteRightPaddedBottom(s: string);
+	begin
+		GotoXY(77 - Length(s), 25);
+		Write(s);
+	end;
+
 procedure GameConfigure;
 	var
 		regFile: text;
@@ -79,8 +85,13 @@ procedure GameConfigure;
 		Window(1, 1, 80, 25);
 		UnCrunch(S_CONFIGCSIData, VideoTextPointer^, S_CONFIGCSISize);
 
+		TextBackground(White);
+		TextColor(Black);
+		WriteRightPaddedBottom('%NAME% %VERSION%');
+
 		Window(3, 8, 78, 23);
 		VideoClear(Blue);
+		TextBackground(Blue);
 		TextColor(Yellow);
 		if not InputConfigure then begin
 			GameTitleExitRequested := true
@@ -94,6 +105,7 @@ procedure GameConfigure;
 	end;
 
 begin
+{$IFDEF WORLDDSC}
 	WorldFileDescCount := WORLD_FILE_DESC_COUNT;
 	WorldFileDescKeys[1] := 'PROVING';
 	WorldFileDescValues[1] := 'PROVING  ZZT'#39's Proving Grounds';
@@ -101,23 +113,25 @@ begin
 	WorldFileDescValues[2] := 'FOREST   ZZT'#39's Lost Forest';
 	WorldFileDescKeys[3] := 'MONSTER';
 	WorldFileDescValues[3] := 'MONSTER  ZZT'#39's Monster Zoo';
+{$ENDIF}
 
-	WorldFileMenuScrPtrs[1] := @M_PROVINCSIData;
+	{ WorldFileMenuScrPtrs[1] := @M_PROVINCSIData;
 	WorldFileMenuScrLens[1] := M_PROVINCSISize;
 	WorldFileMenuScrPtrs[2] := @M_FORESTCSIData;
 	WorldFileMenuScrLens[2] := M_FORESTCSISize;
 	WorldFileMenuScrPtrs[3] := @M_MONSTECSIData;
-	WorldFileMenuScrLens[3] := M_MONSTECSISize;
+	WorldFileMenuScrLens[3] := M_MONSTECSISize; }
 
 	Randomize;
 	SetCBreak(false);
 	InitialTextAttr := TextAttr;
 
 	StartupWorldFileName := 'MONSTER';
-	MenuScrPointer := WorldFileMenuScrPtrs[3];
-	MenuScrLen := WorldFileMenuScrLens[3];
 	ResourceDataFileName := '';
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
+
+	MenuScrPointer := @M_MONSTECSIData;
+	MenuScrLen := M_MONSTECSISize;
 
 	GameTitleExitRequested := false;
 {$IFDEF EDITOR}
