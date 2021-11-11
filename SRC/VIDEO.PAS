@@ -489,4 +489,5 @@ begin
 	end;
 	VideoTextPointer := Ptr(VideoTextSegment, $0000);
 	VideoCursorVisible := true;
+	VideoForceNoSnow := false;
 end.
