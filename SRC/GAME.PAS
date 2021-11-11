@@ -33,6 +33,8 @@ interface
 		PROMPT_NUMERIC = 0;
 		PROMPT_ALPHANUM = 1;
 		PROMPT_ANY = 2;
+	procedure SidebarClearLine(y: integer);
+	procedure SidebarClear;
 	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
 	procedure GenerateTransitionTable;
 {$IFNDEF FPC}
@@ -62,7 +64,9 @@ interface
 	procedure PauseOnError;
 	function DisplayIOError: boolean;
 	procedure WorldUnload;
+	procedure SidebarAnimateLoading(var loadProgress: integer);
 	function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boolean;
+	procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmallString; var value: byte);
 	procedure SidebarPromptString(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
 	procedure WorldSave(filename, extension: TSmallString);
 	procedure GameWorldSave(prompt: TSmallString; var filename: TSmallString; extension: TSmallString);
@@ -634,6 +638,12 @@ procedure WorldUnload;
 			ExtMemFree(World.BoardData[i], World.BoardLen[i]);
 	end;
 
+procedure SidebarAnimateLoading(var loadProgress: integer);
+	begin
+		VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
+		loadProgress := (loadProgress + 1) mod 8;
+	end;
+
 function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boolean;
 	var
 		f: file;
@@ -641,11 +651,6 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 		i: integer;
 		loadProgress: integer;
 	label OnError;
-	procedure SidebarAnimateLoading;
-		begin
-			VideoWriteText(22, 24, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
-			loadProgress := (loadProgress + 1) mod 8;
-		end;
 	begin
 		WorldLoad := false;
 		loadProgress := 0;
@@ -680,7 +685,7 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 				AdvancePointer(ptr, SizeOf(World.Info));
 
 				for i := 0 to World.BoardCount do begin
-					SidebarAnimateLoading;
+					SidebarAnimateLoading(loadProgress);
 					BlockRead(f, World.BoardLen[i], 2);
 
 					if ExtMemGet(World.BoardData[i], World.BoardLen[i]) then begin
@@ -712,6 +717,37 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 
 	OnError:
 		Close(f);
+	end;
+
+procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmallString; var value: byte);
+	var
+		i, newValue: integer;
+	begin
+		SidebarClearLine(y);
+		VideoWriteText(x, y, Integer(editable) + $1E, prompt);
+		SidebarClearLine(y + 1);
+		VideoWriteText(x + 5, y + 1, $9F, #31);
+		SidebarClearLine(y + 2);
+
+		repeat
+			for i := (value - 4) to (value + 4) do
+				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) mod $100));
+
+			if editable then begin
+				Delay(25);
+				InputUpdate;
+				if InputKeyPressed = KEY_TAB then
+					InputDeltaX := 9;
+
+				newValue := value + InputDeltaX;
+				if value <> newValue then begin
+					value := (newValue + $100) mod $100;
+					SidebarClearLine(y + 2);
+				end;
+			end;
+		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
+
+		VideoWriteText(x + 5, y + 1, $1F, #31);
 	end;
 
 procedure SidebarPromptString(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
@@ -830,7 +866,7 @@ procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState)
 			for i := 1 to DataLen do begin
 				Move(dataPtr^, dataChr, 1);
 				if dataChr = KEY_ENTER then begin
-					TextWindowAppend(state, dataStr);
+					TextWindowAppendEdit(state, dataStr);
 					dataStr := '';
 				end else begin
 					dataStr := dataStr + dataChr;

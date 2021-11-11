@@ -1,5 +1,4 @@
-{
-	Copyright (c) 2020 Adrian Siekierka
+{	Copyright (c) 2020 Adrian Siekierka
 
 	Based on a reconstruction of code from Super ZZT,
 	Copyright 1991 Epic MegaGames, used with permission.
@@ -33,11 +32,12 @@ interface
 	procedure HighScoresLoad;
 	procedure HighScoresSave;
 	procedure HighScoresDisplay(linePos: integer);
-	procedure EditorOpenEditTextWindow(var state: TTextWindowState);
+	procedure EditorOpenEditTextWindow(var state: TTextWindowState; syntaxHighlighting: boolean);
 	procedure EditorEditHelpFile;
 	procedure HighScoresAdd(score: integer);
 	function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TSmallString;
-	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
+	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean;
+		windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 
 implementation
 uses Dos, Crt, FileSel, ExtMem, Video, Sounds, Input, Elements, Oop, Game;
@@ -47,10 +47,109 @@ const
 	PROMPT_ALPHANUM = 1;
 	PROMPT_ANY = 2;
 type
+	TBoardShiftMode = (BoardShiftDelete);
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
+	TEditorCopiedTile = record
+		stat: TStat;
+		isMainPlayer: boolean;
+		hasStat: boolean;
+		tile: TTile;
+		previewChar: byte;
+		previewColor: byte;
+	end;
+	TEditorCopyTileBuffer = array[0 .. 32000] of TTile;
+	TEditorCopyStatBuffer = array[1 .. MAX_STAT + 2] of TStat;
+	TEditorCopyBuffer = record
+		tiles: ^TEditorCopyTileBuffer;
+		stats: ^TEditorCopyStatBuffer;
+		statCount: integer;
+		width: byte;
+		height: byte;
+	end;
+
 const
+	COPIED_TILES_COUNT = 10;
 	NeighborBoardStrs: array[0 .. 3] of string[20] =
 		('       Board '#24, '       Board '#25, '       Board '#27, '       Board '#26);
+{	ColorNames: array[0 .. 15] of string[7] =
+		('Black  ', 'DBlue  ', 'DGreen ', 'DCyan  ', 'DRed   ', 'DPurple', 'Brown  ', 'LGray  ',
+		'DGray  ', 'Blue   ', 'Green  ', 'Cyan   ', 'Red    ', 'Purple ', 'Yellow ', 'White  ');}
+	ColorNames: array[0 .. 15] of string[3] =
+		('Blk', 'DBl', 'DGn', 'DCy', 'DRe', 'DMa', 'Bro', 'LGr', 'DGr', 'LBl', 'LGn', 'LCy', 'LRe', 'LMa', 'Yel', 'Wht');
+
+function EditorShiftBoard(bidFrom, bidTo: integer; mode: TBoardShiftMode): boolean;
+	var
+		i, j, prevBoard, newBid, loadProgress: integer;
+	function AdjustId(boardId: integer): integer;
+		begin
+			AdjustId := boardId;
+			case mode of
+			BoardShiftDelete: begin
+				if boardId > bidFrom then
+					AdjustId := boardId - 1
+				else if boardId = bidFrom then
+					AdjustId := -1;
+			end;
+			{ BoardShiftAdd: begin
+				if boardId >= bidTo then
+					AdjustId := boardId + 1;
+			end; }
+			end;
+		end;
+	begin
+		SidebarClearLine(4);
+		SidebarClearLine(5);
+		VideoWriteText(62, 5, $1F, 'Editing.....');
+
+		loadProgress := 0;
+
+		EditorShiftBoard := true;
+		prevBoard := AdjustId(World.Info.CurrentBoard);
+		if prevBoard < 0 then begin
+			prevBoard := 0;
+		end;
+
+		for i := 0 to World.BoardCount do begin
+			{ Skip boards about to be deleted. }
+			if AdjustId(i) < 0 then begin end;
+
+			SidebarAnimateLoading(loadProgress);
+			BoardChange(i);
+			for j := 0 to 3 do begin
+				newBid := AdjustId(Board.Info.NeighborBoards[j]);
+				if newBid < 0 then begin
+					newBid := 0;
+				end;
+				Board.Info.NeighborBoards[j] := newBid;
+			end;
+			for j := 1 to Board.StatCount do with Board.Stats[j] do begin
+				if Board.Tiles[X][Y].Element = E_PASSAGE then begin
+					newBid := AdjustId(P3);
+					if newBid < 0 then begin
+						newBid := 0;
+						EditorShiftBoard := false;
+					end;
+					P3 := newBid;
+				end;
+			end;
+		end;
+
+		case mode of
+		BoardShiftDelete: begin
+			SidebarAnimateLoading(loadProgress);
+			BoardClose;
+			BoardOpen(bidFrom);
+			BoardClose;
+			ExtMemFree(World.BoardData[bidFrom], World.BoardLen[bidFrom]);
+			Dec(World.BoardCount);
+			for i := bidFrom to World.BoardCount do begin
+				World.BoardData[i] := World.BoardData[i + 1];
+				World.BoardLen[i] := World.BoardLen[i + 1];
+			end;
+			BoardOpen(prevBoard);
+		end;
+		end;
+	end;
 
 procedure SidebarClearLine(y: integer); forward;
 procedure SidebarClear; forward;
@@ -210,7 +309,6 @@ procedure EditorAppendBoard;
 		end;
 	end;
 
-
 procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; var deltaX, deltaY: integer);
 	var
 		choice: byte;
@@ -302,23 +400,156 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 		VideoWriteText(x + value + 1, y + 1, $1F, #31);
 	end;
 
+procedure EditorCopyStat(var fromStat: TStat; var toStat: TStat);
+	begin
+		Move(fromStat, toStat, SizeOf(TStat));
+		if toStat.DataLen > 0 then begin
+			GetMem(toStat.Data, toStat.DataLen);
+			Move(fromStat.Data^, toStat.Data^, toStat.DataLen);
+		end else begin
+			toStat.DataLen := 0;
+		end;
+	end;
+
 procedure EditorLoop;
 	var
 		selectedCategory: integer;
-		elemMenuColor: integer;
 		wasModified: boolean;
 		editorExitRequested: boolean;
 		drawMode: TDrawMode;
 		cursorX, cursorY: integer;
 		cursorPattern, cursorColor: integer;
+		colorIgnoreDefaults: boolean;
 		i, iElem: integer;
 		canModify: boolean;
-		unk1: TSmallString;
-		copiedStat: TStat;
-		copiedHasStat: boolean;
-		copiedTile: TTile;
-		copiedX, copiedY: integer;
+		copiedTiles: array[1 .. COPIED_TILES_COUNT] of TEditorCopiedTile;
 		cursorBlinker: integer;
+		inputByte: byte;
+		copyBuffer: TEditorCopyBuffer;
+
+	function EditorGetDrawingColor(eid: integer): integer;
+		begin
+			if eid = E_PLAYER then
+				EditorGetDrawingColor := ElementDefs[eid].Color
+			else if colorIgnoreDefaults or (ElementDefs[eid].Color = COLOR_CHOICE_ON_BLACK) then
+				EditorGetDrawingColor := cursorColor
+			else if ElementDefs[eid].Color = COLOR_WHITE_ON_CHOICE then
+				EditorGetDrawingColor := ((cursorColor and $07) shl 4) + $0F
+			else if ElementDefs[eid].Color = COLOR_CHOICE_ON_CHOICE then
+				EditorGetDrawingColor := ((cursorColor and $07) * $11) + 8
+			else
+				EditorGetDrawingColor := ElementDefs[eid].Color;
+		end;
+
+	procedure EditorUpdateCursorColor;
+		var
+			colorBg, colorFg: byte;
+		begin
+			VideoWriteText(72, 19, $1E, ColorNames[cursorColor and $0F]);
+			VideoWriteText(76, 19, $1E, ColorNames[cursorColor shr 4]);
+
+			VideoWriteText(61, 24, $1F, '                ');
+
+			colorBg := cursorColor shr 4;
+			colorFg := cursorColor and $0F;
+
+			if colorBg = colorFg then begin
+				VideoWriteText(61 + colorBg, 24, $9F, #30);
+			end else begin
+				VideoWriteText(61 + colorFg, 24, $1F, #24);
+				VideoWriteText(61 + colorBg, 24, $1F, '^');
+			end;
+		end;
+
+	procedure EditorUpdateCursorPattern;
+		begin
+			VideoWriteText(61, 22, $1F, '                ');
+			VideoWriteText(60 + cursorPattern, 22, $1F, #30);
+		end;
+
+	procedure EditorUpdateDrawMode;
+		begin
+			case drawMode of
+				DrawingOn: VideoWriteText(75, 16, $9E, 'Draw');
+				TextEntry: VideoWriteText(75, 16, $9E, 'Text');
+				DrawingOff: VideoWriteText(75, 16, $1E, 'None');
+			end;
+
+			if drawMode = TextEntry then begin
+				VideoWriteText(61, 15, $70, '  f10  ');
+				VideoWriteText(68, 15, $1F, ' Custom');
+			end else begin
+				VideoWriteText(61, 15, $70, ' Space ');
+				VideoWriteText(68, 15, $1F, ' Plot  ');
+			end;
+		end;
+
+	procedure EditorUpdateColorIgnoreDefaults;
+		begin
+			if colorIgnoreDefaults then
+				VideoWriteText(78, 23, $1F, 'd')
+			else
+				VideoWriteText(78, 23, $1F, 'D')
+		end;
+
+	procedure EditorUpdateCopiedPatterns;
+		var
+			i: integer;
+		begin
+			for i := 1 to COPIED_TILES_COUNT do
+				with copiedTiles[i] do
+					VideoWriteText(60 + EditorPatternCount + i, 21, previewColor, Chr(previewChar));
+		end;
+
+	procedure EditorClearPattern(var copied: TEditorCopiedTile; first: boolean);
+		begin
+			with copied do begin
+				hasStat := false;
+				isMainPlayer := false;
+				tile.Element := 0;
+				tile.Color := $0F;
+				previewChar := 0;
+				previewColor := $0F;
+				if first then stat.Data := nil
+				else if stat.Data <> nil then FreeMem(stat.Data, stat.DataLen);
+			end;
+		end;
+
+	{ TODO: Unify with BoardDrawTile? }
+	procedure EditorCopyPattern(x, y: integer; var copied: TEditorCopiedTile);
+		var
+			statId: integer;
+		begin
+			statId := GetStatIdAt(x, y);
+
+			EditorClearPattern(copied, false);
+			with copied do begin
+				tile := Board.Tiles[cursorX][cursorY];
+				hasStat := statId > 0;
+				isMainPlayer := statId = 0;
+				if hasStat then
+					EditorCopyStat(Board.Stats[statId], stat);
+				if ElementDefs[tile.Element].HasDrawProc then
+					ElementDefs[tile.Element].DrawProc(x, y, previewChar)
+				else if tile.Element < E_TEXT_MIN then
+					previewChar := Ord(ElementDefs[tile.Element].Character)
+				else
+					previewChar := tile.Color;
+
+				if tile.Element < E_TEXT_MIN then
+					previewColor := tile.Color
+				else if tile.Element = E_TEXT_WHITE then
+					previewColor := $0F
+				else
+					previewColor := (((tile.Element - E_TEXT_MIN) + 1) shl 4) + $0F;
+			end;
+		end;
+
+	procedure EditorCopyPatternToCurrent(x, y: integer);
+		begin
+			if cursorPattern > EditorPatternCount then
+				EditorCopyPattern(x, y, copiedTiles[cursorPattern - EditorPatternCount]);
+		end;
 
 	procedure EditorDrawSidebar;
 		var
@@ -335,13 +566,13 @@ procedure EditorLoop;
 			VideoWriteText(61, 5, $30, ' S ');
 			VideoWriteText(64, 5, $1F, ' Save');
 			VideoWriteText(70, 4, $70, ' H ');
-			VideoWriteText(73, 4, $1E, ' Help');
+			VideoWriteText(73, 4, $1F, ' Help');
 			VideoWriteText(70, 5, $30, ' Q ');
 			VideoWriteText(73, 5, $1F, ' Quit');
 			VideoWriteText(61, 7, $70, ' B ');
-			VideoWriteText(65, 7, $1F, ' Switch boards');
+			VideoWriteText(64, 7, $1F, ' Switch boards');
 			VideoWriteText(61, 8, $30, ' I ');
-			VideoWriteText(65, 8, $1F, ' Board Info');
+			VideoWriteText(64, 8, $1F, ' Board Info');
 			VideoWriteText(61, 10, $70, '  f1   ');
 			VideoWriteText(68, 10, $1F, ' Item');
 			VideoWriteText(61, 11, $30, '  f2   ');
@@ -350,30 +581,27 @@ procedure EditorLoop;
 			VideoWriteText(68, 12, $1F, ' Terrain');
 			VideoWriteText(61, 13, $30, '  f6   ');
 			VideoWriteText(68, 13, $1F, ' Enter text');
-			VideoWriteText(61, 15, $70, ' Space ');
-			VideoWriteText(68, 15, $1F, ' Plot');
 			VideoWriteText(61, 16, $30, '  Tab  ');
-			VideoWriteText(68, 16, $1F, ' Draw mode');
+			VideoWriteText(68, 16, $1F, ' Mode:');
 			VideoWriteText(61, 18, $70, ' P ');
 			VideoWriteText(64, 18, $1F, ' Pattern');
 			VideoWriteText(61, 19, $30, ' C ');
 			VideoWriteText(64, 19, $1F, ' Color:');
+			VideoWriteText(75, 19, $1F, #26);
 
 			{ Colors }
-			for i := 8 to 15 do
-				VideoWriteText(61 + i, 22, (i * $11) - $80, #223);
+			for i := 0 to 15 do
+				VideoWriteText(61 + i, 23, $10 + i, #219);
+			EditorUpdateCursorColor;
+			EditorUpdateColorIgnoreDefaults;
 
 			{ Patterns }
 			for i := 1 to EditorPatternCount do
-				VideoWriteText(61 + i, 22, $0F, ElementDefs[EditorPatterns[i]].Character);
+				VideoWriteText(60 + i, 21, $0F, ElementDefs[EditorPatterns[i]].Character);
+			EditorUpdateCopiedPatterns;
+			EditorUpdateCursorPattern;
 
-			if ElementDefs[copiedTile.Element].HasDrawProc then
-				ElementDefs[copiedTile.Element].DrawProc(copiedX, copiedY, copiedChr)
-			else
-				copiedChr := Ord(ElementDefs[copiedTile.Element].Character);
-			VideoWriteText(62 + EditorPatternCount, 22, copiedTile.Color, Chr(copiedChr));
-
-			VideoWriteText(61, 24, $1F, ' Mode:');
+			EditorUpdateDrawMode;
 		end;
 
 	procedure EditorDrawTileAndNeighborsAt(x, y: integer);
@@ -387,25 +615,6 @@ procedure EditorLoop;
 				if (ix >= 1) and (ix <= BOARD_WIDTH) and (iy >= 1) and (iy <= BOARD_HEIGHT) then
 					BoardDrawTile(ix, iy);
 			end;
-		end;
-
-	procedure EditorUpdateSidebar;
-		begin
-			if drawMode = DrawingOn then
-				VideoWriteText(68, 24, $9E, 'Drawing on ')
-			else if drawMode = TextEntry then
-				VideoWriteText(68, 24, $9E, 'Text entry ')
-			else if drawMode = DrawingOff then
-				VideoWriteText(68, 24, $1E, 'Drawing off');
-
-			VideoWriteText(72, 19, $1E, ColorNames[cursorColor and 7]);
-			VideoWriteText(61 + cursorPattern, 21, $1F, #31);
-			VideoWriteText(69 + ((cursorColor and $70) div $10), 23, $1E, #24);
-			VideoWriteText(
-				69 + (cursorColor and $7),
-				23 - ((cursorColor and $8) div $4),
-				$1F, Chr(30 + ((cursorColor and $8) div $8))
-			);
 		end;
 
 	procedure EditorDrawRefresh;
@@ -423,17 +632,21 @@ procedure EditorLoop;
 				VideoWriteText(44, 0, $70, ' Untitled ');
 		end;
 
+	procedure EditorSetTile(x, y, newElement, newColor: byte);
+		begin
+			with Board.Tiles[x][y] do begin
+				Element := newElement;
+				Color := newColor;
+			end;
+			EditorDrawTileAndNeighborsAt(x, y);
+		end;
+
 	procedure EditorSetAndCopyTile(x, y, element, color: byte);
 		begin
-			Board.Tiles[x][y].Element := element;
-			Board.Tiles[x][y].Color := color;
+			EditorSetTile(x, y, element, color);
 
-			copiedTile := Board.Tiles[x][y];
-			copiedHasStat := false;
-			copiedX := x;
-			copiedY := y;
-
-			EditorDrawTileAndNeighborsAt(x, y);
+			EditorCopyPatternToCurrent(x, y);
+			EditorUpdateCopiedPatterns;
 		end;
 
 	procedure EditorAskSaveChanged;
@@ -469,18 +682,36 @@ procedure EditorLoop;
 						Element := EditorPatterns[cursorPattern];
 						Color := cursorColor;
 					end;
-				end else if copiedHasStat then begin
-					if EditorPrepareModifyStatAtCursor then begin
-						AddStat(x, y, copiedTile.Element, copiedTile.Color, copiedStat.Cycle, copiedStat);
-					end
-				end else begin
-					if EditorPrepareModifyTile(x, y) then begin
-						Board.Tiles[x][y] := copiedTile;
+				end else with copiedTiles[cursorPattern - EditorPatternCount] do begin
+					if isMainPlayer then begin
+						if EditorPrepareModifyTile(x, y) then
+							MoveStat(0, x, y);
+					end else if hasStat then begin
+						if EditorPrepareModifyStatAtCursor then begin
+							AddStat(x, y, tile.Element, tile.Color, stat.Cycle, stat);
+						end
+					end else begin
+						if EditorPrepareModifyTile(x, y) then begin
+							Board.Tiles[x][y] := tile;
+						end;
 					end;
 				end;
 
 				EditorDrawTileAndNeighborsAt(x, y);
 			end;
+		end;
+
+	procedure EditorRemoveTile(x, y: integer);
+		var
+			statId: integer;
+		begin
+			statId := GetStatIdAt(x, y);
+			if statId > 0 then
+				RemoveStat(statId)
+			else if statId < 0 then
+				Board.Tiles[x][y].Element := E_EMPTY
+			else exit; { statId = 0 (player) cannot be modified }
+			BoardDrawTile(x, y);
 		end;
 
 	procedure EditorEditBoardInfo;
@@ -506,7 +737,7 @@ procedure EditorLoop;
 
 			repeat
 				state.Selectable := true;
-				state.LineCount := 10;
+				state.LineCount := 11;
 				for i := 1 to state.LineCount do
 					New(state.Lines[i]);
 
@@ -527,12 +758,12 @@ procedure EditorLoop;
 				Str(Board.Info.TimeLimitSec, numStr);
 				state.Lines[9]^ := '  Time limit, 0=None: ' + numStr + ' sec.';
 
-				state.Lines[10]^ := '          Quit!';
+				state.Lines[10]^ := '';
+				state.Lines[11]^ := '!;Exit';
 
-				TextWindowSelect(state, false, false);
-				if (InputKeyPressed = KEY_ENTER) and (state.LinePos >= 1) and (state.LinePos <= 8) then
+				TextWindowSelect(state, true, false);
+				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 11) then begin
 					wasModified := true;
-				if (InputKeyPressed = KEY_ENTER) then
 					case state.LinePos of
 						1: begin
 							PopupPromptString('New title for board:', Board.Name);
@@ -553,11 +784,12 @@ procedure EditorLoop;
 								:= EditorSelectBoard(
 									NeighborBoardStrs[state.LinePos - 4],
 									Board.Info.NeighborBoards[state.LinePos - 4],
-									true
+									true, true, true
 								);
-							if Board.Info.NeighborBoards[state.LinePos - 4] > World.BoardCount then
+							if Board.Info.NeighborBoards[state.LinePos - 4] > World.BoardCount then begin
 								EditorAppendBoard;
-							exitRequested := true;
+								exitRequested := true;
+							end;
 						end;
 						8: begin
 							Board.Info.ReenterWhenZapped := not Board.Info.ReenterWhenZapped;
@@ -569,17 +801,83 @@ procedure EditorLoop;
 								Val(numStr, Board.Info.TimeLimitSec, i);
 							EditorDrawSidebar;
 						end;
-						10: begin
-							exitRequested := true;
-							TextWindowDrawClose(state);
-						end;
 					end
-				else begin
+				end else begin
 					exitRequested := true;
 					TextWindowDrawClose(state);
 				end;
 
-				TextWindowFree(state);
+				TextWindowFreeEdit(state);
+			until exitRequested;
+		end;
+
+	procedure EditorEditWorldInfo;
+		var
+			state: TTextWindowState;
+			i: integer;
+			numStr: TSmallString;
+			exitRequested: boolean;
+		begin
+			state.Title := 'World Information';
+			TextWindowDrawOpen(state);
+			state.LinePos := 1;
+			exitRequested := false;
+
+			repeat
+				state.Selectable := true;
+				state.LineCount := 4;
+				for i := 1 to state.LineCount do
+					New(state.Lines[i]);
+
+				Str(World.Info.Health, numStr);
+				state.Lines[1]^  := ' Starting health: ' + numStr;
+				state.Lines[2]^  := '';
+				state.Lines[3]^  := '!;Delete board';
+				state.Lines[4]^ := '!;Exit';
+
+				TextWindowSelect(state, true, false);
+				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 4) then begin
+					wasModified := true;
+					case state.LinePos of
+						1: begin
+							Str(World.Info.Health, numStr);
+							SidebarPromptString('Health?', '', numStr, PROMPT_NUMERIC);
+							if Length(numStr) <> 0 then
+								Val(numStr, World.Info.Health, i);
+							EditorDrawSidebar;
+						end;
+						3: begin
+							i := EditorSelectBoard(
+								'Delete board',
+								World.Info.CurrentBoard,
+								true, true, false
+							);
+							if i > 0 then begin
+								if not EditorShiftBoard(i, -1, BoardShiftDelete) then begin
+									TextWindowFreeEdit(state);
+									
+									state.LineCount := 4;
+									for i := 1 to state.LineCount do
+										New(state.Lines[i]);
+
+									state.Lines[1]^ := '$Warning';
+									state.Lines[2]^ := '';
+									state.Lines[3]^ := 'Some board exits and/or passages have had';
+									state.Lines[4]^ := 'their destinations reset.';
+
+									TextWindowSelect(state, false, false);
+								end;
+								EditorDrawSidebar;
+							end;
+							exitRequested := true;
+						end;
+					end
+				end else begin
+					exitRequested := true;
+					TextWindowDrawClose(state);
+				end;
+
+				TextWindowFreeEdit(state);
 			until exitRequested;
 		end;
 
@@ -609,7 +907,7 @@ procedure EditorLoop;
 					FillChar(affectedStats, Board.StatCount + 1, false);
 				end;
 
-				EditorOpenEditTextWindow(state);
+				EditorOpenEditTextWindow(state, true);
 
 				for iLine := 1 to state.LineCount do
 					DataLen := DataLen + Length(state.Lines[iLine]^) + 1;
@@ -639,8 +937,8 @@ procedure EditorLoop;
 					AdvancePointer(dataPtr, 1);
 				end;
 
-				TextWindowFree(state);
 				TextWindowDrawClose(state);
+				TextWindowFreeEdit(state);
 				InputKeyPressed := #0;
 			end;
 		end;
@@ -675,6 +973,14 @@ procedure EditorLoop;
 						iy := iy + 4;
 					end;
 
+					{ if element = E_OBJECT then begin
+						SidebarPromptNumeric(selected, 63, iy, 'Initial cycle?', 1, 420, Cycle);
+						Inc(iy, 4);
+					end; }
+
+					if (element = E_BULLET) or (element = E_STAR) then
+						P2 := 100; { unused on bullet, lifetime on star }
+
 					if (InputKeyPressed <> KEY_ESCAPE) and
 						(Length(ElementDefs[element].ParamTextName) <> 0) then
 					begin
@@ -708,6 +1014,18 @@ procedure EditorLoop;
 					end;
 
 					if (InputKeyPressed <> KEY_ESCAPE) and
+						(element = E_BULLET) then
+					begin
+						promptByte := (P1 and 1);
+						SidebarPromptChoice(selected, iy, 'Source?', 'Player Creature', promptByte);
+						if selected then begin
+							P1 := promptByte;
+							World.EditorStatSettings[element].P1 := P1;
+						end;
+						Inc(iy, 4);
+					end;
+
+					if (InputKeyPressed <> KEY_ESCAPE) and
 						(Length(ElementDefs[element].ParamDirName) <> 0) then
 					begin
 						SidebarPromptDirection(selected, iy, ElementDefs[element].ParamDirName,
@@ -723,15 +1041,16 @@ procedure EditorLoop;
 						(Length(ElementDefs[element].ParamBoardName) <> 0) then
 					begin
 						if selected then begin
-							selectedBoard := EditorSelectBoard(ElementDefs[element].ParamBoardName, P3, true);
+							selectedBoard := EditorSelectBoard(ElementDefs[element].ParamBoardName, P3, true, false, true);
 							if selectedBoard <> 0 then begin
 								P3 := selectedBoard;
 								World.EditorStatSettings[element].P3 := World.Info.CurrentBoard;
 								if P3 > World.BoardCount then begin
 									EditorAppendBoard;
-									copiedHasStat := false;
+									{ TODO: is this still necessary? }
+									{ copiedHasStat := false;
 									copiedTile.Element := 0;
-									copiedTile.Color := $0F;
+									copiedTile.Color := $0F; }
 								end;
 								World.EditorStatSettings[element].P3 := P3;
 							end else begin
@@ -768,11 +1087,7 @@ procedure EditorLoop;
 				EditorEditStatSettings(true);
 
 				if InputKeyPressed <> KEY_ESCAPE then begin
-					copiedHasStat := true;
-					copiedStat := Board.Stats[statId];
-					copiedTile := Board.Tiles[X][Y];
-					copiedX := X;
-					copiedY := Y;
+					EditorCopyPatternToCurrent(X, Y);
 				end;
 			end;
 		end;
@@ -861,38 +1176,6 @@ procedure EditorLoop;
 			EditorDrawSidebar;
 		end;
 
-	procedure EditorFloodFill(x, y: integer; from: TTile);
-		var
-			i: integer;
-			tileAt: TTile;
-			toFill, filled: byte;
-			xPosition: array[0 .. 255] of integer;
-			yPosition: array[0 .. 255] of integer;
-		begin
-			toFill := 1;
-			filled := 0;
-			while toFill <> filled do begin
-				tileAt := Board.Tiles[x][y];
-				EditorPlaceTile(x, y);
-				if (Board.Tiles[x][y].Element <> tileAt.Element)
-					or (Board.Tiles[x][y].Color <> tileAt.Color) then
-					for i := 0 to 3 do
-						with Board.Tiles[x + NeighborDeltaX[i]][y + NeighborDeltaY[i]] do begin
-							if (Element = from.Element)
-								and ((from.Element = 0) or (Color = from.Color)) then
-							begin
-								xPosition[toFill] := x + NeighborDeltaX[i];
-								yPosition[toFill] := y + NeighborDeltaY[i];
-								toFill := toFill + 1;
-							end;
-						end;
-
-				filled := filled + 1;
-				x := xPosition[filled];
-				y := yPosition[filled];
-			end;
-		end;
-
 	procedure EditorMoveCursor(newX, newY: integer; redraw: boolean);
 		var
 			numStr: TSmallString;
@@ -941,6 +1224,377 @@ procedure EditorLoop;
 			VideoWriteText(65, 23, $1F, numStr);
 		end;
 
+	procedure EditorBoardChange(boardId: integer);
+		begin
+			BoardChange(boardId);
+			EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, false);
+		end;
+
+	procedure EditorUpdateCursorPos(drawCursor: boolean);
+		begin
+			if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+				EditorMoveCursor(
+					((Integer(InputShiftPressed) * ((BOARD_DRAW_WIDTH div 2) - 1)) + 1) * InputDeltaX + cursorX,
+					((Integer(InputShiftPressed) * ((BOARD_DRAW_HEIGHT div 2) - 1)) + 1) * InputDeltaY + cursorY,
+					false
+				);
+
+				if drawCursor then
+					VideoWriteText(
+						cursorX + BOARD_DRAW_X - Board.Info.DrawXOffset,
+						cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
+						$0F, #197
+					);
+
+				if (InputKeyPressed = #0) and InputJoystickEnabled then
+					Delay(70);
+				InputShiftAccepted := false;
+			end;
+		end;
+
+
+	procedure EditorFreeCopyBuffer;
+		var
+			i: integer;
+		begin
+			with copyBuffer do begin
+				if width <= 0 then exit;
+
+				FreeMem(tiles, Integer(width) * Integer(height) * SizeOf(TTile));
+				width := 0;
+
+				if statCount > 0 then begin
+					for i := 1 to statCount do begin
+						with stats^[i] do begin
+							if Data <> nil then FreeMem(Data, DataLen);
+						end;
+					end;
+					FreeMem(stats, statCount * SizeOf(TStat));
+				end;
+			end;
+		end;
+
+	procedure EditorRefreshCopyBuffer(ox, oy, width, height: integer);
+		var
+			ix, iy, tx, ty: integer;
+		begin
+			{ Refresh }
+			for iy := -1 to (height + 1) do begin
+				for ix := -1 to (width + 1) do begin
+					tx := ox + ix;
+					ty := oy + iy;
+					if (tx >= 1) and (ty >= 1) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then
+						BoardDrawTile(tx, ty);
+				end;
+			end;
+		end;
+
+	procedure EditorPasteCopyBuffer(ox, oy: integer);
+		var
+			ix, iy, ip, ist, tx, ty: integer;
+		begin
+			Dec(ox);
+			Dec(oy);
+
+			with copyBuffer do begin
+				if width <= 0 then exit;
+
+				{ Paste - Tiles }
+				ip := 0;
+				for iy := 1 to height do begin
+					for ix := 1 to width do begin
+						tx := ox + ix;
+						ty := oy + iy;
+						if (tx >= 1) and (ty >= 1) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then begin
+							ist := GetStatIdAt(tx, ty);
+							while ist > 0 do begin
+								RemoveStat(ist);
+								ist := GetStatIdAt(tx, ty);
+							end;
+							if ist < 0 then begin
+								Board.Tiles[tx][ty] := tiles^[ip];
+							end;
+						end;
+						Inc(ip);
+					end;
+				end;
+
+				{ Paste - Stats }
+				for ix := 1 to statCount do begin
+					with stats^[ix] do begin
+						tx := ox + X;
+						ty := oy + Y;
+					end;
+					if (tx >= 1) and (ty >= 1) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then begin
+						if Board.StatCount < MAX_STAT then begin
+							Inc(Board.StatCount);
+							EditorCopyStat(stats^[ix], Board.Stats[Board.StatCount]);
+							with Board.Stats[Board.StatCount] do begin
+								Inc(X, ox);
+								Inc(Y, oy);
+							end;
+						end else begin
+							ist := GetStatIdAt(tx, ty);
+							if ist < 0 then begin
+								Board.Tiles[tx][ty].Element := E_EMPTY;
+							end;
+						end;
+					end;
+				end;
+
+				EditorRefreshCopyBuffer(ox + 1, oy + 1, width, height);
+			end;
+		end;
+
+	procedure EditorAskAndPasteCopyBuffer(ox, oy: integer);
+		procedure InvertSel;
+			var
+				maxX, maxY: integer;
+			begin
+				Dec(ox);
+				Dec(oy);
+				maxX := ox + copyBuffer.width;
+				maxY := oy + copyBuffer.height;
+				if maxX > BOARD_WIDTH then maxX := BOARD_WIDTH;
+				if maxY > BOARD_HEIGHT then maxY := BOARD_HEIGHT;
+				Dec(maxX);
+				Dec(maxY);
+				VideoInvert(ox, oy, maxX, maxY);
+				Inc(ox);
+				Inc(oy);
+			end;
+		begin
+			InvertSel;
+			while true do begin
+				InputReadWaitKey;
+				case UpCase(InputKeyPressed) of
+					KEY_ENTER: begin
+						InvertSel;
+						EditorPasteCopyBuffer(ox, oy);
+						exit;
+					end;
+					KEY_ESCAPE: begin
+						InvertSel;
+						exit;
+					end;
+				end;
+			end;
+		end;
+
+	procedure EditorCopyCopyBuffer(ox1, oy1, ox2, oy2: integer; doCut: boolean);
+		var
+			ix, iy, ip, ist, tx, ty: integer;
+		begin
+			EditorFreeCopyBuffer;
+			if ox2 < ox1 then begin
+				ix := ox1;
+				ox1 := ox2;
+				ox2 := ix;
+			end;
+			if oy2 < oy1 then begin
+				ix := oy1;
+				oy1 := oy2;
+				oy2 := ix;
+			end;
+
+			with copyBuffer do begin
+				Dec(ox1);
+				Dec(oy1);
+
+				width := ox2 - ox1;
+				height := oy2 - oy1;
+				statCount := 0;
+
+				{ Copy - Tiles }
+				GetMem(tiles, Integer(width) * Integer(height) * SizeOf(TTile));
+				ip := 0;
+				for iy := 1 to height do begin
+					for ix := 1 to width do begin
+						tx := ox1 + ix;
+						ty := oy1 + iy;
+
+						with tiles^[ip] do begin
+							Element := E_EMPTY;
+							Color := $0F;
+						end;
+
+						if (tx >= 1) and (ty >= 1) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then begin
+							if (tx <> Board.Stats[0].X) or (ty <> Board.Stats[0].Y) then begin
+								tiles^[ip] := Board.Tiles[tx][ty];
+							end;
+						end;
+
+						Inc(ip);
+					end;
+				end;
+
+				{ Copy - Stats, count }
+				for ist := 1 to Board.StatCount do begin
+					with Board.Stats[ist] do begin
+						if (X > ox1) and (Y > oy1) and (X <= (ox1 + width)) and (Y <= (oy1 + height)) then begin
+							Inc(statCount);
+						end;
+					end;
+				end;
+
+				{ Copy - Stats }
+				if statCount > 0 then begin
+					GetMem(stats, statCount * SizeOf(TStat));
+					ip := 0;
+					for ist := 1 to Board.StatCount do begin
+						with Board.Stats[ist] do begin
+							if (X > ox1) and (Y > oy1) and (X <= (ox1 + width)) and (Y <= (oy1 + height)) then begin
+								Inc(ip);
+								EditorCopyStat(Board.Stats[ist], stats^[ip]);
+								with stats^[ip] do begin
+									Dec(X, ox1);
+									Dec(Y, oy1);
+								end;
+							end;
+						end;
+					end;
+					if ip <> statCount then RunError(201);
+				end;
+
+				if doCut then begin
+					for iy := 1 to height do
+						for ix := 1 to width do
+							EditorPlaceTile(ox1 + ix, oy1 + iy);
+				end;
+
+				EditorRefreshCopyBuffer(ox1, oy1, width, height);
+			end;
+		end;
+
+	procedure EditorSelectAndCopyCopyBuffer(ox1, oy1: integer; doCut: boolean);
+		var
+			ix, iy, oldCx, oldCy: integer;
+			running: boolean;
+		procedure InvertLocal;
+			begin
+				VideoInvert(ox1 - 1, oy1 - 1, oldCx - 1, oldCy - 1);
+			end;
+		begin
+			running := true;
+
+			oldCx := cursorX;
+			oldCy := cursorY;
+
+			BoardDrawTile(ox1, oy1);
+			InvertLocal;
+
+			while running do begin
+				InputUpdate;
+
+				EditorUpdateCursorPos(false);
+				if (oldCx <> cursorX) or (oldCy <> cursorY) then begin
+					InvertLocal;
+					oldCx := cursorX;
+					oldCy := cursorY;
+					InvertLocal;
+				end;
+
+				case UpCase(InputKeyPressed) of
+					KEY_ESCAPE: begin
+						running := false;
+					end;
+					KEY_ENTER: begin
+						EditorCopyCopyBuffer(ox1, oy1, oldCx, oldCy, doCut);
+						running := false;
+					end;
+				end;
+			end;
+
+			if cursorX > ox1 then cursorX := ox1;
+			if cursorY > oy1 then cursorY := oy1;
+		end;
+
+	procedure EditorTypeCharacter(ch: byte);
+		var
+			i: integer;
+		begin
+			if EditorPrepareModifyTile(cursorX, cursorY) then begin
+				i := (cursorColor and $07) + (E_TEXT_MIN - 1);
+				if i < E_TEXT_MIN then i := E_TEXT_MIN + 6;
+				with Board.Tiles[cursorX][cursorY] do begin
+					Element := i;
+					Color := ch;
+				end;
+				EditorDrawTileAndNeighborsAt(cursorX, cursorY);
+				InputDeltaX := 1;
+				InputDeltaY := 0;
+			end;
+		end;
+
+	procedure EditorPlaceElementNoStat(newElem, newColor: byte);
+		begin
+			if EditorPrepareModifyTile(cursorX, cursorY) then
+				EditorSetAndCopyTile(cursorX, cursorY, newElem, newColor);
+		end;
+
+	procedure EditorPlaceElement(newElem, newColor: byte);
+		var
+			statSetting: TEditorStatSetting;
+		begin
+			if ElementDefs[newElem].Cycle = -1 then begin
+				EditorPlaceElementNoStat(newElem, newColor);
+			end else begin
+				if EditorPrepareModifyStatAtCursor then begin
+					AddStat(cursorX, cursorY, newElem, newColor,
+						ElementDefs[newElem].Cycle, StatTemplateDefault);
+					with Board.Stats[Board.StatCount] do begin
+						statSetting := World.EditorStatSettings[newElem];
+						if Length(ElementDefs[newElem].Param1Name) <> 0 then
+							P1 := statSetting.P1;
+						if Length(ElementDefs[newElem].Param2Name) <> 0 then
+							P2 := statSetting.P2;
+						if Length(ElementDefs[newElem].ParamDirName) <> 0 then begin
+							StepX := statSetting.StepX;
+							StepY := statSetting.StepY;
+						end;
+						if Length(ElementDefs[newElem].ParamBoardName) <> 0 then
+							P3 := statSetting.P3;
+					end;
+					EditorEditStat(Board.StatCount);
+					if InputKeyPressed = KEY_ESCAPE then
+						RemoveStat(Board.StatCount);
+				end;
+			end;
+		end;
+
+	procedure EditorFloodFill(x, y: integer; from: TTile);
+		var
+			i: integer;
+			tileAt, tilePlaced: TTile;
+			toFill, filled: byte;
+			xPosition: array[0 .. 255] of integer;
+			yPosition: array[0 .. 255] of integer;
+		begin
+			toFill := 1;
+			filled := 0;
+			while toFill <> filled do begin
+				tileAt := Board.Tiles[x][y];
+				EditorPlaceTile(x, y);
+				tilePlaced := Board.Tiles[x][y];
+				if (tilePlaced.Element <> tileAt.Element)
+					or (tilePlaced.Color <> tileAt.Color) then
+					for i := 0 to 3 do
+					with Board.Tiles[x + NeighborDeltaX[i]][y + NeighborDeltaY[i]] do begin
+							if (Element = from.Element)
+								and ((from.Element = 0) or (Color = from.Color)) then
+							begin
+								xPosition[toFill] := x + NeighborDeltaX[i];
+								yPosition[toFill] := y + NeighborDeltaY[i];
+								toFill := toFill + 1;
+							end;
+						end;
+
+				filled := filled + 1;
+				x := xPosition[filled];
+				y := yPosition[filled];
+			end;
+		end;
+
 	procedure EditorTypeHexText;
 		var
 			keyHi, keyLo: char;
@@ -972,10 +1626,13 @@ procedure EditorLoop;
 		drawMode := DrawingOff;
 		cursorPattern := 1;
 		cursorColor := $0E;
+		colorIgnoreDefaults := false;
 		cursorBlinker := 0;
-		copiedHasStat := false;
-		copiedTile.Element := 0;
-		copiedTile.Color := $0F;
+		inputByte := 0;
+
+		for i := 1 to COPIED_TILES_COUNT do
+			EditorClearPattern(copiedTiles[i], true);
+		FillChar(copyBuffer, SizeOf(TEditorCopyBuffer), 0);
 
 		if World.Info.CurrentBoard <> 0 then
 			BoardChange(World.Info.CurrentBoard);
@@ -1001,91 +1658,87 @@ procedure EditorLoop;
 						cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
 						$0F, #197
 					);
-
-				EditorUpdateSidebar;
 			end else begin
 				BoardDrawTile(cursorX, cursorY);
 			end;
 
 			if drawMode = TextEntry then begin
 				if (InputKeyPressed >= #32) and (InputKeyPressed < #128) then begin
-					if EditorPrepareModifyTile(cursorX, cursorY) then begin
-						Board.Tiles[cursorX][cursorY].Element := ((cursorColor and 7) - 1) + E_TEXT_MIN;
-						Board.Tiles[cursorX][cursorY].Color := Ord(InputKeyPressed);
-						EditorDrawTileAndNeighborsAt(cursorX, cursorY);
-						InputDeltaX := 1;
-						InputDeltaY := 0;
-					end;
-					InputKeyPressed := #0;
+					EditorTypeCharacter(Ord(InputKeyPressed));
 				end else if (InputKeyPressed = KEY_BACKSPACE) and (cursorX > 1)
 					and EditorPrepareModifyTile(cursorX - 1, cursorY) then
 				begin
 					EditorMoveCursor(cursorX - 1, cursorY, false);
 				end else if (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) then begin
 					drawMode := DrawingOff;
-					InputKeyPressed := #0;
+					EditorUpdateDrawMode;
+				end else if (InputKeyPressed = KEY_F10) then begin
+					SidebarPromptCharacter(true, 63, 3, 'Character?', inputByte);
+					EditorTypeCharacter(inputByte);
+					EditorDrawSidebar;
 				end;
+				InputKeyPressed := #0;
 			end;
 
 			with Board.Tiles[cursorX][cursorY] do begin
 				if (InputKeyPressed = ' ') then begin
 					InputShiftAccepted := true;
-					if (Element = 0)
-						or (ElementDefs[Element].PlaceableOnTop and copiedHasStat and (cursorPattern > EditorPatternCount))
-						or (InputDeltaX <> 0) or (InputDeltaY <> 0) then
-					begin
+
+					canModify := (Element = 0) or (InputDeltaX <> 0) or (InputDeltaY <> 0);
+					if not canModify and ElementDefs[Element].PlaceableOnTop and (cursorPattern > EditorPatternCount) then begin
+						{ Place stats -> Under }
+						canModify := copiedTiles[cursorPattern - EditorPatternCount].hasStat;
+					end;
+
+					if canModify then begin
 						EditorPlaceTile(cursorX, cursorY);
 					end else begin
 						canModify := EditorPrepareModifyTile(cursorX, cursorY);
 						if canModify then
 							Board.Tiles[cursorX][cursorY].Element := 0;
 					end;
+				end else if (InputKeyPressed = KEY_DELETE) then begin
+					EditorRemoveTile(cursorX, cursorY);
 				end;
 
-				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					EditorMoveCursor(
-						((Integer(InputShiftPressed) * ((BOARD_DRAW_WIDTH div 2) - 1)) + 1) * InputDeltaX + cursorX,
-						((Integer(InputShiftPressed) * ((BOARD_DRAW_HEIGHT div 2) - 1)) + 1) * InputDeltaY + cursorY,
-						false
-					);
-
-					VideoWriteText(
-						cursorX + BOARD_DRAW_X - Board.Info.DrawXOffset,
-						cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
-						$0F, #197
-					);
-					if (InputKeyPressed = #0) and InputJoystickEnabled then
-						Delay(70);
-					InputShiftAccepted := false;
-				end;
+				EditorUpdateCursorPos(true);
 
 				case UpCase(InputKeyPressed) of
+					'0'..'9': begin
+						if InputKeyPressed = '0' then
+							i := 10
+						else
+							i := Ord(InputKeyPressed) - 48;
+						if i <= COPIED_TILES_COUNT then begin
+							cursorPattern := EditorPatternCount + i;
+							EditorUpdateCursorPattern;
+						end;
+					end;
 					'`': EditorDrawRefresh;
 					'P': begin
-						VideoWriteText(62, 21, $1F, '       ');
-						if cursorPattern <= EditorPatternCount then
-							cursorPattern := cursorPattern + 1
+						if InputKeyPressed = 'P' then begin
+							if cursorPattern > 1 then
+								Dec(cursorPattern)
+							else
+								cursorPattern := EditorPatternCount + COPIED_TILES_COUNT;
+						end else begin
+							if cursorPattern < (EditorPatternCount + COPIED_TILES_COUNT) then
+								Inc(cursorPattern)
+							else
+								cursorPattern := 1;
+						end;
+						EditorUpdateCursorPattern;
+					end;
+					'C': begin
+						if InputKeyPressed = 'C' then
+							cursorColor := (cursorColor and $8F) or ((cursorColor + 16) and $70)
 						else
-							cursorPattern := 1;
+							cursorColor := (cursorColor and $F0) or ((cursorColor + 1) and $0F);
+						EditorUpdateCursorColor;
 					end;
-					KEY_F10: begin
-						VideoWriteText(69, 21, $1F, '        ');
-						VideoWriteText(69, 23, $1F, '        ');
-						cursorColor := (cursorColor + $10) and $7F;
-					end;
-					KEY_F9: begin
-						VideoWriteText(69, 21, $1F, '        ');
-						VideoWriteText(69, 23, $1F, '        ');
-						cursorColor := cursorColor xor $08;
-					end;
-					KEY_F8, 'C': begin
-						VideoWriteText(72, 19, $1E, '       ');
-						VideoWriteText(69, 21, $1F, '        ');
-						VideoWriteText(69, 23, $1F, '        ');
-						if (cursorColor and $07) <> $07 then
-							cursorColor := cursorColor + 1
-						else
-							cursorColor := (cursorColor and $f8) + 1
+					'D': begin
+						colorIgnoreDefaults := not colorIgnoreDefaults;
+						EditorUpdateColorIgnoreDefaults;
 					end;
 					'L': begin
 						SidebarClearLine(4);
@@ -1110,8 +1763,9 @@ procedure EditorLoop;
 							wasModified := false;
 							EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, true);
 							EditorDrawRefresh;
+						end else begin
+							EditorDrawSidebar;
 						end;
-						EditorDrawSidebar;
 					end;
 					'S': begin
 						SidebarClearLine(4);
@@ -1146,17 +1800,31 @@ procedure EditorLoop;
 					'Q', KEY_ESCAPE: begin
 						editorExitRequested := true;
 					end;
+					KEY_PAGE_UP: begin
+						i := World.Info.CurrentBoard - 1;
+						if i >= 0 then begin
+							EditorBoardChange(i);
+							EditorDrawRefresh;
+						end;
+					end;
+					KEY_PAGE_DOWN: begin
+						i := World.Info.CurrentBoard + 1;
+						if i <= World.BoardCount then begin
+							EditorBoardChange(i);
+							EditorDrawRefresh;
+						end;
+					end;
 					'B': begin
-						i := EditorSelectBoard('Switch boards', World.Info.CurrentBoard, false);
+						i := EditorSelectBoard('Switch boards', World.Info.CurrentBoard, false, false, true);
 						if (InputKeyPressed <> KEY_ESCAPE) then begin
 							if (i > World.BoardCount) then
 								if SidebarPromptYesNo('Add new board? ', false) then
 									EditorAppendBoard;
-							BoardChange(i);
-							EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, false);
+							EditorBoardChange(i);
 							EditorDrawRefresh;
+						end else begin
+							EditorDrawSidebar;
 						end;
-						EditorDrawSidebar;
 					end;
 					'?': begin
 						GameDebugPrompt;
@@ -1167,6 +1835,72 @@ procedure EditorLoop;
 							drawMode := DrawingOn
 						else
 							drawMode := DrawingOff;
+						EditorUpdateDrawMode;
+					end;
+					KEY_F9: begin
+						EditorTypeHexText;
+					end;
+					KEY_F7: begin
+						VideoWriteText(cursorX - 1, cursorY - 1, $0F, #197);
+						for i := 3 to 20 do
+							SidebarClearLine(i);
+						VideoWriteText(65, 4, $1E, 'Advanced:');
+
+						VideoWriteText(61, 5, $70, ' E ');
+						VideoWriteText(65, 5, $1F, 'Board edge');
+						VideoWriteText(78, 5, cursorColor, 'E');
+
+						VideoWriteText(61, 6, $30, ' H ');
+						VideoWriteText(65, 6, $1F, 'Hori. blink');
+						VideoWriteText(78, 6, cursorColor, #205);
+
+						VideoWriteText(61, 7, $70, ' V ');
+						VideoWriteText(65, 7, $1F, 'Vert. blink');
+						VideoWriteText(78, 7, cursorColor, #186);
+
+						VideoWriteText(61, 8, $30, ' C ');
+						VideoWriteText(65, 8, $1F, 'Player clone');
+						VideoWriteText(78, 8, $1F, #2);
+
+						VideoWriteText(61, 9, $70, ' F ');
+						VideoWriteText(65, 9, $1F, 'Fake player');
+						VideoWriteText(78, 9, cursorColor, #2);
+
+						VideoWriteText(65, 11, $1E, 'Projectiles:');
+
+						VideoWriteText(61, 12, $30, ' U ');
+						VideoWriteText(65, 12, $1F, 'Bullet');
+						VideoWriteText(78, 12, cursorColor, #248);
+
+						VideoWriteText(61, 13, $70, ' A ');
+						VideoWriteText(65, 13, $1F, 'Star');
+						VideoWriteText(78, 13, cursorColor, '/');
+
+						InputReadWaitKey;
+						case UpCase(InputKeyPressed) of
+							'E': begin
+								EditorPlaceElement(E_BOARD_EDGE, cursorColor);
+							end;
+							'H': begin
+								EditorPlaceElement(E_BLINK_RAY_EW, cursorColor);
+							end;
+							'V': begin
+								EditorPlaceElement(E_BLINK_RAY_NS, cursorColor);
+							end;
+							'C': begin
+								EditorPlaceElement(E_PLAYER, $1F);
+							end;
+							'F': begin
+								EditorPlaceElementNoStat(E_PLAYER, cursorColor);
+							end;
+							'U': begin
+								EditorPlaceElement(E_BULLET, cursorColor);
+							end;
+							'A': begin
+								EditorPlaceElement(E_STAR, cursorColor);
+							end;
+						end;
+						EditorDrawSidebar;
 					end;
 					KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5: begin
 						VideoWriteText(
@@ -1194,17 +1928,7 @@ procedure EditorLoop;
 
 								VideoWriteText(61, i, ((i mod 2) shl 6) + $30, ' ' + ElementDefs[iElem].EditorShortcut + ' ');
 								VideoWriteText(65, i, $1F, ElementDefs[iElem].Name);
-								if ElementDefs[iElem].Color = COLOR_CHOICE_ON_BLACK then
-									elemMenuColor := (cursorColor and $7) + $18
-								else if ElementDefs[iElem].Color = COLOR_WHITE_ON_CHOICE then
-									elemMenuColor := (cursorColor and $7) shl 4
-								else if ElementDefs[iElem].Color = COLOR_CHOICE_ON_CHOICE then
-									elemMenuColor := ((cursorColor and $7) * $11) + 8
-								else if (ElementDefs[iElem].Color and $70) = $00 then
-									elemMenuColor := (ElementDefs[iElem].Color mod $10) + $10
-								else
-									elemMenuColor := ElementDefs[iElem].Color;
-								VideoWriteText(78, i, elemMenuColor, ElementDefs[iElem].Character);
+								VideoWriteText(78, i, EditorGetDrawingColor(iElem), ElementDefs[iElem].Character);
 
 								i := i + 1;
 							end;
@@ -1218,52 +1942,18 @@ procedure EditorLoop;
 									if EditorPrepareModifyTile(cursorX, cursorY) then
 										MoveStat(0, cursorX, cursorY);
 								end else begin
-									if ElementDefs[iElem].Color = COLOR_CHOICE_ON_BLACK then
-										elemMenuColor := cursorColor
-									else if ElementDefs[iElem].Color = COLOR_WHITE_ON_CHOICE then
-										elemMenuColor := ((cursorColor and $7) shl 4) + $0F
-									else if ElementDefs[iElem].Color = COLOR_CHOICE_ON_CHOICE then
-										elemMenuColor := ((cursorColor and $7) * $11) + $08
-									else
-										elemMenuColor := ElementDefs[iElem].Color;
-
-									if ElementDefs[iElem].Cycle = -1 then begin
-										if EditorPrepareModifyTile(cursorX, cursorY) then
-											EditorSetAndCopyTile(cursorX, cursorY, iElem, elemMenuColor);
-									end else begin
-										if EditorPrepareModifyStatAtCursor then begin
-											AddStat(cursorX, cursorY, iElem, elemMenuColor,
-												ElementDefs[iElem].Cycle, StatTemplateDefault);
-											with Board.Stats[Board.StatCount] do begin
-												if Length(ElementDefs[iElem].Param1Name) <> 0 then
-													P1 := World.EditorStatSettings[iElem].P1;
-												if Length(ElementDefs[iElem].Param2Name) <> 0 then
-													P2 := World.EditorStatSettings[iElem].P2;
-												if Length(ElementDefs[iElem].ParamDirName) <> 0 then begin
-													StepX := World.EditorStatSettings[iElem].StepX;
-													StepY := World.EditorStatSettings[iElem].StepY;
-												end;
-												if Length(ElementDefs[iElem].ParamBoardName) <> 0 then
-													P3 := World.EditorStatSettings[iElem].P3;
-											end;
-											EditorEditStat(Board.StatCount);
-											if InputKeyPressed = KEY_ESCAPE then
-												RemoveStat(Board.StatCount);
-										end;
-									end;
+									EditorPlaceElement(iElem, EditorGetDrawingColor(iElem));
 								end;
 							end;
 						end;
 						EditorDrawSidebar;
-					end;
-					KEY_F7: begin
-						EditorTypeHexText;
 					end;
 					KEY_F6: begin
 						if drawMode <> TextEntry then
 							drawMode := TextEntry
 						else
 							drawMode := DrawingOff;
+						EditorUpdateDrawMode;
 					end;
 					'H': begin
 						TextWindowDisplayFile('editor.hlp', 'World editor help');
@@ -1279,17 +1969,31 @@ procedure EditorLoop;
 						EditorTransferBoard;
 					end;
 					KEY_ENTER: begin
-						if GetStatIdAt(cursorX, cursorY) >= 0 then begin
-							EditorEditStat(GetStatIdAt(cursorX, cursorY));
-						end else begin
-							copiedHasStat := false;
-							copiedTile := Board.Tiles[cursorX][cursorY];
+						i := GetStatIdAt(cursorX, cursorY);
+						if i >= 0 then begin
+							EditorEditStat(i);
 							EditorDrawSidebar;
+						end else begin
+							EditorCopyPatternToCurrent(cursorX, cursorY);
+							EditorUpdateCopiedPatterns;
 						end;
 						EditorDrawSidebar;
 					end;
 					'I': begin
 						EditorEditBoardInfo;
+					end;
+					'W': begin
+						EditorEditWorldInfo;
+						TransitionDrawToBoard;
+					end;
+					KEY_CTRL_X: begin
+						EditorSelectAndCopyCopyBuffer(cursorX, cursorY, true);
+					end;
+					KEY_CTRL_C: begin
+						EditorSelectAndCopyCopyBuffer(cursorX, cursorY, false);
+					end;
+					KEY_CTRL_V: begin
+						EditorAskAndPasteCopyBuffer(cursorX, cursorY);
 					end;
 				end;
 			end;
@@ -1303,6 +2007,9 @@ procedure EditorLoop;
 			end;
 		until editorExitRequested;
 
+		EditorFreeCopyBuffer;
+		for i := 1 to COPIED_TILES_COUNT do
+			EditorClearPattern(copiedTiles[i], false);
 		InputKeyPressed := #0;
 		InitElementsGame;
 		VideoInstall(40, Blue);
@@ -1374,22 +2081,32 @@ procedure HighScoresDisplay(linePos: integer);
 		TextWindowFree(state);
 	end;
 
-procedure EditorOpenEditTextWindow(var state: TTextWindowState);
+procedure EditorOpenEditTextWindow(var state: TTextWindowState; syntaxHighlighting: boolean);
 	begin
 		SidebarClear;
-		VideoWriteText(61, 4, $30, ' Return ');
-		VideoWriteText(64, 5, $1F, ' Insert line');
-		VideoWriteText(61, 7, $70, ' Ctrl-Y ');
-		VideoWriteText(64, 8, $1F, ' Delete line');
-		VideoWriteText(61, 10, $30, ' Cursor keys ');
-		VideoWriteText(64, 11, $1F, ' Move cursor');
-		VideoWriteText(61, 13, $70, ' Insert ');
-		VideoWriteText(64, 14, $1F, ' Insert mode: ');
-		VideoWriteText(61, 16, $30, ' Delete ');
-		VideoWriteText(64, 17, $1F, ' Delete char');
-		VideoWriteText(61, 19, $70, ' Escape ');
-		VideoWriteText(64, 20, $1F, ' Exit editor');
-		TextWindowEdit(state);
+		VideoWriteText(61, 7, $30, ' Return ');
+		VideoWriteText(69, 7, $1F, ' New line');
+		VideoWriteText(61, 8, $70, ' Ctrl-Y ');
+		VideoWriteText(69, 8, $1F, ' Del line');
+		VideoWriteText(61, 10, $30, ' '#24#25#27#26' ');
+		VideoWriteText(67, 10, $1F, ' Move cursor');
+		VideoWriteText(61, 12, $70, ' Ins ');
+		VideoWriteText(66, 12, $1F, ' Insert: ');
+		VideoWriteText(61, 13, $30, ' Del ');
+		VideoWriteText(66, 13, $1F, ' Delete char');
+		VideoWriteText(61, 14, $70, ' f10 ');
+		VideoWriteText(66, 14, $1F, ' Custom char');
+		VideoWriteText(61, 16, $30, ' Shift  ');
+		VideoWriteText(69, 16, $1F, ' Select');
+		VideoWriteText(61, 17, $70, ' Ctrl-X ');
+		VideoWriteText(69, 17, $1F, ' Cut');
+		VideoWriteText(61, 18, $30, ' Ctrl-C ');
+		VideoWriteText(69, 18, $1F, ' Copy');
+		VideoWriteText(61, 19, $70, ' Ctrl-V ');
+		VideoWriteText(69, 19, $1F, ' Paste');
+		VideoWriteText(61, 21, $30, ' Esc ');
+		VideoWriteText(66, 21, $1F, ' Exit editor');
+		TextWindowEdit(state, syntaxHighlighting);
 	end;
 
 procedure EditorEditHelpFile;
@@ -1400,13 +2117,13 @@ procedure EditorEditHelpFile;
 		filename := '';
 		SidebarPromptString('File to edit', '.HLP', filename, PROMPT_ALPHANUM);
 		if Length(filename) <> 0 then begin
-			TextWindowOpenFile('*' + filename + '.HLP', textWindow);
+			TextWindowOpenFile('*' + filename + '.HLP', textWindow, true);
 			textWindow.Title := 'Editing ' + filename;
 			TextWindowDrawOpen(textWindow);
-			EditorOpenEditTextWindow(textWindow);
+			EditorOpenEditTextWindow(textWindow, false);
 			TextWindowSaveFile(filename + '.HLP', textWindow);
-			TextWindowFree(textWindow);
 			TextWindowDrawClose(textWindow);
+			TextWindowFreeEdit(textWindow);
 		end;
 	end;
 
@@ -1465,11 +2182,10 @@ function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TSmal
 		end;
 	end;
 
-function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
+function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean;
+	windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 	var
-		unk1: string;
 		i: integer;
-		unk2: integer;
 		textWindow: TTextWindowState;
 	begin
 		textWindow.Title := title;
@@ -1479,10 +2195,14 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 		for i := 0 to World.BoardCount do begin
 			TextWindowAppend(textWindow, EditorGetBoardName(i, titleScreenIsNone));
 		end;
-		TextWindowAppend(textWindow, 'Add new board');
-		TextWindowDrawOpen(textWindow);
+		if showAddNewBoard then begin
+			if World.BoardCount < MAX_BOARD then begin
+				TextWindowAppend(textWindow, 'Add new board');
+			end;
+		end;
+		if not windowAlreadyOpen then TextWindowDrawOpen(textWindow);
 		TextWindowSelect(textWindow, false, false);
-		TextWindowDrawClose(textWindow);
+		if not windowAlreadyOpen then TextWindowDrawClose(textWindow);
 		TextWindowFree(textWindow);
 		if InputKeyPressed = KEY_ESCAPE then
 			EditorSelectBoard := 0
