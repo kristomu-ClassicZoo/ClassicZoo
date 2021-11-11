@@ -1588,7 +1588,7 @@ procedure ElementPlayerTick(statId: integer);
 					GameWorldSave('Save game:', SavedGameFileName, '.SAV');
 				end;
 				'R': begin
-					if GameWorldLoad('.SAV', SavedGameFileName) then begin
+					if GameWorldLoad('.SAV') then begin
 						ReturnBoardId := World.Info.CurrentBoard;
 						BoardChange(ReturnBoardId);
 						GamePlayExitRequested := true;

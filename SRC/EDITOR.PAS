@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, ExtMem, Video, Sounds, Input, Elements, Oop, Game;
+uses Dos, Crt, FileSel, ExtMem, Video, Sounds, Input, Elements, Oop, Game;
 
 const
 	PROMPT_NUMERIC = 0;
@@ -774,7 +774,7 @@ procedure EditorLoop;
 			SidebarPromptChoice(true, 3, 'Transfer board:', 'Import Export', i);
 			if InputKeyPressed <> KEY_ESCAPE then begin
 				if i = 0 then begin
-					SidebarPromptString('Import board', '.BRD', SavedBoardFileName, PROMPT_ALPHANUM);
+					SavedBoardFileName := FileSelect('ZZT Boards', '.BRD');
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
 						Assign(f, SavedBoardFileName + '.BRD');
 						Reset(f, 1);
@@ -1066,7 +1066,7 @@ procedure EditorLoop;
 						SidebarClearLine(4);
 						SidebarClearLine(5);
 						EditorAskSaveChanged;
-						if (InputKeyPressed <> KEY_ESCAPE) and GameWorldLoad('.SZT', '') then begin
+						if (InputKeyPressed <> KEY_ESCAPE) and GameWorldLoad('.SZT') then begin
 							if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) then begin
 								if not DebugEnabled then begin
 									SidebarClearLine(3);

@@ -65,7 +65,7 @@ interface
 	procedure SidebarPromptString(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
 	procedure WorldSave(filename, extension: TSmallString);
 	procedure GameWorldSave(prompt: TSmallString; var filename: TSmallString; extension: TSmallString);
-	function GameWorldLoad(extension: TSmallString; param_2: TSmallString): boolean;
+	function GameWorldLoad(extension: TSmallString): boolean;
 	procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState);
 	procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; template: TStat);
 	procedure FreeStatDataMem(statId: integer);
@@ -116,7 +116,7 @@ const
 	LineChars: TSmallString = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, ExtMem, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop;
+uses Dos, Crt, ExtMem, FileSel, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -738,56 +738,25 @@ procedure GameWorldSave(prompt: TSmallString; var filename: TSmallString; extens
 		end;
 	end;
 
-function GameWorldLoad(extension: TSmallString; param_2: TSmallString): boolean;
+function GameWorldLoad(extension: TSmallString): boolean;
 	var
-		textWindow: TTextWindowState;
-		fileSearchRec: SearchRec;
+		title: TSmallString;
 		entryName: string;
 		i: integer;
 	begin
-		param_2 := param_2 + extension;
-		for i := 1 to Length(param_2) do
-			param_2[i] := UpCase(param_2[i]);
-
-		TextWindowInitState(textWindow);
 		if extension = '.SZT' then
-			textWindow.Title := 'ZZT Worlds'
+			title := 'ZZT Worlds'
 		else
-			textWindow.Title := 'Saved Games';
+			title := 'Saved Games';
 		GameWorldLoad := false;
-		textWindow.Selectable := true;
+		entryName := FileSelect(title, extension);
 
-		FindFirst('*' + extension, AnyFile, fileSearchRec);
-		while DosError = 0 do begin
-			entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - 4);
-
-			for i := 1 to WorldFileDescCount do
-				if entryName = WorldFileDescKeys[i] then
-					entryName := WorldFileDescValues[i];
-
-			TextWindowAppend(textWindow, entryName);
-			if entryName = param_2 then
-				textWindow.LinePos := textWindow.LineCount;
-			FindNext(fileSearchRec);
-		end;
-		TextWindowAppend(textWindow, 'Exit');
-
-		TextWindowDrawOpen(textWindow);
-		TextWindowSelect(textWindow, false, false);
-		TextWindowDrawClose(textWindow);
-
-		if (textWindow.LinePos < textWindow.LineCount) and not TextWindowRejected then begin
-			entryName := textWindow.Lines[textWindow.LinePos]^;
-			if Pos(' ', entryName) <> 0 then
-				entryName := Copy(entryName, 1, Pos(' ', entryName) - 1);
-
+		if Length(entryName) > 0 then begin
 			GameWorldLoad := WorldLoad(entryName, extension, false);
 			if extension <> '.SAV' then
 				SavedGameFileName := entryName;
 			TransitionDrawToFill(#219, $44);
 		end;
-
-		TextWindowFree(textWindow);
 	end;
 
 procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState);
@@ -1704,7 +1673,7 @@ procedure GameTitleLoop;
 				InputReadWaitKey;
 				case UpCase(InputKeyPressed) of
 					'W': begin
-						if GameWorldLoad('.SZT', World.Info.Name) then begin
+						if GameWorldLoad('.SZT') then begin
 							ReturnBoardId := World.Info.CurrentBoard;
 							returningFromGame := true;
 							runTitle := true;
@@ -1720,7 +1689,7 @@ procedure GameTitleLoop;
 						runTitle := runPlay;
 					end;
 					'R': begin
-						if GameWorldLoad('.SAV', SavedGameFileName) then begin
+						if GameWorldLoad('.SAV') then begin
 							VideoInstall(40, Blue);
 							ReturnBoardId := World.Info.CurrentBoard;
 							BoardChange(ReturnBoardId);
