@@ -1,7 +1,7 @@
 {
 	Copyright (c) 2020 Adrian Siekierka
 
-	Based on a reconstruction of code from Super ZZT,
+	Based on a reconstruction of code from ZZT,
 	Copyright 1991 Epic MegaGames, used with permission.
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -44,11 +44,11 @@ procedure KeysUpdateModifiers;
 	begin
 		regs.AH := $02;
 		Intr($16, regs);
-		KeysRightShiftHeld := (regs.AL mod 2) = 1;
-		KeysLeftShiftHeld := ((regs.AL div 2) mod 2) = 1;
-		KeysCtrlHeld := ((regs.AL div 4) mod 2) = 1;
-		KeysAltHeld := ((regs.AL div 8) mod 2) = 1;
-		KeysNumLockHeld := ((regs.AL div 32) mod 2) = 1;
+		KeysRightShiftHeld := (regs.AL and 1) <> 0;
+		KeysLeftShiftHeld := (regs.AL and 2) <> 0;
+		KeysCtrlHeld := (regs.AL and 4) <> 0;
+		KeysAltHeld := (regs.AL and 8) <> 0;
+		KeysNumLockHeld := (regs.AL and 32) <> 0;
 		KeysShiftHeld := KeysRightShiftHeld or KeysLeftShiftHeld;
 	end;
 

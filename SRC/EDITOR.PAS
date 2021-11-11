@@ -165,15 +165,15 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 		choiceCount := 1;
 		for i := 1 to Length(choiceStr) do
 			if choiceStr[i] = ' ' then
-				choiceCount := choiceCount + 1;
+				Inc(choiceCount);
 
 		repeat
 			j := 0;
 			i := 1;
 			while (j < result) and (i < Length(choiceStr)) do begin
 				if choiceStr[i] = ' ' then
-					j := j + 1;
-				i := i + 1;
+					Inc(j);
+				Inc(i);
 			end;
 
 			if editable then begin
@@ -207,7 +207,7 @@ procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var 
 				VideoWriteText(x + i, y - 1, arrowColor, ' ');
 			end;
 			VideoWriteText(x + width, y - 1, arrowColor, ' ');
-			VideoWriteText(x + Length(buffer), y - 1, (arrowColor div $10) * 16 + $0F, #31);
+			VideoWriteText(x + Length(buffer), y - 1, (arrowColor and $F0) or $0F, #31);
 			VideoWriteText(x, y, color, buffer);
 
 			InputReadWaitKey;
@@ -294,7 +294,7 @@ procedure EditorAppendBoard;
 		if World.BoardCount < MAX_BOARD then begin
 			BoardClose;
 
-			World.BoardCount := World.BoardCount + 1;
+			Inc(World.BoardCount);
 			World.Info.CurrentBoard := World.BoardCount;
 			World.BoardLen[World.BoardCount] := 0;
 			BoardCreate;
@@ -338,7 +338,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmal
 
 		repeat
 			for i := (value - 4) to (value + 4) do
-				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) mod $100));
+				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) and $FF));
 
 			if editable then begin
 				Delay(25);
@@ -348,7 +348,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmal
 
 				newValue := value + InputDeltaX;
 				if value <> newValue then begin
-					value := (newValue + $100) mod $100;
+					value := (newValue + $100) and $FF;
 					SidebarClearLine(y + 2);
 				end;
 			end;
@@ -628,7 +628,7 @@ procedure EditorLoop;
 			TransitionDrawToBoard;
 
 			if Length(Board.Name) <> 0 then
-				VideoWriteText((59 - Length(Board.Name)) div 2, 0, $70, ' ' + Board.Name + ' ')
+				VideoWriteText((59 - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
 			else
 				VideoWriteText(26, 0, $70, ' Untitled ');
 		end;
@@ -971,7 +971,7 @@ procedure EditorLoop;
 						end;
 						if selected then
 							World.EditorStatSettings[element].P1 := P1;
-						iy := iy + 4;
+						Inc(iy, 4);
 					end;
 
 					{ if element = E_OBJECT then begin
@@ -992,26 +992,26 @@ procedure EditorLoop;
 					if (InputKeyPressed <> KEY_ESCAPE) and
 						(Length(ElementDefs[element].Param2Name) <> 0) then
 					begin
-						promptByte := (P2 mod $80);
+						promptByte := (P2 and $7F);
 						SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param2Name, promptByte);
 						if selected then begin
 							P2 := (P2 and $80) + promptByte;
 							World.EditorStatSettings[element].P2 := P2;
 						end;
-						iy := iy + 4;
+						Inc(iy, 4);
 					end;
 
 					if (InputKeyPressed <> KEY_ESCAPE) and
 						(Length(ElementDefs[element].ParamBulletTypeName) <> 0) then
 					begin
-						promptByte := (P2) div $80;
+						promptByte := (P2) shr 7;
 						SidebarPromptChoice(selected, iy, ElementDefs[element].ParamBulletTypeName,
 							'Bullets Stars', promptByte);
 						if selected then begin
-							P2 := (P2 mod $80) + (promptByte * $80);
+							P2 := (P2 and $7F) + (promptByte * $80);
 							World.EditorStatSettings[element].P2 := P2;
 						end;
-						iy := iy + 4;
+						Inc(iy, 4);
 					end;
 
 					if (InputKeyPressed <> KEY_ESCAPE) and
@@ -1035,7 +1035,7 @@ procedure EditorLoop;
 							World.EditorStatSettings[element].StepX := StepX;
 							World.EditorStatSettings[element].StepY := StepY;
 						end;
-						iy := iy + 4;
+						Inc(iy, 4);
 					end;
 
 					if (InputKeyPressed <> KEY_ESCAPE) and
@@ -1057,7 +1057,7 @@ procedure EditorLoop;
 							end else begin
 								InputKeyPressed := KEY_ESCAPE;
 							end;
-							iy := iy + 4;
+							Inc(iy, 4);
 						end else begin
 							VideoWriteText(63, iy, $1F, 'Room: ' + Copy(EditorGetBoardName(P3, true), 1, 10));
 						end;
@@ -1194,7 +1194,7 @@ procedure EditorLoop;
 				or ((Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) <= newX)
 			then begin
 				redraw := true;
-				Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH div 2);
+				Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH shr 1);
 				if Board.Info.DrawXOffset < BOARD_DRAW_OX_MIN then
 					Board.Info.DrawXOffset := BOARD_DRAW_OX_MIN;
 				if Board.Info.DrawXOffset > BOARD_DRAW_OX_MAX then
@@ -1205,7 +1205,7 @@ procedure EditorLoop;
 				or ((Board.Info.DrawYOffset + BOARD_DRAW_HEIGHT) <= newY)
 			then begin
 				redraw := true;
-				Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT div 2);
+				Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT shr 1);
 				if Board.Info.DrawYOffset < BOARD_DRAW_OY_MIN then
 					Board.Info.DrawYOffset := BOARD_DRAW_OY_MIN;
 				if Board.Info.DrawYOffset > BOARD_DRAW_OY_MAX then
@@ -1235,8 +1235,8 @@ procedure EditorLoop;
 		begin
 			if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
 				EditorMoveCursor(
-					((Integer(InputShiftPressed) * ((BOARD_DRAW_WIDTH div 2) - 1)) + 1) * InputDeltaX + cursorX,
-					((Integer(InputShiftPressed) * ((BOARD_DRAW_HEIGHT div 2) - 1)) + 1) * InputDeltaY + cursorY,
+					((Integer(InputShiftPressed) * ((BOARD_DRAW_WIDTH shr 1) - 1)) + 1) * InputDeltaX + cursorX,
+					((Integer(InputShiftPressed) * ((BOARD_DRAW_HEIGHT shr 1) - 1)) + 1) * InputDeltaY + cursorY,
 					false
 				);
 
@@ -1586,11 +1586,11 @@ procedure EditorLoop;
 							begin
 								xPosition[toFill] := x + NeighborDeltaX[i];
 								yPosition[toFill] := y + NeighborDeltaY[i];
-								toFill := toFill + 1;
+								Inc(toFill);
 							end;
 						end;
 
-				filled := filled + 1;
+				Inc(filled);
 				x := xPosition[filled];
 				y := yPosition[filled];
 			end;
@@ -1932,16 +1932,16 @@ procedure EditorLoop;
 						for iElem := 0 to MAX_ELEMENT do begin
 							if ElementDefs[iElem].EditorCategory = selectedCategory then begin
 								if Length(ElementDefs[iElem].CategoryName) <> 0 then begin
-									i := i + 1;
+									Inc(i);
 									VideoWriteText(65, i, $1E, ElementDefs[iElem].CategoryName);
-									i := i + 1;
+									Inc(i);
 								end;
 
-								VideoWriteText(61, i, ((i mod 2) shl 6) + $30, ' ' + ElementDefs[iElem].EditorShortcut + ' ');
+								VideoWriteText(61, i, ((i and 1) shl 6) + $30, ' ' + ElementDefs[iElem].EditorShortcut + ' ');
 								VideoWriteText(65, i, $1F, ElementDefs[iElem].Name);
 								VideoWriteText(78, i, EditorGetDrawingColor(iElem), ElementDefs[iElem].Character);
 
-								i := i + 1;
+								Inc(i);
 							end;
 						end;
 						InputReadWaitKey;
@@ -2148,7 +2148,7 @@ procedure HighScoresAdd(score: integer);
 	begin
 		listPos := 1;
 		while (listPos <= HIGH_SCORE_COUNT) and (score < HighScoreList[listPos].Score) do
-			listPos := listPos + 1;
+			Inc(listPos);
 		if (listPos <= HIGH_SCORE_COUNT) and (score > 0) then begin
 			for i := (HIGH_SCORE_COUNT - 1) downto listPos do
 				HighScoreList[i + 1] := HighScoreList[i];
@@ -2168,7 +2168,7 @@ procedure HighScoresAdd(score: integer);
 			name := '';
 			PromptString(
 				TextWindowX + 11,
-				(TextWindowHeight div 2) + TextWindowY + 2,
+				(TextWindowHeight shr 1) + TextWindowY + 2,
 				$1F, $1E, 15, PROMPT_ANY, name
 			);
 			HighScoreList[listPos].Name := name;

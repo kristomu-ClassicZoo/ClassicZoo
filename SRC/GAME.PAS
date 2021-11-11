@@ -242,16 +242,16 @@ procedure BoardClose;
 		rle.Count := 1;
 		rle.Tile := Board.Tiles[ix][iy];
 		repeat
-			ix := ix + 1;
+			Inc(ix);
 			if ix > BOARD_WIDTH then begin
 				ix := 1;
-				iy := iy + 1;
+				Inc(iy);
 			end;
 			if (Board.Tiles[ix][iy].Color = rle.Tile.Color) and
 				(Board.Tiles[ix][iy].Element = rle.Tile.Element) and
 				(rle.Count < 255) and (iy <= BOARD_HEIGHT) then
 			begin
-				rle.Count := rle.Count + 1;
+				Inc(rle.Count);
 			end else begin
 				Move(rle, ptr^, SizeOf(rle));
 				AdvancePointer(ptr, SizeOf(rle));
@@ -332,12 +332,12 @@ procedure BoardOpen(boardId: integer);
 				AdvancePointer(ptr, SizeOf(rle));
 			end;
 			Board.Tiles[ix][iy] := rle.Tile;
-			ix := ix + 1;
+			Inc(ix);
 			if ix > BOARD_WIDTH then begin
 				ix := 1;
-				iy := iy + 1;
+				Inc(iy);
 			end;
-			rle.Count := rle.Count - 1;
+			Dec(rle.Count);
 		until iy > BOARD_HEIGHT;
 
 		Move(ptr^, Board.Info, SizeOf(Board.Info));
@@ -421,10 +421,10 @@ procedure BoardCreate;
 		Board.Stats[0].Under.Color := 0;
 		Board.Stats[0].Data := nil;
 		Board.Stats[0].DataLen := 0;
-		Board.Info.DrawXOffset := Board.Stats[0].X - (BOARD_DRAW_WIDTH div 2);
+		Board.Info.DrawXOffset := Board.Stats[0].X - (BOARD_DRAW_WIDTH shr 1);
 		if Board.Info.DrawXOffset < 1 then
 			Board.Info.DrawXOffset := 1;
-		Board.Info.DrawYOffset := Board.Stats[0].Y - (BOARD_DRAW_HEIGHT div 2);
+		Board.Info.DrawYOffset := Board.Stats[0].Y - (BOARD_DRAW_HEIGHT shr 1);
 		if Board.Info.DrawYOffset < 1 then
 			Board.Info.DrawYOffset := 1;
 	end;
@@ -543,7 +543,7 @@ procedure ClearDisplayMessage;
 procedure DrawStatusMessage(msg: string);
 	begin
 		ClearDisplayMessage;
-		VideoWriteText(26 - (Length(msg) div 2), 24, $1E, msg);
+		VideoWriteText(26 - (Length(msg) shr 1), 24, $1E, msg);
 	end;
 
 procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TSmallString);
@@ -561,7 +561,7 @@ procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var 
 				VideoWriteText(x + i, y - 1, arrowColor, ' ');
 			end;
 			VideoWriteText(x + width, y - 1, arrowColor, ' ');
-			VideoWriteText(x + Length(buffer), y - 1, (arrowColor div $10) * 16 + $0F, #31);
+			VideoWriteText(x + Length(buffer), y - 1, (arrowColor and $F0) or $0F, #31);
 			VideoWriteText(x, y, color, buffer);
 
 			InputReadWaitKey;
@@ -673,7 +673,7 @@ procedure WorldUnload;
 procedure SidebarAnimateLoading(var loadProgress: integer);
 	begin
 		VideoWriteText(22, 24, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
-		loadProgress := (loadProgress + 1) mod 8;
+		loadProgress := (loadProgress + 1) and 7;
 	end;
 
 function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boolean;
@@ -763,7 +763,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmal
 
 		repeat
 			for i := (value - 4) to (value + 4) do
-				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) mod $100));
+				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) and $FF));
 
 			if editable then begin
 				Delay(25);
@@ -773,7 +773,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmal
 
 				newValue := value + InputDeltaX;
 				if value <> newValue then begin
-					value := (newValue + $100) mod $100;
+					value := (newValue + $100) and $FF;
 					SidebarClearLine(y + 2);
 				end;
 			end;
@@ -914,7 +914,7 @@ procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState)
 procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; template: TStat);
 	begin
 		if Board.StatCount < MAX_STAT then begin
-			Board.StatCount := Board.StatCount + 1;
+			Inc(Board.StatCount);
 			Board.Stats[Board.StatCount] := template;
 			with Board.Stats[Board.StatCount] do begin
 				X := tx;
@@ -963,7 +963,7 @@ procedure RemoveStat(statId: integer);
 
 		with Board.Stats[statId] do begin
 			if statId < CurrentStatTicked then
-				CurrentStatTicked := CurrentStatTicked - 1;
+				Dec(CurrentStatTicked);
 
 			Board.Tiles[X][Y] := Under;
 			if Y > 0 then
@@ -987,7 +987,7 @@ procedure RemoveStat(statId: integer);
 
 			for i := (statId + 1) to Board.StatCount do
 				Board.Stats[i - 1] := Board.Stats[i];
-			Board.StatCount := Board.StatCount - 1;
+			Dec(Board.StatCount);
 		end;
 	end;
 
@@ -997,7 +997,7 @@ function GetStatIdAt(x, y: integer): integer;
 	begin
 		i := -1;
 		repeat
-			i := i + 1;
+			Inc(i);
 		until ((Board.Stats[i].X = x) and (Board.Stats[i].Y = y)) or (i > Board.StatCount);
 
 		if i > Board.StatCount then
@@ -1103,7 +1103,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 					and (Board.Info.DrawXOffset > 1)
 				then begin
 					if (X - 1) = newX then begin
-						Board.Info.DrawXOffset := Board.Info.DrawXOffset - 1;
+						Dec(Board.Info.DrawXOffset);
 						VideoScroll(
 							BOARD_DRAW_X, BOARD_DRAW_Y,
 							BOARD_DRAW_WIDTH, BOARD_DRAW_HEIGHT,
@@ -1112,7 +1112,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 						for i := Board.Info.DrawYOffset to (Board.Info.DrawYOffset + BOARD_DRAW_HEIGHT) do
 							BoardDrawTile(Board.Info.DrawXOffset, i);
 					end else begin
-						Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH div 2);
+						Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH shr 1);
 						if Board.Info.DrawXOffset < 1 then
 							Board.Info.DrawXOffset := 1;
 						if (Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) >= BOARD_WIDTH then
@@ -1126,7 +1126,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 					and ((Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) <= BOARD_WIDTH)
 				then begin
 					if (X + 1) = newX then begin
-						Board.Info.DrawXOffset := Board.Info.DrawXOffset + 1;
+						Inc(Board.Info.DrawXOffset);
 						VideoScroll(
 							BOARD_DRAW_X, BOARD_DRAW_Y,
 							BOARD_DRAW_WIDTH, BOARD_DRAW_HEIGHT,
@@ -1135,7 +1135,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 						for i := Board.Info.DrawYOffset to (Board.Info.DrawYOffset + BOARD_DRAW_HEIGHT) do
 							BoardDrawTile(Board.Info.DrawXOffset + (BOARD_DRAW_WIDTH - 1), i);
 					end else begin
-						Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH div 2);
+						Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH shr 1);
 						redrawRequired := true;
 					end;
 				end;
@@ -1144,7 +1144,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 					and (Board.Info.DrawYOffset > 1)
 				then begin
 					if (Y - 1) = newY then begin
-						Board.Info.DrawYOffset := Board.Info.DrawYOffset - 1;
+						Dec(Board.Info.DrawYOffset);
 						VideoScroll(
 							BOARD_DRAW_X, BOARD_DRAW_Y,
 							BOARD_DRAW_WIDTH, BOARD_DRAW_HEIGHT,
@@ -1153,7 +1153,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 						for i := Board.Info.DrawXOffset to (Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) do
 							BoardDrawTile(i, Board.Info.DrawYOffset);
 					end else begin
-						Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT div 2);
+						Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT shr 1);
 						redrawRequired := true;
 					end;
 				end;
@@ -1162,7 +1162,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 					and ((Board.Info.DrawYOffset + BOARD_DRAW_HEIGHT) <= BOARD_HEIGHT)
 				then begin
 					if (Y + 1) = newY then begin
-						Board.Info.DrawYOffset := Board.Info.DrawYOffset + 1;
+						Inc(Board.Info.DrawYOffset);
 						VideoScroll(
 							BOARD_DRAW_X, BOARD_DRAW_Y,
 							BOARD_DRAW_WIDTH, BOARD_DRAW_HEIGHT,
@@ -1171,7 +1171,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 						for i := Board.Info.DrawXOffset to (Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) do
 							BoardDrawTile(i, Board.Info.DrawYOffset + (BOARD_DRAW_HEIGHT - 1));
 					end else begin
-						Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT div 2);
+						Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT shr 1);
 						redrawRequired := true;
 					end;
 				end;
@@ -1261,7 +1261,7 @@ procedure GameUpdateSidebar;
 					drawnChar := ElementDefs[E_KEY].Character
 				else
 					drawnChar := ' ';
-				VideoWriteText(((i - 1) mod 4) + 7, ((i - 1) div 4) + 19, $68 + i, drawnChar);
+				VideoWriteText(((i - 1) and 3) + 7, ((i - 1) shr 2) + 19, $68 + i, drawnChar);
 			end;
 
 			if SoundEnabled then
@@ -1306,12 +1306,12 @@ procedure DamageStat(attackerStatId: integer);
 		with Board.Stats[attackerStatId] do begin
 			if attackerStatId = 0 then begin
 				if World.Info.Health > 0 then begin
-					World.Info.Health := World.Info.Health - 10;
+					Dec(World.Info.Health, 10);
 
 					GameUpdateSidebar;
 					DisplayMessage(100, '', 'Ouch!');
 
-					Board.Tiles[X][Y].Color := $70 + (ElementDefs[E_PLAYER].Color mod $10);
+					Board.Tiles[X][Y].Color := $70 + (ElementDefs[E_PLAYER].Color and $0F);
 
 					if World.Info.Health > 0 then begin
 						World.Info.BoardTimeSec := 0;
@@ -1361,14 +1361,14 @@ procedure BoardDamageTile(x, y: integer);
 procedure BoardAttack(attackerStatId: integer; x, y: integer);
 	begin
 		if (attackerStatId = 0) and (World.Info.EnergizerTicks > 0) then begin
-			World.Info.Score := ElementDefs[Board.Tiles[x][y].Element].ScoreValue + World.Info.Score;
+			Inc(World.Info.Score, ElementDefs[Board.Tiles[x][y].Element].ScoreValue);
 			GameUpdateSidebar;
 		end else begin
 			DamageStat(attackerStatId);
 		end;
 
 		if (attackerStatId > 0) and (attackerStatId <= CurrentStatTicked) then
-			CurrentStatTicked := CurrentStatTicked - 1;
+			Dec(CurrentStatTicked);
 
 		if (Board.Tiles[x][y].Element = E_PLAYER) and (World.Info.EnergizerTicks > 0) then begin
 			World.Info.Score := ElementDefs[Board.Tiles[Board.Stats[attackerStatId].X][Board.Stats[attackerStatId].Y].Element]
@@ -1569,13 +1569,13 @@ procedure DrawPlayfieldBorder;
 
 procedure BoardUpdateDrawOffset;
 	begin
-		Board.Info.DrawXOffset := Board.Stats[0].X - (BOARD_DRAW_WIDTH div 2);
+		Board.Info.DrawXOffset := Board.Stats[0].X - (BOARD_DRAW_WIDTH shr 1);
 		if Board.Info.DrawXOffset < BOARD_DRAW_OX_MIN then
 			Board.Info.DrawXOffset := BOARD_DRAW_OX_MIN;
 		if Board.Info.DrawXOffset > BOARD_DRAW_OX_MAX then
 			Board.Info.DrawXOffset := BOARD_DRAW_OX_MAX;
 
-		Board.Info.DrawYOffset := Board.Stats[0].Y - (BOARD_DRAW_HEIGHT div 2);
+		Board.Info.DrawYOffset := Board.Stats[0].Y - (BOARD_DRAW_HEIGHT shr 1);
 		if Board.Info.DrawYOffset < BOARD_DRAW_OY_MIN then
 			Board.Info.DrawYOffset := BOARD_DRAW_OY_MIN;
 		if Board.Info.DrawYOffset > BOARD_DRAW_OY_MAX then
@@ -1716,8 +1716,8 @@ procedure GamePlayLoop(isTitle: boolean);
 						MoveStat(0, Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY)
 					else begin
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
-						Board.Stats[0].X := Board.Stats[0].X + InputDeltaX;
-						Board.Stats[0].Y := Board.Stats[0].Y + InputDeltaY;
+						Inc(Board.Stats[0].X, InputDeltaX);
+						Inc(Board.Stats[0].Y, InputDeltaY);
 						Board.Stats[0].Under.Element :=  Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element;
 						Board.Stats[0].Under.Color :=  Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color;
 						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
@@ -1740,7 +1740,7 @@ procedure GamePlayLoop(isTitle: boolean);
 						if (Cycle <> 0) and ((CurrentTick mod Cycle) = (CurrentStatTicked mod Cycle)) then
 							ElementDefs[Board.Tiles[X][Y].Element].TickProc(CurrentStatTicked);
 
-						CurrentStatTicked := CurrentStatTicked + 1;
+						Inc(CurrentStatTicked);
 					end;
 				end;
 			end;
@@ -1749,7 +1749,7 @@ procedure GamePlayLoop(isTitle: boolean);
 				{ all stats ticked }
 				if SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
 					{ next cycle }
-					CurrentTick := CurrentTick + 1;
+					Inc(CurrentTick);
 					if CurrentTick > 420 then
 						CurrentTick := 1;
 					CurrentStatTicked := 0;

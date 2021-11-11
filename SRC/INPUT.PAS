@@ -98,8 +98,8 @@ procedure InputJoystickGetCoords(var x, y: integer);
 		startTicks := TimerTicks;
 		Port[PORT_JOYSTICK] := 0;
 		repeat
-			x := x + (Port[PORT_JOYSTICK] and 1);
-			y := y + (Port[PORT_JOYSTICK] and 2);
+			Inc(x, (Port[PORT_JOYSTICK] and 1));
+			Inc(y, (Port[PORT_JOYSTICK] and 2));
 		until ((Port[PORT_JOYSTICK] and 3) = 0) or ((TimerTicks - startTicks) > 3);
 		y := y div 2;
 		if (TimerTicks - startTicks) > 3 then begin
@@ -173,10 +173,10 @@ procedure InputCalibrateJoystick;
 			JoystickXMax, JoystickYMax
 		) then exit;
 
-		JoystickXMin := JoystickXMin - JoystickXCenter;
-		JoystickXMax := JoystickXMax - JoystickXCenter;
-		JoystickYMin := JoystickYMin - JoystickYCenter;
-		JoystickYMax := JoystickYMax - JoystickYCenter;
+		Dec(JoystickXMin, JoystickXCenter);
+		Dec(JoystickXMax, JoystickXCenter);
+		Dec(JoystickYMin, JoystickYCenter);
+		Dec(JoystickYMax, JoystickYCenter);
 
 		{ if calibration valid range -> successful }
 		if (JoystickXMin < 1) and (JoystickXMax > 1)

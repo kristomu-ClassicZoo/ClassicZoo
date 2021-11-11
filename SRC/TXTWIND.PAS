@@ -221,7 +221,7 @@ procedure TextWindowAppend(var state: TTextWindowState; line: TTextWindowLine);
 			len := Length(line);
 			if len > MAX_LINE_LENGTH then len := MAX_LINE_LENGTH;
 
-			LineCount := LineCount + 1;
+			Inc(LineCount);
 			GetMem(Lines[LineCount], len + 1);
 			Lines[LineCount]^ := Copy(line, 1, len);
 		end;
@@ -231,7 +231,7 @@ procedure TextWindowAppendEdit(var state: TTextWindowState; line: TTextWindowLin
 	begin
 		with state do begin
 			if LineCount >= MAX_TEXT_WINDOW_LINES then exit;
-			LineCount := LineCount + 1;
+			Inc(LineCount);
 			New(Lines[LineCount]);
 			Lines[LineCount]^ := Copy(line, 1, MAX_LINE_LENGTH_EDIT);
 		end;
@@ -242,7 +242,7 @@ procedure TextWindowFree(var state: TTextWindowState);
 		with state do begin
 			while LineCount > 0 do begin
 				FreeMem(Lines[LineCount], Ord(Lines[LineCount]^[0]) + 1);
-				LineCount := LineCount - 1;
+				Dec(LineCount);
 			end;
 			LoadedFilename := '';
 		end;
@@ -253,7 +253,7 @@ procedure TextWindowFreeEdit(var state: TTextWindowState);
 		with state do begin
 			while LineCount > 0 do begin
 				Dispose(Lines[LineCount]);
-				LineCount := LineCount - 1;
+				Dec(LineCount);
 			end;
 			LoadedFilename := '';
 		end;
@@ -638,14 +638,14 @@ procedure TextWindowEdit(var state: TTextWindowState; syntaxHighlighting: boolea
 					KEY_PAGE_UP: newLinePos := LinePos - TextWindowHeight + 4;
 					KEY_PAGE_DOWN: newLinePos := LinePos + TextWindowHeight - 4;
 					KEY_RIGHT: begin
-						charPos := charPos + 1;
+						Inc(charPos);
 						if charPos > (Length(Lines[LinePos]^) + 1) then begin
 							charPos := 1;
 							newLinePos := LinePos + 1;
 						end;
 					end;
 					KEY_LEFT: begin
-						charPos := charPos - 1;
+						Dec(charPos);
 						if charPos < 1 then begin
 							charPos := 255;
 							newLinePos := LinePos - 1;
@@ -664,7 +664,7 @@ procedure TextWindowEdit(var state: TTextWindowState; syntaxHighlighting: boolea
 
 							newLinePos := LinePos + 1;
 							charPos := 1;
-							LineCount := LineCount + 1;
+							Inc(LineCount);
 						end;
 					end;
 					KEY_BACKSPACE: begin
@@ -672,7 +672,7 @@ procedure TextWindowEdit(var state: TTextWindowState; syntaxHighlighting: boolea
 							Lines[LinePos]^ :=
 								Copy(Lines[LinePos]^, 1, charPos - 2)
 								+ Copy(Lines[LinePos]^, charPos, Length(Lines[LinePos]^) - charPos + 1);
-							charPos := charPos - 1;
+							Dec(charPos);
 						end else if Length(Lines[LinePos]^) = 0 then begin
 							DeleteLine(LinePos);
 							newLinePos := LinePos - 1;
@@ -741,7 +741,7 @@ procedure TextWindowEdit(var state: TTextWindowState; syntaxHighlighting: boolea
 
 			if Length(Lines[LineCount]^) = 0 then begin
 				Dispose(Lines[LineCount]);
-				LineCount := LineCount - 1;
+				Dec(LineCount);
 			end;
 		end;
 		FreeCopyBuffer;

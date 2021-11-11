@@ -113,7 +113,7 @@ procedure OopReadValue(statId: integer; var position: integer);
 
 		s[0] := Chr(wordPos);
 		if position > 0 then
-			position := position - 1;
+			Dec(position);
 
 		if Length(s) <> 0 then
 			Val(s, OopValue, code)
@@ -212,7 +212,7 @@ function OopFindString(statId: integer; s: string): integer;
 					OopReadChar(statId, cmpPos);
 					if s[wordPos] <> UpCase(OopChar) then
 						goto NoMatch;
-					wordPos := wordPos + 1;
+					Inc(wordPos);
 				until wordPos > Length(s);
 
 				{ string matches }
@@ -227,7 +227,7 @@ function OopFindString(statId: integer; s: string): integer;
 				end;
 
 			NoMatch:
-				pos := pos + 1;
+				Inc(pos);
 			end;
 			OopFindString := -1;
 		end;
@@ -238,7 +238,7 @@ function OopIterateStat(statId: integer; var iStat: integer; lookup: string): bo
 		pos: integer;
 		found: boolean;
 	begin
-		iStat := iStat + 1;
+		Inc(iStat);
 		found := false;
 
 		if lookup = 'ALL' then begin
@@ -249,7 +249,7 @@ function OopIterateStat(statId: integer; var iStat: integer; lookup: string): bo
 				if iStat <> statId then
 					found := true
 				else begin
-					iStat := iStat + 1;
+					Inc(iStat);
 					found := (iStat <= Board.StatCount);
 				end;
 			end;
@@ -271,7 +271,7 @@ function OopIterateStat(statId: integer; var iStat: integer; lookup: string): bo
 				end;
 
 				if not found then
-					iStat := iStat + 1;
+					Inc(iStat);
 			end;
 		end;
 
@@ -337,7 +337,7 @@ procedure WorldSetFlag(name: TSmallString);
 		if WorldGetFlagPosition(name) < 0 then begin
 			i := 1;
 			while (i < MAX_FLAG) and (Length(World.Info.Flags[i]) <> 0) do
-				i := i + 1;
+				Inc(i);
 			World.Info.Flags[i] := name;
 		end;
 	end;
@@ -413,10 +413,10 @@ function FindTileOnBoard(var x, y: integer; tile: TTile): boolean;
 	begin
 		FindTileOnBoard := false;
 		while true do begin
-			x := x + 1;
+			Inc(x);
 			if x > BOARD_WIDTH then begin
 				x := 1;
-				y := y + 1;
+				Inc(y);
 				if y > BOARD_HEIGHT then
 					exit;
 			end;
