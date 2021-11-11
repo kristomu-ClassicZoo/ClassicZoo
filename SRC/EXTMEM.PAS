@@ -900,5 +900,4 @@ procedure ExtMemUninstall;
 		EmsUninstall;
 	end;
 
-begin
 end.

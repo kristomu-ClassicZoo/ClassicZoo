@@ -310,5 +310,4 @@ interface
 
 implementation
 
-begin
 end.

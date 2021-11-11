@@ -893,5 +893,4 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 		OopExecute := replaceStat;
 	end;
 
-begin
 end.

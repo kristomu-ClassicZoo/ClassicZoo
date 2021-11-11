@@ -36,7 +36,6 @@ interface
 		VideoWriteText: TVideoWriteTextProc;
 		VideoMonochrome: boolean;
 		VideoColumns: integer;
-		VideoBorderColor: integer;
 		VideoTextSegment: word;
 		VideoTextPointer: pointer;
 		VideoCursorVisible: boolean;
@@ -429,7 +428,6 @@ procedure VideoHideCursor;
 procedure VideoSetBorderColor(value: integer);
 	begin
 		Port[PORT_CGA_PALETTE] := value;
-		VideoBorderColor := value;
 	end;
 
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
@@ -455,7 +453,6 @@ procedure VideoClear(bgColor: integer);
 	end;
 
 begin
-	VideoBorderColor := 0;
 	VideoColumns := 80;
 	VideoWriteText := VideoWriteTextCGA;
 	if LastMode = 7 then begin

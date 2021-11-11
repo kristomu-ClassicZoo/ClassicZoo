@@ -108,5 +108,4 @@ procedure UnCrunch(var src, dest; srcLength: integer);
 		end;
 	end;
 
-begin
 end.
