@@ -578,7 +578,7 @@ procedure EditorLoop;
 			VideoWriteText(68, 10, $1F, ' Item');
 			VideoWriteText(61, 11, $30, '  f2   ');
 			VideoWriteText(68, 11, $1F, ' Creature');
-			VideoWriteText(61, 12, $70, '  f3   ');
+			VideoWriteText(61, 12, $70, '  f3-4 ');
 			VideoWriteText(68, 12, $1F, ' Terrain');
 			VideoWriteText(61, 13, $30, '  f6   ');
 			VideoWriteText(68, 13, $1F, ' Enter text');
@@ -1613,6 +1613,9 @@ procedure EditorLoop;
 			EditorMoveCursor(cursorX + 1, cursorY, false);
 		end;
 
+	label DrawNextCategory;
+	label CheckNextCategory;
+	label PlacementDone;
 	begin
 		viewMode := VIEW_EDITOR;
 		GameVideoInstall(80, Blue, viewMode);
@@ -1851,8 +1854,12 @@ procedure EditorLoop;
 					KEY_F9: begin
 						EditorTypeHexText;
 					end;
-					KEY_F7: begin
-						VideoWriteText(cursorX - 1, cursorY - 1, $0F, #197);
+					KEY_F5: begin
+						VideoWriteText(
+							cursorX + BOARD_DRAW_X - Board.Info.DrawXOffset,
+							cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
+							$0F, #197
+						);
 						for i := 3 to 20 do
 							SidebarClearLine(i);
 						VideoWriteText(65, 4, $1E, 'Advanced:');
@@ -1877,15 +1884,19 @@ procedure EditorLoop;
 						VideoWriteText(65, 9, $1F, 'Fake player');
 						VideoWriteText(78, 9, cursorColor, #2);
 
-						VideoWriteText(65, 11, $1E, 'Projectiles:');
+						VideoWriteText(61, 10, $30, ' P ');
+						VideoWriteText(65, 10, $1F, 'Pairer');
+						VideoWriteText(78, 10, EditorGetDrawingColor(E_PAIRER), ElementDefs[E_PAIRER].Character);
 
-						VideoWriteText(61, 12, $30, ' U ');
-						VideoWriteText(65, 12, $1F, 'Bullet');
-						VideoWriteText(78, 12, cursorColor, #248);
+						VideoWriteText(65, 12, $1E, 'Projectiles:');
 
-						VideoWriteText(61, 13, $70, ' A ');
-						VideoWriteText(65, 13, $1F, 'Star');
-						VideoWriteText(78, 13, cursorColor, '/');
+						VideoWriteText(61, 13, $70, ' U ');
+						VideoWriteText(65, 13, $1F, 'Bullet');
+						VideoWriteText(78, 13, cursorColor, #248);
+
+						VideoWriteText(61, 14, $30, ' A ');
+						VideoWriteText(65, 14, $1F, 'Star');
+						VideoWriteText(78, 14, cursorColor, '/');
 
 						InputReadWaitKey;
 						case UpCase(InputKeyPressed) of
@@ -1901,6 +1912,9 @@ procedure EditorLoop;
 							'C': begin
 								EditorPlaceElement(E_PLAYER, $1F);
 							end;
+							'P': begin
+								EditorPlaceElement(E_PAIRER, EditorGetDrawingColor(E_PAIRER));
+							end;
 							'F': begin
 								EditorPlaceElementNoStat(E_PLAYER, cursorColor);
 							end;
@@ -1913,7 +1927,7 @@ procedure EditorLoop;
 						end;
 						EditorDrawSidebar;
 					end;
-					KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5: begin
+					KEY_F1, KEY_F2, KEY_F3, KEY_F4: begin
 						VideoWriteText(
 							cursorX + BOARD_DRAW_X - Board.Info.DrawXOffset,
 							cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
@@ -1925,13 +1939,13 @@ procedure EditorLoop;
 							KEY_F1: selectedCategory := CATEGORY_ITEM;
 							KEY_F2: selectedCategory := CATEGORY_CREATURE;
 							KEY_F3: selectedCategory := CATEGORY_TERRAIN;
-							KEY_F4: selectedCategory := CATEGORY_UGLIES;
-							KEY_F5: selectedCategory := CATEGORY_TERRAIN2;
+							KEY_F4: selectedCategory := CATEGORY_TERRAIN2;
 						end;
 						i := 3; { Y position for text writing }
-						for iElem := 0 to MAX_ELEMENT do begin
+DrawNextCategory:
+						for iElem := 1 to MAX_ELEMENT do begin
 							if ElementDefs[iElem].EditorCategory = selectedCategory then begin
-								if Length(ElementDefs[iElem].CategoryName) <> 0 then begin
+								if ElementDefs[iElem].CategoryName <> '' then begin
 									Inc(i);
 									VideoWriteText(65, i, $1E, ElementDefs[iElem].CategoryName);
 									Inc(i);
@@ -1944,7 +1958,16 @@ procedure EditorLoop;
 								Inc(i);
 							end;
 						end;
+						if selectedCategory = CATEGORY_CREATURE then begin
+							selectedCategory := CATEGORY_CENTIPEDE;
+							goto DrawNextCategory;
+						end;
+						if selectedCategory = CATEGORY_ITEM then begin
+							selectedCategory := CATEGORY_CONVEYOR;
+							goto DrawNextCategory;
+						end;
 						InputReadWaitKey;
+CheckNextCategory:
 						for iElem := 1 to MAX_ELEMENT do begin
 							if (ElementDefs[iElem].EditorCategory = selectedCategory)
 								and (ElementDefs[iElem].EditorShortcut = UpCase(InputKeyPressed)) then
@@ -1955,8 +1978,18 @@ procedure EditorLoop;
 								end else begin
 									EditorPlaceElement(iElem, EditorGetDrawingColor(iElem));
 								end;
+								goto PlacementDone;
 							end;
 						end;
+						if selectedCategory = CATEGORY_CENTIPEDE then begin
+							selectedCategory := CATEGORY_CREATURE;
+							goto CheckNextCategory;
+						end;
+						if selectedCategory = CATEGORY_CONVEYOR then begin
+							selectedCategory := CATEGORY_ITEM;
+							goto CheckNextCategory;
+						end;
+PlacementDone:
 						EditorDrawSidebar;
 					end;
 					KEY_F6: begin
