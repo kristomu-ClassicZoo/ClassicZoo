@@ -654,7 +654,7 @@ procedure WorldUnload;
 
 procedure SidebarAnimateLoading(var loadProgress: integer);
 	begin
-		VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
+		VideoWriteText(22, 24, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
 		loadProgress := (loadProgress + 1) mod 8;
 	end;
 
