@@ -628,9 +628,9 @@ procedure EditorLoop;
 			TransitionDrawToBoard;
 
 			if Length(Board.Name) <> 0 then
-				VideoWriteText((95 - Length(Board.Name)) div 2, 0, $70, ' ' + Board.Name + ' ')
+				VideoWriteText((59 - Length(Board.Name)) div 2, 0, $70, ' ' + Board.Name + ' ')
 			else
-				VideoWriteText(44, 0, $70, ' Untitled ');
+				VideoWriteText(26, 0, $70, ' Untitled ');
 		end;
 
 	procedure EditorSetTile(x, y, newElement, newColor: byte);
