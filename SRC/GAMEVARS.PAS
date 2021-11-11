@@ -34,14 +34,16 @@ interface
 		MAX_BOARD = 255;
 		BOARD_WIDTH = 96;
 		BOARD_HEIGHT = 80;
+		BOARD_DRAW_OX_MIN = 1;
+		BOARD_DRAW_OY_MIN = 1;
+{$IFNDEF EDITOR}
 		BOARD_DRAW_X = 14;
 		BOARD_DRAW_Y = 2;
 		BOARD_DRAW_WIDTH = 24;
 		BOARD_DRAW_HEIGHT = 20;
-		BOARD_DRAW_OX_MIN = 1;
 		BOARD_DRAW_OX_MAX = BOARD_WIDTH - BOARD_DRAW_WIDTH + 1;
-		BOARD_DRAW_OY_MIN = 1;
 		BOARD_DRAW_OY_MAX = BOARD_HEIGHT - BOARD_DRAW_HEIGHT + 1;
+{$ENDIF}
 		WORLD_FILE_HEADER_SIZE = 1024;
 		WORLD_FILE_DESC_COUNT = 3;
 		HIGH_SCORE_COUNT = 30;
@@ -180,7 +182,17 @@ interface
 		MessageGemNotShown: boolean;
 		MessageEnergizerNotShown: boolean;
 		IoTmpBufSize: word; { Borrowed: unkVar_7c12[0..1] }
-		unkVar_7c12: array[2 .. 15] of byte;
+{$IFDEF EDITOR}
+		BOARD_DRAW_X: integer; { Borrowed: unkVar_7c12[2..13] }
+		BOARD_DRAW_Y: integer;
+		BOARD_DRAW_WIDTH: integer;
+		BOARD_DRAW_HEIGHT: integer;
+		BOARD_DRAW_OX_MAX: integer;
+		BOARD_DRAW_OY_MAX: integer;
+{$ELSE}
+		unusedEditorVars: array[2 .. 13] of byte;
+{$ENDIF}
+		unkVar_7c12: array[14 .. 15] of byte;
 
 		MessageLine1: TSmallString;
 		MessageLine2: TSmallString;

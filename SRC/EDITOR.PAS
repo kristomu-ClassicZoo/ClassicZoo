@@ -425,6 +425,7 @@ procedure EditorLoop;
 		copiedTiles: array[1 .. COPIED_TILES_COUNT] of TEditorCopiedTile;
 		cursorBlinker: integer;
 		inputByte: byte;
+		viewMode: integer;
 		copyBuffer: TEditorCopyBuffer;
 
 	function EditorGetDrawingColor(eid: integer): integer;
@@ -1217,11 +1218,11 @@ procedure EditorLoop;
 				TransitionDrawToBoard;
 			end;
 
-			VideoWriteText(61, 23, $1E, '(  ,  )');
+			VideoWriteText(72, 20, $1E, '(  ,  )');
 			Str(cursorX, numStr);
-			VideoWriteText(62, 23, $1F, numStr);
+			VideoWriteText(73, 20, $1F, numStr);
 			Str(cursorY, numStr);
-			VideoWriteText(65, 23, $1F, numStr);
+			VideoWriteText(76, 20, $1F, numStr);
 		end;
 
 	procedure EditorBoardChange(boardId: integer);
@@ -1613,7 +1614,8 @@ procedure EditorLoop;
 		end;
 
 	begin
-		GameVideoInstall(80, Blue, VIEW_EDITOR);
+		viewMode := VIEW_EDITOR;
+		GameVideoInstall(80, Blue, viewMode);
 
 		if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) then begin
 			WorldUnload;
@@ -1825,6 +1827,15 @@ procedure EditorLoop;
 						end else begin
 							EditorDrawSidebar;
 						end;
+					end;
+					'V': begin
+						if viewMode = VIEW_EDITOR then
+							viewMode := VIEW_EDITOR_LARGE
+						else
+							viewMode := VIEW_EDITOR;
+						GameVideoInstall(80, Blue, viewMode);
+						EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, false);
+						EditorDrawRefresh;
 					end;
 					'?': begin
 						GameDebugPrompt;

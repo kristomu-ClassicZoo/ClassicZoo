@@ -36,6 +36,7 @@ interface
 		VIEW_TITLE = 0;
 		VIEW_PLAY = 1;
 		VIEW_EDITOR = 2;
+		VIEW_EDITOR_LARGE = 3;
 	procedure GameVideoInstall(columns, borderColor, mode: integer);
 	procedure SidebarClearLine(y: integer);
 	procedure SidebarClear;
@@ -129,15 +130,32 @@ uses Dos, Crt, ExtMem, FileSel, Video, Sounds, Input, Uncrlib, Elements, Editor,
 
 procedure GameVideoInstall(columns, borderColor, mode: integer);
 	begin
-		VideoInstall(columns, borderColor);
+		if borderColor >= 0 then
+			VideoInstall(columns, borderColor);
+
 		if mode = VIEW_TITLE then
 			TextWindowInit(15, 3, 50, 18)
 {$IFDEF EDITOR}
-		else if mode = VIEW_EDITOR then
+		else if mode >= VIEW_EDITOR then
 			TextWindowInit(5, 3, 50, 18)
 {$ENDIF}
 		else if mode = VIEW_PLAY then
 			TextWindowInit(1, 2, 38, 22);
+{$IFDEF EDITOR}
+		if mode = VIEW_EDITOR_LARGE then begin
+			BOARD_DRAW_X := 2;
+			BOARD_DRAW_Y := 2;
+			BOARD_DRAW_WIDTH := 56;
+			BOARD_DRAW_HEIGHT := 20;
+		end else begin
+			BOARD_DRAW_X := 14;
+			BOARD_DRAW_Y := 2;
+			BOARD_DRAW_WIDTH := 24;
+			BOARD_DRAW_HEIGHT := 20;
+		end;
+		BOARD_DRAW_OX_MAX := BOARD_WIDTH - BOARD_DRAW_WIDTH + 1;
+		BOARD_DRAW_OY_MAX := BOARD_HEIGHT - BOARD_DRAW_HEIGHT + 1;
+{$ENDIF}
 	end;
 
 function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
@@ -1532,18 +1550,19 @@ procedure GameDebugPrompt;
 
 procedure DrawPlayfieldBorder;
 	var
-		i: integer;
+		i, j: integer;
 	begin
-		VideoWriteText(BOARD_DRAW_X - 1, BOARD_DRAW_Y - 1, $1F,
-			#220#220#220#220#220#220#220#220#220#220#220#220#220
-			+ #220#220#220#220#220#220#220#220#220#220#220#220#220);
+		for i := (BOARD_DRAW_X - 1) to (BOARD_DRAW_X + BOARD_DRAW_WIDTH) do begin
+			VideoWriteText(i, BOARD_DRAW_Y - 1, $1F, #220);
+			VideoWriteText(i, BOARD_DRAW_Y + BOARD_DRAW_HEIGHT, $7F, #223);
+		end;
 		VideoWriteText(BOARD_DRAW_X - 1, BOARD_DRAW_Y + BOARD_DRAW_HEIGHT, $1F,
 			#223);
-		VideoWriteText(BOARD_DRAW_X, BOARD_DRAW_Y + BOARD_DRAW_HEIGHT, $7F,
-			#223#223#223#223#223#223#223#223#223#223#223#223#223
-			+ #223#223#223#223#223#223#223#223#223#223#223#223);
 		for i := BOARD_DRAW_Y to (BOARD_DRAW_Y + BOARD_DRAW_HEIGHT - 1) do begin
-			VideoWriteText(BOARD_DRAW_X - 1, i, $0F, #219'                        '#219);
+			VideoWriteText(BOARD_DRAW_X - 1, i, $0F, #219);
+			VideoWriteText(BOARD_DRAW_X + BOARD_DRAW_WIDTH, i, $0F, #219);
+			for j := BOARD_DRAW_X to (BOARD_DRAW_X + BOARD_DRAW_WIDTH - 1) do
+				VideoWriteText(j, i, $0F,' ');
 			VideoWriteText(BOARD_DRAW_X + BOARD_DRAW_WIDTH + 1, i + 1, $17, #221);
 		end;
 	end;
