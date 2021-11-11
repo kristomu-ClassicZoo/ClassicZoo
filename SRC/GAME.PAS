@@ -618,7 +618,7 @@ function PromptYesNo(message: string; defaultReturn: boolean; color: integer): b
 procedure PauseOnError;
 	begin
 		SoundQueue(1, SoundParse('s004x114x9'));
-		Delay(2000);
+		AccurateDelay(2000);
 	end;
 
 function DisplayIOError: boolean;
@@ -759,7 +759,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmal
 				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) and $FF));
 
 			if editable then begin
-				Delay(25);
+				AccurateDelay(25);
 				InputUpdate;
 				if InputKeyPressed = KEY_TAB then
 					InputDeltaX := 9;

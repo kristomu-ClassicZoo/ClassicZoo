@@ -179,7 +179,7 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 			if editable then begin
 				SidebarClearLine(y + 1);
 				VideoWriteText(62 + i, y + 1, $9F, #31);
-				Delay(35);
+				AccurateDelay(35);
 				InputUpdate;
 
 				newResult := result + InputDeltaX;
@@ -341,7 +341,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmal
 				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) and $FF));
 
 			if editable then begin
-				Delay(25);
+				AccurateDelay(25);
 				InputUpdate;
 				if InputKeyPressed = KEY_TAB then
 					InputDeltaX := 9;
@@ -380,7 +380,7 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 		repeat
 			if editable then begin
 				if InputJoystickMoved then
-					Delay(45);
+					AccurateDelay(45);
 				VideoWriteText(x + value + 1, y + 1, $9F, #31);
 
 				InputUpdate;
@@ -1248,7 +1248,7 @@ procedure EditorLoop;
 					);
 
 				if (InputKeyPressed = #0) and InputJoystickEnabled then
-					Delay(70);
+					AccurateDelay(70);
 				InputShiftAccepted := false;
 			end;
 		end;
