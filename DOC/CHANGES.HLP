@@ -5,6 +5,13 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
+$< Super ClassicZoo dev >
+
++ Support for larger video modes in the
+  editor and during gameplay!
+* Minor tweaks to the built-in font.
+* Optimizations to text scrolling.
+
 $< Super ClassicZoo 4.00 >
 
 + EMS/XMS extended memory support. This
