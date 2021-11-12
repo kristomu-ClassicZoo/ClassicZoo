@@ -7,8 +7,8 @@ Legend:
 
 $< Super ClassicZoo dev >
 
-+ Support for larger video modes in the
-  editor and during gameplay!
++ Support for larger video modes for the
+  built-in editor!
 * Minor tweaks to the built-in font.
 * Optimizations to text scrolling.
 / Fixed the 8x8 font being used on

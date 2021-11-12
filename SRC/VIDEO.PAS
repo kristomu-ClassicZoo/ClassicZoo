@@ -66,6 +66,12 @@ interface
 implementation
 uses Crt, Dos;
 
+{ const
+	VideoEGAPalette: array[0 .. 16] of byte = (
+		$00, $01, $02, $03, $04, $05, $14, $07,
+		$38, $39, $3A, $3B, $3C, $3D, $3E, $3F,
+		$00
+	); }
 var
 	VideoMaxMode: integer;
 
@@ -323,38 +329,25 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 	var
 		regs: Registers;
-	label FinishSC;
 	begin
 		VideoSetCharset := false;
 		if not VideoEGAInstalled then exit;
 		if (height <> 8) and (height <> 14) then exit;
 		if not VideoVGAInstalled then begin
-			if (height <> 14) and (VideoRows <> 43) then begin
-				regs.AX := $1111;
-				Intr($10, regs);
-				goto FinishSC;
-			end;
-			if (height <> 8) and (VideoRows <> 25) then begin
-				regs.AX := $1112;
-				Intr($10, regs);
-				goto FinishSC;
-			end;
+			if (height <> 8) and (VideoRows = 43) then exit;
+			if (height <> 14) and (VideoRows = 25) then exit;
 		end;
 
 		regs.BX := (height shl 8);
 		regs.CX := 256;
 		regs.DX := 0;
 
-		if Seg(data^) <> 0 then begin
-			regs.AX := $1110;
-			regs.ES := Seg(data^);
-			regs.BP := Ofs(data^);
-		end else begin
-			regs.AX := $1111;
-		end;
+		regs.AX := $1110;
+		regs.ES := Seg(data^);
+		regs.BP := Ofs(data^);
+
 		Intr($10, regs);
 
-FinishSC:
 		VideoHideCursor;
 		VideoSetCharset := true;
 	end;
@@ -475,12 +468,21 @@ function VideoInstall(mode, borderColor: integer): boolean;
 		end;
 
 		if VideoEGAInstalled then begin
-			if VideoRows = 43 then
-				regs.AX := $1111
+			{ set default charset }
+			if VideoRows >= 43 then
+				regs.AX := $1112
 			else
-				regs.AX := $1112;
+				regs.AX := $1111;
 			regs.BL := $00;
 			Intr($10, regs);
+
+			{ set palette }
+			{ regs.AX := $1002;
+			regs.BX := $0000;
+			regs.ES := Seg(VideoEGAPalette);
+			regs.DX := Ofs(VideoEGAPalette);
+			VideoEGAPalette[16] := VideoEGAPalette[borderColor];
+			Intr($10, regs); }
 		end;
 
 		FillChar(Ptr(VideoTextSegment, $0000)^, VideoColumns * VideoRows * 2, borderColor * $11);
