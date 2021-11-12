@@ -37,7 +37,7 @@ interface
 		VIEW_PLAY = 1;
 		VIEW_EDITOR = 2;
 		VIEW_EDITOR_LARGE = 3;
-	procedure GameVideoInstall(columns, borderColor, mode: integer);
+	function GameVideoInstall(videoMode, mode: integer): boolean;
 	procedure SidebarClearLine(y: integer);
 	procedure SidebarClear;
 	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
@@ -103,7 +103,9 @@ interface
 	procedure GameTitleLoop;
 
 const
-	LFSR11_START = 42;
+	LFSR_START = 42;
+	LFSR11_TAP_CONST = $740;
+	LFSR14_TAP_CONST = $3740;
 	ProgressAnimColors: array[0 .. 7] of byte = ($18, $1C, $19, $1D, $1A, $1E, $1B, $1F);
 	ProgressAnimStrings: array[0 .. 7] of string[5] =
 		('....|', '...*/', '..*.-', '.*..\', '*...|', '..../', '....-', '....\');
@@ -129,47 +131,58 @@ implementation
 uses Dos, Crt, ExtMem, FileSel, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop,
 	FONT;
 
-procedure GameVideoInstall(columns, borderColor, mode: integer);
+function GameVideoInstall(videoMode, mode: integer): boolean;
 	var
+		borderColor: integer;
 		setCharset: boolean;
 	begin
-		setCharset := VideoSetCharHeight(FONTBINSize shr 8);
-		VideoInstall(columns, borderColor);
-		if setCharset then begin
-			if VideoSetCharset(@FONTBINData, FONTBINSize shr 8) then begin end;
-		end;
+		GameVideoInstall := false;
+
+		borderColor := Blue;
+		if mode = VIEW_TITLE then
+			borderColor := Black;
+
+		if not VideoInstall(videoMode, borderColor) then exit;
+		if VideoSetCharset(@FONTBINData, FONTBINSize shr 8) then begin end;
 
 		if mode = VIEW_TITLE then
-			TextWindowInit(15, 3, 50, 18)
+			TextWindowInit((VideoColumns - 50) shr 1, (VideoRows - 18) shr 1, 50, 18)
 {$IFDEF EDITOR}
 		else if mode >= VIEW_EDITOR then
-			TextWindowInit(5, 3, 50, 18)
+			TextWindowInit(5, 3, 50, VideoRows - 7)
 {$ENDIF}
 		else if mode = VIEW_PLAY then
-			TextWindowInit(1, 2, 38, 22);
+			TextWindowInit((VideoColumns - 38) shr 1, (VideoRows - 21) shr 1, 38, 22);
 {$IFDEF EDITOR}
 		if mode = VIEW_EDITOR_LARGE then begin
 			BOARD_DRAW_X := 2;
 			BOARD_DRAW_Y := 2;
 			BOARD_DRAW_WIDTH := 56;
-			BOARD_DRAW_HEIGHT := 20;
-		end else begin
+		end else if mode = VIEW_EDITOR then begin
 			BOARD_DRAW_X := 14;
 			BOARD_DRAW_Y := 2;
 			BOARD_DRAW_WIDTH := 24;
-			BOARD_DRAW_HEIGHT := 20;
+		end else begin
+{$ENDIF}
+			BOARD_DRAW_X := 14;
+			BOARD_DRAW_Y := 2;
+			BOARD_DRAW_WIDTH := VideoColumns - 16;
+{$IFDEF EDITOR}
 		end;
+{$ENDIF}
+		BOARD_DRAW_HEIGHT := VideoRows - 5;
 		BOARD_DRAW_OX_MAX := BOARD_WIDTH - BOARD_DRAW_WIDTH + 1;
 		BOARD_DRAW_OY_MAX := BOARD_HEIGHT - BOARD_DRAW_HEIGHT + 1;
-{$ENDIF}
+
+		GameVideoInstall := true;
 	end;
 
-function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
+function LFSRUpdateSeed(var seed: word; var tx, ty: byte): boolean;
 	begin
-		seed := (seed shr 1) xor ((-(seed and 1)) and $740);
-		tx := (seed - 1) and $3F;
-		ty := ((seed - 1) shr 6) and $3F;
-		LFSR11UpdateSeed := seed = LFSR11_START;
+		seed := (seed shr 1) xor ((-(seed and 1)) and LFSR14_TAP_CONST);
+		tx := (seed - 1) and $7F;
+		ty := ((seed - 1) shr 7) and $7F;
+		LFSRUpdateSeed := seed = LFSR_START;
 	end;
 
 procedure SidebarClearLine(y: integer);
@@ -181,7 +194,7 @@ procedure SidebarClear;
 	var
 		i: integer;
 	begin
-		for i := 3 to 24 do
+		for i := 3 to VideoRows - 1 do
 			SidebarClearLine(i);
 	end;
 
@@ -470,11 +483,11 @@ procedure TransitionDrawToFill(chr: char; color: integer);
 		seed: word;
 		tx, ty: byte;
 	begin
-		seed := LFSR11_START;
+		seed := LFSR_START;
 		repeat
 			if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
 				VideoWriteText(tx + BOARD_DRAW_X, ty + BOARD_DRAW_Y, color, chr);
-		until LFSR11UpdateSeed(seed, tx, ty);
+		until LFSRUpdateSeed(seed, tx, ty);
 
 		if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
 			VideoWriteText(tx + BOARD_DRAW_X, ty + BOARD_DRAW_Y, color, chr);
@@ -524,14 +537,14 @@ procedure TransitionDrawToBoard;
 		seed: word;
 		tx, ty: byte;
 	begin
-		seed := LFSR11_START;
+		seed := LFSR_START;
 		repeat
 			if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
 				BoardDrawTile(
 					tx + Board.Info.DrawXOffset,
 					ty + Board.Info.DrawYOffset
 				);
-		until LFSR11UpdateSeed(seed, tx, ty);
+		until LFSRUpdateSeed(seed, tx, ty);
 
 		if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
 			BoardDrawTile(
@@ -541,15 +554,19 @@ procedure TransitionDrawToBoard;
 	end;
 
 procedure ClearDisplayMessage;
+	var
+		i: integer;
 	begin
-		VideoWriteText(12, 23, $1F, '                            ');
-		VideoWriteText(12, 24, $1F, '                            ');
+		for i := 12 to VideoColumns - 1 do begin
+			VideoWriteText(i, VideoRows - 2, $1F, ' ');
+			VideoWriteText(i, VideoRows - 1, $1F, ' ');
+		end;
 	end;
 
 procedure DrawStatusMessage(msg: string);
 	begin
 		ClearDisplayMessage;
-		VideoWriteText(26 - (Length(msg) shr 1), 24, $1E, msg);
+		VideoWriteText(12 + (((VideoColumns - 12) - Length(msg)) shr 1), VideoRows - 1, $1E, msg);
 	end;
 
 procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TSmallString);
@@ -606,8 +623,8 @@ procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var 
 
 function PromptYesNo(message: string; defaultReturn: boolean; color: integer): boolean;
 	begin
-		VideoWriteText(15, 24, color, message);
-		VideoWriteText(15 + Length(message), 24, (color and $70) + $8E, '_');
+		VideoWriteText(15, VideoRows - 1, color, message);
+		VideoWriteText(15 + Length(message), VideoRows - 1, (color and $70) + $8E, '_');
 
 		repeat
 			InputReadWaitKey;
@@ -678,7 +695,7 @@ procedure WorldUnload;
 
 procedure SidebarAnimateLoading(var loadProgress: integer);
 	begin
-		VideoWriteText(22, 24, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
+		VideoWriteText(22, VideoRows - 1, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
 		loadProgress := (loadProgress + 1) and 7;
 	end;
 
@@ -693,7 +710,7 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 		WorldLoad := false;
 		loadProgress := 0;
 
-		VideoWriteText(15, 24, $1F, 'Loading.....');
+		VideoWriteText(15, VideoRows - 1, $1F, 'Loading.....');
 
 		Assign(f, filename + extension);
 		Reset(f, 1);
@@ -785,10 +802,10 @@ procedure SidebarPromptString(prompt: string; extension: TSmallString; var filen
 	begin
 		ClearDisplayMessage;
 
-		VideoWriteText(13, 24, $1F, prompt);
-		VideoWriteText(Length(prompt) + 13 + 2, 24, $0F, '        ' + extension);
+		VideoWriteText(13, VideoRows - 1, $1F, prompt);
+		VideoWriteText(Length(prompt) + 13 + 2, VideoRows - 1, $0F, '        ' + extension);
 
-		PromptString(Length(prompt) + 13 + 2, 24, $1E, $0F, 8, promptMode, filename);
+		PromptString(Length(prompt) + 13 + 2, VideoRows - 1, $1E, $0F, 8, promptMode, filename);
 
 		ClearDisplayMessage;
 	end;
@@ -1073,6 +1090,8 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 		redrawRequired: boolean;
 		i: integer;
 		scrollOffset: boolean;
+		deltaX, deltaY, diffX, diffY, vCenterX, vCenterY: integer;
+		smallScroll, anyScroll: boolean;
 	begin
 		with Board.Stats[statId] do begin
 			scrollOffset := true;
@@ -1097,93 +1116,73 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 
 			if (statId = 0) and scrollOffset then begin
 				redrawRequired := false;
+				smallScroll := false;
+				anyScroll := false;
 
-				if ((newX - Board.Info.DrawXOffset) < 9)
-					and (Board.Info.DrawXOffset > 1)
+				deltaX := newX - X;
+				deltaY := newY - Y;
+				diffX := newX - Board.Info.DrawXOffset;
+				diffY := newY - Board.Info.DrawYOffset;
+				vCenterX := BOARD_DRAW_WIDTH shr 1;
+				vCenterY := BOARD_DRAW_HEIGHT shr 1;
+
+				if (diffX <= (vCenterX - 4))
+					or (diffX >= (vCenterX + 2))
+					or (diffY <= (vCenterY - 3))
+					or (diffY >= (vCenterY + 4))
 				then begin
-					if (X - 1) = newX then begin
-						Dec(Board.Info.DrawXOffset);
-						VideoScroll(
-							BOARD_DRAW_X, BOARD_DRAW_Y,
-							BOARD_DRAW_WIDTH, BOARD_DRAW_HEIGHT,
-							1, 0
-						);
-						for i := Board.Info.DrawYOffset to (Board.Info.DrawYOffset + BOARD_DRAW_HEIGHT) do
-							BoardDrawTile(Board.Info.DrawXOffset, i);
-					end else begin
-						Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH shr 1);
-						if Board.Info.DrawXOffset < 1 then
-							Board.Info.DrawXOffset := 1;
-						if (Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) >= BOARD_WIDTH then
-							Board.Info.DrawXOffset := BOARD_WIDTH - BOARD_DRAW_WIDTH;
-						redrawRequired := true;
-					end;
+					anyScroll := true;
 				end;
 
+				diffX := Board.Info.DrawXOffset;
+				diffY := Board.Info.DrawYOffset;
 
-				if ((newX - Board.Info.DrawXOffset) >= 14)
-					and ((Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) <= BOARD_WIDTH)
-				then begin
-					if (X + 1) = newX then begin
-						Inc(Board.Info.DrawXOffset);
-						VideoScroll(
-							BOARD_DRAW_X, BOARD_DRAW_Y,
-							BOARD_DRAW_WIDTH, BOARD_DRAW_HEIGHT,
-							-1, 0
-						);
-						for i := Board.Info.DrawYOffset to (Board.Info.DrawYOffset + BOARD_DRAW_HEIGHT) do
-							BoardDrawTile(Board.Info.DrawXOffset + (BOARD_DRAW_WIDTH - 1), i);
-					end else begin
-						Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH shr 1);
-						redrawRequired := true;
-					end;
+				if smallScroll then begin
+					Inc(Board.Info.DrawXOffset, deltaX);
+					Inc(Board.Info.DrawYOffset, deltaY);
+				end else begin
+					Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH shr 1);
+					Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT shr 1);
 				end;
 
-				if ((newY - Board.Info.DrawYOffset) < 8)
-					and (Board.Info.DrawYOffset > 1)
-				then begin
-					if (Y - 1) = newY then begin
-						Dec(Board.Info.DrawYOffset);
-						VideoScroll(
-							BOARD_DRAW_X, BOARD_DRAW_Y,
-							BOARD_DRAW_WIDTH, BOARD_DRAW_HEIGHT,
-							0, 1
-						);
-						for i := Board.Info.DrawXOffset to (Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) do
-							BoardDrawTile(i, Board.Info.DrawYOffset);
-					end else begin
-						Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT shr 1);
-						redrawRequired := true;
-					end;
-				end;
+				if Board.Info.DrawXOffset < BOARD_DRAW_OX_MIN then
+					Board.Info.DrawXOffset := BOARD_DRAW_OX_MIN
+				else if Board.Info.DrawXOffset >= BOARD_DRAW_OX_MAX then
+					Board.Info.DrawXOffset := BOARD_DRAW_OX_MAX;
+				if Board.Info.DrawYOffset < BOARD_DRAW_OY_MIN then
+					Board.Info.DrawYOffset := BOARD_DRAW_OY_MIN
+				else if Board.Info.DrawYOffset >= BOARD_DRAW_OY_MAX then
+					Board.Info.DrawYOffset := BOARD_DRAW_OY_MAX;
 
-				if ((newY - Board.Info.DrawYOffset) >= 14)
-					and ((Board.Info.DrawYOffset + BOARD_DRAW_HEIGHT) <= BOARD_HEIGHT)
-				then begin
-					if (Y + 1) = newY then begin
-						Inc(Board.Info.DrawYOffset);
+				deltaX := diffX - Board.Info.DrawXOffset;
+				deltaY := diffY - Board.Info.DrawYOffset;
+
+				if (deltaX <> 0) or (deltaY <> 0) then begin
+					if ((Abs(deltaX) = 1) and (deltaY = 0)) or ((Abs(deltaY) = 1) and (deltaX = 0)) then begin
 						VideoScroll(
 							BOARD_DRAW_X, BOARD_DRAW_Y,
 							BOARD_DRAW_WIDTH, BOARD_DRAW_HEIGHT,
-							0, -1
+							deltaX, deltaY
 						);
-						for i := Board.Info.DrawXOffset to (Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) do
-							BoardDrawTile(i, Board.Info.DrawYOffset + (BOARD_DRAW_HEIGHT - 1));
+						if deltaX = 1 then begin
+							for i := Board.Info.DrawYOffset to (Board.Info.DrawYOffset + BOARD_DRAW_HEIGHT) do
+								BoardDrawTile(Board.Info.DrawXOffset, i);
+						end else if deltaX = -1 then begin
+							for i := Board.Info.DrawYOffset to (Board.Info.DrawYOffset + BOARD_DRAW_HEIGHT) do
+								BoardDrawTile(Board.Info.DrawXOffset + (BOARD_DRAW_WIDTH - 1), i);
+						end else if deltaY = 1 then begin
+							for i := Board.Info.DrawXOffset to (Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) do
+								BoardDrawTile(i, Board.Info.DrawYOffset);
+						end else if deltaY = -1 then begin
+							for i := Board.Info.DrawXOffset to (Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) do
+								BoardDrawTile(i, Board.Info.DrawYOffset + (BOARD_DRAW_HEIGHT - 1));
+						end;
 					end else begin
-						Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT shr 1);
 						redrawRequired := true;
 					end;
 				end;
 
 				if redrawRequired then begin
-					if Board.Info.DrawXOffset < BOARD_DRAW_OX_MIN then
-						Board.Info.DrawXOffset := BOARD_DRAW_OX_MIN;
-					if Board.Info.DrawXOffset >= BOARD_DRAW_OX_MAX then
-						Board.Info.DrawXOffset := BOARD_DRAW_OX_MAX;
-					if Board.Info.DrawYOffset < BOARD_DRAW_OY_MIN then
-						Board.Info.DrawYOffset := BOARD_DRAW_OY_MIN;
-					if Board.Info.DrawYOffset >= BOARD_DRAW_OY_MAX then
-						Board.Info.DrawYOffset := BOARD_DRAW_OY_MAX;
 					TransitionDrawToBoard;
 				end;
 			end;
@@ -1494,7 +1493,7 @@ procedure GameDebugPrompt;
 		input := '';
 
 		ClearDisplayMessage;
-		PromptString(15, 24, $1E, $0F, 11, PROMPT_ANY, input);
+		PromptString(15, VideoRows - 1, $1E, $0F, 11, PROMPT_ANY, input);
 		ClearDisplayMessage;
 
 		toggle := true;
@@ -1589,9 +1588,10 @@ procedure GamePlayLoop(isTitle: boolean);
 		pausePlayerColor: integer;
 	procedure GameDrawSidebar;
 		var
-			unk1: integer;
+			i: integer;
 		begin
 			VideoClear(Blue);
+
 			if GameStateElement = E_PLAYER then begin
 				VideoWriteText(0, 0, $1D, #220#220#220#220#220#220#220#220#220#220#220#220);
 				VideoWriteText(0, 1, $6F, '  Commands  ');
@@ -1687,7 +1687,7 @@ procedure GamePlayLoop(isTitle: boolean);
 					pausePlayerColor,
 					pausePlayerStr
 				);
-				VideoWriteText(21, 24, $1E, 'Pausing...');
+				VideoWriteText(21, VideoRows - 1, $1E, 'Pausing...');
 				InputUpdate;
 
 				case UpCase(InputKeyPressed) of KEY_ESCAPE, 'Q': begin
@@ -1786,6 +1786,12 @@ function GameIsWorldLoaded: boolean;
 		end;
 	end;
 
+procedure GamePlayVideoInstall;
+	begin
+		if not GameVideoInstall(VIDEO_MODE_80X43, VIEW_PLAY) then
+			if GameVideoInstall(VIDEO_MODE_40X25, VIEW_PLAY) then begin end;
+	end;
+
 procedure GameTitleLoop;
 	var
 		runPlay: boolean;
@@ -1802,7 +1808,7 @@ procedure GameTitleLoop;
 			runTitle := false;
 			if not GamePlayStartRequested then begin
 				if returningFromGame then begin
-					GameVideoInstall(80, Black, VIEW_TITLE);
+					if GameVideoInstall(VIDEO_MODE_80X25, VIEW_TITLE) then begin end;
 					returningFromGame := false;
 				end;
 				runPlay := false;
@@ -1844,7 +1850,7 @@ LoadWorldSelect:
 					end;
 					'R': begin
 						if GameWorldLoad('.SAV') then begin
-							GameVideoInstall(40, Blue, VIEW_PLAY);
+							GamePlayVideoInstall;
 							ReturnBoardId := World.Info.CurrentBoard;
 							BoardChange(ReturnBoardId);
 							runPlay := true;
@@ -1885,7 +1891,7 @@ LoadWorldSelect:
 				end;
 			end;
 			if runTitle then begin
-				GameVideoInstall(40, Blue, VIEW_PLAY);
+				GamePlayVideoInstall;
 				GameStateElement := E_MONITOR;
 				GamePaused := false;
 				GamePlayLoop(true);
@@ -1895,7 +1901,7 @@ LoadWorldSelect:
 				GameStateElement := E_PLAYER;
 				GamePaused := true;
 				if (not runTitle) and (not GamePlayStartRequested) then begin
-					GameVideoInstall(40, Blue, VIEW_PLAY);
+					GamePlayVideoInstall;
 				end;
 				GamePlayStartRequested := false;
 				GamePlayLoop(false);

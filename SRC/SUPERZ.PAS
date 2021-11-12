@@ -79,7 +79,7 @@ procedure GameConfigure;
 		IsRegistered := true;
 
 		InputInitDevices;
-		GameVideoInstall(80, Blue, VIEW_TITLE);
+		if GameVideoInstall(VIDEO_MODE_80X25, VIEW_TITLE) then begin end;
 		Window(1, 1, 80, 25);
 		UnCrunch(S_CONFIGCSIData, VideoTextPointer^, S_CONFIGCSISize);
 
@@ -88,9 +88,9 @@ procedure GameConfigure;
 		WriteRightPaddedBottom('%NAME% %VERSION%');
 
 		Window(3, 8, 78, 23);
-		VideoClear(Blue);
 		TextBackground(Blue);
 		TextColor(Yellow);
+		ClrScr;
 		if not InputConfigure then begin
 			GameTitleExitRequested := true
 		end else begin
@@ -142,7 +142,7 @@ begin
 	GameConfigure;
 
 	if not GameTitleExitRequested then begin
-		GameVideoInstall(80, Blue, VIEW_TITLE);
+		ClrScr;
 		GetMem(IoTmpBuf, IoTmpBufSize);
 
 		VideoHideCursor;

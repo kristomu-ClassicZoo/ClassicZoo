@@ -43,7 +43,7 @@ interface
 			Hyperlink: string[20];
 			Title: TTextWindowLine;
 			LoadedFilename: string[60];
-			ScreenCopy: array[1 .. 25] of string[100];
+			ScreenCopy: array[1 .. 43] of string[99];
 		end;
 		TResourceDataHeader = record
 			Version: integer;
@@ -123,7 +123,8 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1, $0F, TextWindowStrText);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				AccurateDelay(25);
+				if TextWindowHeight <= 18 then
+					AccurateDelay(25);
 			end;
 
 			VideoWriteText(TextWindowX, TextWindowY + 2, $0F, TextWindowStrSep);
@@ -134,13 +135,13 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 procedure TextWindowDrawClose(var state: TTextWindowState);
 	var
 		ix, iy: integer;
-		unk1, unk2: integer;
 	begin
 		with state do begin
 			for iy := 0 to (TextWindowHeight div 2) do begin
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				AccurateDelay(18);
+				if TextWindowHeight <= 18 then
+					AccurateDelay(18);
 				VideoMove(TextWindowX, TextWindowY + iy, TextWindowWidth,
 					@ScreenCopy[iy + 1], true);
 				VideoMove(TextWindowX, TextWindowY + TextWindowHeight - iy, TextWindowWidth,

@@ -280,13 +280,13 @@ procedure PopupPromptString(question: string; var buffer: TSmallString);
 	var
 		x, y: integer;
 	begin
-		VideoWriteText(35, 23, $1F, question);
+		VideoWriteText(35, VideoRows - 2, $1F, question);
 
 		buffer := '';
-		PromptString(1, 24, $1F, $1E, 30, PROMPT_ANY, buffer);
+		PromptString(1, VideoRows - 1, $1F, $1E, 30, PROMPT_ANY, buffer);
 
-		VideoWriteText(0, 23, $1E, '                                                            ');
-		VideoWriteText(0, 24, $1E, '                                                            ');
+		VideoWriteText(0, VideoRows - 2, $1E, '                                                            ');
+		VideoWriteText(0, VideoRows - 1, $1E, '                                                            ');
 	end;
 
 procedure EditorAppendBoard;
@@ -449,23 +449,23 @@ procedure EditorLoop;
 			VideoWriteText(72, 19, $1E, ColorNames[cursorColor and $0F]);
 			VideoWriteText(76, 19, $1E, ColorNames[cursorColor shr 4]);
 
-			VideoWriteText(61, 24, $1F, '                ');
+			VideoWriteText(61, VideoRows - 1, $1F, '                ');
 
 			colorBg := cursorColor shr 4;
 			colorFg := cursorColor and $0F;
 
 			if colorBg = colorFg then begin
-				VideoWriteText(61 + colorBg, 24, $9F, #30);
+				VideoWriteText(61 + colorBg, VideoRows - 1, $9F, #30);
 			end else begin
-				VideoWriteText(61 + colorFg, 24, $1F, #24);
-				VideoWriteText(61 + colorBg, 24, $1F, '^');
+				VideoWriteText(61 + colorFg, VideoRows - 1, $1F, #24);
+				VideoWriteText(61 + colorBg, VideoRows - 1, $1F, '^');
 			end;
 		end;
 
 	procedure EditorUpdateCursorPattern;
 		begin
-			VideoWriteText(61, 22, $1F, '                ');
-			VideoWriteText(60 + cursorPattern, 22, $1F, #30);
+			VideoWriteText(61, VideoRows - 3, $1F, '                ');
+			VideoWriteText(60 + cursorPattern, VideoRows - 3, $1F, #30);
 		end;
 
 	procedure EditorUpdateDrawMode;
@@ -488,9 +488,9 @@ procedure EditorLoop;
 	procedure EditorUpdateColorIgnoreDefaults;
 		begin
 			if colorIgnoreDefaults then
-				VideoWriteText(78, 23, $1F, 'd')
+				VideoWriteText(78, VideoRows - 2, $1F, 'd')
 			else
-				VideoWriteText(78, 23, $1F, 'D')
+				VideoWriteText(78, VideoRows - 2, $1F, 'D')
 		end;
 
 	procedure EditorUpdateCopiedPatterns;
@@ -499,7 +499,7 @@ procedure EditorLoop;
 		begin
 			for i := 1 to COPIED_TILES_COUNT do
 				with copiedTiles[i] do
-					VideoWriteText(60 + EditorPatternCount + i, 21, previewColor, Chr(previewChar));
+					VideoWriteText(60 + EditorPatternCount + i, VideoRows - 4, previewColor, Chr(previewChar));
 		end;
 
 	procedure EditorClearPattern(var copied: TEditorCopiedTile; first: boolean);
@@ -592,13 +592,13 @@ procedure EditorLoop;
 
 			{ Colors }
 			for i := 0 to 15 do
-				VideoWriteText(61 + i, 23, $10 + i, #219);
+				VideoWriteText(61 + i, VideoRows - 2, $10 + i, #219);
 			EditorUpdateCursorColor;
 			EditorUpdateColorIgnoreDefaults;
 
 			{ Patterns }
 			for i := 1 to EditorPatternCount do
-				VideoWriteText(60 + i, 21, $0F, ElementDefs[EditorPatterns[i]].Character);
+				VideoWriteText(60 + i, VideoRows - 4, $0F, ElementDefs[EditorPatterns[i]].Character);
 			EditorUpdateCopiedPatterns;
 			EditorUpdateCursorPattern;
 
@@ -1596,6 +1596,18 @@ procedure EditorLoop;
 			end;
 		end;
 
+	procedure EditorSetViewMode(mode: integer);
+		begin
+			viewMode := mode;
+			if viewMode = VIEW_EDITOR_LARGE then begin
+				if not GameVideoInstall(VIDEO_MODE_80X43, viewMode) then begin
+					if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
+				end;
+			end else begin
+				if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
+			end;
+		end;
+
 	procedure EditorTypeHexText;
 		var
 			keyHi, keyLo: char;
@@ -1617,8 +1629,7 @@ procedure EditorLoop;
 	label CheckNextCategory;
 	label PlacementDone;
 	begin
-		viewMode := VIEW_EDITOR;
-		GameVideoInstall(80, Blue, viewMode);
+		EditorSetViewMode(VIEW_EDITOR);
 
 		if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) then begin
 			WorldUnload;
@@ -1833,10 +1844,9 @@ procedure EditorLoop;
 					end;
 					'V': begin
 						if viewMode = VIEW_EDITOR then
-							viewMode := VIEW_EDITOR_LARGE
+							EditorSetViewMode(VIEW_EDITOR_LARGE)
 						else
-							viewMode := VIEW_EDITOR;
-						GameVideoInstall(80, Blue, viewMode);
+							EditorSetViewMode(VIEW_EDITOR);
 						EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, false);
 						EditorDrawRefresh;
 					end;
