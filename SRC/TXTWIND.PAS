@@ -35,6 +35,7 @@ interface
 		MAX_LINE_LENGTH_EDIT = 60;
 	type
 		TTextWindowLine = string[60];
+		TTextWindowCopyLine = string[99];
 		TTextWindowState = record
 			Selectable: boolean;
 			LineCount: integer;
@@ -43,7 +44,7 @@ interface
 			Hyperlink: string[20];
 			Title: TTextWindowLine;
 			LoadedFilename: string[60];
-			ScreenCopy: array[1 .. 43] of string[99];
+			ScreenCopy: array[1 .. 44] of TTextWindowCopyLine;
 		end;
 		TResourceDataHeader = record
 			Version: integer;
@@ -116,8 +117,9 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 		delaySpeed := 450 div TextWindowHeight;
 
 		with state do begin
-			for iy := 1 to (TextWindowHeight + 1) do
+			for iy := 1 to (TextWindowHeight + 1) do begin
 				VideoMove(TextWindowX, iy + TextWindowY - 1, TextWindowWidth, @ScreenCopy[iy], false);
+			end;
 
 			for iy := (TextWindowHeight div 2) downto 0 do begin
 				VideoWriteText(TextWindowX, TextWindowY + iy + 1, $0F, TextWindowStrText);

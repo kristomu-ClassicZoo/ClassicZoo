@@ -5,10 +5,15 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
-$< Super ClassicZoo dev >
+$< Super ClassicZoo 4.01 >
 
-+ Support for larger video modes for the
-  built-in editor!
++ Editor improvements:
+  + Support for larger video modes, such
+    as 80x43 and 80x50!
+  + Added more information to the sidebar
+    in larger video modes.
+  + Added the block buffer for copying
+    and pasting tiles.
 * Minor tweaks to the built-in font.
 * Optimizations to text scrolling.
 / Fixed the 8x8 font being used on

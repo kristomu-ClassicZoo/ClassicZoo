@@ -272,7 +272,7 @@ procedure SidebarClear;
 	var
 		i: integer;
 	begin
-		for i := 3 to 24 do
+		for i := 3 to VideoRows - 1 do
 			SidebarClearLine(i);
 	end;
 
@@ -554,13 +554,55 @@ procedure EditorLoop;
 
 	procedure EditorDrawCursorPos;
 		var
+			ctX, ctY: integer;
 			numStr: string[20];
 		begin
-			VideoWriteText(72, 20, $1E, '(  ,  )');
+			if VideoRows >= 43 then begin
+				ctX := 71;
+				ctY := 36;
+			end else begin
+				ctX := 72;
+				ctY := 20;
+			end;
+
+			VideoWriteText(ctX, ctY, $1E, '(  ,  )');
 			Str(cursorX, numStr);
-			VideoWriteText(73, 20, $1F, numStr);
+			VideoWriteText(ctX + 3 - Length(numStr), ctY, $1F, numStr);
 			Str(cursorY, numStr);
-			VideoWriteText(76, 20, $1F, numStr);
+			VideoWriteText(ctX + 6 - Length(numStr), ctY, $1F, numStr);
+		end;
+
+	procedure EditorDrawBufferState;
+		var
+			numStr: string[20];
+		begin
+			if VideoRows >= 43 then begin
+				if copyBuffer.width <= 0 then
+					VideoWriteText(69, 31, $1E, 'Empty')
+				else begin
+					VideoWriteText(69, 31, $1E, '  x  ');
+					Str(copyBuffer.width, numStr);
+					VideoWriteText(71 - Length(numStr), 35, $1F, numStr);
+					Str(copyBuffer.height, numStr);
+					VideoWriteText(74 - Length(numStr), 35, $1F, numStr);
+				end;
+			end;
+		end;
+
+	procedure EditorDrawStatsState;
+		var
+			numStr: string[20];
+			numStr2: string[20];
+		begin
+			if VideoRows >= 43 then begin
+				Str(Board.StatCount, numStr);
+				Str(MAX_STAT, numStr2);
+
+				VideoWriteText(68, 37, $1F, numStr);
+				VideoWriteText(68 + Length(numStr), 37, $1E, '/');
+				VideoWriteText(68 + Length(numStr) + 1, 37, $1F, numStr2);
+				VideoWriteText(68 + Length(numStr) + 1 + Length(numStr2), 37, $1F, '     ');
+			end;
 		end;
 
 	procedure EditorDrawSidebar;
@@ -603,15 +645,44 @@ procedure EditorLoop;
 
 			if VideoRows >= 43 then begin
 				{ Extra help }
-				VideoWriteText(61, 22, $70, ' Enter ');
+				VideoWriteText(61, 21, $70, '  f5   ');
+				VideoWriteText(68, 21, $1F, ' Advanced');
+				VideoWriteText(61, 22, $30, ' Enter ');
 				VideoWriteText(68, 22, $1F, ' Modify');
-				VideoWriteText(61, 23, $30, '  Del  ');
+				VideoWriteText(61, 23, $70, '  Del  ');
 				VideoWriteText(68, 23, $1F, ' Erase');
 
-				VideoWriteText(61, 25, $70, ' W ');
-				VideoWriteText(64, 25, $1F, ' World Info');
-				VideoWriteText(61, 26, $30, ' X ');
-				VideoWriteText(64, 26, $1F, ' Flood Fill');
+				VideoWriteText(61, 25, $30, ' X ');
+				VideoWriteText(64, 25, $1F, ' Flood Fill');
+				VideoWriteText(61, 26, $70, ' V ');
+				VideoWriteText(64, 26, $1F, ' View Change');
+				VideoWriteText(61, 27, $30, ' W ');
+				VideoWriteText(64, 27, $1F, ' World Info');
+				VideoWriteText(61, 28, $70, ' T ');
+				VideoWriteText(64, 28, $1F, ' Transfer');
+				VideoWriteText(61, 29, $30, ' ! ');
+				VideoWriteText(64, 29, $1F, ' Text Editor');
+
+				VideoWriteText(61, 31, $1F, 'Buffer: ');
+				VideoWriteText(61, 32, $70, ' Ctrl-X ');
+				VideoWriteText(69, 32, $1F, ' Cut');
+				VideoWriteText(61, 33, $30, ' Ctrl-C ');
+				VideoWriteText(69, 33, $1F, ' Copy');
+				VideoWriteText(61, 34, $70, ' Ctrl-V ');
+				VideoWriteText(69, 34, $1F, ' Paste');
+
+				VideoWriteText(61, 36, $1F, 'Position: ');
+				VideoWriteText(61, 37, $1F, 'Stats: ');
+
+				EditorDrawBufferState;
+				EditorDrawStatsState;
+
+				if VideoRows >= 50 then begin
+					VideoWriteText(61, 39, $30, ' N ');
+					VideoWriteText(64, 39, $1F, ' New World');
+					VideoWriteText(61, 40, $70, ' Z ');
+					VideoWriteText(64, 40, $1F, ' Clear all');
+				end;
 			end;
 
 			{ Colors }
@@ -641,6 +712,7 @@ procedure EditorLoop;
 				if (ix >= 1) and (ix <= BOARD_WIDTH) and (iy >= 1) and (iy <= BOARD_HEIGHT) then
 					BoardDrawTile(ix, iy);
 			end;
+			EditorDrawStatsState;
 		end;
 
 	procedure EditorDrawRefresh;
@@ -1366,22 +1438,59 @@ procedure EditorLoop;
 			end;
 		end;
 
+	procedure EditorBoardInvert(x1, y1, x2, y2: integer);
+		var
+			ix, sx1, sy1, sx2, sy2: integer;
+		begin
+			if x2 < x1 then begin
+				ix := x1;
+				x1 := x2;
+				x2 := ix;
+			end;
+			if y2 < y1 then begin
+				ix := y1;
+				y1 := y2;
+				y2 := ix;
+			end;
+
+			sx1 := x1 + BOARD_DRAW_X - Board.Info.DrawXOffset;
+			sy1 := y1 + BOARD_DRAW_Y - Board.Info.DrawYOffset;
+			sx2 := x2 + BOARD_DRAW_X - Board.Info.DrawXOffset;
+			sy2 := y2 + BOARD_DRAW_Y - Board.Info.DrawYOffset;
+
+			if sx1 < BOARD_DRAW_X then
+				sx1 := BOARD_DRAW_X
+			else if sx1 >= (BOARD_DRAW_X + BOARD_DRAW_WIDTH) then
+				exit;
+
+			if sx2 < BOARD_DRAW_X then
+				exit
+			else if sx2 >= (BOARD_DRAW_X + BOARD_DRAW_WIDTH) then
+				sx2 := BOARD_DRAW_X + BOARD_DRAW_WIDTH - 1;
+
+			if sy1 < BOARD_DRAW_Y then
+				sy1 := BOARD_DRAW_Y
+			else if sy1 >= (BOARD_DRAW_Y + BOARD_DRAW_HEIGHT) then
+				exit;
+
+			if sy2 < BOARD_DRAW_Y then
+				exit
+			else if sy2 >= (BOARD_DRAW_Y + BOARD_DRAW_HEIGHT) then
+				sy2 := BOARD_DRAW_Y + BOARD_DRAW_HEIGHT - 1;
+			
+			VideoInvert(sx1, sy1, sx2, sy2);
+		end;
+
 	procedure EditorAskAndPasteCopyBuffer(ox, oy: integer);
 		procedure InvertSel;
 			var
 				maxX, maxY: integer;
 			begin
-				Dec(ox);
-				Dec(oy);
 				maxX := ox + copyBuffer.width;
 				maxY := oy + copyBuffer.height;
 				if maxX > BOARD_WIDTH then maxX := BOARD_WIDTH;
 				if maxY > BOARD_HEIGHT then maxY := BOARD_HEIGHT;
-				Dec(maxX);
-				Dec(maxY);
-				VideoInvert(ox, oy, maxX, maxY);
-				Inc(ox);
-				Inc(oy);
+				EditorBoardInvert(ox, oy, maxX, maxY);
 			end;
 		begin
 			InvertSel;
@@ -1492,7 +1601,7 @@ procedure EditorLoop;
 			running: boolean;
 		procedure InvertLocal;
 			begin
-				VideoInvert(ox1 - 1, oy1 - 1, oldCx - 1, oldCy - 1);
+				EditorBoardInvert(ox1, oy1, oldCx, oldCy);
 			end;
 		begin
 			running := true;
@@ -1506,9 +1615,9 @@ procedure EditorLoop;
 			while running do begin
 				InputUpdate;
 
-				EditorUpdateCursorPos(false);
-				if (oldCx <> cursorX) or (oldCy <> cursorY) then begin
+				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
 					InvertLocal;
+					EditorUpdateCursorPos(false);
 					oldCx := cursorX;
 					oldCy := cursorY;
 					InvertLocal;
@@ -1516,10 +1625,12 @@ procedure EditorLoop;
 
 				case UpCase(InputKeyPressed) of
 					KEY_ESCAPE: begin
+						EditorDrawBufferState;
 						running := false;
 					end;
 					KEY_ENTER: begin
 						EditorCopyCopyBuffer(ox1, oy1, oldCx, oldCy, doCut);
+						EditorDrawBufferState;
 						running := false;
 					end;
 				end;
@@ -2059,8 +2170,6 @@ PlacementDone:
 						EditorEditWorldInfo;
 						TransitionDrawToBoard;
 					end;
-					{ TODO: Fix cut/copy/paste rendering for Super ZZT. }
-{
 					KEY_CTRL_X: begin
 						EditorSelectAndCopyCopyBuffer(cursorX, cursorY, true);
 					end;
@@ -2070,7 +2179,6 @@ PlacementDone:
 					KEY_CTRL_V: begin
 						EditorAskAndPasteCopyBuffer(cursorX, cursorY);
 					end;
-}
 				end;
 			end;
 
