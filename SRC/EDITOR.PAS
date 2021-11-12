@@ -590,6 +590,19 @@ procedure EditorLoop;
 			VideoWriteText(64, 19, $1F, ' Color:');
 			VideoWriteText(75, 19, $1F, #26);
 
+			if VideoRows >= 43 then begin
+				{ Extra help }
+				VideoWriteText(61, 22, $70, ' Enter ');
+				VideoWriteText(68, 22, $1F, ' Modify');
+				VideoWriteText(61, 23, $30, '  Del  ');
+				VideoWriteText(68, 23, $1F, ' Erase');
+
+				VideoWriteText(61, 25, $70, ' W ');
+				VideoWriteText(64, 25, $1F, ' World Info');
+				VideoWriteText(61, 26, $30, ' X ');
+				VideoWriteText(64, 26, $1F, ' Flood Fill');
+			end;
+
 			{ Colors }
 			for i := 0 to 15 do
 				VideoWriteText(61 + i, VideoRows - 2, $10 + i, #219);
