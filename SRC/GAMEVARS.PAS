@@ -178,8 +178,10 @@ interface
 		BOARD_DRAW_Y: integer;
 		BOARD_DRAW_WIDTH: integer;
 		BOARD_DRAW_HEIGHT: integer;
-		BOARD_DRAW_OX_MAX: integer;
-		BOARD_DRAW_OY_MAX: integer;
+		BOARD_DRAW_OX_MAX: byte;
+		BOARD_DRAW_OY_MAX: byte;
+		LfsrAndConst: byte;
+		LfsrShrConst: byte;
 		LfsrTapConst: integer; { Borrowed: unkVar_7c12[14..15] }
 
 		MessageLine1: TSmallString;

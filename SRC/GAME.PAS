@@ -104,7 +104,9 @@ interface
 
 const
 	LFSR_START = 42;
+	LFSR10_TAP_CONST = $321;
 	LFSR11_TAP_CONST = $740;
+	LFSR12_TAP_CONST = $F71;
 	LFSR14_TAP_CONST = $3740;
 	ProgressAnimColors: array[0 .. 7] of byte = ($18, $1C, $19, $1D, $1A, $1E, $1B, $1F);
 	ProgressAnimStrings: array[0 .. 7] of string[5] =
@@ -174,14 +176,28 @@ function GameVideoInstall(videoMode, mode: integer): boolean;
 		BOARD_DRAW_OX_MAX := BOARD_WIDTH - BOARD_DRAW_WIDTH + 1;
 		BOARD_DRAW_OY_MAX := BOARD_HEIGHT - BOARD_DRAW_HEIGHT + 1;
 
+		if (BOARD_DRAW_WIDTH > 64) or (BOARD_DRAW_HEIGHT > 64) then begin
+			LfsrTapConst := LFSR14_TAP_CONST;
+			LfsrAndConst := $7F;
+			LfsrShrConst := 7;
+		end else if (BOARD_DRAW_WIDTH > 32) or (BOARD_DRAW_HEIGHT > 32) then begin
+			LfsrTapConst := LFSR12_TAP_CONST;
+			LfsrAndConst := $3F;
+			LfsrShrConst := 6;
+		end else begin
+			LfsrTapConst := LFSR10_TAP_CONST;
+			LfsrAndConst := $1F;
+			LfsrShrConst := 5;
+		end;
+
 		GameVideoInstall := true;
 	end;
 
 function LFSRUpdateSeed(var seed: word; var tx, ty: byte): boolean;
 	begin
-		seed := (seed shr 1) xor ((-(seed and 1)) and LFSR14_TAP_CONST);
-		tx := (seed - 1) and $7F;
-		ty := ((seed - 1) shr 7) and $7F;
+		seed := (seed shr 1) xor ((-(seed and 1)) and LfsrTapConst);
+		tx := (seed - 1) and LfsrAndConst;
+		ty := ((seed - 1) shr LfsrShrConst) and LfsrAndConst;
 		LFSRUpdateSeed := seed = LFSR_START;
 	end;
 
