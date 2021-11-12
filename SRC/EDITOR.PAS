@@ -703,14 +703,11 @@ procedure EditorLoop;
 
 	procedure EditorDrawTileAndNeighborsAt(x, y: integer);
 		var
-			i, ix, iy: integer;
+			i: integer;
 		begin
 			BoardDrawTile(x, y);
 			for i := 0 to 3 do begin
-				ix := x + NeighborDeltaX[i];
-				iy := y + NeighborDeltaY[i];
-				if (ix >= 1) and (ix <= BOARD_WIDTH) and (iy >= 1) and (iy <= BOARD_HEIGHT) then
-					BoardDrawTile(ix, iy);
+				BoardDrawTile(x + NeighborDeltaX[i], y + NeighborDeltaY[i]);
 			end;
 			EditorDrawStatsState;
 		end;
@@ -1385,8 +1382,7 @@ procedure EditorLoop;
 				for ix := -1 to (width + 1) do begin
 					tx := ox + ix;
 					ty := oy + iy;
-					if (tx >= 1) and (ty >= 1) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then
-						BoardDrawTile(tx, ty);
+					BoardDrawTile(tx, ty);
 				end;
 			end;
 			EditorDrawStatsState;
