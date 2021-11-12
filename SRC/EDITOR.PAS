@@ -724,6 +724,11 @@ procedure EditorLoop;
 			DrawPlayfieldBorder(false);
 			TransitionDrawToBoard;
 
+			VideoWriteText(0, 0, $1F,
+				'                    '
+				+'                    '
+				+'                    ');
+
 			if Length(Board.Name) <> 0 then
 				VideoWriteText((59 - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
 			else
