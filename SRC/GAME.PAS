@@ -1788,6 +1788,7 @@ function GameIsWorldLoaded: boolean;
 
 procedure GamePlayVideoInstall;
 	begin
+		if not GameVideoInstall(VIDEO_MODE_80X50, VIEW_PLAY) then
 		if not GameVideoInstall(VIDEO_MODE_80X43, VIEW_PLAY) then
 			if GameVideoInstall(VIDEO_MODE_40X25, VIEW_PLAY) then begin end;
 	end;

@@ -37,6 +37,7 @@ interface
 		VIDEO_MODE_40X25 = 0;
 		VIDEO_MODE_80X25 = 1;
 		VIDEO_MODE_80X43 = 2;
+		VIDEO_MODE_80X50 = 3;
 	var
 		VideoWriteText: TVideoWriteTextProc;
 		VideoForceNoSnow: boolean;
@@ -63,6 +64,9 @@ interface
 
 implementation
 uses Crt, Dos;
+
+var
+	VideoMaxMode: integer;
 
 {$F+}
 
@@ -360,6 +364,17 @@ function VideoConfigure: boolean;
 				'M': VideoMonochrome := true;
 				#27: VideoMonochrome := (LastMode = 7);
 			end;
+			WriteLn;
+			WriteLn;
+			WriteLn;
+			WriteLn('  Maximum text resolution:  ');
+			WriteLn('    1) 80x25   2) 80x43   3) 80x50?  ');
+			repeat
+				repeat until KeyPressed;
+				charTyped := UpCase(ReadKey);
+			until charTyped in [#27, '1', '2', '3'];
+			if charTyped <> #27 then
+				VideoMaxMode := Ord(charTyped) - Ord('0');
 		end;
 		VideoConfigure := charTyped <> #27;
 	end;
@@ -380,17 +395,7 @@ function VideoInstall(mode, borderColor: integer): boolean;
 		regs: Registers;
 	begin
 		VideoInstall := false;
-
-		if VideoEGAInstalled then begin
-			if mode = VIDEO_MODE_80X43 then
-				regs.AX := $1201
-			else
-				regs.AX := $1200;
-			regs.BL := $30;
-			Intr($10, regs);
-
-			if (regs.AL <> $12) and (regs.AX <> $1200) then exit;
-		end;
+		if mode > VideoMaxMode then exit;
 
 		VideoColumns := 80;
 		VideoRows := 25;
@@ -398,6 +403,22 @@ function VideoInstall(mode, borderColor: integer): boolean;
 			VideoColumns := 40;
 		if mode = VIDEO_MODE_80X43 then
 			VideoRows := 43;
+		if mode = VIDEO_MODE_80X50 then
+			VideoRows := 50;
+
+		if VideoEGAInstalled then begin
+			if mode = VIDEO_MODE_80X50 then
+				regs.AX := $1202
+			else if mode = VIDEO_MODE_80X43 then
+				regs.AX := $1201
+			else
+				regs.AX := $1200;
+			regs.BL := $30;
+			Intr($10, regs);
+
+			if (regs.AL <> $12) and (VideoRows <> 25) then exit;
+		end;
+
 
 		if VideoMonochrome then begin
 			if VideoEGAInstalled or VideoMDAInstalled or VideoForceNoSnow then
@@ -542,6 +563,7 @@ begin
 	VideoTextPointer := Ptr(VideoTextSegment, $0000);
 	VideoCursorVisible := true;
 	VideoForceNoSnow := false;
+	VideoMaxMode := VIDEO_MODE_80X25;
 
 	VideoPreInstall;
 end.

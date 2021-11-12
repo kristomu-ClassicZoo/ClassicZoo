@@ -1613,9 +1613,9 @@ procedure EditorLoop;
 		begin
 			viewMode := mode;
 			if viewMode = VIEW_EDITOR_LARGE then begin
-				if not GameVideoInstall(VIDEO_MODE_80X43, viewMode) then begin
+				if not GameVideoInstall(VIDEO_MODE_80X50, viewMode) then
+				if not GameVideoInstall(VIDEO_MODE_80X43, viewMode) then
 					if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
-				end;
 			end else begin
 				if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
 			end;
