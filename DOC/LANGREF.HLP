@@ -92,6 +92,8 @@ other objects, and the game itself.
     BOMBED   (Bomb explodes near program)
     THUD     (Program WALKs into wall)
     ENERGIZE (Player touches ENERGIZER)
+    ENTER    (Player enters new board)
+    HINT     (Player presses H - Hint)
 
 
 :dirs;Directions:
