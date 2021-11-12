@@ -10,6 +10,8 @@ $< Super ClassicZoo dev >
 + Added /NOFONT, to disable using the
   built-in 8x8 font.
 * Minor improvements to editor docs.
+/ Fixed scrolling out of bounds when
+  changing editor view size.
 
 $< Super ClassicZoo 4.01 >
 

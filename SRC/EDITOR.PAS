@@ -1283,33 +1283,37 @@ procedure EditorLoop;
 	procedure EditorMoveCursor(newX, newY: integer; redraw: boolean);
 		begin
 			if newX < 1 then
-				newX := 1;
-			if newX > BOARD_WIDTH then
+				newX := 1
+			else if newX > BOARD_WIDTH then
 				newX := BOARD_WIDTH;
 			if newY < 1 then
-				newY := 1;
-			if newY > BOARD_HEIGHT then
+				newY := 1
+			else if newY > BOARD_HEIGHT then
 				newY := BOARD_HEIGHT;
 
 			if (newX < Board.Info.DrawXOffset)
 				or ((Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) <= newX)
+				or (Board.Info.DrawXOffset < BOARD_DRAW_OX_MIN)
+				or (Board.Info.DrawXOffset > BOARD_DRAW_OX_MAX)
 			then begin
 				redraw := true;
 				Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH shr 1);
 				if Board.Info.DrawXOffset < BOARD_DRAW_OX_MIN then
-					Board.Info.DrawXOffset := BOARD_DRAW_OX_MIN;
-				if Board.Info.DrawXOffset > BOARD_DRAW_OX_MAX then
+					Board.Info.DrawXOffset := BOARD_DRAW_OX_MIN
+				else if Board.Info.DrawXOffset > BOARD_DRAW_OX_MAX then
 					Board.Info.DrawXOffset := BOARD_DRAW_OX_MAX;
 			end;
 
 			if (newY < Board.Info.DrawYOffset)
 				or ((Board.Info.DrawYOffset + BOARD_DRAW_HEIGHT) <= newY)
+				or (Board.Info.DrawYOffset < BOARD_DRAW_OY_MIN)
+				or (Board.Info.DrawYOffset > BOARD_DRAW_OY_MAX)
 			then begin
 				redraw := true;
 				Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT shr 1);
 				if Board.Info.DrawYOffset < BOARD_DRAW_OY_MIN then
-					Board.Info.DrawYOffset := BOARD_DRAW_OY_MIN;
-				if Board.Info.DrawYOffset > BOARD_DRAW_OY_MAX then
+					Board.Info.DrawYOffset := BOARD_DRAW_OY_MIN
+				else if Board.Info.DrawYOffset > BOARD_DRAW_OY_MAX then
 					Board.Info.DrawYOffset := BOARD_DRAW_OY_MAX;
 			end;
 
@@ -1984,7 +1988,7 @@ procedure EditorLoop;
 							EditorSetViewMode(VIEW_EDITOR_LARGE)
 						else
 							EditorSetViewMode(VIEW_EDITOR);
-						EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, false);
+						EditorMoveCursor(cursorX, cursorY, false);
 						EditorDrawRefresh;
 					end;
 					'?': begin
