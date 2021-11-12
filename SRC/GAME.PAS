@@ -729,6 +729,10 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 
 		VideoWriteText(15, VideoRows - 1, $1F, 'Loading.....');
 
+		{ .ZXT files - hack }
+		if (extension = '.SZT') and FileExists(filename + '.ZXT') then
+			extension := '.ZXT';
+
 		Assign(f, filename + extension);
 		Reset(f, 1);
 

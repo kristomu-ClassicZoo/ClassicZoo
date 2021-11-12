@@ -64,6 +64,7 @@ function FileSelect(title, extension: TSmallString): string;
 		curPath: string;
 		startPath: string;
 		previewPath: string[PATH_PREVIEW_LENGTH + 4];
+		zxtDividePos: integer;
 	begin
 		searching := true;
 {$IFDEF WORLDDSC}
@@ -119,6 +120,20 @@ function FileSelect(title, extension: TSmallString): string;
 					TextWindowAppend(textWindow, entryName);
 				end;
 				FindNext(fileSearchRec);
+			end;
+
+			{ .ZXT files - hack }
+			if extension = '.SZT' then begin
+				zxtDividePos := textWindow.LineCount;
+
+				FindFirst('*.ZXT', AnyFile, fileSearchRec);
+				while DosError = 0 do begin
+					if (fileSearchRec.Attr and Directory) = 0 then begin
+						entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - 4);
+						TextWindowAppend(textWindow, entryName);
+					end;
+					FindNext(fileSearchRec);
+				end;
 			end;
 
 			TextWindowAppend(textWindow, 'Exit');
