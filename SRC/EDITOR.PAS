@@ -582,9 +582,9 @@ procedure EditorLoop;
 				else begin
 					VideoWriteText(69, 31, $1E, '  x  ');
 					Str(copyBuffer.width, numStr);
-					VideoWriteText(71 - Length(numStr), 35, $1F, numStr);
+					VideoWriteText(71 - Length(numStr), 31, $1F, numStr);
 					Str(copyBuffer.height, numStr);
-					VideoWriteText(74 - Length(numStr), 35, $1F, numStr);
+					VideoWriteText(74 - Length(numStr), 31, $1F, numStr);
 				end;
 			end;
 		end;
@@ -815,6 +815,7 @@ procedure EditorLoop;
 				Board.Tiles[x][y].Element := E_EMPTY
 			else exit; { statId = 0 (player) cannot be modified }
 			BoardDrawTile(x, y);
+			EditorDrawStatsState;
 		end;
 
 	procedure EditorEditBoardInfo;
@@ -1384,6 +1385,7 @@ procedure EditorLoop;
 						BoardDrawTile(tx, ty);
 				end;
 			end;
+			EditorDrawStatsState;
 		end;
 
 	procedure EditorPasteCopyBuffer(ox, oy: integer);
@@ -2005,7 +2007,7 @@ procedure EditorLoop;
 							cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
 							$0F, #197
 						);
-						for i := 3 to 20 do
+						for i := 3 to VideoRows - 5 do
 							SidebarClearLine(i);
 						VideoWriteText(65, 4, $1E, 'Advanced:');
 
@@ -2078,7 +2080,7 @@ procedure EditorLoop;
 							cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
 							$0F, #197
 						);
-						for i := 3 to 20 do
+						for i := 3 to VideoRows - 5 do
 							SidebarClearLine(i);
 						case InputKeyPressed of
 							KEY_F1: selectedCategory := CATEGORY_ITEM;
