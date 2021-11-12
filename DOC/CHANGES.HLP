@@ -13,7 +13,6 @@ $< Super ClassicZoo dev >
 * Optimizations to text scrolling.
 / Fixed the 8x8 font being used on
   25-high modes on EGA cards.
-/ Fixed the 80x43 mode on EGA cards.
 / Removed the unused/unnecessary red
   transition when loading a world.
 

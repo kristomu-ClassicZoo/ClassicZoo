@@ -412,6 +412,7 @@ function VideoInstall(mode, borderColor: integer): boolean;
 	begin
 		VideoInstall := false;
 		if mode > VideoMaxMode then exit;
+		if (mode >= VIDEO_MODE_80X43) and (not VideoEGAInstalled) then exit;
 		if (mode >= VIDEO_MODE_80X50) and (not VideoVGAInstalled) then exit;
 
 		VideoColumns := 80;
