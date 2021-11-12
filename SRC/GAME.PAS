@@ -130,7 +130,7 @@ const
 	LineChars: TSmallString = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, ExtMem, FileSel, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop,
+uses Dos, Crt, ZxtMgr, ExtMem, FileSel, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop,
 	FONT;
 
 function GameVideoInstall(videoMode, mode: integer): boolean;
@@ -705,6 +705,7 @@ procedure WorldUnload;
 		i: integer;
 	begin
 		BoardClose;
+		if ZxtUnloadExtensions then begin end;
 		for i := 0 to World.BoardCount do
 			ExtMemFree(World.BoardData[i], World.BoardLen[i]);
 	end;
@@ -733,12 +734,18 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 
 		if not DisplayIOError then begin
 			WorldUnload;
-			BlockRead(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE);
+			BlockRead(f, World.BoardCount, 2);
 
 			if not DisplayIOError then begin
+				if not ZxtLoadExtensions(f, filename) then begin
+					VideoWriteText(63, 5, $1E, ' .ZXT extension');
+					VideoWriteText(63, 6, $1E, ' loading error!');
+					exit;
+				end;
+
+				BlockRead(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE - 2);
 				ptr := IoTmpBuf;
-				Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
-				AdvancePointer(ptr, SizeOf(World.BoardCount));
+				if DisplayIOError then exit;
 
 				if World.BoardCount < 0 then begin
 					if World.BoardCount <> -2 then begin
@@ -842,6 +849,10 @@ procedure WorldSave(filename, extension: TSmallString);
 		Rewrite(f, 1);
 
 		if not DisplayIOError then begin
+			if ZxtBlockGetCount > 0 then begin
+				if not ZxtWriteExtensions(f) then goto OnError;
+			end;
+
 			ptr := IoTmpBuf;
 			FillChar(IoTmpBuf^, WORLD_FILE_HEADER_SIZE, 0);
 			version := -2;
@@ -899,6 +910,7 @@ function GameWorldLoad(extension: TSmallString): boolean;
 		title: TSmallString;
 		entryName: string;
 		i: integer;
+		zxtDividePos: integer;
 	begin
 		if extension = '.SZT' then
 			title := 'ZZT Worlds'
@@ -1787,7 +1799,9 @@ function GameIsWorldLoaded: boolean;
 			if FileExists(StartupWorldFileName + '.SZT') then begin
 				GameIsWorldLoaded := true;
 
-				if not WorldLoad(StartupWorldFileName, '.SZT', true) then begin
+				if (not WorldLoad(StartupWorldFileName, '.SZT', true))
+					or ZxtShowFlagError(false)
+				then begin
 					WorldCreate;
 					GameIsWorldLoaded := false;
 				end;
@@ -1839,6 +1853,7 @@ procedure GameTitleLoop;
 					'W': begin
 LoadWorldSelect:
 						if GameWorldLoad('.SZT') then begin
+							if ZxtShowFlagError(false) then begin end;
 							ReturnBoardId := World.Info.CurrentBoard;
 							returningFromGame := true;
 							runTitle := true;
@@ -1868,6 +1883,7 @@ LoadWorldSelect:
 					'R': begin
 						if GameWorldLoad('.SAV') then begin
 							GamePlayVideoInstall;
+							if ZxtShowFlagError(false) then begin end;
 							ReturnBoardId := World.Info.CurrentBoard;
 							BoardChange(ReturnBoardId);
 							runPlay := true;

@@ -28,7 +28,7 @@
 {$M 24576,163840,655360}
 {$ENDIF}
 program SUPERZ;
-uses Crt, Dos, ExtMem, Video, Keys, Sounds, Input, TxtWind, GameVars,
+uses Crt, Dos, ZxtMgr, ExtMem, Video, Keys, Sounds, Input, TxtWind, GameVars,
 	Elements, Editor, Oop, Game, Uncrlib,
 	S_CONFIG, M_MONSTE, M_FOREST, M_PROVIN;
 
@@ -151,6 +151,8 @@ begin
 
 		SavedBoardFileName := 'TEMP';
 		SavedGameFileName := StartupWorldFileName;
+
+		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);
 
 		WorldCreate;
 

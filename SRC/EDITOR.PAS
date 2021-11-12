@@ -40,7 +40,7 @@ interface
 		windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 
 implementation
-uses Dos, Crt, FileSel, ExtMem, Video, Sounds, Input, Elements, Oop, Game;
+uses Dos, Crt, ZxtMgr, FileSel, ExtMem, Video, Sounds, Input, Elements, Oop, Game;
 
 const
 	PROMPT_NUMERIC = 0;
@@ -1644,7 +1644,7 @@ procedure EditorLoop;
 	begin
 		EditorSetViewMode(VIEW_EDITOR);
 
-		if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) then begin
+		if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) or ZxtShowFlagError(true) then begin
 			WorldUnload;
 			WorldCreate;
 		end;
@@ -1788,6 +1788,10 @@ procedure EditorLoop;
 									WorldUnload;
 									WorldCreate;
 								end;
+							end;
+							if ZxtShowFlagError(true) then begin
+								WorldUnload;
+								WorldCreate;
 							end;
 							wasModified := false;
 							EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, true);
