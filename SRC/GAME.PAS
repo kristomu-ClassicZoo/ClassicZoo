@@ -97,7 +97,7 @@ interface
 	procedure BoardEnter;
 	procedure BoardPassageTeleport(x, y: integer);
 	procedure GameDebugPrompt;
-	procedure DrawPlayfieldBorder;
+	procedure DrawPlayfieldBorder(inner: boolean);
 	procedure BoardUpdateDrawOffset;
 	procedure GamePlayLoop(isTitle: boolean);
 	procedure GameTitleLoop;
@@ -911,7 +911,6 @@ function GameWorldLoad(extension: TSmallString): boolean;
 			GameWorldLoad := WorldLoad(entryName, extension, false);
 			if extension <> '.SAV' then
 				SavedGameFileName := entryName;
-			TransitionDrawToFill(#219, $44);
 		end;
 	end;
 
@@ -1562,7 +1561,7 @@ procedure GameDebugPrompt;
 		GameUpdateSidebar;
 	end;
 
-procedure DrawPlayfieldBorder;
+procedure DrawPlayfieldBorder(inner: boolean);
 	var
 		i, j: integer;
 	begin
@@ -1575,8 +1574,9 @@ procedure DrawPlayfieldBorder;
 		for i := BOARD_DRAW_Y to (BOARD_DRAW_Y + BOARD_DRAW_HEIGHT - 1) do begin
 			VideoWriteText(BOARD_DRAW_X - 1, i, $0F, #219);
 			VideoWriteText(BOARD_DRAW_X + BOARD_DRAW_WIDTH, i, $0F, #219);
-			for j := BOARD_DRAW_X to (BOARD_DRAW_X + BOARD_DRAW_WIDTH - 1) do
-				VideoWriteText(j, i, $0F,' ');
+			if inner then
+				for j := BOARD_DRAW_X to (BOARD_DRAW_X + BOARD_DRAW_WIDTH - 1) do
+					VideoWriteText(j, i, $0F,' ');
 			VideoWriteText(BOARD_DRAW_X + BOARD_DRAW_WIDTH + 1, i + 1, $17, #221);
 		end;
 	end;
@@ -1649,7 +1649,7 @@ procedure GamePlayLoop(isTitle: boolean);
 				VideoWriteText(1, 14, $1E, 'to continue');
 			end;
 
-			DrawPlayfieldBorder;
+			DrawPlayfieldBorder(true);
 		end;
 	begin
 		GameDrawSidebar;

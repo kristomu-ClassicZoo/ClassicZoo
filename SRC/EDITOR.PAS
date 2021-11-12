@@ -552,6 +552,17 @@ procedure EditorLoop;
 				EditorCopyPattern(x, y, copiedTiles[cursorPattern - EditorPatternCount]);
 		end;
 
+	procedure EditorDrawCursorPos;
+		var
+			numStr: string[20];
+		begin
+			VideoWriteText(72, 20, $1E, '(  ,  )');
+			Str(cursorX, numStr);
+			VideoWriteText(73, 20, $1F, numStr);
+			Str(cursorY, numStr);
+			VideoWriteText(76, 20, $1F, numStr);
+		end;
+
 	procedure EditorDrawSidebar;
 		var
 			i: integer;
@@ -616,6 +627,7 @@ procedure EditorLoop;
 			EditorUpdateCursorPattern;
 
 			EditorUpdateDrawMode;
+			EditorDrawCursorPos;
 		end;
 
 	procedure EditorDrawTileAndNeighborsAt(x, y: integer);
@@ -633,11 +645,11 @@ procedure EditorLoop;
 
 	procedure EditorDrawRefresh;
 		var
-			boardNumStr: string;
+			boardNumStr: string[20];
 		begin
 			EditorDrawSidebar;
 			Str(World.Info.CurrentBoard, boardNumStr);
-			DrawPlayfieldBorder;
+			DrawPlayfieldBorder(false);
 			TransitionDrawToBoard;
 
 			if Length(Board.Name) <> 0 then
@@ -732,7 +744,7 @@ procedure EditorLoop;
 		var
 			state: TTextWindowState;
 			i: integer;
-			numStr: TSmallString;
+			numStr: string[20];
 			exitRequested: boolean;
 
 		function BoolToString(val: boolean): string;
@@ -829,7 +841,7 @@ procedure EditorLoop;
 		var
 			state: TTextWindowState;
 			i: integer;
-			numStr: TSmallString;
+			numStr: string[20];
 			exitRequested: boolean;
 		begin
 			state.Title := 'World Information';
@@ -1191,8 +1203,6 @@ procedure EditorLoop;
 		end;
 
 	procedure EditorMoveCursor(newX, newY: integer; redraw: boolean);
-		var
-			numStr: TSmallString;
 		begin
 			if newX < 1 then
 				newX := 1;
@@ -1231,11 +1241,7 @@ procedure EditorLoop;
 				TransitionDrawToBoard;
 			end;
 
-			VideoWriteText(72, 20, $1E, '(  ,  )');
-			Str(cursorX, numStr);
-			VideoWriteText(73, 20, $1F, numStr);
-			Str(cursorY, numStr);
-			VideoWriteText(76, 20, $1F, numStr);
+			EditorDrawCursorPos;
 		end;
 
 	procedure EditorBoardChange(boardId: integer);

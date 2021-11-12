@@ -65,7 +65,6 @@ interface
 		TextWindowRejected: boolean;
 		ResourceDataFileName: string[60];
 		ResourceDataHeader: TResourceDataHeader;
-		OrderPrintId: ^string;
 	procedure TextWindowInitState(var state: TTextWindowState);
 	procedure TextWindowDrawOpen(var state: TTextWindowState);
 	procedure TextWindowDrawClose(var state: TTextWindowState);
@@ -112,8 +111,10 @@ procedure TextWindowDrawTitle(color: integer; title: TTextWindowLine);
 
 procedure TextWindowDrawOpen(var state: TTextWindowState);
 	var
-		ix, iy: integer;
+		ix, iy, delaySpeed: integer;
 	begin
+		delaySpeed := 450 div TextWindowHeight;
+
 		with state do begin
 			for iy := 1 to (TextWindowHeight + 1) do
 				VideoMove(TextWindowX, iy + TextWindowY - 1, TextWindowWidth, @ScreenCopy[iy], false);
@@ -123,8 +124,7 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1, $0F, TextWindowStrText);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				if TextWindowHeight <= 18 then
-					AccurateDelay(25);
+				AccurateDelay(delaySpeed);
 			end;
 
 			VideoWriteText(TextWindowX, TextWindowY + 2, $0F, TextWindowStrSep);
@@ -134,14 +134,15 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 
 procedure TextWindowDrawClose(var state: TTextWindowState);
 	var
-		ix, iy: integer;
+		ix, iy, delaySpeed: integer;
 	begin
+		delaySpeed := 325 div TextWindowHeight;
+
 		with state do begin
 			for iy := 0 to (TextWindowHeight div 2) do begin
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				if TextWindowHeight <= 18 then
-					AccurateDelay(18);
+				AccurateDelay(delaySpeed);
 				VideoMove(TextWindowX, TextWindowY + iy, TextWindowWidth,
 					@ScreenCopy[iy + 1], true);
 				VideoMove(TextWindowX, TextWindowY + TextWindowHeight - iy, TextWindowWidth,
@@ -293,9 +294,6 @@ procedure TextWindowPrint(var state: TTextWindowState);
 					Close(Lst);
 					exit;
 				end;
-			end;
-			if LoadedFilename = 'ORDER.HLP' then begin
-				WriteLn(Lst, OrderPrintId^);
 			end;
 			Write(Lst, Chr(12) { form feed });
 			Close(Lst);

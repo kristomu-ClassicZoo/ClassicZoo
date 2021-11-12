@@ -11,6 +11,8 @@ $< Super ClassicZoo dev >
   editor and during gameplay!
 * Minor tweaks to the built-in font.
 * Optimizations to text scrolling.
+/ Removed the unused/unnecessary red
+  transition when loading a world.
 
 $< Super ClassicZoo 4.00 >
 
