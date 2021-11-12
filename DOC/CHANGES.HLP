@@ -5,6 +5,12 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
+$< Super ClassicZoo dev >
+
++ Added /NOFONT, to disable using the
+  built-in 8x8 font.
+* Minor improvements to editor docs.
+
 $< Super ClassicZoo 4.01 >
 
 + Editor improvements:

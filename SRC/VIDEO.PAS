@@ -41,6 +41,7 @@ interface
 	var
 		VideoWriteText: TVideoWriteTextProc;
 		VideoForceNoSnow: boolean;
+		VideoUseCustomFont: boolean;
 		VideoMonochrome: boolean;
 		VideoColumns: integer;
 		VideoRows: integer;
@@ -427,7 +428,7 @@ function VideoInstall(mode, borderColor: integer): boolean;
 		if VideoVGAInstalled then begin
 			if mode = VIDEO_MODE_80X50 then
 				regs.AX := $1202
-			else if mode = VIDEO_MODE_80X43 then
+			else if (mode = VIDEO_MODE_80X43) or (not VideoUseCustomFont) then
 				regs.AX := $1201
 			else
 				regs.AX := $1200;

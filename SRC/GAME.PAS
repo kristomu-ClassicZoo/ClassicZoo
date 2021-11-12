@@ -136,7 +136,6 @@ uses Dos, Crt, ExtMem, FileSel, Video, Sounds, Input, Uncrlib, Elements, Editor,
 function GameVideoInstall(videoMode, mode: integer): boolean;
 	var
 		borderColor: integer;
-		setCharset: boolean;
 	begin
 		GameVideoInstall := false;
 
@@ -145,7 +144,9 @@ function GameVideoInstall(videoMode, mode: integer): boolean;
 			borderColor := Black;
 
 		if not VideoInstall(videoMode, borderColor) then exit;
-		if VideoSetCharset(@FONTBINData, FONTBINSize shr 8) then begin end;
+		if VideoUseCustomFont then begin
+			if VideoSetCharset(@FONTBINData, FONTBINSize shr 8) then begin end;
+		end;
 
 		if mode = VIEW_TITLE then
 			TextWindowInit((VideoColumns - 50) shr 1, (VideoRows - 18) shr 1, 50, 18)

@@ -50,6 +50,8 @@ procedure ParseArguments;
 
 				if pArg = '/NOSNOW' then
 					VideoForceNoSnow := true
+				else if pArg = '/NOFONT' then
+					VideoUseCUstomFont := false
 				else if pArg = '/NOEMS' then
 					enableEms := false
 				else if pArg = '/NOXMS' then
@@ -76,7 +78,6 @@ procedure GameConfigure;
 		regFile: text;
 	begin
 		ResetConfig := true;
-		IsRegistered := true;
 
 		InputInitDevices;
 		if GameVideoInstall(VIDEO_MODE_80X25, VIEW_TITLE) then begin end;
@@ -137,6 +138,7 @@ begin
 {$ELSE}
 	EditorEnabled := false;
 {$ENDIF}
+	VideoUseCustomFont := true;
 
 	ParseArguments;
 	GameConfigure;
