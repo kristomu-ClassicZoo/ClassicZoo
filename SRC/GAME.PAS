@@ -515,7 +515,7 @@ procedure BoardDrawTile(x, y: integer);
 				drawnColor := Color;
 			end else begin
 				{ Text drawing }
-				drawnChar := Board.Tiles[x][y].Color;
+				drawnChar := Color;
 				if Element = E_TEXT_WHITE then
 					drawnColor := $0F
 				else if VideoMonochrome then
