@@ -103,7 +103,7 @@ const
 	LineChars: TSmallString = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop;
+uses Dos, Crt, ZxtMgr, Video, Sounds, Input, Uncrlib, Elements, Editor, Oop;
 
 procedure GenerateTransitionTable;
 	var
@@ -541,6 +541,7 @@ procedure WorldUnload;
 		i: integer;
 	begin
 		BoardClose;
+		if ZxtUnloadExtensions then begin end;
 		for i := 0 to World.BoardCount do
 			FreeMem(World.BoardData[i], World.BoardLen[i]);
 	end;
@@ -567,12 +568,18 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 
 		if not DisplayIOError then begin
 			WorldUnload;
-			BlockRead(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE);
+			BlockRead(f, World.BoardCount, 2);
 
 			if not DisplayIOError then begin
+				if not ZxtLoadExtensions(f, filename) then begin
+					VideoWriteText(63, 5, $1E, ' .ZXT extension');
+					VideoWriteText(63, 6, $1E, ' loading error!');
+					exit;
+				end;
+
+				BlockRead(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE - 2);
 				ptr := IoTmpBuf;
-				Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
-				AdvancePointer(ptr, SizeOf(World.BoardCount));
+				if DisplayIOError then exit;
 
 				if World.BoardCount < 0 then begin
 					if World.BoardCount <> -2 then begin
@@ -643,6 +650,10 @@ procedure WorldSave(filename, extension: TSmallString);
 		Rewrite(f, 1);
 
 		if not DisplayIOError then begin
+			if ZxtBlockGetCount > 0 then begin
+				if not ZxtWriteExtensions(f) then goto OnError;
+			end;
+
 			ptr := IoTmpBuf;
 			FillChar(IoTmpBuf^, WORLD_FILE_HEADER_SIZE, 0);
 			version := -2;
@@ -700,6 +711,7 @@ function GameWorldLoad(extension: TSmallString; param_2: TSmallString): boolean;
 		fileSearchRec: SearchRec;
 		entryName: string;
 		i: integer;
+		zxtDividePos: integer;
 	begin
 		param_2 := param_2 + extension;
 		for i := 1 to Length(param_2) do
@@ -712,6 +724,17 @@ function GameWorldLoad(extension: TSmallString; param_2: TSmallString): boolean;
 			textWindow.Title := 'Saved Games';
 		GameWorldLoad := false;
 		textWindow.Selectable := true;
+
+		zxtDividePos := -1;
+		if extension = '.ZZT' then begin
+			FindFirst('*.ZXT', AnyFile, fileSearchRec);
+			while DosError = 0 do begin
+				entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - 4);
+				TextWindowAppend(textWindow, entryName);
+				FindNext(fileSearchRec);
+			end;
+			zxtDividePos := textWindow.LineCount;
+		end;
 
 		FindFirst('*' + extension, AnyFile, fileSearchRec);
 		while DosError = 0 do begin
@@ -726,6 +749,7 @@ function GameWorldLoad(extension: TSmallString; param_2: TSmallString): boolean;
 				textWindow.LinePos := textWindow.LineCount;
 			FindNext(fileSearchRec);
 		end;
+
 		TextWindowAppend(textWindow, 'Exit');
 
 		TextWindowDrawOpen(textWindow);
@@ -736,7 +760,8 @@ function GameWorldLoad(extension: TSmallString; param_2: TSmallString): boolean;
 			entryName := textWindow.Lines[textWindow.LinePos]^;
 			if Pos(' ', entryName) <> 0 then
 				entryName := Copy(entryName, 1, Pos(' ', entryName) - 1);
-
+			if textWindow.LinePos <= zxtDividePos then
+				extension := '.ZXT';
 			GameWorldLoad := WorldLoad(entryName, extension, false);
 			if extension <> '.SAV' then
 				SavedGameFileName := entryName;
@@ -1486,7 +1511,8 @@ procedure GamePlayLoop(isTitle: boolean);
 
 		if Length(World.Info.Name) = 0 then begin
 			if not WorldLoad(StartupWorldFileName, '.SZT', true) then
-				WorldCreate;
+				WorldCreate
+			else if ZxtShowFlagError(false) then begin end;
 
 			ReturnBoardId := World.Info.CurrentBoard;
 			JustStarted := false;
@@ -1645,6 +1671,7 @@ procedure GameTitleLoop;
 				case UpCase(InputKeyPressed) of
 					'W': begin
 						if GameWorldLoad('.SZT', World.Info.Name) then begin
+							if ZxtShowFlagError(false) then begin end;
 							ReturnBoardId := World.Info.CurrentBoard;
 							returningFromGame := true;
 							runTitle := true;
@@ -1662,6 +1689,7 @@ procedure GameTitleLoop;
 					'R': begin
 						if GameWorldLoad('.SAV', SavedGameFileName) then begin
 							VideoInstall(40, Blue);
+							if ZxtShowFlagError(false) then begin end;
 							ReturnBoardId := World.Info.CurrentBoard;
 							BoardChange(ReturnBoardId);
 							runPlay := true;

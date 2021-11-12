@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game;
+uses Dos, Crt, ZxtMgr, Video, Sounds, Input, Elements, Oop, Game;
 
 const
 	PROMPT_NUMERIC = 0;
@@ -923,7 +923,7 @@ procedure EditorLoop;
 	begin
 		VideoInstall(80, Blue);
 
-		if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) then begin
+		if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) or ZxtShowFlagError(true) then begin
 			WorldUnload;
 			WorldCreate;
 		end;
@@ -1068,6 +1068,10 @@ procedure EditorLoop;
 									WorldUnload;
 									WorldCreate;
 								end;
+							end;
+							if ZxtShowFlagError(true) then begin
+								WorldUnload;
+								WorldCreate;
 							end;
 							wasModified := false;
 							EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, true);

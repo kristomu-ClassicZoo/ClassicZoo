@@ -26,7 +26,7 @@
 {$I-}
 {$M 24576,163840,655360}
 program SUPERZ;
-uses Crt, Dos, Video, Keys, Sounds, Input, TxtWind, GameVars,
+uses Crt, Dos, ZxtMgr, Video, Keys, Sounds, Input, TxtWind, GameVars,
 	Elements, Editor, Oop, Game, Uncrlib,
 	S_REGIST, M_MONSTE, M_FOREST, M_PROVIN, S_ORDER, S_CONFIG;
 
@@ -132,6 +132,8 @@ begin
 
 		SavedBoardFileName := 'TEMP';
 		SavedGameFileName := StartupWorldFileName;
+
+		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);
 
 		GenerateTransitionTable;
 		WorldCreate;
