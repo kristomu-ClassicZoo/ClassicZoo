@@ -49,6 +49,7 @@ interface
 		VideoTextPointer: pointer;
 		VideoCursorVisible: boolean;
 		VideoEGAInstalled: boolean;
+		VideoVGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
 	procedure VideoScroll(x, y, width, height, dx, dy: integer);
 	function VideoConfigure: boolean;
@@ -322,10 +323,23 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 	var
 		regs: Registers;
+	label FinishSC;
 	begin
 		VideoSetCharset := false;
 		if not VideoEGAInstalled then exit;
 		if (height <> 8) and (height <> 14) then exit;
+		if not VideoVGAInstalled then begin
+			if (height <> 14) and (VideoRows <> 43) then begin
+				regs.AX := $1111;
+				Intr($10, regs);
+				goto FinishSC;
+			end;
+			if (height <> 8) and (VideoRows <> 25) then begin
+				regs.AX := $1112;
+				Intr($10, regs);
+				goto FinishSC;
+			end;
+		end;
 
 		regs.BX := (height shl 8);
 		regs.CX := 256;
@@ -340,6 +354,7 @@ function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 		end;
 		Intr($10, regs);
 
+FinishSC:
 		VideoHideCursor;
 		VideoSetCharset := true;
 	end;
@@ -383,11 +398,19 @@ procedure VideoPreInstall;
 	var
 		regs: Registers;
 	begin
+		VideoMDAInstalled := LastMode = 7;
+		VideoVGAInstalled := false;
+
 		regs.AH := $12;
 		regs.BX := $FF10;
 		Intr($10, regs);
 		VideoEGAInstalled := regs.BH <> $FF;
-		VideoMDAInstalled := LastMode = 7;
+
+		if VideoEGAInstalled then begin
+			regs.AX := $1A00;
+			Intr($10, regs);
+			VideoVGAInstalled := regs.AL = $1A;
+		end;
 	end;
 
 function VideoInstall(mode, borderColor: integer): boolean;
@@ -396,6 +419,7 @@ function VideoInstall(mode, borderColor: integer): boolean;
 	begin
 		VideoInstall := false;
 		if mode > VideoMaxMode then exit;
+		if (mode >= VIDEO_MODE_80X50) and (not VideoVGAInstalled) then exit;
 
 		VideoColumns := 80;
 		VideoRows := 25;
@@ -406,7 +430,7 @@ function VideoInstall(mode, borderColor: integer): boolean;
 		if mode = VIDEO_MODE_80X50 then
 			VideoRows := 50;
 
-		if VideoEGAInstalled then begin
+		if VideoVGAInstalled then begin
 			if mode = VIDEO_MODE_80X50 then
 				regs.AX := $1202
 			else if mode = VIDEO_MODE_80X43 then
@@ -418,7 +442,6 @@ function VideoInstall(mode, borderColor: integer): boolean;
 
 			if (regs.AL <> $12) and (VideoRows <> 25) then exit;
 		end;
-
 
 		if VideoMonochrome then begin
 			if VideoEGAInstalled or VideoMDAInstalled or VideoForceNoSnow then
@@ -449,6 +472,15 @@ function VideoInstall(mode, borderColor: integer): boolean;
 			end;
 
 			TextBackground(borderColor);
+		end;
+
+		if VideoEGAInstalled then begin
+			if VideoRows = 43 then
+				regs.AX := $1111
+			else
+				regs.AX := $1112;
+			regs.BL := $00;
+			Intr($10, regs);
 		end;
 
 		FillChar(Ptr(VideoTextSegment, $0000)^, VideoColumns * VideoRows * 2, borderColor * $11);
