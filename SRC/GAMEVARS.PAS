@@ -232,6 +232,9 @@ interface
 		WorldFileMenuScrLens: array[-1 .. WORLD_FILE_DESC_COUNT] of word; }
 		MenuScrPointer: pointer;
 		MenuScrLen: word;
+		HighCompat: boolean;
+		HighCompatAuto: boolean;
+
 	const
 		E_EMPTY = 0;
 		E_BOARD_EDGE = 1;

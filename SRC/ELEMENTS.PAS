@@ -591,6 +591,9 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 						ix := x + DiagonalDeltaX[(i - direction + 8) and 7];
 						iy := y + DiagonalDeltaY[(i - direction + 8) and 7];
 						if ElementDefs[Element].Cycle > -1 then begin
+							if HighCompat then
+								statIds[i] := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
+
 							tmpTile := Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]];
 							iStat := statIds[i];
 							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]] := tiles[i];

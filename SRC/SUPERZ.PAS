@@ -150,6 +150,8 @@ begin
 		VideoHideCursor;
 		TickSpeed := 4;
 		DebugEnabled := false;
+		HighCompat := false;
+		HighCompatAuto := true;
 
 		SavedBoardFileName := 'TEMP';
 		SavedGameFileName := StartupWorldFileName;

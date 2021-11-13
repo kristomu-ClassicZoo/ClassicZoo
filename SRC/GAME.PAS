@@ -777,6 +777,9 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 
 				HighScoresLoad;
 				ClearDisplayMessage;
+
+				if HighCompatAuto then
+					HighCompat := (World.Info.Name = 'PHOEBUS');
 			end;
 		end;
 
@@ -1582,6 +1585,69 @@ procedure DrawPlayfieldBorder(inner: boolean);
 		end;
 	end;
 
+procedure GameOptionsScreen;
+	var
+		state: TTextWindowState;
+		i: integer;
+		numStr: TSmallString;
+		exitRequested: boolean;
+	begin
+		state.Title := 'Options...';
+		TextWindowDrawOpen(state);
+		state.LinePos := 1;
+		exitRequested := false;
+
+		repeat
+			state.Selectable := true;
+			state.LineCount := 6;
+			for i := 1 to state.LineCount do
+				New(state.Lines[i]);
+
+			state.Lines[1]^ := '!;Compatibility: ';
+			if HighCompatAuto then
+				state.Lines[1]^ := state.Lines[1]^ + 'Automatic'
+			else if HighCompat then
+				state.Lines[1]^ := state.Lines[1]^ + 'High'
+			else
+				state.Lines[1]^ := state.Lines[1]^ + 'Standard';
+
+			state.Lines[2]^ := '!;Sound: ';
+			if SoundEnabled then
+				state.Lines[2]^ := state.Lines[2]^ + 'On'
+			else
+				state.Lines[2]^ := state.Lines[2]^ + 'Off';
+
+			state.Lines[3]^ := '_________________________________________';
+			state.Lines[4]^ := '';
+			state.Lines[5]^ := '!;About ClassicZoo...';
+			state.Lines[6]^ := '!;Exit';
+
+			TextWindowSelect(state, true, false);
+			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 6) then begin
+				case state.LinePos of
+					1: begin
+						if HighCompatAuto then
+							HighCompatAuto := false
+						else
+							HighCompat := not HighCompat;
+					end;
+					2: begin
+						SoundEnabled := not SoundEnabled;
+						SoundClearQueue;
+					end;
+					5: begin
+						TextWindowDisplayFile('ABOUT.HLP', 'About ClassicZoo...');
+					end;
+				end;
+			end else begin
+				exitRequested := true;
+				TextWindowDrawClose(state);
+			end;
+
+			TextWindowFreeEdit(state);
+		until exitRequested;
+	end;
+
 procedure BoardUpdateDrawOffset;
 	begin
 		Board.Info.DrawXOffset := Board.Stats[0].X - (BOARD_DRAW_WIDTH shr 1);
@@ -1894,7 +1960,7 @@ LoadWorldSelect:
 					end;
 					'A': begin
 						needsTitleRefresh := false;
-						TextWindowDisplayFile('ABOUT.HLP', 'About...');
+						GameOptionsScreen;
 					end;
 					'|': begin
 						GameDebugPrompt;
