@@ -217,16 +217,19 @@ function SoundParse(input: string): string;
 		noteDuration: integer;
 		output: string;
 		noteTone: integer;
-		inPos: byte;
+		inPos, outPos: byte;
 	procedure AdvanceInput;
 		inline($FE/$86/>inPos); { Inc(inPos); in inline assembly }
+	procedure AdvanceOutput;
+		inline($FE/$86/>outPos); { Inc(outPos); in inline assembly }
+	label SoundParseFinish;
 	begin
-		output := '';
 		noteOctave := 3;
 		noteDuration := 1;
 		inPos := 1;
+		outPos := 0;
 
-		while inPos <= Length(input) do begin
+		while (inPos <= Length(input)) do begin
 			noteTone := -1;
 			case UpCase(input[inPos]) of
 				'T': begin
@@ -286,19 +289,34 @@ function SoundParse(input: string): string;
 						end;
 					end;
 
-					output := output + Chr(noteOctave * $10 + noteTone) + Chr(noteDuration);
+					AdvanceOutput;
+					output[outPos] := Chr((noteOctave shl 4) + noteTone);
+					if outPos = 255 then goto SoundParseFinish;
+					AdvanceOutput;
+					output[outPos] := Chr(noteDuration);
 				end;
 				'X': begin
-					output := output + #0 + Chr(noteDuration);
+					AdvanceOutput;
+					output[outPos] := #0;
+					if outPos = 255 then goto SoundParseFinish;
+					AdvanceOutput;
+					output[outPos] := Chr(noteDuration);
+
 					AdvanceInput;
 				end;
 				{ FPC does not like overlapping case labels. }
 				'0'..'2','4'..'9': begin
-					output := output + Chr(Ord(input[inPos]) + $F0 - Ord('0')) + Chr(noteDuration);
+					AdvanceOutput;
+					output[outPos] := Chr(Ord(input[inPos]) + $F0 - Ord('0'));
+					if outPos = 255 then goto SoundParseFinish;
+					AdvanceOutput;
+					output[outPos] := Chr(noteDuration);
 					AdvanceInput;
 				end;
 			else AdvanceInput end;
 		end;
+SoundParseFinish:
+		output[0] := Chr(outPos);
 		SoundParse := output;
 	end;
 

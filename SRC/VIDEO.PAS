@@ -419,10 +419,10 @@ function VideoInstall(mode, borderColor: integer): boolean;
 		VideoColumns := 80;
 		VideoRows := 25;
 		if mode = VIDEO_MODE_40X25 then
-			VideoColumns := 40;
-		if mode = VIDEO_MODE_80X43 then
-			VideoRows := 43;
-		if mode = VIDEO_MODE_80X50 then
+			VideoColumns := 40
+		else if mode = VIDEO_MODE_80X43 then
+			VideoRows := 43
+		else if mode = VIDEO_MODE_80X50 then
 			VideoRows := 50;
 
 		if VideoVGAInstalled then begin
