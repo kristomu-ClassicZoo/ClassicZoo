@@ -226,14 +226,15 @@ function SoundParse(input: string): string;
 		noteDuration: integer;
 		output: string;
 		noteTone: integer;
-		inPos: byte;
+		inPos, outPos: byte;
+	label SoundParseFinish;
 	begin
-		output := '';
 		noteOctave := 3;
 		noteDuration := 1;
 		inPos := 1;
+		outPos := 0;
 
-		while inPos <= Length(input) do begin
+		while (inPos <= Length(input)) do begin
 			noteTone := -1;
 			case UpCase(input[inPos]) of
 				'T': begin
@@ -321,18 +322,33 @@ function SoundParse(input: string): string;
 						end;
 					end;
 
-					output := output + Chr((noteOctave shl 4) + noteTone) + Chr(noteDuration);
+					Inc(outPos);
+					output[outPos] := Chr((noteOctave shl 4) + noteTone);
+					if outPos = 255 then goto SoundParseFinish;
+					Inc(outPos);
+					output[outPos] := Chr(noteDuration);
 				end;
 				'X': begin
-					output := output + #0 + Chr(noteDuration);
+					Inc(outPos);
+					output[outPos] := #0;
+					if outPos = 255 then goto SoundParseFinish;
+					Inc(outPos);
+					output[outPos] := Chr(noteDuration);
+
 					Inc(inPos);
 				end;
 				'0'..'9': begin
-					output := output + Chr(Ord(input[inPos]) + $F0 - Ord('0')) + Chr(noteDuration);
+					Inc(outPos);
+					output[outPos] := Chr(Ord(input[inPos]) + $F0 - Ord('0'));
+					if outPos = 255 then goto SoundParseFinish;
+					Inc(outPos);
+					output[outPos] := Chr(noteDuration);
 					Inc(inPos);
 				end;
 			else Inc(inPos) end;
 		end;
+SoundParseFinish:
+		output[0] := Chr(outPos);
 		SoundParse := output;
 	end;
 
