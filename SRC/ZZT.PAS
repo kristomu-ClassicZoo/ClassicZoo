@@ -223,6 +223,8 @@ begin
 
 		TickSpeed := 4;
 		DebugEnabled := false;
+		HighCompat := false;
+		HighCompatAuto := true;
 {$IFDEF EXTCHEAT}
 		CheatNoClip := false;
 		CheatFreeze := false;

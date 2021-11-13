@@ -510,6 +510,9 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 						ty := y + DiagonalDeltaY[i];
 
 						if ElementDefs[Element].Cycle > -1 then begin
+							if HighCompat then
+								statIds[i] := GetStatIdAt(tx, ty);
+
 							tmpTile := Board.Tiles[tx][ty];
 							Board.Tiles[tx][ty] := tiles[i];
 							Board.Tiles[ix][iy].Element := E_EMPTY;

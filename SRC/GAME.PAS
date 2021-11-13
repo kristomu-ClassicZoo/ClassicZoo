@@ -975,6 +975,10 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 				WorldLoad := true;
 
 				HighScoresLoad;
+
+				if HighCompatAuto then
+					HighCompat := (World.Info.Name = 'PHOEBUS');
+
 {$IFDEF DEBUGWND}
 				{ BoardEnter is only called for play-boards, not title-boards. }
 				if titleOnly and DebugCompatEnabled then
@@ -1931,7 +1935,70 @@ procedure GameDebugPrompt;
 
 procedure GameAboutScreen;
 	begin
-		TextWindowDisplayFile('ABOUT.HLP', 'About ZZT...');
+		TextWindowDisplayFile('ABOUT.HLP', 'About ClassicZoo...');
+	end;
+
+procedure GameOptionsScreen;
+	var
+		state: TTextWindowState;
+		i: integer;
+		numStr: TString50;
+		exitRequested: boolean;
+	begin
+		state.Title := 'Options...';
+		TextWindowDrawOpen(state);
+		state.LinePos := 1;
+		exitRequested := false;
+
+		repeat
+			state.Selectable := true;
+			state.LineCount := 6;
+			for i := 1 to state.LineCount do
+				New(state.Lines[i]);
+
+			state.Lines[1]^ := '!;Compatibility: ';
+			if HighCompatAuto then
+				state.Lines[1]^ := state.Lines[1]^ + 'Automatic'
+			else if HighCompat then
+				state.Lines[1]^ := state.Lines[1]^ + 'High'
+			else
+				state.Lines[1]^ := state.Lines[1]^ + 'Standard';
+
+			state.Lines[2]^ := '!;Sound: ';
+			if SoundEnabled then
+				state.Lines[2]^ := state.Lines[2]^ + 'On'
+			else
+				state.Lines[2]^ := state.Lines[2]^ + 'Off';
+
+			state.Lines[3]^ := '_________________________________________';
+			state.Lines[4]^ := '';
+			state.Lines[5]^ := '!;About ClassicZoo...';
+			state.Lines[6]^ := '!;Exit';
+
+			TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
+			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 6) then begin
+				case state.LinePos of
+					1: begin
+						if HighCompatAuto then
+							HighCompatAuto := false
+						else
+							HighCompat := not HighCompat;
+					end;
+					2: begin
+						SoundEnabled := not SoundEnabled;
+						SoundClearQueue;
+					end;
+					5: begin
+						GameAboutScreen;
+					end;
+				end;
+			end else begin
+				exitRequested := true;
+				TextWindowDrawClose(state);
+			end;
+
+			TextWindowFreeEdit(state);
+		until exitRequested;
 	end;
 
 procedure GameOnStart;
@@ -2009,7 +2076,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(62, 13, $70, ' Q ');
 				VideoWriteText(65, 13, $1E, ' Quit');
 				VideoWriteText(62, 16, $30, ' A ');
-				VideoWriteText(65, 16, $1F, ' About ZZT!');
+				VideoWriteText(65, 16, $1F, ' Options/About');
 				VideoWriteText(62, 17, $70, ' H ');
 				VideoWriteText(65, 17, $1E, ' High Scores');
 
@@ -2195,7 +2262,7 @@ procedure GameTitleLoop;
 						end;
 					end;
 					'A': begin
-						GameAboutScreen;
+						GameOptionsScreen;
 					end;
 {$IFDEF EDITOR}
 					'E': if EditorEnabled then begin
