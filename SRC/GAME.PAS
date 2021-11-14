@@ -1607,9 +1607,9 @@ procedure GameOptionsScreen;
 			if HighCompatAuto then
 				state.Lines[1]^ := state.Lines[1]^ + 'Automatic'
 			else if HighCompat then
-				state.Lines[1]^ := state.Lines[1]^ + 'High'
+				state.Lines[1]^ := state.Lines[1]^ + 'Strict'
 			else
-				state.Lines[1]^ := state.Lines[1]^ + 'Standard';
+				state.Lines[1]^ := state.Lines[1]^ + 'Normal';
 
 			state.Lines[2]^ := '!;Sound: ';
 			if SoundEnabled then
