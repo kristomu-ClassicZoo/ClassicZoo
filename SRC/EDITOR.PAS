@@ -1704,9 +1704,9 @@ procedure EditorLoop;
 		var
 			i: integer;
 			tileAt, tilePlaced: TTile;
-			toFill, filled: byte;
-			xPosition: array[0 .. 255] of integer;
-			yPosition: array[0 .. 255] of integer;
+			toFill, filled: integer;
+			xPosition: array[0 .. 511] of shortint;
+			yPosition: array[0 .. 511] of shortint;
 		begin
 			toFill := 1;
 			filled := 0;
@@ -1723,11 +1723,11 @@ procedure EditorLoop;
 							begin
 								xPosition[toFill] := x + NeighborDeltaX[i];
 								yPosition[toFill] := y + NeighborDeltaY[i];
-								Inc(toFill);
+								toFill := (toFill + 1) and $1FF;
 							end;
 						end;
 
-				Inc(filled);
+				filled := (filled + 1) and $1FF;
 				x := xPosition[filled];
 				y := yPosition[filled];
 			end;
