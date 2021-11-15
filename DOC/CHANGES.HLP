@@ -7,6 +7,11 @@ Legend:
 
 $< Super ClassicZoo dev >
 
++ Added options menu, including:
+  + Compatibility, for worlds making use
+    of more peculiar ZZT bugs.
+  + Sound, for disabling PC Speaker
+    audio.
 + Added /NOFONT, to disable using the
   built-in 8x8 font.
 * Minor improvements to editor docs.

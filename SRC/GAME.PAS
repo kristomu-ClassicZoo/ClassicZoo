@@ -779,7 +779,7 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 				ClearDisplayMessage;
 
 				if HighCompatAuto then
-					HighCompat := (World.Info.Name = 'PHOEBUS');
+					HighCompat := false;
 			end;
 		end;
 
@@ -1899,6 +1899,10 @@ procedure GameTitleLoop;
 				if needsTitleRefresh then begin
 					VideoClear(Black);
 					UnCrunch(MenuScrPointer^, VideoTextPointer^, MenuScrLen);
+{$IFNDEF EDITOR}
+					VideoWriteText(1, 18, $0A, #196#196#196#196#196#196#196#196#196#196#196#196
+						+ #196#196#196#196#196#196#196#196#196);
+{$ENDIF}
 				end;
 				needsTitleRefresh := true;
 				InputReadWaitKey;
@@ -1958,7 +1962,7 @@ LoadWorldSelect:
 							HighScoresDisplay(1);
 						end;
 					end;
-					'A': begin
+					'O': begin
 						needsTitleRefresh := false;
 						GameOptionsScreen;
 					end;
@@ -1966,7 +1970,7 @@ LoadWorldSelect:
 						GameDebugPrompt;
 					end;
 {$IFDEF EDITOR}
-					'E': if EditorEnabled then begin
+					'E': begin
 						EditorLoop;
 						ReturnBoardId := World.Info.CurrentBoard;
 						returningFromGame := true;
