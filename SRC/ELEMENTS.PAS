@@ -557,6 +557,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 		statIds: array[0..7] of integer;
 		iMin, iMax: integer;
 		tmpTile: TTile;
+		tx, ty: integer;
 	begin
 		if direction = 1 then begin
 			iMin := 0;
@@ -566,10 +567,14 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			iMax := -1;
 		end;
 
+		BoardDrawTile(x, y);
+
 		canMove := true;
 		i := iMin;
 		repeat
-			tiles[i] := Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]];
+			tx := x + DiagonalDeltaX[i];
+			ty := y + DiagonalDeltaY[i];
+			tiles[i] := Board.Tiles[tx][ty];
 			with tiles[i] do begin
 				if Element = E_EMPTY then
 					canMove := true
@@ -578,7 +583,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 				{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
 				{ Pre-find stat IDs to prevent such a scenario from occuring. }
 				if ElementDefs[Element].Cycle > -1 then
-					statIds[i] := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i])
+					statIds[i] := GetStatIdAt(tx, ty)
 			end;
 			Inc(i, direction);
 		until i = iMax;
@@ -590,22 +595,29 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 					if ElementDefs[Element].Pushable then begin
 						ix := x + DiagonalDeltaX[(i - direction + 8) and 7];
 						iy := y + DiagonalDeltaY[(i - direction + 8) and 7];
+						tx := x + DiagonalDeltaX[i];
+						ty := y + DiagonalDeltaY[i];
+
 						if ElementDefs[Element].Cycle > -1 then begin
 							if HighCompat then
-								statIds[i] := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
+								statIds[i] := GetStatIdAt(tx, ty);
 
-							tmpTile := Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]];
-							iStat := statIds[i];
-							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]] := tiles[i];
+							tmpTile := Board.Tiles[tx][ty];
+							Board.Tiles[tx][ty] := tiles[i];
 							Board.Tiles[ix][iy].Element := E_EMPTY;
-							MoveStat(iStat, ix, iy);
-							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]] := tmpTile;
+							MoveStat(statIds[i], ix, iy);
+
+							Board.Tiles[tx][ty] := tmpTile;
+							{ FIX: Add missing BoardDrawTile. }
+							BoardDrawTile(tx, ty);
 						end else begin
 							Board.Tiles[ix][iy] := tiles[i];
 							BoardDrawTile(ix, iy);
 						end;
 						if not ElementDefs[tiles[(i + direction + 8) and 7].Element].Pushable then begin
-							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]].Element := E_EMPTY;
+							Board.Tiles[tx][ty].Element := E_EMPTY;
+							{ FIX: Add missing BoardDrawTile. }
+							BoardDrawTile(tx, ty);
 						end;
 					end else begin
 						canMove := false;
@@ -631,7 +643,6 @@ procedure ElementConveyorCWDraw(x, y: integer; var ch: byte);
 procedure ElementConveyorCWTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			BoardDrawTile(X, Y);
 			ElementConveyorTick(X, Y, 1);
 		end;
 	end;
@@ -648,7 +659,6 @@ procedure ElementConveyorCCWDraw(x, y: integer; var ch: byte);
 procedure ElementConveyorCCWTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			BoardDrawTile(X, Y);
 			ElementConveyorTick(X, Y, -1);
 		end;
 	end;
@@ -1095,7 +1105,6 @@ procedure ElementDuplicatorTick(statId: integer);
 		with Board.Stats[statId] do begin
 			if P1 <= 4 then begin
 				Inc(P1);
-				BoardDrawTile(X, Y);
 			end else begin
 				P1 := 0;
 				if Board.Tiles[X - StepX][Y - StepY].Element = E_PLAYER then begin
@@ -1108,10 +1117,11 @@ procedure ElementDuplicatorTick(statId: integer);
 					if Board.Tiles[X - StepX][Y - StepY].Element = E_EMPTY then begin
 						sourceStatId := GetStatIdAt(X + StepX, Y + StepY);
 						if sourceStatId > 0 then begin
-							if Board.StatCount < (MAX_STAT + 24) then begin
+							{ Below is always true }
+							{ if Board.StatCount < (MAX_STAT + 24) then begin }
+							with Board.Tiles[X + StepX][Y + StepY] do begin
 								AddStat(X - StepX, Y - StepY,
-									Board.Tiles[X + StepX][Y + StepY].Element,
-									Board.Tiles[X + StepX][Y + StepY].Color,
+									Element, Color,
 									Board.Stats[sourceStatId].Cycle, Board.Stats[sourceStatId]);
 								BoardDrawTile(X - StepX, Y - StepY);
 							end;
@@ -1128,8 +1138,8 @@ procedure ElementDuplicatorTick(statId: integer);
 				end;
 
 				P1 := 0;
-				BoardDrawTile(X, Y);
 			end;
+			BoardDrawTile(X, Y);
 
 			Cycle := (9 - P2) * 3;
 		end;

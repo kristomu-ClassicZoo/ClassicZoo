@@ -14,10 +14,14 @@ $< Super ClassicZoo dev >
     audio.
 + Added /NOFONT, to disable using the
   built-in 8x8 font.
+* Minor CPU optimizations and memory
+  usage improvements have been made.
 * Minor improvements to editor docs.
-/ Improved stability of flood fill.
+/ Fixed visual bugs related to
+  conveyors.
 / Fixed scrolling out of bounds when
   changing editor view size.
+/ Improved stability of flood fill.
 
 $< Super ClassicZoo 4.01 >
 
