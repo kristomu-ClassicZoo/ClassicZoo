@@ -1,0 +1,62 @@
+$Cheats
+
+SuperClassicZoo offers a
+variety of commands as part
+of the built-in debug
+console.
+
+First of all, you can use it
+to set and clear flags. For
+this, use the following
+syntax:
+
+   +FLAG <= #set FLAG
+   -FLAG <= #clear FLAG
+
+Other than that, you can use
+the console to impact your
+gaming experience. Please
+remember to use the features
+below responsibly! (Or just
+have fun.)
+
+For most commands, you can
+invert their effect. Simply
+prepend "NO" - for example,
+"KEYS" grants the player all
+keys, while "NOKEYS" removes
+them.
+
+$General cheats
+
+Name        | Functionality
+------------+---------------
+HEALTH [x]  | Add health.
+AMMO [x]    | Add ammo. 
+KEYS        | Add all keys.
+KEYS [colr] | Add a key.
+Z [x]       | Add stones.
+NOZ         | Remove stones.
+TIME [x]    | Add time.
+GEMS [x]    | Add gems.
+ZAP         | Zap tiles.
+(NO)BLINK   | Toggle video
+            | card blink.
+
+$Editor build-only cheats
+
+Name        | Functionality
+------------+---------------
+DEBUG       | Enable debug
+(NODEBUG)   | mode.
+SHOW [el]   | Make all tiles
+(NOSHOW)    | [el] blink.
+NOSHOW ALL  | Undo all SHOW.
+NOCLIP      | Enable noclip.
+(CLIP)      | 
+(NO)FREEZE  | Freeze non-
+            | player tiles.
+PASSAGE     | Teleport to
+            | a board.
+FLAGS       | Print all
+            | set flags.

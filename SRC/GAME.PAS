@@ -540,7 +540,9 @@ procedure BoardDrawTile(x, y: integer);
 				else
 					drawnColor := (((Element - E_TEXT_MIN) + 1) * 16) + $F;
 			end;
-
+{$IFDEF EXTCHEAT}
+			drawnColor := drawnColor xor CheatColorModifiers[Element];
+{$ENDIF}
 			VideoWriteText(
 				x + BOARD_DRAW_X - Board.Info.DrawXOffset,
 				y + BOARD_DRAW_Y - Board.Info.DrawYOffset,
@@ -1503,61 +1505,222 @@ procedure BoardPassageTeleport(x, y: integer);
 		BoardEnter;
 	end;
 
+function DebugPromptParseInt(input: TSmallString; offset: integer; defaultValue: integer): integer;
+	var
+		substr: TSmallString;
+		result, code: integer;
+	begin
+		if Length(input) >= (offset + 2) then begin
+			substr := Copy(input, offset + 2, Length(input));
+			Val(substr, result, code);
+			DebugPromptParseInt := result;
+		end else begin
+			DebugPromptParseInt := defaultValue;
+		end;
+	end;
+
+function DebugPromptParseElem(input: TSmallString; offset: integer): integer;
+	var
+		substr: TSmallString;
+		i: integer;
+		j: byte;
+	begin
+		j := 0;
+		for i := offset + 2 to Length(input) do begin
+			Inc(j);
+			substr[j] := UpCase(input[i]);
+		end;
+		substr[0] := Chr(j);
+		if substr = 'ALL' then begin
+			DebugPromptParseElem := -1;
+			exit;
+		end;
+		for i := 0 to MAX_ELEMENT do begin
+			if substr = OopStringToWord(ElementDefs[i].Name) then begin
+				DebugPromptParseElem := i;
+				exit;
+			end;
+		end;
+		DebugPromptParseElem := E_BOARD_EDGE;
+	end;
+
+function DebugPromptParseColor(input: TSmallString; offset: integer): integer;
+	var
+		substr: TSmallString;
+		i: integer;
+		j: byte;
+	begin
+		j := 0;
+		for i := offset + 2 to Length(input) do begin
+			Inc(j);
+			substr[j] := UpCase(input[i]);
+		end;
+		substr[0] := Chr(j);
+		for i := 1 to 7 do begin
+			if substr = OopStringToWord(ColorNames[i]) then begin
+				DebugPromptParseColor := i;
+				exit;
+			end;
+		end;
+		DebugPromptParseColor := -1;
+	end;
+
+function DebugPromptStarts(input: TSmallString; cmp: TSmallString): boolean;
+	var
+		i: integer;
+	begin
+		DebugPromptStarts := Length(input) >= Length(cmp);
+		for i := 1 to Length(cmp) do begin
+			if input[i] <> cmp[i] then begin
+				DebugPromptStarts := false;
+				exit;
+			end;
+		end;
+	end;
+
+procedure DebugPromptFlagWindow;
+	var
+		i: integer;
+		flagId: string[11];
+		textWindow: TTextWindowState;
+	begin
+		textWindow.Title := 'Flags';
+		TextWindowInitState(textWindow);
+		for i := 1 to MAX_FLAG do begin
+			Str(i, flagId);
+			TextWindowAppend(textWindow, flagId + ': ' + World.Info.Flags[i]);
+		end;
+
+		TextWindowDrawOpen(textWindow);
+		TextWindowSelect(textWindow, false, false);
+		TextWindowDrawClose(textWindow);
+		TextWindowFree(textWindow);
+	end;
+
 procedure GameDebugPrompt;
 	var
 		input: TSmallString;
-		i: integer;
-		toggle: boolean;
+		i, iMin, iMax: integer;
+		btmp: byte;
+		isYes: boolean; { True if not 'NO[cheat]' }
+		isYesMultiplier: integer; { -1 if 'NO[cheat]', 1 otherwise }
 	begin
 		input := '';
 
 		ClearDisplayMessage;
 		PromptString(15, VideoRows - 1, $1E, $0F, 11, PROMPT_ANY, input);
 		ClearDisplayMessage;
+		for i := 1 to Length(input) do
+			input[i] := UpCase(input[i]);
 
-		toggle := true;
-
-		if (input[1] = '+') or (input[1] = '-') then begin
-			if input[1] = '-' then
-				toggle := false;
+		isYes := true;
+		isYesMultiplier := 1;
+		if Length(input) <= 0 then begin
+			{ No-op. }
+		end else if input[1] = '?' then begin
+			{ Open help file. }
+			if Length(input) >= 2 then
+				input := Copy(input, 2, Length(input) - 1)
+			else
+				input := 'CHEAT';
+			TextWindowDisplayFile(input, 'View file');
+		end else if (input[1] = '+') or (input[1] = '-') then begin
+			isYes := input[1] = '+';
 			input := Copy(input, 2, Length(input) - 1);
 
-			for i := 1 to Length(input) do
-				input[i] := UpCase(input[i]);
-
-			if toggle = true then begin
-				WorldSetFlag(input);
-			end else begin
-				if input <> 'ALL' then begin
-					WorldClearFlag(input);
-				end else begin
-					for i := 1 to MAX_FLAG do
-						World.Info.Flags[i] := '';
-				end;
+			if isYes then
+				WorldSetFlag(input)
+			else
+				WorldClearFlag(input);
+		end else begin
+			if (Length(input) >= 2) and (input[1] = 'N') and (input[2] = 'O') then begin
+				input := Copy(input, 3, Length(input) - 2);
+				isYes := false;
+				isYesMultiplier := -1;
 			end;
 
-			DebugEnabled := WorldGetFlagPosition('DEBUG') >= 0;
-		end;
-
-		if input = 'health' then
-			World.Info.Health := World.Info.Health + 50
-		else if input = 'ammo' then
-			World.Info.Ammo := World.Info.Ammo + 20
-		else if input = 'keys' then
-			for i := 1 to 7 do World.Info.Keys[i] := true
-		else if input = 'time' then
-			World.Info.BoardTimeSec := World.Info.BoardTimeSec - 30
-		else if input = 'z' then
-			World.Info.StonesOfPower := World.Info.StonesOfPower + 1
-		else if input = 'noz' then
-			World.Info.StonesOfPower := -1
-		else if input = 'gems' then
-			World.Info.Gems := World.Info.Gems + 5
-		else if input = 'zap' then begin
-			for i := 0 to 3 do begin
-				BoardDamageTile(Board.Stats[0].X + NeighborDeltaX[i], Board.Stats[0].Y + NeighborDeltaY[i]);
-				Board.Tiles[Board.Stats[0].X + NeighborDeltaX[i]][Board.Stats[0].Y + NeighborDeltaY[i]].Element := E_EMPTY;
-				BoardDrawTile(Board.Stats[0].X + NeighborDeltaX[i], Board.Stats[0].Y + NeighborDeltaY[i]);
+			if DebugPromptStarts(input, 'HEALTH') then
+				Inc(World.Info.Health, DebugPromptParseInt(input, 6, 50) * isYesMultiplier)
+			else if DebugPromptStarts(input, 'AMMO') then
+				Inc(World.Info.Ammo, DebugPromptParseInt(input, 4, 20) * isYesMultiplier)
+			else if DebugPromptStarts(input, 'KEYS') then begin
+				i := DebugPromptParseColor(input, 4);
+				if i > 0 then World.Info.Keys[i] := isYes
+				else for i := 1 to 7 do World.Info.Keys[i] := isYes;
+			end else if DebugPromptStarts(input, 'Z') then begin
+				if isYes then Inc(World.Info.StonesOfPower, DebugPromptParseInt(input, 1, 1))
+				else World.Info.StonesOfPower := -1;
+			end else if DebugPromptStarts(input, 'TIME') then
+				Dec(World.Info.BoardTimeSec, DebugPromptParseInt(input, 4, 30) * isYesMultiplier)
+			else if DebugPromptStarts(input, 'GEMS') then
+				Inc(World.Info.Gems, DebugPromptParseInt(input, 4, 5) * isYesMultiplier)
+			else if input = 'BLINK' then begin
+				VideoSetBlink(isYes);
+			end else if input = 'DEBUG' then begin
+				DebugEnabled := isYes;
+{$IFDEF EXTCHEAT}
+			end else if DebugPromptStarts(input, 'SHOW') then begin
+				i := DebugPromptParseElem(input, 4);
+				if i >= 0 then begin
+					iMin := i;
+					iMax := i;
+				end else begin
+					iMin := 0;
+					if isYes then
+						iMax := -1 { Block SHOW ALL }
+					else
+						iMax := MAX_ELEMENT;
+				end;
+				for i := iMin to iMax do begin
+					btmp := Byte(isYes) shl 7;
+					if btmp <> CheatColorModifiers[i] then begin
+						CheatColorModifiers[i] := btmp;
+						btmp := Byte(CheatCharModifiers[i]);
+						CheatCharModifiers[i] := ElementDefs[i].Character;
+						ElementDefs[i].Character := Char(btmp);
+					end;
+				end;
+				TransitionDrawToBoard;
+			end else if input = 'CLIP' then begin
+				CheatNoClip := not isYes;
+			end else if input = 'FREEZE' then begin
+				CheatFreeze := isYes;
+			end else if input = 'FLAGS' then begin
+				DebugPromptFlagWindow;
+{$ENDIF}
+			end else if isYes then begin
+				{ Non-toggleables. }
+{$IFDEF EXTCHEAT}
+				if input = 'PASSAGE' then begin
+					if GameStateElement = E_PLAYER then begin
+						i := EditorSelectBoard('Teleport to', World.Info.CurrentBoard, false, false, false);
+						if (not TextWindowRejected) then begin
+							BoardChange(i);
+							GamePaused := true;
+							TransitionDrawBoardChange;
+							BoardEnter;
+						end;
+					end;
+				end else
+{$ENDIF}
+				{ if DebugPromptStarts(input, 'SPEED') then begin
+					i := DebugPromptParseInt(input, 5, -1);
+					if (i >= 0) and (i <= 8) then begin
+						TickSpeed := i;
+					end else begin
+						SidebarPromptSlider(true, 63, 3, 'Game speed:;FS', TickSpeed);
+						SidebarClearLine(3);
+					end;
+					TickTimeDuration := TickSpeed * 2;
+					SoundBlockQueueing := false;
+					InputKeyPressed := #0;
+				end else } if (input = 'ZAP') then begin
+					for i := 0 to 3 do begin
+						BoardDamageTile(Board.Stats[0].X + NeighborDeltaX[i], Board.Stats[0].Y + NeighborDeltaY[i]);
+						Board.Tiles[Board.Stats[0].X + NeighborDeltaX[i]][Board.Stats[0].Y + NeighborDeltaY[i]].Element := E_EMPTY;
+						BoardDrawTile(Board.Stats[0].X + NeighborDeltaX[i], Board.Stats[0].Y + NeighborDeltaY[i]);
+					end;
+				end;
 			end;
 		end;
 
@@ -1815,6 +1978,11 @@ procedure GamePlayLoop(isTitle: boolean);
 							ElementDefs[Board.Tiles[X][Y].Element].TickProc(CurrentStatTicked);
 
 						Inc(CurrentStatTicked);
+
+{$IFDEF EXTCHEAT}
+						if CheatFreeze then
+							CurrentStatTicked := Board.StatCount + 1;
+{$ENDIF}
 					end;
 				end;
 			end;
@@ -1888,6 +2056,7 @@ procedure GameTitleLoop;
 		JustStarted := true;
 		GamePlayStartRequested := false;
 		returningFromGame := false;
+		needsTitleRefresh := true;
 		repeat
 			runTitle := false;
 			if not GamePlayStartRequested then begin

@@ -152,6 +152,10 @@ begin
 		DebugEnabled := false;
 		HighCompat := false;
 		HighCompatAuto := true;
+{$IFDEF EXTCHEAT}
+		CheatNoClip := false;
+		CheatFreeze := false;
+{$ENDIF}
 
 		SavedBoardFileName := 'TEMP';
 		SavedGameFileName := StartupWorldFileName;

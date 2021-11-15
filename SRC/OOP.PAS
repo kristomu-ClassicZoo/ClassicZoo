@@ -31,6 +31,7 @@ interface
 	function WorldGetFlagPosition(name: TSmallString): integer;
 	procedure WorldSetFlag(name: TSmallString);
 	procedure WorldClearFlag(name: TSmallString);
+	function OopStringToWord(input: TSmallString): TSmallString;
 	function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
 	function OopExecute(statId: integer; var position: integer; name: TSmallString): boolean;
 

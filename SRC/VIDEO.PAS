@@ -33,6 +33,7 @@ interface
 		TCharsetData = array[0 .. 31999] of byte;
 		PTCharsetData = ^TCharsetData;
 	const
+		PORT_CGA_MODE = $03D8;
 		PORT_CGA_PALETTE = $03D9;
 		VIDEO_MODE_40X25 = 0;
 		VIDEO_MODE_80X25 = 1;
@@ -60,6 +61,7 @@ interface
 	procedure VideoShowCursor;
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
+	procedure VideoSetBlink(value: boolean);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoClear(bgColor: integer);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
@@ -541,6 +543,22 @@ procedure VideoHideCursor;
 procedure VideoSetBorderColor(value: integer);
 	begin
 		Port[PORT_CGA_PALETTE] := value;
+	end;
+
+procedure VideoSetBlink(value: boolean);
+	var
+		regs: Registers;
+	begin
+		{ CGA route }
+		if value then
+			Port[PORT_CGA_MODE] := Port[PORT_CGA_MODE] or $20
+		else
+			Port[PORT_CGA_MODE] := Port[PORT_CGA_MODE] and $DF;
+		{ EGA/VGA route }
+		regs.AX := $1003;
+		regs.BH := 0;
+		regs.BL := Byte(value);
+		Intr($10, regs);
 	end;
 
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);

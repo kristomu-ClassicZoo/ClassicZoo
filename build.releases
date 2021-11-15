@@ -1,2 +1,2 @@
--d EDITOR -d SUBDIRS -e SUPERZ.EXE -o superz.zip -p build.properties
+-d EDITOR -d EXTCHEAT -d SUBDIRS -e SUPERZ.EXE -o superz.zip -p build.properties
 -d SUBDIRS -e SZRUN.EXE -o superz.zip -p build.properties

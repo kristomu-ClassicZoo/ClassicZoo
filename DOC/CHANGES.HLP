@@ -12,6 +12,7 @@ $< Super ClassicZoo 4.02 >
     of more peculiar ZZT bugs.
   + Sound, for disabling PC Speaker
     audio.
++ Added (most of) ClassicZoo's cheats. 
 + Added /NOFONT, to disable using the
   built-in 8x8 font.
 * Minor CPU optimizations and memory
