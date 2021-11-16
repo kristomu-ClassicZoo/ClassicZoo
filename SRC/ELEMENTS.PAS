@@ -39,7 +39,7 @@ interface
 	procedure InitEditorStatSettings;
 
 implementation
-uses Crt, Video, Sounds, Input, TxtWind, Editor, Oop, Game;
+uses Crt, Video, Sounds, Input, ZDemo, TxtWind, Editor, Oop, Game;
 
 const
 	TransporterNSChars: string = '^~^-v_v-';
@@ -1429,7 +1429,9 @@ procedure ElementPlayerTick(statId: integer);
 					end;
 				end;
 				#27, 'Q': begin
-					GamePromptEndPlay;
+					if not DemoIsPlaying then begin
+						GamePromptEndPlay;
+					end;
 				end;
 				'S': begin
 					GameWorldSave('Save game:', SavedGameFileName, '.SAV');

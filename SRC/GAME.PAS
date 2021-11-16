@@ -107,7 +107,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop;
+uses Dos, Crt, Video, Sounds, ZDemo, Input, Elements, Editor, Oop;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -440,7 +440,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TStri
 
 			if editable then begin
 				Delay(25);
-				InputUpdate;
+				DemoInputUpdate(false);
 				if InputKeyPressed = KEY_TAB then
 					InputDeltaX := 9;
 
@@ -481,7 +481,7 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 					Delay(45);
 				VideoWriteText(x + value + 1, y + 1, $9F, #31);
 
-				InputUpdate;
+				DemoInputUpdate(false);
 				if (InputKeyPressed >= '1') and (InputKeyPressed <= '9') then begin
 					value := Ord(InputKeyPressed) - 49;
 					SidebarClearLine(y + 1);
@@ -526,7 +526,7 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 			if editable then begin
 				VideoWriteText(62 + i, y + 1, $9F, #31);
 				Delay(35);
-				InputUpdate;
+				DemoInputUpdate(false);
 
 				newResult := result + InputDeltaX;
 				if (result <> newResult) and (newResult >= 0) and (newResult <= (choiceCount - 1)) then begin
@@ -677,6 +677,73 @@ function DisplayIOError: boolean;
 		TextWindowSelect(textWindow, false, false);
 		TextWindowDrawClose(textWindow);
 		TextWindowFree(textWindow);
+	end;
+
+
+procedure GameDemoShowError;
+	var
+		numStr: TString50;
+		textWindow: TTextWindowState;
+	begin
+		Str(DemoErrorCode, textWindow.Title);
+		textWindow.Title := 'Demo Error #' + textWindow.Title;
+		TextWindowInitState(textWindow);
+		if DemoIsPlaying then
+			TextWindowAppend(textWindow, 'Playback has been stopped!')
+		else
+			TextWindowAppend(textWindow, 'Recording has been stopped!');
+		TextWindowAppend(textWindow, '');
+		TextWindowAppend(textWindow, '$Debug information:');
+		TextWindowAppend(textWindow, '');
+		Str(DemoCommandsFetched, numStr);
+		TextWindowAppend(textWindow, 'Position: ' + numStr);
+
+		TextWindowDrawOpen(textWindow);
+		TextWindowSelect(textWindow, false, false);
+		TextWindowDrawClose(textWindow);
+		TextWindowFree(textWindow);
+
+		DemoErrorCode := 0;
+	end;
+
+procedure GameDemoShowSuccess;
+	var
+		timeHs: longint;
+		i: integer;
+		numStr: TString50;
+		fullStr: TString50;
+		textWindow: TTextWindowState;
+	begin
+		textWindow.Title := 'Demo Playback Complete';
+		TextWindowInitState(textWindow);
+
+		{ Calculate time. }
+		{ 1 PIT tick = 55ms }
+		timeHs := (DemoPitTicks * 11) div 2;
+
+		i := timeHs mod 100;
+		Str(i:2, numStr);
+		fullStr := '.' + numStr;
+		i := (timeHs div 100) mod 60;
+		Str(i:2, numStr);
+		fullStr := ':' + numStr + fullStr;
+		i := (timeHs div 6000) mod 60;
+		Str(i:2, numStr);
+		fullStr := numStr + fullStr;
+		if timeHs >= 360000 then begin
+			i := (timeHs div 360000);
+			Str(i, numStr);
+			fullStr := numStr + ':' + fullStr;
+		end;
+
+		TextWindowAppend(textWindow, 'Time: ' + fullStr);
+
+		TextWindowDrawOpen(textWindow);
+		TextWindowSelect(textWindow, false, false);
+		TextWindowDrawClose(textWindow);
+		TextWindowFree(textWindow);
+
+		DemoErrorCode := 0;
 	end;
 
 procedure WorldUnload;
@@ -1105,6 +1172,11 @@ procedure GameUpdateSidebar;
 			if World.Info.Health < 0 then
 				World.Info.Health := 0;
 
+			i := $77;
+			if DemoIsPlaying then i := $FA
+			else if DemoIsRecording then i := $74;
+			VideoWriteText(73, 1, i, #7);
+
 			Str(World.Info.Health, numStr);
 			VideoWriteText(72, 7, $1E, numStr + ' ');
 			Str(World.Info.Ammo, numStr);
@@ -1424,7 +1496,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 			SidebarClearLine(1);
 			SidebarClearLine(2);
 			VideoWriteText(61, 0, $1F, '    - - - - -      ');
-			VideoWriteText(62, 1, $70, '      ZZT      ');
+			VideoWriteText(62, 1, $70, '      ZZT*     ');
 			VideoWriteText(61, 2, $1F, '    - - - - -      ');
 			if GameStateElement = E_PLAYER then begin
 				VideoWriteText(64, 7, $1E, ' Health:');
@@ -1468,16 +1540,20 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(65, 11, $1F, ' Play');
 				VideoWriteText(62, 12, $30, ' R ');
 				VideoWriteText(65, 12, $1E, ' Restore game');
-				VideoWriteText(62, 13, $70, ' Q ');
-				VideoWriteText(65, 13, $1E, ' Quit');
-				VideoWriteText(62, 16, $30, ' A ');
-				VideoWriteText(65, 16, $1F, ' About ZZT!');
-				VideoWriteText(62, 17, $70, ' H ');
-				VideoWriteText(65, 17, $1E, ' High Scores');
+				VideoWriteText(62, 13, $70, ' L ');
+				VideoWriteText(65, 13, $1E, ' Play Demo ');
+				VideoWriteText(62, 14, $30, ' D ');
+				VideoWriteText(65, 14, $1E, ' Record Demo');
+				VideoWriteText(62, 15, $70, ' Q ');
+				VideoWriteText(65, 15, $1E, ' Quit');
+				VideoWriteText(62, 17, $30, ' A ');
+				VideoWriteText(65, 17, $1F, ' About ZZT!');
+				VideoWriteText(62, 18, $70, ' H ');
+				VideoWriteText(65, 18, $1E, ' High Scores');
 
 				if EditorEnabled then begin
-					VideoWriteText(62, 18, $30, ' E ');
-					VideoWriteText(65, 18, $1E, ' Board Editor');
+					VideoWriteText(62, 19, $30, ' E ');
+					VideoWriteText(65, 19, $1E, ' Board Editor');
 				end;
 			end;
 		end;
@@ -1512,7 +1588,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 		GamePlayExitRequested := false;
 		exitLoop := false;
 
-		CurrentTick := Random(100);
+		DemoReseedUpdate;
 		CurrentStatTicked := Board.StatCount + 1;
 
 		repeat
@@ -1531,7 +1607,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				end;
 
 				VideoWriteText(64, 5, $1F, 'Pausing...');
-				InputUpdate;
+				DemoInputUpdate(false);
 
 				if InputKeyPressed = KEY_ESCAPE then
 					GamePromptEndPlay;
@@ -1561,7 +1637,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 					{ Unpause }
 					GamePaused := false;
 					SidebarClearLine(5);
-					CurrentTick := Random(100);
+					DemoReseedUpdate;
 					CurrentStatTicked := Board.StatCount + 1;
 					World.Info.IsSave := true;
 				end;
@@ -1586,10 +1662,27 @@ procedure GamePlayLoop(boardChanged: boolean);
 						CurrentTick := 1;
 					CurrentStatTicked := 0;
 
-					InputUpdate;
+					DemoAddPitTicksBeforeInputUpdate(((TickTimeDuration shl 1) + 10) div 11);
+					DemoInputUpdate(true);
+
+					{ This is here, as to not break ElementMonitorTick. }
+					if GameStateElement = E_MONITOR then begin
+						if UpCase(InputKeyPressed) in ['D', 'L'] then
+							GamePlayExitRequested := true;
+					end else if DemoErrorCode <> 0 then begin
+						DemoStop;
+						GameDemoShowError;
+						GamePlayExitRequested := true;
+					end else if DemoIsComplete then begin
+						DemoStop;
+						GameDemoShowSuccess;
+						GamePlayExitRequested := true;
+					end;						
 				end;
 			end;
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
+
+		DemoStop;
 
 		SoundClearQueue;
 
@@ -1607,10 +1700,39 @@ procedure GamePlayLoop(boardChanged: boolean);
 		SoundBlockQueueing := false;
 	end;
 
+function GameDemoStartRecord: boolean;
+	var
+		filename: TString50;
+	begin
+		GameDemoStartRecord := false;
+		filename := World.Info.Name;
+		SidebarPromptString('Demo name?', '.ZZD', filename, PROMPT_ALPHANUM);
+		if (InputKeyPressed <> KEY_ESCAPE) and (Length(filename) <> 0) then begin
+			GameDemoStartRecord := DemoStartRecord(filename + '.ZZD');
+		end;
+	end;
+
+function GameDemoStartPlay: boolean;
+	var
+		filename: TString50;
+	begin
+		DemoFastForward := false; { InputShiftPressed; }
+		GameDemoStartPlay := false;
+		filename := World.Info.Name;
+		SidebarPromptString('Demo name?', '.ZZD', filename, PROMPT_ALPHANUM);
+		if (InputKeyPressed <> KEY_ESCAPE) and (Length(filename) <> 0) then begin
+			GameDemoStartPlay := DemoStartPlay(filename + '.ZZD');
+			if DemoFastForward then begin
+				SoundEnabled := false;
+			end;
+		end;
+	end;
+
 procedure GameTitleLoop;
 	var
 		boardChanged: boolean;
 		startPlay: boolean;
+	label PlayStart;
 	begin
 		GameTitleExitRequested := false;
 		JustStarted := true;
@@ -1622,6 +1744,7 @@ procedure GameTitleLoop;
 				GameStateElement := E_MONITOR;
 				startPlay := false;
 				GamePaused := false;
+				DemoFastForward := false;
 				GamePlayLoop(boardChanged);
 				boardChanged := false;
 
@@ -1633,6 +1756,7 @@ procedure GameTitleLoop;
 						end;
 					end;
 					'P': begin
+	PlayStart:
 						if World.Info.IsSave and not DebugEnabled then begin
 							startPlay := WorldLoad(World.Info.Name, '.ZZT', false);
 							ReturnBoardId := World.Info.CurrentBoard;
@@ -1651,6 +1775,12 @@ procedure GameTitleLoop;
 						EditorLoop;
 						ReturnBoardId := World.Info.CurrentBoard;
 						boardChanged := true;
+					end;
+					'D': begin
+						if GameDemoStartRecord then goto PlayStart;
+					end;
+					'L': begin
+						if GameDemoStartPlay then goto PlayStart;
 					end;
 					'S': begin
 						SidebarPromptSlider(true, 66, 21, 'Game speed:;FS', TickSpeed);

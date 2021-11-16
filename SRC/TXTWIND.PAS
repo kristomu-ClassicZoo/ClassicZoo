@@ -77,7 +77,7 @@ interface
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
-uses Crt, Input, Printer;
+uses Crt, ZDemo, Input, Printer;
 
 function UpCaseString(input: string): string;
 	var
@@ -282,7 +282,7 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 			Hyperlink := '';
 			TextWindowDraw(state, false, viewingFile);
 			repeat
-				InputUpdate;
+				DemoInputUpdate(false);
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
 					newLinePos := newLinePos + InputDeltaY;

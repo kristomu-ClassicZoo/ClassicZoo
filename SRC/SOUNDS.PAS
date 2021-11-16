@@ -55,7 +55,7 @@ interface
 	function SoundParse(input: string): string;
 
 implementation
-uses Crt, Dos;
+uses Crt, Dos, ZDemo;
 
 procedure SoundQueue(priority: integer; pattern: string);
 	begin
@@ -188,6 +188,8 @@ procedure SoundTimerHandler;
 		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter mod 2) = 0) then begin
 			SoundTimeCheckCounter := SoundTimeCheckCounter - 1;
 		end;
+
+		DemoOnPitTick;
 
 		if not SoundEnabled then begin
 			SoundIsPlaying := false;
