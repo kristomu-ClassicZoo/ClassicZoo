@@ -23,10 +23,6 @@
 {
 	ZDemo is a prototype implementation of a demo recording hook/call set for ZZT.
 	Special thanks to Mr_Alert for the initial proof of concept.
-
-	TODO:
-	- Rewrite some commands (like TickSpeed?, RandSeed and PitTicks) to be acted
-	  upon during DemoFetchCommand. This will make the code a bit more versatile.
 }
 
 {$I-}
@@ -44,19 +40,19 @@ interface
 	{ Library }
 	function DemoStartRecord(filename: string): boolean;
 	function DemoStartPlay(filename: string): boolean;
-	procedure DemoStop;
+	procedure DemoStop(ignoreErrors: boolean);
 	function DemoIsComplete: boolean;
 	function DemoIsPlaying: boolean;
 	function DemoIsRecording: boolean;
-	procedure DemoAddPitTicksBeforeInputUpdate(count: word);
 	{ Hooks }
-	procedure DemoInputUpdate(isGameplaySensitive: boolean); { Replaces InputUpdate; }
-	procedure DemoReseedUpdate; { Replaces CurrentTick := ... }
-	procedure DemoOnTickSpeedUpdate; { Replaces TickSpeed := ... }
-	procedure DemoOnPitTick;
+	procedure DemoReseedCurrentTick; { Replaces CurrentTick := ... }
+	procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean); { Replaces InputUpdate; }
+	procedure DemoInputReadWaitKey;
+	procedure DemoOnPitTick; { Call from SOUNDS.PAS's PIT interrupt handler }
+	function DemoSoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 
 implementation
-uses GameVars, Input;
+uses Crt, GameVars, Input, Sounds;
 
 type
 	DemoMode = (
@@ -67,11 +63,10 @@ type
 	);
 	DemoCommandType = (
 		DCmdInput,
-		DCmdTickSpeed,
-		DCmdRandSeed,
+		DCmdReseedCurrentTick,
 		DCmdGameStart,
-		DCmdPitTicks
-		{ TODO: DCmdCheat }
+		DCmdGameStop,
+		DCmdPitTickDelta
 	);
 	DemoFetchMode = (
 		DFetchAny,
@@ -91,14 +86,15 @@ type
 			shiftPressed: boolean;
 			keyPressed: char;
 		);
-		DCmdTickSpeed: (
-			tickSpeed: integer;
-		);
-		DCmdRandSeed: (
+		DCmdReseedCurrentTick: (
 			randSeed: longint;
 		);
-		DCmdPitTicks: (
-			pitTicks: word;
+		DCmdGameStart: (
+			gsRandSeed: longint;
+			gsTickSpeed: integer;
+		);
+		DCmdPitTickDelta: (
+			pitTicks: integer;
 		);
 	end;
 
@@ -107,17 +103,18 @@ const
 	DEMO_VERSION = $0001;
 	DEMO_BUFFER_SIZE = 512;
 	DEMO_COMMAND_OPTIONAL = $01;
-	DemoCommandLengths: array[DCmdInput .. DCmdPitTicks] of byte = (
+	DEMO_COMMAND_VARLEN = $80;
+	DemoCommandLengths: array[DCmdInput .. DCmdPitTickDelta] of byte = (
 		7,
-		3,
 		5,
+		7,
 		1,
 		3
 	);
-	DemoCommandFlags: array[DCmdInput .. DCmdPitTicks] of byte = (
+	DemoCommandFlags: array[DCmdInput .. DCmdPitTickDelta] of byte = (
 		0,
 		DEMO_COMMAND_OPTIONAL,
-		DEMO_COMMAND_OPTIONAL,
+		0,
 		0,
 		DEMO_COMMAND_OPTIONAL
 	);
@@ -127,7 +124,8 @@ var
 	DemoCurrentCommand: DemoCommand;
 	DemoCurrentMode: DemoMode;
 	DemoFile: file;
-	DemoLastGameplaySensitive: boolean;
+	DemoLastPitTicks: longint;
+	DemoRealPitTicks: longint;
 
 function DemoIsPlaying: boolean;
 	begin
@@ -150,12 +148,6 @@ procedure DemoFlushRecordBuffer;
 		DemoBufferPos := 1;
 	end;
 
-procedure DemoAddPitTicksBeforeInputUpdate(count: word);
-	begin
-		if DemoLastGameplaySensitive then
-			Inc(DemoPitTicks, count);
-	end;
-
 procedure DemoAppendCommand(var cmd: DemoCommand);
 	var
 		cmdLen: byte;
@@ -173,7 +165,7 @@ procedure DemoAppendCommand(var cmd: DemoCommand);
 		Inc(DemoCommandsFetched);
 	end;
 
-function DemoFetchCommand(expectedType: DemoCommandType; fetchMode: DemoFetchMode): boolean;
+function DemoFetchCommand(var cmd: DemoCommand; expectedType: DemoCommandType; fetchMode: DemoFetchMode): boolean;
 	var
 		startPos: longint;
 	label FetchNext;
@@ -181,42 +173,52 @@ function DemoFetchCommand(expectedType: DemoCommandType; fetchMode: DemoFetchMod
 		DemoFetchCommand := false;
 		if DemoErrorCode <> 0 then exit;
 
-		if (DemoCurrentCommand.cmdType = DCmdInput) and (DemoCurrentCommand.count > 0) then begin
-			DemoErrorCode := 20 + (Ord(expectedType));
-			exit;
-		end;
-
 		startPos := FilePos(DemoFile);
 
 	FetchNext:
 		if Eof(DemoFile) then begin
-			{ TODO: This doesn't interact well with optionality logic below. }
-			DemoCurrentMode := DModeComplete;
+			DemoErrorCode := 30 + Ord(expectedType);
 			exit;
 		end;
 
-		BlockRead(DemoFile, DemoCurrentCommand, 1);
-		if DemoCommandLengths[DemoCurrentCommand.cmdType] > 1 then
-			BlockRead(DemoFile, DemoCurrentCommand.count, DemoCommandLengths[DemoCurrentCommand.cmdType] - 1);
+		BlockRead(DemoFile, cmd, 1);
+		if DemoCommandLengths[cmd.cmdType] > 1 then
+			BlockRead(DemoFile, cmd.count, DemoCommandLengths[cmd.cmdType] - 1);
 		if IOResult <> 0 then begin
 			DemoErrorCode := 1;
 			exit;
 		end;
 
-		if (fetchMode = DFetchAny) or (DemoCurrentCommand.cmdType = expectedType) then begin
+		if (fetchMode = DFetchAny) or (cmd.cmdType = expectedType) then begin
 			Inc(DemoCommandsFetched);
 			DemoFetchCommand := true;
 		end else begin
 			{ If the fetched command is optional, fetch another command. }
 			{ If the expected command is optional, unfetch all and return. }
+			{ If the fetched command is GameStop, sto. }
 			{ Otherwise, fail. }
-			if (DemoCommandFlags[DemoCurrentCommand.cmdType] and DEMO_COMMAND_OPTIONAL) <> 0 then
+			if (DemoCommandFlags[cmd.cmdType] and DEMO_COMMAND_OPTIONAL) <> 0 then
 				goto FetchNext
 			else if (DemoCommandFlags[expectedType] and DEMO_COMMAND_OPTIONAL) <> 0 then
 				Seek(DemoFile, startPos)
+			else if (cmd.cmdType = DCmdGameStop) then
+				{ TODO: This doesn't interact well with optionality logic below. }		
+				DemoCurrentMode := DModeComplete
 			else
-				DemoErrorCode := 100 + (Ord(expectedType) * 10) + Ord(DemoCurrentCommand.cmdType);
+				DemoErrorCode := 100 + (Ord(expectedType) * 10) + Ord(cmd.cmdType);
 		end;
+	end;
+
+procedure DemoSetMode(mode: DemoMode);
+	begin
+		DemoCurrentMode := mode;
+		DemoBufferPos := 1;
+		DemoErrorCode := 0;
+		DemoLastPitTicks := 0;
+		DemoPitTicks := 0;
+		DemoRealPitTicks := 0;
+		DemoCommandsFetched := 0;
+		FillChar(DemoCurrentCommand, SizeOf(DemoCurrentCommand), 0);
 	end;
 
 function DemoStartRecord(filename: string): boolean;
@@ -231,8 +233,6 @@ function DemoStartRecord(filename: string): boolean;
 		hdr.Name := World.Info.Name;
 		hdr.Flags := 0;
 
-		DemoBufferPos := 1;
-		FillChar(DemoCurrentCommand, SizeOf(DemoCurrentCommand), 0);
 		Assign(DemoFile, filename);
 		Rewrite(DemoFile, 1);
 		if IOResult <> 0 then begin
@@ -246,22 +246,13 @@ function DemoStartRecord(filename: string): boolean;
 			exit;
 		end;
 
-		DemoCurrentMode := DModeRecord;
-		DemoErrorCode := 0;
-		DemoPitTicks := 0;
-		DemoCommandsFetched := 0;
+		DemoSetMode(DModeRecord);
 		DemoStartRecord := true;
 
 		{ Record the initial commands. }
-		cmd.cmdType := DCmdTickSpeed;
-		cmd.tickSpeed := TickSpeed;
-		DemoAppendCommand(cmd);
-
-		cmd.cmdType := DCmdRandSeed;
-		cmd.randSeed := RandSeed;
-		DemoAppendCommand(cmd);
-
 		cmd.cmdType := DCmdGameStart;
+		cmd.gsTickSpeed := TickSpeed;
+		cmd.gsRandSeed := RandSeed;
 		DemoAppendCommand(cmd);
 	end;
 
@@ -284,21 +275,14 @@ function DemoStartPlay(filename: string): boolean;
 			exit;
 		end;
 
-		DemoCurrentMode := DModePlay;
-		DemoErrorCode := 0;
-		DemoPitTicks := 0;
-		DemoCommandsFetched := 0;
+		DemoSetMode(DModePlay);
 		DemoStartPlay := true;
 
-		repeat
-			if DemoFetchCommand(DCmdGameStart, DFetchAny) then begin end;
-			case DemoCurrentCommand.cmdType of
-				DCmdInput: DemoErrorCode := 3;
-				DCmdRandSeed: RandSeed := DemoCurrentCommand.randSeed;
-				DCmdTickSpeed: TickSpeed := DemoCurrentCommand.tickSpeed;
-				DCmdPitTicks: begin { TODO: Take into account. } end;
-			end;
-		until DemoCurrentCommand.cmdType = DCmdGameStart;
+		if not DemoFetchCommand(cmd, DCmdGameStart, DFetchExpected) then exit;
+
+		RandSeed := cmd.gsRandSeed;
+		TickSpeed := cmd.gsTickSpeed;
+		TickTimeDuration := TickSpeed * 2;
 
 		InputDeltaX := 0;
 		InputDeltaY := 0;
@@ -306,39 +290,69 @@ function DemoStartPlay(filename: string): boolean;
 		InputKeyPressed := #0;
 	end;
 
-procedure DemoStop;
+procedure DemoStop(ignoreErrors: boolean);
+	var
+		cmd: DemoCommand;
 	begin
 		if DemoCurrentMode = DModeRecord then begin
 			if DemoCurrentCommand.count > 0 then
 				DemoAppendCommand(DemoCurrentCommand);
+
+			cmd.cmdType := DCmdGameStop;
+			DemoAppendCommand(cmd);
+
 			DemoFlushRecordBuffer;
+		end;
+
+		if DemoCurrentMode = DModePlay then begin
+			if not ignoreErrors then begin
+				{ TODO: Catch this case better? }
+				if DemoFetchCommand(cmd, DCmdGameStop, DFetchExpected) then begin end;
+			end;
 		end;
 
 		if DemoCurrentMode <> DModeNone then begin
 			Close(DemoFile);
 			DemoCurrentMode := DModeNone;
 		end;
-	end;
+	end;		
+
+{$IFDEF FPC}
+procedure Sti;
+asm sti end;
+
+procedure Cli;
+asm cli end;
+{$ELSE}
+procedure Sti;
+inline($fb);
+
+procedure Cli;
+inline($fa);
+{$ENDIF}
 
 {
   The isGameplaySensitive flag culls dummy cycles from calls whose idle cycles
   do not affect gameplay.
 }
-procedure DemoInputUpdate(isGameplaySensitive: boolean);
+procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean); { Replaces InputUpdate; }
 	var
+		rkey: char;
 		cmd: DemoCommand;
+		tickDiff: longint;
 	label PlayFoundInput;
 	begin
 		if DemoCurrentMode = DModePlay then begin
-			if DemoLastGameplaySensitive <> isGameplaySensitive then begin
-				if isGameplaySensitive then begin
-					if DemoFetchCommand(DCmdPitTicks, DFetchExpected) then begin
-						{ TODO: Take into account. }						
-					end;
+			while KeyPressed do begin
+				rkey := UpCase(readKey);
+				if rkey in [#27, 'Q'] then begin
+					DemoStop(true);
+					InputKeyPressed := rkey;
+					exit;
 				end;
-
-				DemoLastGameplaySensitive := isGameplaySensitive;
 			end;
+
+			Inc(DemoPitTicks, expectedPitCount);
 
 			if (DemoCurrentCommand.cmdType = DCmdInput) then begin
 	PlayFoundInput:
@@ -351,8 +365,12 @@ procedure DemoInputUpdate(isGameplaySensitive: boolean);
 					exit;
 				end;
 			end;
+
+			while DemoFetchCommand(cmd, DCmdPitTickDelta, DFetchExpected) do begin
+				Inc(DemoPitTicks, cmd.PitTicks);
+			end;
 			
-			if DemoFetchCommand(DCmdInput, DFetchExpected) then begin
+			if DemoFetchCommand(DemoCurrentCommand, DCmdInput, DFetchExpected) then begin
 				goto PlayFoundInput;
 			end;
 
@@ -361,15 +379,29 @@ procedure DemoInputUpdate(isGameplaySensitive: boolean);
 
 		InputUpdate;
 		if DemoCurrentMode = DModeRecord then begin
-			if DemoLastGameplaySensitive <> isGameplaySensitive then begin
-				if (isGameplaySensitive) and (DemoPitTicks > 0) then begin
-					cmd.cmdType := DCmdPitTicks;
-					cmd.pitTicks := DemoPitTicks;	
-					DemoAppendCommand(cmd);
-				end;
+			if isGameplaySensitive then begin
+				Cli;
+				tickDiff := (DemoPitTicks - DemoLastPitTicks) - expectedPitCount;
+				DemoLastPitTicks := DemoPitTicks;
+				Sti;
 
-				DemoPitTicks := 0;
-				DemoLastGameplaySensitive := isGameplaySensitive;
+				if tickDiff <> 0 then begin
+					cmd.cmdType := DCmdPitTickDelta;
+					cmd.pitTicks := 32767;
+					while tickDiff > 32767 do begin
+						DemoAppendCommand(cmd);
+						Dec(tickDiff, 32767);
+					end;
+					cmd.pitTicks := -32768;
+					while tickDiff < -32768 do begin
+						DemoAppendCommand(cmd);
+						Inc(tickDiff, 32768);
+					end;
+					cmd.pitTicks := tickDiff;
+					if cmd.pitTicks <> 0 then begin
+						DemoAppendCommand(cmd);
+					end;
+				end;
 			end;
 
 			if (DemoCurrentCommand.deltaX <> InputDeltaX)
@@ -385,7 +417,10 @@ procedure DemoInputUpdate(isGameplaySensitive: boolean);
 				DemoCurrentCommand.keyPressed := InputKeyPressed;
 				DemoCurrentCommand.count := 1;
 			end else begin
-				if (isGameplaySensitive) or (DemoCurrentCommand.count <= 0) then begin
+				if (isGameplaySensitive) or (DemoCurrentCommand.count <= 0)
+				or (InputDeltaX <> 0) or (InputDeltaY <> 0)
+				or (InputShiftPressed) or (InputKeyPressed <> #0)
+				then begin
 					if DemoCurrentCommand.count = 65535 then begin
 						DemoAppendCommand(DemoCurrentCommand);
 						DemoCurrentCommand.count := 1;
@@ -397,20 +432,25 @@ procedure DemoInputUpdate(isGameplaySensitive: boolean);
 		end;
 	end;
 
-procedure DemoReseedUpdate;
+procedure DemoInputReadWaitKey;
+	begin
+		repeat
+			DemoInputUpdate(0, false)
+		until InputKeyPressed <> #0;
+	end;
+
+procedure DemoReseedCurrentTick;
 	var
 		cmd: DemoCommand;
 	begin
 		if DemoCurrentMode = DModePlay then begin
-			if DemoFetchCommand(DCmdRandSeed, DFetchExpected) then begin
-				if RandSeed <> DemoCurrentCommand.randSeed then begin
-					WriteLn(RandSeed);
-					WriteLn(DemoCurrentCommand.RandSeed);
+			if DemoFetchCommand(cmd, DCmdReseedCurrentTick, DFetchExpected) then begin
+				if RandSeed <> cmd.randSeed then begin
 					DemoErrorCode := 4;
 				end;
 			end;
 		end else if DemoCurrentMode = DModeRecord then begin
-			cmd.cmdType := DCmdRandSeed;
+			cmd.cmdType := DCmdReseedCurrentTick;
 			cmd.randSeed := RandSeed;
 			DemoAppendCommand(cmd);
 		end;
@@ -419,25 +459,32 @@ procedure DemoReseedUpdate;
 
 	end;
 
-procedure DemoOnTickSpeedUpdate;
-	var
-		cmd: DemoCommand;
-	begin
-		if DemoCurrentMode = DModePlay then begin
-			if DemoFetchCommand(DCmdTickSpeed, DFetchExpected) then begin
-				TickSpeed := DemoCurrentCommand.tickSpeed;
-			end;
-		end else if DemoCurrentMode = DModeRecord then begin
-			cmd.cmdType := DCmdTickSpeed;
-			cmd.tickSpeed := TickSpeed;
-			DemoAppendCommand(cmd);
-		end;
-	end;
-
 procedure DemoOnPitTick;
 	begin
-		if not DemoLastGameplaySensitive then
+		if DemoCurrentMode <> DModePlay then
 			Inc(DemoPitTicks);
+		Inc(DemoRealPitTicks);
+	end;
+
+function DemoSoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
+	var
+		hSecsDiff: word;
+		hSecsTotal: integer;
+	begin
+		if DemoCurrentMode <> DModeNone then begin
+			if (DemoCurrentMode = DModePlay) and (DemoFastForward) then
+				hSecsTotal := (DemoPitTicks * 11) shr 1
+			else
+				hSecsTotal := (DemoRealPitTicks * 11) shr 1;
+			hSecsDiff := hSecsTotal - counter;
+
+			if hSecsDiff >= duration then begin
+				DemoSoundHasTimeElapsed := true;
+				counter := hSecsTotal;
+			end else begin
+				DemoSoundHasTimeElapsed := false;
+			end;
+		end else DemoSoundHasTimeElapsed := SoundHasTimeElapsed(counter, duration);
 	end;
 
 begin

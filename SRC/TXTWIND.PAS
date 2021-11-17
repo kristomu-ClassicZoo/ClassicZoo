@@ -282,7 +282,7 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 			Hyperlink := '';
 			TextWindowDraw(state, false, viewingFile);
 			repeat
-				DemoInputUpdate(false);
+				DemoInputUpdate(0, false);
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
 					newLinePos := newLinePos + InputDeltaY;
@@ -415,7 +415,7 @@ procedure TextWindowEdit(var state: TTextWindowState);
 						TextWindowY + (TextWindowHeight div 2) + 1,
 						$70, Lines[LinePos]^[charPos]);
 				end;
-				InputReadWaitKey;
+				DemoInputReadWaitKey;
 				newLinePos := LinePos;
 				case InputKeyPressed of
 					KEY_UP: newLinePos := LinePos - 1;

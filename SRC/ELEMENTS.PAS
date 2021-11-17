@@ -1481,7 +1481,7 @@ procedure ElementPlayerTick(statId: integer);
 			end;
 
 			if (Board.Info.TimeLimitSec > 0) and (World.Info.Health > 0) then
-				if SoundHasTimeElapsed(World.Info.BoardTimeHsec, 100) then begin
+				if DemoSoundHasTimeElapsed(World.Info.BoardTimeHsec, 100) then begin
 					World.Info.BoardTimeSec := World.Info.BoardTimeSec + 1;
 
 					if (Board.Info.TimeLimitSec - 10) = World.Info.BoardTimeSec then begin
