@@ -5,6 +5,13 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
+$< Super ClassicZoo 4.03 >
+
+/ Fixed scrolling not being accurate
+  relative to Super ZZT 2.0.
+/ Fixed overly large playfield size and
+  drawing bugs in Hercules mode.
+
 $< Super ClassicZoo 4.02 >
 
 + Added options menu, including:

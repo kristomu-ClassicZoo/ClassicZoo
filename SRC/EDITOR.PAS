@@ -151,9 +151,6 @@ function EditorShiftBoard(bidFrom, bidTo: integer; mode: TBoardShiftMode): boole
 		end;
 	end;
 
-procedure SidebarClearLine(y: integer); forward;
-procedure SidebarClear; forward;
-
 procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: string; var result: byte);
 	var
 		i, j, choiceCount: integer;
@@ -261,19 +258,6 @@ function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
 			defaultReturn := false;
 
 		SidebarPromptYesNo := defaultReturn;
-	end;
-
-procedure SidebarClearLine(y: integer);
-	begin
-		VideoWriteText(60, y, $11, #179'                   ');
-	end;
-
-procedure SidebarClear;
-	var
-		i: integer;
-	begin
-		for i := 3 to VideoRows - 1 do
-			SidebarClearLine(i);
 	end;
 
 procedure PopupPromptString(question: string; var buffer: TSmallString);

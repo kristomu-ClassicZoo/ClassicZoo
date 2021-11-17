@@ -161,19 +161,22 @@ function GameVideoInstall(videoMode, mode: integer): boolean;
 			BOARD_DRAW_X := 2;
 			BOARD_DRAW_Y := 2;
 			BOARD_DRAW_WIDTH := 56;
-		end else if mode = VIEW_EDITOR then begin
-			BOARD_DRAW_X := 14;
-			BOARD_DRAW_Y := 2;
-			BOARD_DRAW_WIDTH := 24;
+			BOARD_DRAW_HEIGHT := VideoRows - 5;
 		end else begin
 {$ENDIF}
-			BOARD_DRAW_X := 14;
-			BOARD_DRAW_Y := 2;
-			BOARD_DRAW_WIDTH := VideoColumns - 16;
+			BOARD_DRAW_WIDTH := 24;
+			BOARD_DRAW_HEIGHT := 20;
 {$IFDEF EDITOR}
+			if mode = VIEW_EDITOR then begin
+				BOARD_DRAW_X := ((VideoColumns - 20 - BOARD_DRAW_WIDTH) div 2);
+			end else begin
+{$ENDIF}
+				BOARD_DRAW_X := 12 + ((VideoColumns - 12 - BOARD_DRAW_WIDTH) div 2);
+{$IFDEF EDITOR}
+			end;
+			BOARD_DRAW_Y := (VideoRows - BOARD_DRAW_HEIGHT) div 2;
 		end;
 {$ENDIF}
-		BOARD_DRAW_HEIGHT := VideoRows - 5;
 		BOARD_DRAW_OX_MAX := BOARD_WIDTH - BOARD_DRAW_WIDTH + 1;
 		BOARD_DRAW_OY_MAX := BOARD_HEIGHT - BOARD_DRAW_HEIGHT + 1;
 
@@ -204,7 +207,7 @@ function LFSRUpdateSeed(var seed: word; var tx, ty: byte): boolean;
 
 procedure SidebarClearLine(y: integer);
 	begin
-		VideoWriteText(60, y, $11, #179'                   ');
+		VideoWriteText(60, y, $11, '                    ');
 	end;
 
 procedure SidebarClear;
@@ -1108,11 +1111,10 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 		iUnder: TTile;
 		oldX, oldY: integer;
 		oldBgColor: integer;
-		redrawRequired: boolean;
 		i: integer;
 		scrollOffset: boolean;
-		deltaX, deltaY, diffX, diffY, vCenterX, vCenterY: integer;
-		smallScroll, anyScroll: boolean;
+		recalcRequired: boolean;
+		deltaX, deltaY, oldOX, oldOY: integer;
 	begin
 		with Board.Stats[statId] do begin
 			scrollOffset := true;
@@ -1136,34 +1138,46 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			BoardDrawTile(X, Y);
 
 			if (statId = 0) and scrollOffset then begin
-				redrawRequired := false;
-				smallScroll := false;
-				anyScroll := false;
+				recalcRequired := false;
+				oldOX := Board.Info.DrawXOffset;
+				oldOY := Board.Info.DrawYOffset;
 
-				deltaX := newX - X;
-				deltaY := newY - Y;
-				diffX := newX - Board.Info.DrawXOffset;
-				diffY := newY - Board.Info.DrawYOffset;
-				vCenterX := BOARD_DRAW_WIDTH shr 1;
-				vCenterY := BOARD_DRAW_HEIGHT shr 1;
-
-				if (diffX <= (vCenterX - 4))
-					or (diffX >= (vCenterX + 2))
-					or (diffY <= (vCenterY - 3))
-					or (diffY >= (vCenterY + 4))
-				then begin
-					anyScroll := true;
+				if ((newX - Board.Info.DrawXOffset) < ((BOARD_DRAW_WIDTH shr 1) - 3)) then begin
+					if (X - 1) = newX then begin
+						Dec(Board.Info.DrawXOffset);
+					end else begin
+						recalcRequired := true;
+					end;
 				end;
 
-				diffX := Board.Info.DrawXOffset;
-				diffY := Board.Info.DrawYOffset;
 
-				if smallScroll then begin
-					Inc(Board.Info.DrawXOffset, deltaX);
-					Inc(Board.Info.DrawYOffset, deltaY);
-				end else begin
-					Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH shr 1);
-					Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT shr 1);
+				if ((newX - Board.Info.DrawXOffset) >= ((BOARD_DRAW_WIDTH shr 1) + 2)) then begin
+					if (X + 1) = newX then begin
+						Inc(Board.Info.DrawXOffset);
+					end else begin
+						recalcRequired := true;
+					end;
+				end;
+
+				if ((newY - Board.Info.DrawYOffset) < ((BOARD_DRAW_HEIGHT shr 1) - 2)) then begin
+					if (Y - 1) = newY then begin
+						Dec(Board.Info.DrawYOffset);
+					end else begin
+						recalcRequired := true;
+					end;
+				end;
+
+				if ((newY - Board.Info.DrawYOffset) >= ((BOARD_DRAW_HEIGHT shr 1) + 4)) then begin
+					if (Y + 1) = newY then begin
+						Inc(Board.Info.DrawYOffset);
+					end else begin
+						recalcRequired := true;
+					end;
+				end;
+
+				if recalcRequired then begin
+					Board.Info.DrawXOffset := newX - (BOARD_DRAW_WIDTH div 2);
+					Board.Info.DrawYOffset := newY - (BOARD_DRAW_HEIGHT div 2);
 				end;
 
 				if Board.Info.DrawXOffset < BOARD_DRAW_OX_MIN then
@@ -1175,10 +1189,9 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 				else if Board.Info.DrawYOffset >= BOARD_DRAW_OY_MAX then
 					Board.Info.DrawYOffset := BOARD_DRAW_OY_MAX;
 
-				deltaX := diffX - Board.Info.DrawXOffset;
-				deltaY := diffY - Board.Info.DrawYOffset;
-
-				if (deltaX <> 0) or (deltaY <> 0) then begin
+				if (oldOX <> Board.Info.DrawXOffset) or (oldOY <> Board.Info.DrawYOffset) then begin
+					deltaX := oldOX - Board.Info.DrawXOffset;
+					deltaY := oldOY - Board.Info.DrawYOffset;
 					if ((Abs(deltaX) = 1) and (deltaY = 0)) or ((Abs(deltaY) = 1) and (deltaX = 0)) then begin
 						VideoScroll(
 							BOARD_DRAW_X, BOARD_DRAW_Y,
@@ -1199,12 +1212,8 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 								BoardDrawTile(i, Board.Info.DrawYOffset + (BOARD_DRAW_HEIGHT - 1));
 						end;
 					end else begin
-						redrawRequired := true;
+						TransitionDrawToBoard;
 					end;
-				end;
-
-				if redrawRequired then begin
-					TransitionDrawToBoard;
 				end;
 			end;
 

@@ -240,12 +240,9 @@ procedure VideoWriteTextFast(x, y, color: byte; text: TVideoLine);
 
 function ColorToBW(color: byte): byte;
 	begin
-		{ FIX: Special handling of blinking solids }
-		if (color and $80) = $80 then
-			if ((color shr 4) and $07) = (color and $0F) then
-				color := (color and $7F);
-
-		if (color and $08) = $08 then begin
+		if ((color shr 4) and $07) = (color and $0F) then
+			color := $FF { Special color for solids }
+		else if (color and $08) = $08 then begin
 			if (color and $F0) = 0 then
 				color := $0F
 			else
@@ -262,12 +259,24 @@ function ColorToBW(color: byte): byte;
 
 procedure VideoWriteTextCGABW(x, y, color: byte; text: TVideoLine);
 	begin
+		color := ColorToBW(color);
+		if (color = $FF) and (Length(text) = 1) then begin
+			text[1] := #219;
+			color := $07;
+		end;
+
 		VideoWriteTextCGA(x, y, ColorToBW(color), text);
 	end;
 
 procedure VideoWriteTextFastBW(x, y, color: byte; text: TVideoLine);
 	begin
-		VideoWriteTextFast(x, y, ColorToBW(color), text);
+		color := ColorToBW(color);
+		if (color = $FF) and (Length(text) = 1) then begin
+			text[1] := #219;
+			color := $07;
+		end;
+
+		VideoWriteTextFast(x, y, color, text);
 	end;
 
 {$F-}
@@ -489,7 +498,7 @@ function VideoInstall(mode, borderColor: integer): boolean;
 			Intr($10, regs); }
 		end;
 
-		FillChar(Ptr(VideoTextSegment, $0000)^, VideoColumns * VideoRows * 2, borderColor * $11);
+		VideoClear(0);
 
 		if not VideoCursorVisible then
 			VideoHideCursor;
@@ -574,11 +583,13 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 
 procedure VideoClear(bgColor: integer);
 	begin
-		if VideoMonochrome then
-			if bgColor <> 0 then
-				bgColor := 7;
-		TextBackground(bgColor);
-		FillChar(Ptr(VideoTextSegment, $0000)^, VideoColumns * VideoRows * 2, bgColor * $11);
+		if VideoMonochrome then begin
+			TextBackground(0);
+			ClrScr;
+		end else begin
+			TextBackground(bgColor);
+			FillChar(Ptr(VideoTextSegment, $0000)^, VideoColumns * VideoRows * 2, bgColor * $11);
+		end;
 	end;
 
 procedure VideoInvert(x1, y1, x2, y2: integer);
