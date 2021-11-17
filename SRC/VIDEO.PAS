@@ -498,7 +498,7 @@ function VideoInstall(mode, borderColor: integer): boolean;
 			Intr($10, regs); }
 		end;
 
-		VideoClear(0);
+		VideoClear(borderColor);
 
 		if not VideoCursorVisible then
 			VideoHideCursor;
