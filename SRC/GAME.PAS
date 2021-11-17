@@ -1774,11 +1774,19 @@ procedure GameTitleLoop;
 						boardChanged := true;
 					end;
 					'D': begin
-						if GameDemoStartRecord then goto PlayStart;
+						if GameDemoStartRecord then begin
+							{ Force file reload. }
+							World.Info.IsSave := true;
+							goto PlayStart;
+						end;
 					end;
 					'L': begin
 						DemoFastForward := (InputKeyPressed = 'L');
-						if GameDemoStartPlay then goto PlayStart;
+						if GameDemoStartPlay then begin
+							{ Force file reload. }
+							World.Info.IsSave := true;
+							goto PlayStart;
+						end;
 					end;
 					'S': begin
 						SidebarPromptSlider(true, 66, 21, 'Game speed:;FS', TickSpeed);
