@@ -1686,6 +1686,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 					end else if DemoIsComplete then begin
 						DemoStop(false);
 						GameDemoShowSuccess;
+						World.Info.Score := 0; { prevent setting high score from demo }
 						GamePlayExitRequested := true;
 					end;						
 				end;
