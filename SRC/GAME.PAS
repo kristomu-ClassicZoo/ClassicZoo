@@ -1155,6 +1155,14 @@ function Difference(a, b: integer): integer;
 			Difference := b - a;
 	end;
 
+procedure GameDemoUpdateSidebar;
+	var
+		numStr: string[8];
+	begin
+		Str(DemoCommandsFetched, numStr);
+		VideoWriteText(72, 13, $1E, numStr + '  ');
+	end;
+
 procedure GameUpdateSidebar;
 	var
 		numStr: string[8];
@@ -1608,6 +1616,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 				VideoWriteText(64, 5, $1F, 'Pausing...');
 				DemoInputUpdate(0, false);
+				if DemoIsPlaying then GameDemoUpdateSidebar;
 
 				if InputKeyPressed = KEY_ESCAPE then
 					GamePromptEndPlay;
@@ -1655,7 +1664,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 			if (CurrentStatTicked > Board.StatCount) and not GamePlayExitRequested then begin
 				{ all stats ticked }
-				if DemoSoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
+				{ TODO: Having DemoFastForward here is a bit of a hack. }
+				if DemoFastForward or DemoSoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
 					{ next cycle }
 					CurrentTick := CurrentTick + 1;
 					if CurrentTick > 420 then
@@ -1663,6 +1673,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 					CurrentStatTicked := 0;
 
 					DemoInputUpdate(((TickTimeDuration shl 1) + 10) div 11, true);
+					if DemoIsPlaying then GameDemoUpdateSidebar;
 
 					{ This is here, as to not break ElementMonitorTick. }
 					if GameStateElement = E_MONITOR then begin
@@ -1741,6 +1752,7 @@ procedure GameTitleLoop;
 			repeat
 				GameStateElement := E_MONITOR;
 				startPlay := false;
+				DemoFastForward := false;
 				GamePaused := false;
 				GamePlayLoop(boardChanged);
 				boardChanged := false;

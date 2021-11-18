@@ -367,7 +367,7 @@ procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean);
 			end;
 
 			while DemoFetchCommand(cmd, DCmdPitTickDelta, DFetchExpected) do begin
-				Inc(DemoPitTicks, cmd.PitTicks);
+				Inc(DemoPitTicks, cmd.pitTicks);
 			end;
 			
 			if DemoFetchCommand(DemoCurrentCommand, DCmdInput, DFetchExpected) then begin
