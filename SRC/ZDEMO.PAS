@@ -33,13 +33,19 @@ interface
 	const
 		DEMO_MAX_COMMAND_SIZE = 7; { Shouldn't be here }
 	var
+		{ Configuration options }
+		DemoFastForward: boolean;
+		DemoStopOnEndgame: boolean;
+		{ Feedback }
 		DemoErrorCode: byte;
 		DemoCommandsFetched: word;
-		DemoFastForward: boolean;
 		DemoPitTicks: longint;
+		DemoPitTicksFirst: longint;
+		DemoPitTicksLast: longint;
 	{ Library }
 	function DemoStartRecord(filename: string): boolean;
 	function DemoStartPlay(filename: string): boolean;
+	function DemoStartLogging(filename: string): boolean;
 	procedure DemoStop(ignoreErrors: boolean);
 	function DemoIsComplete: boolean;
 	function DemoIsPlaying: boolean;
@@ -52,7 +58,7 @@ interface
 	function DemoSoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 
 implementation
-uses Crt, GameVars, Input, Sounds;
+uses Dos, Crt, GameVars, Input, Sounds;
 
 type
 	DemoMode = (
@@ -126,6 +132,40 @@ var
 	DemoFile: file;
 	DemoLastPitTicks: longint;
 	DemoRealPitTicks: longint;
+	DemoInEndgame: boolean;
+	DemoLogFile: text;
+	DemoLogActive: boolean;
+	DemoLogBoard: integer;
+
+procedure DemoLogEmit(code: string; ticks: longint);
+	var
+		regs: Registers;
+	begin
+		if not DemoLogActive then exit;
+		Write(DemoLogFile, ticks);
+		Write(DemoLogFile, ' ' + code + ' ');
+		Write(DemoLogFile, World.Info.CurrentBoard);
+		Write(DemoLogFile, ' ');
+		Write(DemoLogFile, Board.Name);
+		WriteLn(DemoLogFile);
+
+		{ Seeking on DOS is a nightmare. Especially if you add in emulators. }
+
+		{ Turbo Pascal }
+		Flush(DemoLogFile);
+
+		{ DOS 3.3+ - FFLUSH }
+		regs.AX := $6800;
+		regs.BX := TextRec(DemoLogFile).Handle;
+		Intr($21, regs);
+
+		{ DOSBox - forced Seek() }
+		regs.AX := $4201;
+		regs.BX := TextRec(DemoLogFile).Handle;
+		regs.CX := 0;
+		regs.DX := 0;
+		Intr($21, regs);
+	end;
 
 function DemoIsPlaying: boolean;
 	begin
@@ -216,6 +256,10 @@ procedure DemoSetMode(mode: DemoMode);
 		DemoErrorCode := 0;
 		DemoLastPitTicks := 0;
 		DemoPitTicks := 0;
+		DemoPitTicksFirst := -1;
+		DemoPitTicksLast := 0;
+		DemoInEndgame := false;
+		DemoLogActive := false;
 		DemoRealPitTicks := 0;
 		DemoCommandsFetched := 0;
 		FillChar(DemoCurrentCommand, SizeOf(DemoCurrentCommand), 0);
@@ -290,6 +334,23 @@ function DemoStartPlay(filename: string): boolean;
 		InputKeyPressed := #0;
 	end;
 
+function DemoStartLogging(filename: string): boolean;
+	begin
+		DemoStartLogging := false;
+		if DemoCurrentMode = DModeNone then exit;
+
+		Assign(DemoLogFile, filename);
+		Rewrite(DemoLogFile);
+		if IOResult <> 0 then begin
+			Close(DemoLogFile);
+			exit;
+		end;
+
+		DemoLogActive := true;
+		DemoLogBoard := -1;
+		DemoStartLogging := true;
+	end;
+
 procedure DemoStop(ignoreErrors: boolean);
 	var
 		cmd: DemoCommand;
@@ -313,6 +374,11 @@ procedure DemoStop(ignoreErrors: boolean);
 
 		if DemoCurrentMode <> DModeNone then begin
 			Close(DemoFile);
+			if DemoLogActive then begin
+				DemoLogEmit('STOP', DemoPitTicksLast);
+				Close(DemoLogFile);
+				DemoLogActive := false;
+			end;
 			DemoCurrentMode := DModeNone;
 		end;
 	end;		
@@ -331,6 +397,23 @@ procedure Cli;
 inline($fa);
 {$ENDIF}
 
+procedure DemoPlaySyncPit;
+	begin
+		if not DemoFastForward then begin
+			Cli;
+			if DemoPitTicks < DemoRealPitTicks then
+				DemoRealPitTicks := DemoPitTicks;
+			Sti;
+			while DemoPitTicks > DemoRealPitTicks do begin end;
+		end;
+	end;
+
+function DemoInputNonZero: boolean;
+	begin
+		DemoInputNonZero := (InputDeltaX <> 0) or (InputDeltaY <> 0)
+			or (InputShiftPressed) or (InputKeyPressed <> #0);
+	end;
+
 {
   The isGameplaySensitive flag culls dummy cycles from calls whose idle cycles
   do not affect gameplay.
@@ -341,6 +424,7 @@ procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean);
 		cmd: DemoCommand;
 		tickDiff: longint;
 	label PlayFoundInput;
+	label AfterInput;
 	begin
 		if DemoCurrentMode = DModePlay then begin
 			while KeyPressed do begin
@@ -362,22 +446,47 @@ procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean);
 					InputShiftPressed := DemoCurrentCommand.shiftPressed;
 					InputKeyPressed := DemoCurrentCommand.keyPressed;
 					Dec(DemoCurrentCommand.count);
-					exit;
+					goto AfterInput;
 				end;
 			end;
 
 			while DemoFetchCommand(cmd, DCmdPitTickDelta, DFetchExpected) do begin
 				Inc(DemoPitTicks, cmd.pitTicks);
+				DemoPlaySyncPit;
 			end;
-			
+
 			if DemoFetchCommand(DemoCurrentCommand, DCmdInput, DFetchExpected) then begin
 				goto PlayFoundInput;
 			end;
 
-			exit;
+			goto AfterInput;
 		end;
 
 		InputUpdate;
+
+	AfterInput:
+		if (DemoCurrentMode = DModePlay) or (DemoCurrentMode = DModeRecord) then begin
+			if DemoInEndgame then begin
+				if World.Info.Health > 0 then
+					DemoInEndgame := false;
+			end;
+
+			if (not DemoInEndgame) and DemoInputNonZero then begin
+				if DemoPitTicksFirst < 0 then begin
+					DemoPitTicksFirst := DemoPitTicks;
+					DemoLogEmit('START', DemoPitTicksFirst);
+					DemoLogBoard := World.Info.CurrentBoard;
+				end;
+				DemoPitTicksLast := DemoPitTicks;
+				DemoInEndgame := World.Info.Health <= 0;
+			end;
+
+			if (DemoLogBoard >= 0) and (DemoLogBoard <> World.Info.CurrentBoard) then begin
+				DemoLogEmit('SPLIT', DemoPitTicks);
+				DemoLogBoard := World.Info.CurrentBoard;
+			end;
+		end;
+
 		if DemoCurrentMode = DModeRecord then begin
 			if isGameplaySensitive then begin
 				Cli;
@@ -404,6 +513,13 @@ procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean);
 				end;
 			end;
 
+			if DemoStopOnEndgame then begin
+				if World.Info.Health < 0 then begin
+					DemoStop(false);
+					exit;
+				end;
+			end;
+
 			if (DemoCurrentCommand.deltaX <> InputDeltaX)
 			or (DemoCurrentCommand.deltaY <> InputDeltaY)
 			or (DemoCurrentCommand.shiftPressed <> InputShiftPressed)
@@ -418,8 +534,7 @@ procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean);
 				DemoCurrentCommand.count := 1;
 			end else begin
 				if (isGameplaySensitive) or (DemoCurrentCommand.count <= 0)
-				or (InputDeltaX <> 0) or (InputDeltaY <> 0)
-				or (InputShiftPressed) or (InputKeyPressed <> #0)
+				or (DemoInputNonZero)
 				then begin
 					if DemoCurrentCommand.count = 65535 then begin
 						DemoAppendCommand(DemoCurrentCommand);

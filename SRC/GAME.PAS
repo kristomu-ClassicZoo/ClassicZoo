@@ -706,20 +706,16 @@ procedure GameDemoShowError;
 		DemoErrorCode := 0;
 	end;
 
-procedure GameDemoShowSuccess;
+procedure TimeToString(timeHs: longint; var fullStr: TString50);
 	var
-		timeHs: longint;
 		i: integer;
 		numStr: TString50;
-		fullStr: TString50;
-		textWindow: TTextWindowState;
 	begin
-		textWindow.Title := 'Demo Playback Complete';
-		TextWindowInitState(textWindow);
-
-		{ Calculate time. }
-		{ 1 PIT tick = 55ms }
-		timeHs := (DemoPitTicks * 11) div 2;
+		if timeHs < 0 then begin
+			Str(i, fullStr);
+			fullStr := fullStr + ' ???';
+			exit;
+		end;
 
 		i := timeHs mod 100;
 		Str(i:2, numStr);
@@ -735,8 +731,28 @@ procedure GameDemoShowSuccess;
 			Str(i, numStr);
 			fullStr := numStr + ':' + fullStr;
 		end;
+	end;
 
+procedure GameDemoShowSuccess;
+	var
+		timeHs: longint;
+		i: integer;
+		numStr: TString50;
+		fullStr: TString50;
+		textWindow: TTextWindowState;
+	begin
+		textWindow.Title := 'Demo Playback Complete';
+		TextWindowInitState(textWindow);
+
+		{ Calculate time. }
+		{ 1 PIT tick = 55ms }
+		timeHs := (DemoPitTicks * 11) div 2;
+		TimeToString(timeHs, fullStr);
 		TextWindowAppend(textWindow, 'Time: ' + fullStr);
+		{ Calculate input time. }
+		timeHs := ((DemoPitTicksLast - DemoPitTicksFirst) * 11) div 2;
+		TimeToString(timeHs, fullStr);
+		TextWindowAppend(textWindow, 'Input time: ' + fullStr);
 
 		TextWindowDrawOpen(textWindow);
 		TextWindowSelect(textWindow, false, false);
@@ -1719,7 +1735,14 @@ function GameDemoStartRecord: boolean;
 		filename := World.Info.Name;
 		SidebarPromptString('Demo name?', '.ZZD', filename, PROMPT_ALPHANUM);
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(filename) <> 0) then begin
-			GameDemoStartRecord := DemoStartRecord(filename + '.ZZD');
+			if DemoStartRecord(filename + '.ZZD') then begin
+				if DemoStartLogging(filename + '.ZZL') then begin
+					GameDemoStartRecord := true;
+				end else begin
+					DemoStop(true);
+					GameDemoStartRecord := false;
+				end;
+			end;
 		end;
 	end;
 
@@ -1731,9 +1754,16 @@ function GameDemoStartPlay: boolean;
 		filename := World.Info.Name;
 		SidebarPromptString('Demo name?', '.ZZD', filename, PROMPT_ALPHANUM);
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(filename) <> 0) then begin
-			GameDemoStartPlay := DemoStartPlay(filename + '.ZZD');
-			if DemoFastForward then begin
-				SoundEnabled := false;
+			if DemoStartPlay(filename + '.ZZD') then begin
+				if DemoStartLogging(filename + '.ZZL') then begin
+					GameDemoStartPlay := true;
+					if DemoFastForward then begin
+						SoundEnabled := false;
+					end;
+				end else begin
+					DemoStop(true);
+					GameDemoStartPlay := false;
+				end;
 			end;
 		end;
 	end;
@@ -1754,6 +1784,7 @@ procedure GameTitleLoop;
 				GameStateElement := E_MONITOR;
 				startPlay := false;
 				DemoFastForward := false;
+				DemoStopOnEndgame := false;
 				GamePaused := false;
 				GamePlayLoop(boardChanged);
 				boardChanged := false;
