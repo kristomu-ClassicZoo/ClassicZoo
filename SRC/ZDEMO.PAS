@@ -42,6 +42,7 @@ interface
 		DemoPitTicks: longint;
 		DemoPitTicksFirst: longint;
 		DemoPitTicksLast: longint;
+		DemoStartSeed: longint;
 	{ Library }
 	procedure DemoFlushFile(var f: text);
 	function DemoStartRecord(filename: string): boolean;
@@ -329,6 +330,7 @@ function DemoStartPlay(filename: string): boolean;
 
 		if not DemoFetchCommand(cmd, DCmdGameStart, DFetchExpected) then exit;
 
+		DemoStartSeed := cmd.gsRandSeed;
 		RandSeed := cmd.gsRandSeed;
 		TickSpeed := cmd.gsTickSpeed;
 		TickTimeDuration := TickSpeed * 2;

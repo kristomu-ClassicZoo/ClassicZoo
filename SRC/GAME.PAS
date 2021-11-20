@@ -770,12 +770,19 @@ procedure GameDemoShowSuccess;
 		{ Calculate run time. }
 		{ 1 PIT tick = 55ms }
 		timeHs := ((DemoPitTicksLast - DemoPitTicksFirst) * 11) div 2;
-		TimeToString(timeHs, fullStr);
-		TextWindowAppend(textWindow, 'Run time: ' + fullStr);
+		TimeToString(timeHs, numStr);
+		Str(DemoPitTicksLast - DemoPitTicksFirst, fullStr);
+		TextWindowAppend(textWindow, 'Run time: ' + numStr + ' (' + fullStr + ' ticks)');
 		{ Calculate recording time. }
 		timeHs := (DemoPitTicks * 11) div 2;
-		TimeToString(timeHs, fullStr);
-		TextWindowAppend(textWindow, 'Recording time: ' + fullStr);
+		TimeToString(timeHs, numStr);
+		Str(DemoPitTicks, fullStr);
+		TextWindowAppend(textWindow, 'Recording time: ' + numStr + ' (' + fullStr + ' ticks)');
+		{ Seed, etc. }
+		Str(DemoStartSeed, numStr);
+		TextWindowAppend(textWindow, 'Seed: ' + numStr);
+		Str(TickSpeed, numStr);
+		TextWindowAppend(textWindow, 'Tick speed: ' + numStr);
 
 {$IFDEF ZDEMOVAL}
 		Assign(demoValFile, 'RESULT.ZZV');
