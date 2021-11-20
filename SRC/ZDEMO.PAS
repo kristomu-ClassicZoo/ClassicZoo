@@ -36,6 +36,7 @@ interface
 		{ Configuration options }
 		DemoFastForward: boolean;
 		DemoStopOnEndgame: boolean;
+		DemoEngineName: string[30];
 		{ Feedback }
 		DemoErrorCode: byte;
 		DemoCommandsFetched: word;
@@ -87,6 +88,7 @@ type
 		Version: word;
 		Name: string[20];
 		Flags: byte;
+		EngineName: string[30];
 	end;
 	DemoCommand = record
 		case cmdType: DemoCommandType of
@@ -110,7 +112,7 @@ type
 
 const
 	DEMO_MAGIC = $D327;
-	DEMO_VERSION = $0001;
+	DEMO_VERSION = $0002;
 	DEMO_BUFFER_SIZE = 512;
 	DEMO_COMMAND_OPTIONAL = $01;
 	DEMO_COMMAND_VARLEN = $80;
@@ -285,6 +287,7 @@ function DemoStartRecord(filename: string): boolean;
 		hdr.Version := DEMO_VERSION;
 		hdr.Name := World.Info.Name;
 		hdr.Flags := 0;
+		hdr.EngineName := DemoEngineName;
 
 		Assign(DemoFile, filename);
 		Rewrite(DemoFile, 1);
@@ -322,11 +325,22 @@ function DemoStartPlay(filename: string): boolean;
 			exit;
 		end;
 
-		BlockRead(DemoFile, hdr, SizeOf(DemoHeader));
-		if (IOResult <> 0) or (hdr.Magic <> DEMO_MAGIC) or (hdr.Version <> DEMO_VERSION) then begin
+		BlockRead(DemoFile, hdr, 4);
+		if (IOResult <> 0) or (hdr.Magic <> DEMO_MAGIC) then begin
 			Close(DemoFile);
 			exit;
 		end;
+
+		if hdr.Version = $0001 then begin
+			BlockRead(DemoFile, hdr.Name, 22);
+			hdr.EngineName[0] := #0;
+		end else if hdr.Version = DEMO_VERSION then begin
+			BlockRead(DemoFile, hdr.Name, SizeOf(DemoHeader) - 4);
+		end else begin
+			Close(DemoFile);
+			exit;
+		end;
+
 		DemoFileSize := FileSize(DemoFile);
 
 		DemoSetMode(DModePlay);
@@ -501,7 +515,7 @@ procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean);
 		end;
 
 		if DemoCurrentMode = DModeRecord then begin
-			if isGameplaySensitive then begin
+			if isGameplaySensitive or DemoInputNonZero then begin
 				Cli;
 				tickDiff := (DemoPitTicks - DemoLastPitTicks) - expectedPitCount;
 				DemoLastPitTicks := DemoPitTicks;
@@ -617,6 +631,7 @@ function DemoSoundHasTimeElapsed(var counter: integer; duration: integer): boole
 
 begin
 	DemoCurrentMode := DModeNone;
+	DemoEngineName[0] := #0;
 	DemoErrorCode := 0;
 	DemoFastForward := false;
 end.

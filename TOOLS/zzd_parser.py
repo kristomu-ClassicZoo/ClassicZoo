@@ -24,37 +24,49 @@ import os, sys
 
 f = open(sys.argv[1], 'rb')
 hdr_magic, hdr_version = unpack('<HH', f.read(4))
-extra_ticks = 0
+entry_pos = 0
+
+hdr_name = ''
+hdr_engine_name = ''
+hdr_flags = 0
 
 if hdr_magic != 0xD327:
 	print("Invalid magic!")
-elif hdr_version != 0x0001:
-	print("Invalid version!")
+elif hdr_version == 0x0001:
+	hdr_name, hdr_flags = unpack('<21pB', f.read(22))
+	hdr_name = hdr_name.decode('cp437')
+elif hdr_version == 0x0002:
+	hdr_name, hdr_flags, hdr_engine_name = unpack('<21pB31p', f.read(53))
+	hdr_name = hdr_name.decode('cp437')
+	hdr_engine_name = hdr_engine_name.decode('cp437')
 else:
-	f.seek(0, os.SEEK_END)
-	f_end = f.tell()
-	f.seek(26)
-	while f.tell() != f_end:
-		fpos = f.tell()
-		cmd_type = unpack('<B', f.read(1))[0]
-		if cmd_type == 0:
-			count, delta_x, deltaY, shift_pressed, key_pressed = unpack('<hbbBB', f.read(6))
-			print(f"- [{fpos}] Input: {count} x {delta_x},{deltaY}; shift={shift_pressed}, key={key_pressed}")
-		elif cmd_type == 1:
-			tickSpeed = unpack('<h', f.read(2))[0]
-			print(f"- [{fpos}] Tick speed: {tickSpeed}")
-		elif cmd_type == 2:
-			rand_seed = unpack('<I', f.read(4))[0]
-			print(f"- [{fpos}] Random seed: {rand_seed}")
-		elif cmd_type == 3:
-			print(f"- [{fpos}] Game start")
-		elif cmd_type == 4:
-			pit_ticks = unpack('<H', f.read(2))[0]
-			print(f"- [{fpos}] PIT ticks +{pit_ticks}")
-			extra_ticks += pit_ticks
-		else:
-			print(f"Unknown command type {cmd_type}!")
+	print("Invalid version!")
+
+print(f"ZZD file v{hdr_version}, for world '{hdr_name}', under engine '{hdr_engine_name}', flags = {hdr_flags}")
+
+f_data_start = f.tell()
+f.seek(0, os.SEEK_END)
+f_end = f.tell()
+f.seek(f_data_start)
+while f.tell() != f_end:
+	f_pos = f.tell()
+	cmdType = unpack('<B', f.read(1))[0]
+	if cmdType == 0:
+		count, deltaX, deltaY, shiftPressed, keyPressed = unpack('<hbbBB', f.read(6))
+		print(f"[{entry_pos}:{f_pos}] Input: {count} x {deltaX},{deltaY}; shift={shiftPressed}, key={keyPressed}")
+	elif cmdType == 1:
+		randSeed = unpack('<I', f.read(4))[0]
+		print(f"[{entry_pos}:{f_pos}] Reseed current tick: {randSeed}")
+	elif cmdType == 2:
+		randSeed, tickSpeed = unpack('<Ih', f.read(6))
+		print(f"[{entry_pos}:{f_pos}] Game start: TickSpeed={tickSpeed}, RandSeed={randSeed}")
+	elif cmdType == 3:
+		print(f"[{entry_pos}:{f_pos}] Game stop")
+	elif cmdType == 4:
+		pitTicks = unpack('<h', f.read(2))[0]
+		print(f"[{entry_pos}:{f_pos}] PIT tick delta: {pitTicks}")
+	else:
+		print(f"[{entry_pos}:{f_pos}] Unknown command type {cmdType}!")
+	entry_pos += 1
 
 f.close()
-
-print(f"Sum of extra PIT ticks = {extra_ticks}")

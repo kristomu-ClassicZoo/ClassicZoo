@@ -1,1 +1,2 @@
 -o zzt.zip -p build.properties
+-d ZDEMOVAL -e ZDEMOVAL.EXE -o zzt.zip -p build.properties
