@@ -779,6 +779,8 @@ procedure GameDemoShowSuccess;
 		Str(DemoPitTicks, fullStr);
 		TextWindowAppend(textWindow, 'Recording time: ' + numStr + ' (' + fullStr + ' ticks)');
 		{ Seed, etc. }
+		Str(World.Info.Score, numStr);
+		TextWindowAppend(textWindow, 'Score: ' + numStr);
 		Str(DemoStartSeed, numStr);
 		TextWindowAppend(textWindow, 'Seed: ' + numStr);
 		Str(TickSpeed, numStr);
@@ -1857,6 +1859,7 @@ procedure GameValidateRun;
 					GamePaused := true;
 
 					GamePlayLoop(true);
+					WorldSave('RESULT', '.SAV');
 				end;
 			end;
 		end;
