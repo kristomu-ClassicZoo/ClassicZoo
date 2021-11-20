@@ -43,6 +43,7 @@ interface
 		DemoPitTicksFirst: longint;
 		DemoPitTicksLast: longint;
 	{ Library }
+	procedure DemoFlushFile(var f: text);
 	function DemoStartRecord(filename: string): boolean;
 	function DemoStartPlay(filename: string): boolean;
 	function DemoStartLogging(filename: string): boolean;
@@ -137,9 +138,29 @@ var
 	DemoLogActive: boolean;
 	DemoLogBoard: integer;
 
-procedure DemoLogEmit(code: string; ticks: longint);
+procedure DemoFlushFile(var f: text);
 	var
 		regs: Registers;
+	begin
+		{ Seeking on DOS is a nightmare. Especially if you add in emulators. }
+
+		{ Turbo Pascal }
+		Flush(f);
+
+		{ DOS 3.3+ - FFLUSH }
+		regs.AX := $6800;
+		regs.BX := TextRec(f).Handle;
+		Intr($21, regs);
+
+		{ DOSBox - forced Seek() }
+		regs.AX := $4201;
+		regs.BX := TextRec(f).Handle;
+		regs.CX := 0;
+		regs.DX := 0;
+		Intr($21, regs);
+	end;
+
+procedure DemoLogEmit(code: string; ticks: longint);
 	begin
 		if not DemoLogActive then exit;
 		Write(DemoLogFile, ticks);
@@ -148,23 +169,7 @@ procedure DemoLogEmit(code: string; ticks: longint);
 		Write(DemoLogFile, ' ');
 		Write(DemoLogFile, Board.Name);
 		WriteLn(DemoLogFile);
-
-		{ Seeking on DOS is a nightmare. Especially if you add in emulators. }
-
-		{ Turbo Pascal }
-		Flush(DemoLogFile);
-
-		{ DOS 3.3+ - FFLUSH }
-		regs.AX := $6800;
-		regs.BX := TextRec(DemoLogFile).Handle;
-		Intr($21, regs);
-
-		{ DOSBox - forced Seek() }
-		regs.AX := $4201;
-		regs.BX := TextRec(DemoLogFile).Handle;
-		regs.CX := 0;
-		regs.DX := 0;
-		Intr($21, regs);
+		DemoFlushFile(DemoLogFile);
 	end;
 
 function DemoIsPlaying: boolean;
@@ -471,14 +476,16 @@ procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean);
 					DemoInEndgame := false;
 			end;
 
-			if (not DemoInEndgame) and DemoInputNonZero then begin
-				if DemoPitTicksFirst < 0 then begin
-					DemoPitTicksFirst := DemoPitTicks;
-					DemoLogEmit('START', DemoPitTicksFirst);
-					DemoLogBoard := World.Info.CurrentBoard;
+			if (not DemoInEndgame) then begin
+				if (DemoInputNonZero) or (World.Info.Health <= 0) then begin
+					if DemoPitTicksFirst < 0 then begin
+						DemoPitTicksFirst := DemoPitTicks;
+						DemoLogEmit('START', DemoPitTicksFirst);
+						DemoLogBoard := World.Info.CurrentBoard;
+					end;
+					DemoPitTicksLast := DemoPitTicks;
+					DemoInEndgame := World.Info.Health <= 0;
 				end;
-				DemoPitTicksLast := DemoPitTicks;
-				DemoInEndgame := World.Info.Health <= 0;
 			end;
 
 			if (DemoLogBoard >= 0) and (DemoLogBoard <> World.Info.CurrentBoard) then begin

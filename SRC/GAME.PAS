@@ -83,6 +83,9 @@ interface
 	procedure BoardEnter;
 	procedure BoardPassageTeleport(x, y: integer);
 	procedure GameDebugPrompt;
+{$IFDEF ZDEMOVAL}
+	procedure GameValidateRun;
+{$ENDIF}
 	procedure GameTitleLoop;
 	procedure GamePrintRegisterMessage;
 const
@@ -684,6 +687,9 @@ procedure GameDemoShowError;
 	var
 		numStr: TString50;
 		textWindow: TTextWindowState;
+{$IFDEF ZDEMOVAL}
+		demoValFile: text;
+{$ENDIF}
 	begin
 		Str(DemoErrorCode, textWindow.Title);
 		textWindow.Title := 'Demo Error #' + textWindow.Title;
@@ -698,9 +704,18 @@ procedure GameDemoShowError;
 		Str(DemoCommandsFetched, numStr);
 		TextWindowAppend(textWindow, 'Position: ' + numStr);
 
+{$IFDEF ZDEMOVAL}
+		Assign(demoValFile, 'RESULT.ZZV');
+		Rewrite(demoValFile);
+		WriteLn(demoValFile, 'Error');
+		if TextWindowWrite(textWindow, demoValFile) then begin end;
+		DemoFlushFile(demoValFile);
+		Close(demoValFile);
+{$ELSE}
 		TextWindowDrawOpen(textWindow);
 		TextWindowSelect(textWindow, false, false);
 		TextWindowDrawClose(textWindow);
+{$ENDIF}
 		TextWindowFree(textWindow);
 
 		DemoErrorCode := 0;
@@ -719,12 +734,17 @@ procedure TimeToString(timeHs: longint; var fullStr: TString50);
 
 		i := timeHs mod 100;
 		Str(i:2, numStr);
+		if numStr[1] = ' ' then numStr[1] := '0';
 		fullStr := '.' + numStr;
 		i := (timeHs div 100) mod 60;
 		Str(i:2, numStr);
+		if numStr[1] = ' ' then numStr[1] := '0';
 		fullStr := ':' + numStr + fullStr;
 		i := (timeHs div 6000) mod 60;
 		Str(i:2, numStr);
+		if timeHs >= 360000 then begin
+			if numStr[1] = ' ' then numStr[1] := '0';
+		end;
 		fullStr := numStr + fullStr;
 		if timeHs >= 360000 then begin
 			i := (timeHs div 360000);
@@ -740,23 +760,35 @@ procedure GameDemoShowSuccess;
 		numStr: TString50;
 		fullStr: TString50;
 		textWindow: TTextWindowState;
+{$IFDEF ZDEMOVAL}
+		demoValFile: text;
+{$ENDIF}
 	begin
 		textWindow.Title := 'Demo Playback Complete';
 		TextWindowInitState(textWindow);
 
-		{ Calculate time. }
+		{ Calculate run time. }
 		{ 1 PIT tick = 55ms }
-		timeHs := (DemoPitTicks * 11) div 2;
-		TimeToString(timeHs, fullStr);
-		TextWindowAppend(textWindow, 'Time: ' + fullStr);
-		{ Calculate input time. }
 		timeHs := ((DemoPitTicksLast - DemoPitTicksFirst) * 11) div 2;
 		TimeToString(timeHs, fullStr);
-		TextWindowAppend(textWindow, 'Input time: ' + fullStr);
+		TextWindowAppend(textWindow, 'Run time: ' + fullStr);
+		{ Calculate recording time. }
+		timeHs := (DemoPitTicks * 11) div 2;
+		TimeToString(timeHs, fullStr);
+		TextWindowAppend(textWindow, 'Recording time: ' + fullStr);
 
+{$IFDEF ZDEMOVAL}
+		Assign(demoValFile, 'RESULT.ZZV');
+		Rewrite(demoValFile);
+		WriteLn(demoValFile, 'Success');
+		if TextWindowWrite(textWindow, demoValFile) then begin end;
+		DemoFlushFile(demoValFile);
+		Close(demoValFile);
+{$ELSE}
 		TextWindowDrawOpen(textWindow);
 		TextWindowSelect(textWindow, false, false);
 		TextWindowDrawClose(textWindow);
+{$ENDIF}
 		TextWindowFree(textWindow);
 
 		DemoErrorCode := 0;
@@ -1585,6 +1617,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 		GameDrawSidebar;
 		GameUpdateSidebar;
 
+{$IFNDEF ZDEMOVAL}
 		if JustStarted then begin
 			GameAboutScreen;
 			if Length(StartupWorldFileName) <> 0 then begin
@@ -1596,6 +1629,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 			BoardChange(0);
 			JustStarted := false;
 		end;
+{$ENDIF}
 
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := GameStateElement;
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[GameStateElement].Color;
@@ -1767,6 +1801,32 @@ function GameDemoStartPlay: boolean;
 			end;
 		end;
 	end;
+
+{$IFDEF ZDEMOVAL}
+procedure GameValidateRun;
+	begin
+		GameTitleExitRequested := false;
+		JustStarted := true;
+		ReturnBoardId := 0;
+		BoardChange(0);
+		DemoFastForward := true;
+		DemoStopOnEndgame := false;
+		SoundEnabled := false;
+
+		if DemoStartPlay(StartupWorldFileName + '.ZZD') then begin
+			if DemoStartLogging(StartupWorldFileName + '.ZZL') then begin
+				if WorldLoad(StartupWorldFileName, '.ZZT', false) then begin
+					ReturnBoardId := World.Info.CurrentBoard;
+
+					GameStateElement := E_PLAYER;
+					GamePaused := true;
+
+					GamePlayLoop(true);
+				end;
+			end;
+		end;
+	end;
+{$ENDIF}
 
 procedure GameTitleLoop;
 	var

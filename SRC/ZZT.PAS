@@ -116,6 +116,7 @@ procedure GameConfigure;
 		TextBackground(Black);
 		ClrScr;
 		TextColor(Yellow);
+{$IFNDEF ZDEMOVAL}
 		if not InputConfigure then
 			GameTitleExitRequested := true
 		else begin
@@ -123,6 +124,7 @@ procedure GameConfigure;
 			if not VideoConfigure then
 				GameTitleExitRequested := true;
 		end;
+{$ENDIF}
 		Window(1, 1, 80, 25);
 	end;
 
@@ -170,7 +172,11 @@ begin
 		GenerateTransitionTable;
 		WorldCreate;
 
+{$IFDEF ZDEMOVAL}
+		GameValidateRun;
+{$ELSE}
 		GameTitleLoop;
+{$ENDIF}
 
 		Dispose(IoTmpBuf);
 	end;
