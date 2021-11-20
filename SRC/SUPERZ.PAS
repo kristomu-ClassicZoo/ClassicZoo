@@ -26,7 +26,7 @@
 {$I-}
 {$M 24576,163840,655360}
 program SUPERZ;
-uses Crt, Dos, Video, Keys, Sounds, Input, TxtWind, GameVars,
+uses Crt, Dos, Video, Keys, Sounds, ZDemo, Input, TxtWind, GameVars,
 	Elements, Editor, Oop, Game, Uncrlib,
 	S_REGIST, M_MONSTE, M_FOREST, M_PROVIN, S_ORDER, S_CONFIG;
 
@@ -75,6 +75,7 @@ procedure GameConfigure;
 		Window(3, 8, 78, 23);
 		VideoClear(Blue);
 		TextColor(Yellow);
+{$IFNDEF ZDEMOVAL}
 		if not InputConfigure then begin
 			GameTitleExitRequested := true
 		end else begin
@@ -82,6 +83,7 @@ procedure GameConfigure;
 			if not VideoConfigure then
 				GameTitleExitRequested := true;
 		end;
+{$ENDIF}
 
 		Window(1, 1, 80, 25);
 	end;
@@ -113,6 +115,7 @@ begin
 	MenuScrPointer := WorldFileMenuScrPtrs[3];
 	MenuScrLen := WorldFileMenuScrLens[3];
 	ResourceDataFileName := '';
+	DemoEngineName := '%NAME% %VERSION%';
 
 	GameTitleExitRequested := false;
 	EditorEnabled := false;
@@ -136,7 +139,11 @@ begin
 		GenerateTransitionTable;
 		WorldCreate;
 
+{$IFDEF ZDEMOVAL}
+		GameValidateRun;
+{$ELSE}
 		GameTitleLoop;
+{$ENDIF}
 
 		Dispose(IoTmpBuf);
 	end;

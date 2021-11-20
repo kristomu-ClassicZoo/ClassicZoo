@@ -1,1 +1,2 @@
 -o superz.zip -p build.properties
+-d SDEMOVAL -e SDEMOVAL.EXE -o superz.zip -p build.properties

@@ -74,10 +74,11 @@ interface
 	procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowState);
 	procedure TextWindowSaveFile(filename: TTextWindowLine; var state: TTextWindowState);
 	procedure TextWindowDisplayFile(filename, title: string);
+	function TextWindowWrite(var state: TTextWindowState; var f: text): boolean;
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
-uses Crt, Input, Printer;
+uses Crt, ZDemo, Input, Printer;
 
 function UpCaseString(input: string): string;
 	var
@@ -227,13 +228,13 @@ procedure TextWindowFree(var state: TTextWindowState);
 		end;
 	end;
 
-procedure TextWindowPrint(var state: TTextWindowState);
+function TextWindowWrite(var state: TTextWindowState; var f: text): boolean;
 	var
 		iLine, iChar: integer;
 		line: string;
 	begin
+		TextWindowWrite := false;
 		with state do begin
-			Rewrite(Lst);
 			for iLine := 1 to LineCount do begin
 				line := Lines[iLine]^;
 				if Length(line) > 0 then begin
@@ -254,18 +255,24 @@ procedure TextWindowPrint(var state: TTextWindowState);
 						line := '          ' + line
 					end;
 				end;
-				WriteLn(Lst, line);
+				WriteLn(f, line);
 				if IOResult <> 0 then begin
-					Close(Lst);
 					exit;
 				end;
 			end;
 			if LoadedFilename = 'ORDER.HLP' then begin
-				WriteLn(Lst, OrderPrintId^);
+				WriteLn(f, OrderPrintId^);
 			end;
-			Write(Lst, Chr(12) { form feed });
-			Close(Lst);
 		end;
+		TextWindowWrite := true;
+	end;
+
+procedure TextWindowPrint(var state: TTextWindowState);
+	begin
+		Rewrite(Lst);
+		if TextWindowWrite(state, Lst) then
+			Write(Lst, Chr(12) { form feed });
+		Close(Lst);
 	end;
 
 procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewingFile: boolean);
@@ -283,7 +290,7 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 			TextWindowDraw(state, false, viewingFile);
 			repeat
 				Delay(20);
-				InputUpdate;
+				DemoInputUpdate(0, false);
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
 					newLinePos := newLinePos + InputDeltaY;
@@ -416,7 +423,7 @@ procedure TextWindowEdit(var state: TTextWindowState);
 						TextWindowY + (TextWindowHeight div 2) + 1,
 						$70, Lines[LinePos]^[charPos]);
 				end;
-				InputReadWaitKey;
+				DemoInputReadWaitKey;
 				newLinePos := LinePos;
 				case InputKeyPressed of
 					KEY_UP: newLinePos := LinePos - 1;
