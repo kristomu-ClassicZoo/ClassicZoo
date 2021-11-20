@@ -1213,9 +1213,29 @@ function Difference(a, b: integer): integer;
 procedure GameDemoUpdateSidebar;
 	var
 		numStr: string[8];
+	procedure DrawHighlight(x, y, color: integer; sv: string; cond: boolean);
+		begin
+			if cond then color := color or $0F;
+			VideoWriteText(x, y, color, sv);
+		end;
+	procedure DrawArrowHighlight(x, y: integer; sv: string; cond: boolean);
+		begin
+			DrawHighlight(x, y, $30, sv, cond and (not InputShiftPressed));
+			DrawHighlight(x, y + 1, $70, sv, cond and InputShiftPressed);
+		end;
 	begin
-		Str(DemoCommandsFetched, numStr);
-		VideoWriteText(72, 13, $1E, numStr + '  ');
+		Str(((DemoFilePos * 100) div DemoFileSize), numStr);
+		VideoWriteText(72, 16, $1E, numStr + '% ');
+
+		DrawHighlight(63, 14, $70, 'T', InputKeyPressed = 'T');
+		DrawHighlight(63, 22, $30, 'P', InputKeyPressed = 'P');
+
+		DrawHighlight(62, 19, $70, 'Shift', InputShiftPressed);
+
+		DrawArrowHighlight(68, 18, #24, (InputDeltaX = 0) and (InputDeltaY < 0));
+		DrawArrowHighlight(69, 18, #25, (InputDeltaX = 0) and (InputDeltaY > 0));
+		DrawArrowHighlight(70, 18, #26, (InputDeltaX > 0) and (InputDeltaY = 0));
+		DrawArrowHighlight(71, 18, #27, (InputDeltaX < 0) and (InputDeltaY = 0));
 	end;
 
 procedure GameUpdateSidebar;
@@ -1269,10 +1289,12 @@ procedure GameUpdateSidebar;
 					VideoWriteText(71 + i, 12, $1F, ' ');
 			end;
 
+			if not DemoIsPlaying then begin
 			if SoundEnabled then
 				VideoWriteText(65, 15, $1F, ' Be quiet')
 			else
 				VideoWriteText(65, 15, $1F, ' Be noisy');
+			end;
 
 			if DebugEnabled then begin
 				Str(MemAvail, numStr);
@@ -1575,15 +1597,21 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(62, 12, $1F, ElementDefs[E_KEY].Character);
 				VideoWriteText(62, 14, $70, ' T ');
 				VideoWriteText(65, 14, $1F, ' Torch');
+				if not DemoIsPlaying then begin
 				VideoWriteText(62, 15, $30, ' B ');
 				VideoWriteText(62, 16, $70, ' H ');
 				VideoWriteText(65, 16, $1F, ' Help');
+				end else begin
+				VideoWriteText(64, 16, $1E, ' Played:');
+				end;
 				VideoWriteText(67, 18, $30, ' '#24#25#26#27' ');
 				VideoWriteText(72, 18, $1F, ' Move');
 				VideoWriteText(61, 19, $70, ' Shift '#24#25#26#27' ');
 				VideoWriteText(72, 19, $1F, ' Shoot');
+				if not DemoIsPlaying then begin
 				VideoWriteText(62, 21, $70, ' S ');
 				VideoWriteText(65, 21, $1F, ' Save game');
+				end;
 				VideoWriteText(62, 22, $30, ' P ');
 				VideoWriteText(65, 22, $1F, ' Pause');
 				VideoWriteText(62, 23, $70, ' Q ');

@@ -39,6 +39,8 @@ interface
 		{ Feedback }
 		DemoErrorCode: byte;
 		DemoCommandsFetched: word;
+		DemoFilePos: longint;
+		DemoFileSize: longint;
 		DemoPitTicks: longint;
 		DemoPitTicksFirst: longint;
 		DemoPitTicksLast: longint;
@@ -237,6 +239,7 @@ function DemoFetchCommand(var cmd: DemoCommand; expectedType: DemoCommandType; f
 
 		if (fetchMode = DFetchAny) or (cmd.cmdType = expectedType) then begin
 			Inc(DemoCommandsFetched);
+			DemoFilePos := FilePos(DemoFile);
 			DemoFetchCommand := true;
 		end else begin
 			{ If the fetched command is optional, fetch another command. }
@@ -324,6 +327,7 @@ function DemoStartPlay(filename: string): boolean;
 			Close(DemoFile);
 			exit;
 		end;
+		DemoFileSize := FileSize(DemoFile);
 
 		DemoSetMode(DModePlay);
 		DemoStartPlay := true;
