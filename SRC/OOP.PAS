@@ -102,15 +102,14 @@ procedure OopReadValue(statId: integer; var position: integer);
 			OopReadChar(statId, position)
 		until OopChar <> ' ';
 
-		OopChar := UpCase(OopChar);
 		while (OopChar >= '0') and (OopChar <= '9') do begin
 			if wordPos <= OOP_TOKEN_LENGTH then begin
 				Inc(wordPos);
 				s[wordPos] := OopChar;
 			end;
 			OopReadChar(statId, position);
-			OopChar := UpCase(OopChar);
 		end;
+		OopChar := UpCase(OopChar);
 
 		s[0] := Chr(wordPos);
 		if position > 0 then
