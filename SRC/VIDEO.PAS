@@ -509,6 +509,12 @@ function VideoInstall(mode, borderColor: integer): boolean;
 			Port[$3C4] := $01;
 			Port[$3C5] := (Port[$3C5]) or $01;
 			Port[$3C4] := $01;
+
+			if (VideoRows = 25) then begin
+				Port[$3D4] := $09;
+				Port[$3D5] := (Port[$3D5]) or $80;
+				Port[$3D4] := $09;
+			end;
 		end;
 
 		VideoCurrentMode := mode;
