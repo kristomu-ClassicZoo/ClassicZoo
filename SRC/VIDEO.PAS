@@ -504,6 +504,13 @@ function VideoInstall(mode, borderColor: integer): boolean;
 			VideoHideCursor;
 		VideoSetBorderColor(borderColor);
 
+		if VideoVGAInstalled then begin
+			{ Set 8-dot-clock character mode.  }
+			Port[$3C4] := $01;
+			Port[$3C5] := (Port[$3C5]) or $01;
+			Port[$3C4] := $01;
+		end;
+
 		VideoCurrentMode := mode;
 		VideoInstall := true;
 	end;

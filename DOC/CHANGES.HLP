@@ -5,6 +5,11 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
+$< Super ClassicZoo dev >
+
+* Forced use of 8-dot-wide character mode
+  on VGA cards.
+
 $< Super ClassicZoo 4.03 >
 
 / Fixed scrolling not being accurate
