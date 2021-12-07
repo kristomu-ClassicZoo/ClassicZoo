@@ -42,6 +42,7 @@ interface
 		VideoColumns: integer;
 		VideoTextSegment: word;
 		VideoEGAInstalled: boolean;
+		VideoVGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
 		VideoLastMode: word;
 	function VideoConfigure: boolean;
@@ -276,16 +277,29 @@ function VideoConfigure: boolean;
 		VideoConfigure := charTyped <> #27;
 	end;
 
-procedure VideoInstall(borderColor: integer);
+procedure VideoPreInstall;
 	var
 		regs: Registers;
 	begin
+		VideoMDAInstalled := LastMode = 7;
+		VideoVGAInstalled := false;
+
 		regs.AH := $12;
 		regs.BX := $FF10;
 		Intr($10, regs);
 		VideoEGAInstalled := regs.BH <> $FF;
-		VideoMDAInstalled := VideoLastMode = 7;
 
+		if VideoEGAInstalled then begin
+			regs.AX := $1A00;
+			Intr($10, regs);
+			VideoVGAInstalled := regs.AL = $1A;
+		end;
+	end;
+
+procedure VideoInstall(borderColor: integer);
+	var
+		regs: Registers;
+	begin
 		if VideoEGAInstalled then begin
 			regs.AX := $1201;
 			regs.BL := $30;
@@ -313,6 +327,13 @@ procedure VideoInstall(borderColor: integer);
 			TextMode(CO80);
 			TextBackground(borderColor);
 			VideoSetBorderColor(borderColor);
+		end;
+
+		if VideoVGAInstalled then begin
+			{ Set 8-dot-clock character mode.  }
+			Port[$3C4] := $01;
+			Port[$3C5] := (Port[$3C5]) or $01;
+			Port[$3C4] := $01;
 		end;
 
 		ClrScr;
@@ -423,4 +444,6 @@ begin
 		VideoMonochrome := false;
 	end;
 	VideoForceNoSnow := false;
+
+	VideoPreInstall;
 end.
