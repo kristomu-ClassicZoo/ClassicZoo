@@ -1,201 +1,137 @@
-# Weave ZZT
+# Weave ZZT 2.0
 
-This is a very silly fork of the reconstruction of ZZT.  We've added some things that we found fun:
+Unlike previous versions of Weave, this version really is meant to be the forever version.
 
-* Custom drum 3 making terror noise (i insist)
-* #weave &lt;direction>
-   * shifts everything that is not a board edge, solid, or object
-   * will not destroy player
-   * leaves an empty next to the bobject at &lt;dir>.
-* material colors (dark colors and pallettes like 'wet' or 'leafy' which have a range of fg/bg they can produce)
-    * wet
-    * watery
-    * wooden
-    * canvas
-    * bblack (blinking black on black)
-    * leafy
-* #board &lt;board #>
-* #if detect &lt;dir> &lt;type> &lt;execute>
-* #warp &lt;x> &lt;y> (moves player)
-* #jump &lt;x> &lt;y> (moves object)
-* 18 flags of length 10
-* #playercolor &lt;fg> &lt;bg>
-* Custom counter (#give and #take 'custom &lt;#>' or 'z &lt;#>')
-* Custom counter name (#custom &lt;statname> or #zname &lt;statname>), displays on sidebar
-* Local counter (#give local &lt;#> and #take local &lt;#>, result stays on board)
-* Duplicate &lt;direction>
-    * Duplicates a copy of itself in the given direction.
-* The Register
-    * 7 local counters (0-32767)
-    * Can #give or #take register &lt;1-7> &lt;amount>
-    * Can #push &lt;1-7> to push the local register value to the global register
-    * Can #give or #take global &lt;-7> &lt;amount> to manipulate the global register
-    * Can #fetch &lt;1-7> to fetch the global register value and dump it to the local register.
-* Paper Mode (New! v1.3)
-    * All Black and White coloring is reversed
-    * Doors, text, passages and other colorations are altered to match paper asthetic
-    * Activated by preceding the world file with ! in the command line or in ZZT.CFG
-* Bonus Labels (New! v1.3)
-    * Add additional : after a label definition (e.g. :touch ::::::::)
-    * The given label can now be #ZAPped that many extra times before it becomes a comment
-    * Restore does not restore bonus labels (this is by design)
+Designed with the full scope of the ZZTer audience in mind, this version hopes to supply the needs of anyone that wants to tweak something about ZZT. Weave version 2 makes extensive use of accessory files to allow ZZTers to enhance their game's experience without diving into the Pascal code.
 
-Upcoming:
+## Using
 
-* (from Variety) #set hyper to set the speed to #endgame speed, #clear hyper to restore the current speed value
-* More file interactivity (load object from file, save and load registers, LoadStatic for large blobs.)
-* Utilizing all available padding (access stat padding in object, etc.)
-* And More.
+The DOS executables provided in BIN are already ready to take on ZZT. With your own copy of Turbo Pascal 5.5, you can compile both executables yourself using the BUILDW20.BAT files provided in the different subdirectories.
 
-Description of the reconstruction itself is below:
+## SOFT and FIRM weaves
 
-# The Reconstruction of ZZT
+There are two directory structures in the project, one for SOFT and one for FIRM weaving. 
 
-The Reconstruction of ZZT is a reverse-engineered recreation of the source code to the last official release of
-[ZZT](https://museumofzzt.com/about-zzt), ZZT 3.2. The output executable is byte-for-byte identical with said
-release, which means that the source code accurately represents the original engine's behavior.
+"Soft" weaving is for making cosmetic and numeric changes to ZZT without changing the code, and uses .CFG and .PAR accessory files to allow players to customize the experience per ZZT world.
 
-The intent behind this project is to facilitate improved preservation and accessibility of ZZT's worlds and community,
-as well as facilitate new, exciting developments.
+"Firm" weaving is for adding a few additional functions, conditionals, directions, colors, and other beneficial changes to ZZT while using the same code pathways as the original EXE. By adding this additional limitation of using only existing code pathways, the system remains sufficiently constrained to keep "ZZT Feel" while adding quality-of-life enhancements for the developer and a few new options for gameplay.
 
-## Frequently Asked Questions
+## File types in this project:
 
-### What is ZZT?
+There are a few different kinds of files found in this project:
 
-ZZT is an adventure game created by Tim Sweeney and released in January 1991 for DOS computers. What set it apart was the
-inclusion of a fully-featured world editor in the shareware release. Since then, ZZT has gone on to inspire thousands of
-players and game creators all around the world.
+* PAS files
+    * These are Turbo Pascal 5.5 source files for WeaveZZT.
+* CFG files
+    * These are custom string and sound files for ZZT worlds.
+* PAR files
+    * These are custom color and parameter files for ZZT worlds.
+* OOP files
+    * These are custom command files for ZZT worlds.
+* FLG files
+    * These list custom flags and counters for ZZT worlds.
+* KB files
+    * These list custom keybinds for ZZT worlds.
+* BAT files
+    * These are used to compile WeaveZZT in DOS or DOSBox.
+* TXT and DOC files
+    * These are documents designed to be shipped with Weave.
+* OBJ files
+    * These are ZZT-OOP code to be loaded into objects.
+* ZZT files
+    * These are the demonstrative ZZT worlds for Weave./
+* EXE files
+    * SWEAVE20 and FWEAVE20 are the Weave ZZT executables.
+    * LZEXE is the tool used to compress the weave EXEs.
 
-You can learn more about ZZT through the [Museum of ZZT](https://museumofzzt.com/about-zzt).
+## Files in this project:
 
-### How can I run the original ZZT on a modern computer?
+Below are listed the files in the various folders of the project.
 
-There are many ways to run ZZT on a modern PC. While pretty much anything capable of running DOS will do the trick, the recommended ones are:
+### SOFT_W20 directory
 
- * **[Zeta](http://zeta.asie.pl)**, an emulator dedicated to running ZZT's original engine (Windows, Linux, macOS, HTML5),
- * [DOSBox](https://www.dosbox.com/), a general DOS software emulator.
+* DOC
+    * ABOUT.HLP
+        * for a minimal ZZT.DAT.
+* TOOLS
+    * DATPACK.PAS, etc.
+        * For making ZZT.DAT and shrinking ZZT.EXE.
+* SRC_W20
+    * ALL .PAS FILES (ELEMENTS.PAS, EXTMEM.PAS, etc.)
+        * Forked from the ZZT Reconstruction and ClassicZoo.
+        * Reconstruction: github.com/asiekierka/reconstruction-of-zzt
+        * ClassicZoo: github.com/OpenZoo/ClassicZoo
+    * BLUEDRGN.PAR
+        * "Blue Dragon Mode" parameters file.
+    * SOFTDEMO.CFG
+        * Strings and sounds for the SoftWeave demo.
+    * SOFTDEMO.PAR
+        * Colors and parameters for the SoftWeave demo.
+    * TEMPLATE.CFG
+        * Base string and sound file for new Weavers.
+    * TEMPLATE.PAR
+        * Base color and parameter file for new Weavers.
+* BUILDW20.BAT
+    * Used in DOS or DOSBox to build SoftWeave from source.
+* LICENSE.TXT
+    * MIT License, required by reconstruction-of-zzt.
+* README.TXT
+    * A brief explanation of Soft Weaving.
+* SOFTDEMO.ZZT
+    * The SoftWeave demo file.
 
-### Where can I find ZZT worlds to play?
+### FIRM_W20 directory
 
-The official ZZT worlds originally released with the game can be found [here](https://museumofzzt.com/file/z/zzt.zip).
+* DOC
+    * ABOUT.HLP
+        * for a minimal ZZT.DAT.
+* TOOLS
+    * DATPACK.PAS, etc.
+        * For making ZZT.DAT and shrinking ZZT.EXE.
+* SRC_W20
+    * ALL .PAS FILES (ELEMENTS.PAS, EXTMEM.PAS, etc.)
+        * Forked from the ZZT Reconstruction and ClassicZoo.
+        * Reconstruction: github.com/asiekierka/reconstruction-of-zzt
+        * ClassicZoo: github.com/OpenZoo/ClassicZoo
+    * EXAMPLE.OBJ
+        * Example object used in the FirmWeave demo.
+    * WONKY.OBJ
+        * Example custom bullet from the FirmWeave demo.
+    * FIRMDEMO.CFG
+        * Strings and sounds for the FirmWeave demo.
+    * FIRMDEMO.PAR
+        * Colors and parameters for the FirmWeave demo.
+    * FIRMDEMO.KB
+        * Custom keybinds for the FirmWeave demo.
+    * FIRMDEMO.FLG
+        * Custom flags and counters for the FirmWeave demo.
+    * TEMPLATE.CFG
+        * Base string and sound file for new Weavers.
+    * TEMPLATE.PAR
+        * Base color and parameter file for new Weavers.
+    * TEMPLATE.OOP
+        * Base custom command file for new Weavers.
+    * EXTENDED.OOP
+        * Fully enabled commands for confident Weavers.
+    * TEMPLATE.KB
+        * Base Keybinds file for new Weavers.
+    * TEMPLATE.FLG
+        * Base flags and counters file for new Weavers.
+* BUILDW20.BAT
+    * Used in DOS or DOSBox to build FirmWeave from source.
+* LICENSE.TXT
+    * MIT License, required by reconstruction-of-zzt.
+* README.TXT
+    * A brief explanation of Firm Weaving.
+* FIRMDEMO.ZZT
+    * The FirmWeave demo file.
 
-Beyond that, I highly recommend checking out the [Museum of ZZT](https://museumofzzt.com/), particularly its Featured
-Games section, to find amazing worlds created by the ZZT community over the past three decades.
+### BIN directory
 
-### How can I create ZZT worlds of my own?
+The completed releases as compiled by the above are provided here in the SOFT and FIRM directories.
 
-ZZT comes with a built-in editor and documentation - just press "E"!
+## Questions
 
-However, please note that the community has since created more powerful editors, the most popular of which is [KevEdit](https://github.com/cknave/kevedit/releases).
-This is currently the recommended solution. Dr. Dos has created a [live stream series](https://www.youtube.com/watch?v=suIKp6HLBC8&list=PL71MurckxMeDCeOrKZ5Gd58GtC1ZmU-BW)
-on YouTube detailing how to use Zeta and KevEdit to create your own ZZT worlds.
+Hit me up in the ZZT Discord if you've got feedback or there's something to add. I'm not married to anything here so if there's a better way to do something, or you REALLY have to have like, breakable linewalls or walkable ricochets or something like that, Weave 2.1 could open that up. If you want to be able to create your own custom elements from accessory files, you're not alone. HardWeave will be packaged with 2.1 and give you the extensible element platform of your dreams.
 
-### What is part of this open-source release?
-
-This release's binary distribution includes:
-
- * **ZZT.EXE** - the ZZT engine executable,
- * **ZZT.DAT** - the documentation originally included with ZZT,
- * **DEMO.ZZT** - the official demonstration world, part of ZZT's bundled documentation,
- * **ZZT.CFG** - the ZZT configuration file (set to open DEMO.ZZT by default).
-
-The source code includes the source format for both ZZT.EXE and ZZT.DAT, as well as relevant tools.
-
-### Why did the source code have to be reconstructed?
-
-This is because the original source code to ZZT
-[was lost a long time ago](https://web.archive.org/web/19991010013339/http://www.epicgames.com/zzt.htm).
-
-### I'm a ZZTer from back in the day and I have some backups from that period. Are they still useful?
-
-**Yes!** There are many ZZT worlds, utilities, and other documents which have not yet been preserved. If you'd like to share them and see them be
-adequately catalogued and preserved, please contact me at (kontakt at asie dot pl) - or get in touch with the Museum of ZZT community.
-
-## Directory structure
-
-* **BIN** - output directory for EXE and TPU files,
-* **DIST** - output directory for the binary distribution,
-* **DOC** - documentation files used for building ZZT.DAT:
-    * **ABOUT.HLP** - about text,
-    * **GAME.HLP** - help text (play),
-    * **EDITOR.HLP** - help text (editor):
-      * **CREATURE.HLP**, **TERRAIN.HLP**, **ITEM.HLP**, **LANG.HLP**, **LANGREF.HLP**, **LANGTUT.HLP**, **INFO.HLP** - additional help text,
-    * **LICENSE.HLP** - licensing terms for the source code release, formatted for in-game view,
-    * END1.MSG, END2.MSG, END3.MSG, END4.MSG - registration messages for the shareware version of ZZT; not present,
-* **MISC** - miscellaneous files which are not part of the build process:
-    * **relocfix.py** - Python 3 script for fixing relocation table segments in EXE binaries after LZEXE decompression,
-* **RES** - resource files which are not otherwise recompiled:
-    * **DEMO.ZZT** - the official ZZT demonstration world,
-    * **ZZT.CFG** - the ZZT configuration file used for the binary distribution,
-* **SRC** - the reconstructed ZZT source code,
-    * **ZZT.PAS** - main source file,
-* **TOOLS** - tools used when building:
-    * **DATPACK.PAS** - DATPACK, a tool for creating and extracting the ZZT.DAT file (source code),
-    * **LZEXE.EXE** - LZEXE, a .EXE compression tool by Fabrice Bellard,
-* **BUILD.BAT** - source code build script,
-* **LICENSE.TXT** - licensing terms for the source code release.
-
-## License
-
-The Reconstruction of ZZT is licensed under the terms of the MIT license as described in LICENSE.TXT, with the exception of certain files included with this release:
-
-* **TOOLS/LZEXE.DOC**, **TOOLS/LZEXE.EXE**:
-
-```
-    LZEXE.EXE v0.91    (c) 1989 Fabrice BELLARD
-
-    Ce programme fait parti du domaine public (FREEWARE),  donc vous pouvez
-  l'utiliser, le copier et le distribuer sans problème. Et vous pouvez même
-  en faire un usage commercial, c'est à dire compacter des fichiers EXE que
-  vous allez vendre. Mais la vente de LZEXE.EXE est interdite.
-```
-
-* **MISC/relocfix.py**: Copyright (c) 2020 Adrian Siekierka, licensed under "zero-clause" BSD
-
-## Compiling
-
-### Requirements
-
-* DOS-compatible environment (f.e. DOSBox),
-* Turbo Pascal 5.5 (if you don't have it, it's officially available for free via Embarcadero's Antique Software website).
-
-### Instructions
-
-1. Ensure that TPC.EXE from Turbo Pascal is available on your PATH (f.e. `SET PATH=C:\TP;%PATH%`).
-2. From the source code directory, run `BUILD.BAT`.
-3. The DIST directory will contain files comprising the release as outlined in the FAQ.
-
-If the source code has not been modified, the resulting **ZZT.EXE** file should be byte-for-byte identical with the **ZZT.EXE** bundled with ZZT 3.2.
-
-### Compilation FAQ
-
-#### Can the Reconstruction be compiled with Free Pascal instead?
-
-If you'd rather stick to an entirely free software stack for building ZZT, that is also possible, albeit not without modifications:
-
- * Ideally, the latest SVN trunk version of Free Pascal should be used.
- * Free Pascal must be compiled as a DOS/i8086 cross-compiler in the Large memory model ([more information](https://wiki.freepascal.org/DOS)).
- * The compilation flags "-Mtp" and "-WmLarge" must be used.
- * The methods in VIDEO.PAS using inline(...) must be rewritten, as Free Pascal does not support this form of inline ASM code.
- * SOUNDS.PAS must be patched, as Free Pascal does not support overlapping CASE statements.
- * As LZEXE is not free software (source unavailable), you may want to consider removing it from your build process or replacing it with another compressor,
-such as UPX (with the --8086 flag).
-
-Please note that, as Free Pascal's RTL is significantly larger, the resulting binary is likewise about 40KB larger - leaving less memory space for game worlds.
-
-#### What are all the "unk"-prefixed variables?
-
-These are variables which are not used at all anywhere in the source code, but are assumed to exist in the stack or data segments, affecting relevant
-variable offsets and stack checks. They are required for byte-level equivalence, but you are free to remove them and get a functionally equivalent
-version of the engine - with the exception of some structures, like TStat, which are serialized to disk.
-
-### Recipe for five better friends
-
-1. Fix 5 annoying bugs in ZZT.
-2. Give a copy of each bugfix to a friend, neighbor or business associate.
-3. You now have five better friends.
-
-## Greetings
-
-I'd like to thank everyone who has spent the last few years contributing to the rebirth of the small ZZT community. It is thanks to your passion and dedication
-that this project has been made possible.
+Discord of ZZT Link: discord dot com slash invite slash Nar4Upf

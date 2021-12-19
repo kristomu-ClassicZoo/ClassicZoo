@@ -1,0 +1,54 @@
+#Template FLG file
+#  -------------
+#           !!! IMPORTANT !!!
+# Any line starting with a '#' is a comment.
+# If you remove lines that don't start with '#',
+# you WILL screw up your file.
+#          You have been warned.
+#  -------------
+#How to Use:
+#Copy TEMPLATE.FLG to <YOURZZT>.FLG and
+#follow the instructions below to create
+#custom flags and counters.
+#20 character limit per flag/counter.
+#  -------------
+#  BOARD COUNTER
+#  ---
+#Define a custom board counter below. You
+#can GIVE and TAKE it like any other counter.
+#Every board has its own copy.
+local
+#  -------------
+#  OBJECT COUNTERS
+#  ---
+#Define 4 custom object counters below. Every
+#object has their own copies of these.
+obj1
+obj2
+obj3
+obj4
+#  -------------
+#  WORLD FLAGS / COUNTERS
+#  ---
+#Custom Flags:
+#if you define a custom flag below, you
+#can SET and CLEAR that flag in-game without
+#using up one of your ten flag slots.
+# ---
+#Custom Counters:
+#if you define a custom counter below, you
+#can GIVE and TAKE it just like any other
+#in-game counter.
+# ---
+#Limits:
+#The total number of flags and counters below
+#should add up to no more than 64.
+#  -------------
+#Custom Flags
+flag1
+flag2
+flag3
+#Custom counters
+counterX
+counterY
+counterZ
