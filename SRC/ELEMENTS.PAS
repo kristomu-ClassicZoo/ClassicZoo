@@ -514,7 +514,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 							isStatted := ElementDefs[Element].Cycle > -1;
 
 						if isStatted then begin
-							if not ExtensionEnabled[ExtFixConveyorStatSwapping] then
+							if HighCompat or (not ExtensionEnabled[ExtFixConveyorStatSwapping]) then
 								statIds[i] := GetStatIdAt(tx, ty);
 
 							tmpTile := Board.Tiles[tx][ty];

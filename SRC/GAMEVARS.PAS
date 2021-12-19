@@ -260,6 +260,8 @@ interface
 {$ENDIF}
 
 		WorldExt: TWorldExt;
+		HighCompat: boolean;
+		HighCompatAuto: boolean;
 
 {$IFDEF EXTCHEAT}
 		CheatColorModifiers: array[0 .. MAX_ELEMENT] of byte;

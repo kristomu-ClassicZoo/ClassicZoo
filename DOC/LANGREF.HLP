@@ -149,7 +149,8 @@ demonstrate the use of directions:
 variables called flags.  A flag assumes
 one of two possible states: SET and
 CLEAR.  Objects can alter flags, then
-take action accordingly.
+take action accordingly. Up to ten
+flags may be set at a given time.
 
      Flags are not associated with
 individual objects or rooms.  A flag set
