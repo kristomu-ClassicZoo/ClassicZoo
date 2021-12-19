@@ -45,7 +45,7 @@ interface
 		windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 
 implementation
-uses Dos, FileSel, ExtMem, ZxtMgr, ZVideo, Sounds, Input, Elements, Oop, Game;
+uses Dos, FileSel, ExtMem, ZxtEdit, ZxtMgr, ZVideo, Sounds, Input, Elements, Oop, Game;
 
 type
 	TBoardShiftMode = (BoardShiftDelete);
@@ -67,11 +67,6 @@ type
 		width: byte;
 		height: byte;
 	end;
-	TEditorZxtInfo = record
-		ExtType: TExtensionType;
-		ExtFlags: word;
-		Name: string[36];
-	end;
 
 const
 	COPIED_TILES_COUNT = 10;
@@ -82,65 +77,6 @@ const
 		'DGray  ', 'Blue   ', 'Green  ', 'Cyan   ', 'Red    ', 'Purple ', 'Yellow ', 'White  ');}
 	ColorNames: array[0 .. 15] of string[3] =
 		('Blk', 'DBl', 'DGn', 'DCy', 'DRe', 'DMa', 'Bro', 'LGr', 'DGr', 'LBl', 'LGn', 'LCy', 'LRe', 'LMa', 'Yel', 'Wht');
-{$IFDEF NEC98}
-	EDITOR_ZXT_INFOS_COUNT = 15;
-{$ELSE}
-	EDITOR_ZXT_INFOS_COUNT = 16;
-{$ENDIF}
-	FZxtEditorCustomAdd = $8000;
-	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
-		(
-			(ExtType: ExtFixPutBottomRow;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'FIX: #PUT on bottom row'),
-			(ExtType: ExtFixBlinkWallShift;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'FIX: Blink wall shift to left'),
-			(ExtType: ExtFixConveyorStatSwapping;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'FIX: Conveyor stat swapping'),
-			(ExtType: ExtFixConveyorStatCheck;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'FIX: Conveyor statless movement'),
-			(ExtType: ExtFixConveyorMissingFinalDraw;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'FIX: Conveyor visual bug'),
-			(ExtType: ExtFixKoopoBug;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'FIX: Duplicator "Koopo" bug'),
-			(ExtType: ExtFixBindDoubleFree;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'FIX: Nested #BIND calls'),
-			(ExtType: ExtFixRecursiveElementPush;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'FIX: Recursive element push'),
-{$IFNDEF NEC98}
-			(ExtType: ExtZZOCustomCharset;
-			ExtFlags: FZxtExtPlayingShould or FZxtEditorCustomAdd;
-			Name: 'GFX: Custom character set'),
-{$ENDIF}
-			(ExtType: ExtGMDirByAt;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'OOP: BY/AT directions'),
-			(ExtType: ExtDieItem;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'OOP: #DIE ITEM'),
-			(ExtType: ExtDieUnderTile;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'OOP: #DIE preserves tile under'),
-			(ExtType: ExtIfRnd;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'OOP: #IF RND'),
-			(ExtType: ExtUnlockExtensions;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'OOP: #IFEXT'),
-			(ExtType: ExtGMPutPlayer;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'OOP: #PUTPLAYER'),
-			(ExtType: ExtQuirkArgTile2;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'QUIRK: World uses argTile2 trick')
-		);
 
 function EditorShiftBoard(bidFrom, bidTo: integer; mode: TBoardShiftMode): boolean;
 	var
@@ -674,139 +610,6 @@ procedure EditorLoop;
 			until exitRequested;
 		end;
 
-	procedure EditorZxtFree(var extBlock: TExtensionBlock);
-		begin
-			with extBlock do begin
-				if Header.FieldLength > 0 then
-					FreeMem(Data, Header.FieldLength);
-			end;
-		end;
-
-	procedure EditorZxtUnloadFreeRemove(i: word);
-		var
-			extBlockO: PTExtensionBlock;
-		begin
-			extBlockO := ZxtBlockGet(i);
-			if ZxtBlockUnload(i) <> ExtResultSuccess then begin end;
-			EditorZxtFree(extBlockO^);
-			ZxtBlockRemove(i);
-		end;
-
-	procedure EditorZxtUnloadFreeRemoveByType(targetExtType: TExtensionType);
-		var
-			i: integer;
-		begin
-			repeat
-				i := ZxtBlockGetIdByType(targetExtType, 0);
-				if i >= 0 then EditorZxtUnloadFreeRemove(i) else exit;
-			until 1 = 0;
-		end;
-
-	procedure EditorEditZxtInfo(var state: TTextWindowState);
-		var
-			i: integer;
-			iPos: integer;
-			extBlock: TExtensionBlock;
-			extBlockO: PTExtensionBlock;
-			filename: TFilenameString;
-			tmpPtr: pointer;
-			exitRequested: boolean;
-			posToEditorInfo: array[1 .. 64] of byte;
-		procedure AppendInfoLine;
-			begin
-				Inc(iPos);
-				New(state.Lines[iPos]);
-				posToEditorInfo[iPos] := i;
-			end;
-		begin
-			state.Title := 'Extension Settings';
-			state.LinePos := 1;
-			exitRequested := false;
-
-			repeat
-				state.Selectable := true;
-				iPos := 0;
-				for i := 1 to EDITOR_ZXT_INFOS_COUNT do begin
-					AppendInfoLine;
-					with EditorZxtInfos[i] do begin
-						if ExtensionEnabled[ExtType] then begin
-							extBlockO := ZxtBlockGetByType(ExtType, 0);
-							if (extBlockO^.Header.Flags and $1F) = $08 then
-								state.Lines[iPos]^ := '[x] ' + Name
-							else
-								state.Lines[iPos]^ := '[X] ' + Name;
-						end else
-							state.Lines[iPos]^ := '[ ] ' + Name;
-{$IFNDEF NEC98}
-						if ExtType = ExtZZOCustomCharset then begin
-							if VideoEGAInstalled then begin
-								AppendInfoLine;
-								state.Lines[iPos]^ := '!loadchr;Load character set from .CHR';
-							end;
-						end;
-{$ENDIF}
-					end;
-				end;
-				AppendInfoLine;
-				state.Lines[iPos]^ := '!;Exit';
-				state.LineCount := iPos;
-
-				TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
-				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
-					with EditorZxtInfos[posToEditorInfo[state.LinePos]] do begin
-						{ Prepare extBlock }
-						extBlock.ExtType := ExtType;
-						ZxtGetExtId(ExtType, extBlock.Header.Id);
-						extBlock.Header.Flags := (ExtFlags and $EF) or $40;
-
-						if state.Hyperlink = 'loadchr' then begin
-{$IFNDEF NEC98}
-							i := 0;
-							filename := FileSelect('Load character set', '.CHR', i);
-							if Length(filename) <> 0 then begin
-								i := 0;
-								extBlock.Header.FieldLength := FileReadAll(filename + '.CHR', extBlock.Data, 256 * 14);
-								if extBlock.Header.FieldLength = 256 * 14 then begin
-									if VideoSetCharset(extBlock.Data, 14) then begin
-										if ZxtBlockAppend(ZXT_APPEND_END, extBlock) then begin
-											i := 1;
-										end;
-									end;
-								end;
-								if i = 0 then EditorZxtFree(extBlock);
-							end else begin
-								EditorZxtUnloadFreeRemoveByType(ExtType);
-							end;
-{$ENDIF}
-						end else case state.Lines[state.LinePos]^[2] of
-							{ [ ] -> [x] -> [X] -> [ ] }
-							' ': if (ExtFlags and FZxtEditorCustomAdd) = 0 then begin
-								extBlock.Header.FieldLength := 0;
-								if ZxtBlockAppend(ZXT_APPEND_END, extBlock) then begin end;
-							end;
-							'x': if (ExtFlags and $10) <> 0 then begin 
-								if ZxtBlockGetCountByType(ExtType) = 1 then begin
-									extBlockO := ZxtBlockGetByType(ExtType, 0);
-									extBlockO^.Header.Flags := ExtFlags;
-								end;
-							end else begin
-								EditorZxtUnloadFreeRemoveByType(ExtType);
-							end;
-							'X': begin
-								EditorZxtUnloadFreeRemoveByType(ExtType);
-							end;
-						end;
-					end;
-					wasModified := true;
-				end else begin
-					exitRequested := true;
-					TextWindowDrawClose(state);
-				end;
-
-				TextWindowFreeEdit(state);
-			until exitRequested;
-		end;
-
 	procedure EditorEditWorldInfo;
 		var
 			state: TTextWindowState;
@@ -870,7 +673,8 @@ procedure EditorLoop;
 						end;
 						4: begin
 							TextWindowFreeEdit(state);
-							EditorEditZxtInfo(state);
+							if ZxtEditorOpenSettings(state) then
+								wasModified := true;
 							exit;
 						end;
 					end
@@ -881,6 +685,14 @@ procedure EditorLoop;
 
 				TextWindowFreeEdit(state);
 			until exitRequested;
+		end;
+
+	procedure EditorEditZxtInfo;
+		var
+			state: TTextWindowState;
+		begin
+			if ZxtEditorOpenSettings(state) then
+				wasModified := true;
 		end;
 
 	procedure EditorEditStatText(statId: integer; prompt: string);
