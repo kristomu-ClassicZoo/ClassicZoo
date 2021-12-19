@@ -37,18 +37,70 @@ interface
 	function ZxtEditorOpenHyperlink(var state: TTextWindowState; var extBlock: TExtensionBlock; extType: TExtensionType): boolean;
 
 implementation
-uses Dos, ZVideo, Input;
+uses Dos, FileSel, ZVideo, Input;
 
 { START YOUR EDITS HERE }
 
 const
 	FZxtEditorCustomAdd = $8000;
-	EDITOR_ZXT_INFOS_COUNT = 1;
+{$IFDEF NEC98}
+	EDITOR_ZXT_INFOS_COUNT = 15;
+{$ELSE}
+	EDITOR_ZXT_INFOS_COUNT = 16;
+{$ENDIF}
 	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
 		(
+			(ExtType: ExtFixPutBottomRow;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: #PUT on bottom row'),
+			(ExtType: ExtFixBlinkWallShift;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Blink wall shift to left'),
+			(ExtType: ExtFixConveyorStatSwapping;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Conveyor stat swapping'),
+			(ExtType: ExtFixConveyorStatCheck;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Conveyor statless movement'),
+			(ExtType: ExtFixConveyorMissingFinalDraw;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Conveyor visual bug'),
+			(ExtType: ExtFixKoopoBug;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Duplicator "Koopo" bug'),
+			(ExtType: ExtFixBindDoubleFree;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Nested #BIND calls'),
+			(ExtType: ExtFixRecursiveElementPush;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Recursive element push'),
+{$IFNDEF NEC98}
+			(ExtType: ExtZZOCustomCharset;
+			ExtFlags: FZxtExtPlayingShould or FZxtEditorCustomAdd;
+			Name: 'GFX: Custom character set';
+			HasHyperlink: true),
+{$ENDIF}
+			(ExtType: ExtGMDirByAt;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: BY/AT directions'),
+			(ExtType: ExtDieItem;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: #DIE ITEM'),
+			(ExtType: ExtDieUnderTile;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: #DIE preserves tile under'),
+			(ExtType: ExtIfRnd;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: #IF RND'),
 			(ExtType: ExtUnlockExtensions;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
-			Name: 'OOP: #IFEXT')
+			Name: 'OOP: #IFEXT'),
+			(ExtType: ExtGMPutPlayer;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: #PUTPLAYER'),
+			(ExtType: ExtQuirkArgTile2;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'QUIRK: World uses argTile2 trick')
 		);
 
 { END YOUR EDITS HERE }
@@ -83,10 +135,38 @@ procedure EditorZxtUnloadFreeRemoveByType(targetExtType: TExtensionType);
 
 { START YOUR EDITS HERE }
 
+{$IFNDEF NEC98}
+function EditZZOCharsetSettings(var state: TTextWIndowState; var extBlock: TExtensionBlock): boolean;
+	var
+		i: integer;
+		filename: string;
+	begin
+		i := 0;
+		filename := FileSelect('Load character set', '.CHR', i);
+		if Length(filename) <> 0 then begin
+			i := 0;
+			extBlock.Header.FieldLength := FileReadAll(filename + '.CHR', extBlock.Data, 256 * 14);
+			if extBlock.Header.FieldLength = 256 * 14 then begin
+				if VideoSetCharset(extBlock.Data, 14) then begin
+					if ZxtBlockAppend(ZXT_APPEND_END, extBlock) then begin
+						i := 1;
+					end;
+				end;
+			end;
+			if i = 0 then EditorZxtFree(extBlock);
+		end else begin
+			EditorZxtUnloadFreeRemoveByType(extBlock.ExtType);
+		end;
+	end;
+{$ENDIF}
+
 function ZxtEditorOpenHyperlink(var state: TTextWindowState; var extBlock: TExtensionBlock; extType: TExtensionType): boolean;
 	begin
 		ZxtEditorOpenHyperlink := false;
-		{ if extType = ExtWithHyperlink then ... }
+{$IFNDEF NEC98}
+		if extType = ExtZZOCustomCharset then
+			ZxtEditorOpenHyperlink := EditZZOCharsetSettings(state, extBlock);
+{$ENDIF}			
 	end;
 
 { END YOUR EDITS HERE }
