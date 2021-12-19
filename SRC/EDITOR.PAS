@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, ZxtMgr, Video, Sounds, Input, Elements, Oop, Game;
+uses Dos, Crt, ZxtEdit, ZxtMgr, Video, Sounds, Input, Elements, Oop, Game;
 
 type
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
@@ -347,6 +347,14 @@ procedure EditorLoop;
 			until exitRequested;
 
 			TextWindowFree(state);
+		end;
+
+	procedure EditorEditZxtInfo;
+		var
+			state: TTextWindowState;
+		begin
+			if ZxtEditorOpenSettings(state) then
+				wasModified := true;
 		end;
 
 	procedure EditorEditStatText(statId: integer; prompt: string);
@@ -909,6 +917,9 @@ procedure EditorLoop;
 					end;
 					'T': begin
 						EditorTransferBoard;
+					end;
+					'W': begin
+						EditorEditZxtInfo;
 					end;
 					KEY_ENTER: begin
 						if GetStatIdAt(cursorX, cursorY) >= 0 then begin
