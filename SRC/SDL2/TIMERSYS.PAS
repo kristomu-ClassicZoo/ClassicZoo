@@ -64,6 +64,7 @@ var
 
 procedure AccurateDelay(ms: word);
 	begin
+		if DemoFastForward then exit;
 		SDL_Delay(ms);
 	end;
 
@@ -74,6 +75,7 @@ procedure AudioCallback(userdata: pointer; stream: PUint8; len: Int32); cdecl;
 
 procedure TimerSysIdle(mode: TIdleMode);
 	begin
+		if DemoFastForward then exit;
 		SDL_LockMutex(TimerMutexes[mode]);
 		SDL_CondWait(TimerConds[mode], TimerMutexes[mode]);
 		SDL_UnlockMutex(TimerMutexes[mode]);

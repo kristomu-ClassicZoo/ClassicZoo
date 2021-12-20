@@ -98,6 +98,7 @@ procedure AccurateDelay(ms: word);
 		iterations: longint;
 		unchanged: word;
 	begin
+		if DemoFastForward then exit;
 		iterations := DelayLoopIterations * ms;
 		if iterations <> 0 then
 			iterations := AccurateDelayLoop(iterations, unchanged);
@@ -111,6 +112,7 @@ procedure AccurateDelayCalibrate;
 procedure AccurateDelay(ms: word);
 	begin
 		{ Free Pascal contains properly calibrated delay logic. }
+		if DemoFastForward then exit;
 		Delay(ms);
 	end;
 {$ENDIF}

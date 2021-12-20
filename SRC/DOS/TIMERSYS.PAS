@@ -101,6 +101,7 @@ procedure AccurateDelay(ms: word);
 		iterations: longint;
 		unchanged: word;
 	begin
+		if DemoFastForward then exit;
 {$IFDEF ZETAEMU}
 		if ZetaDetected then begin
 			ZetaDelay(ms);
@@ -119,6 +120,7 @@ procedure AccurateDelayCalibrate;
 
 procedure AccurateDelay(ms: word);
 	begin
+		if DemoFastForward then exit;
 		{ Free Pascal contains properly calibrated delay logic. }
 {$IFDEF ZETAEMU}
 		if ZetaDetected then begin
