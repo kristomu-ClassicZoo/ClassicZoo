@@ -30,6 +30,7 @@ unit FileSel;
 interface
 	uses GameVars;
 	function FileExists(name: TFilenameString): boolean;
+	function FileReadAll(name: TFilenameString; var fdata: pointer; maxSize: word): word;
 	function FileSelect(title, extension: TString50; var cachedLinePos: integer): TFilenameString;
 
 implementation
@@ -54,6 +55,28 @@ function FileExists(name: TFilenameString): boolean;
 		end else begin
 			FileExists := false;
 		end;
+	end;
+
+function FileReadAll(name: TFilenameString; var fdata: pointer; maxSize: word): word;
+	var
+		f: file;
+		fsize: longint;
+		bsize: word;
+	begin
+		bsize := 0;
+
+		AssignFSys(f, name);
+		Reset(f, 1);
+		if IOResult = 0 then begin
+			fsize := FileSize(f);
+			bsize := maxSize;
+			if (fsize < bsize) then bsize := fsize;
+			GetMem(fdata, bsize);
+			BlockRead(f, fdata^, bsize);
+			Close(f);
+		end;
+
+		FileReadAll := bsize;
 	end;
 
 function FileSelect(title, extension: TString50; var cachedLinePos: integer): TFilenameString;
@@ -83,8 +106,12 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 			TextWindowInitState(textWindow);
 {$IFDEF SUBDIRS}
 			GetDir(0, curPath);
-			if Length(curPath) > PATH_PREVIEW_LENGTH then
-				previewPath := '...' + Copy(curPath, Length(curPath) - PATH_PREVIEW_LENGTH + 1, PATH_PREVIEW_LENGTH)
+
+			i := PATH_PREVIEW_LENGTH;
+			if (42 - 4 - Length(title)) < i then
+				i := 42 - 4 - Length(title);
+			if Length(curPath) > i then
+				previewPath := '...' + Copy(curPath, Length(curPath) - i + 1, i)
 			else
 				previewPath := curPath;
 			textWindow.Title := title + ': ' + previewPath;
