@@ -92,7 +92,6 @@ interface
 	procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 	procedure TransitionDrawBoardChange;
 	procedure GameUpdateSidebar;
-	procedure GameAboutScreen;
 	procedure GamePlayLoop(boardChanged: boolean);
 	procedure DisplayMessage(time: integer; message: string);
 	procedure BoardEnter;
@@ -136,7 +135,7 @@ DebugWnd,
 {$IFDEF ZETAEMU}
 ZetaSupp,
 {$ENDIF}
-Dos, FileSel, FileSys, ExtMem, ZVideo, Sounds, TimerSys, Input, Elements, Editor, Oop;
+Dos, FileSel, FileSys, GameConf, ExtMem, ZVideo, Sounds, TimerSys, Input, Elements, Editor, Oop;
 
 function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
 	begin
@@ -1945,74 +1944,6 @@ procedure GameDebugPrompt;
 {$IFNDEF EDITONLY}
 		GameUpdateSidebar;
 {$ENDIF}
-	end;
-
-procedure GameAboutScreen;
-	begin
-		TextWindowDisplayFile('ABOUT.HLP', 'About ClassicZoo...');
-	end;
-
-procedure GameOptionsScreen;
-	var
-		state: TTextWindowState;
-		i: integer;
-		numStr: TString50;
-		exitRequested: boolean;
-	begin
-		state.Title := 'Options...';
-		TextWindowDrawOpen(state);
-		state.LinePos := 1;
-		exitRequested := false;
-
-		repeat
-			state.Selectable := true;
-			state.LineCount := 6;
-			for i := 1 to state.LineCount do
-				New(state.Lines[i]);
-
-			state.Lines[1]^ := '!;Compatibility: ';
-			if HighCompatAuto then
-				state.Lines[1]^ := state.Lines[1]^ + 'Automatic'
-			else if HighCompat then
-				state.Lines[1]^ := state.Lines[1]^ + 'Strict'
-			else
-				state.Lines[1]^ := state.Lines[1]^ + 'Normal';
-
-			state.Lines[2]^ := '!;Sound: ';
-			if SoundEnabled then
-				state.Lines[2]^ := state.Lines[2]^ + 'On'
-			else
-				state.Lines[2]^ := state.Lines[2]^ + 'Off';
-
-			state.Lines[3]^ := '_________________________________________';
-			state.Lines[4]^ := '';
-			state.Lines[5]^ := '!;About ClassicZoo...';
-			state.Lines[6]^ := '!;Exit';
-
-			TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
-			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 6) then begin
-				case state.LinePos of
-					1: begin
-						if HighCompatAuto then
-							HighCompatAuto := false
-						else
-							HighCompat := not HighCompat;
-					end;
-					2: begin
-						SoundEnabled := not SoundEnabled;
-						SoundClearQueue;
-					end;
-					5: begin
-						GameAboutScreen;
-					end;
-				end;
-			end else begin
-				exitRequested := true;
-				TextWindowDrawClose(state);
-			end;
-
-			TextWindowFreeEdit(state);
-		until exitRequested;
 	end;
 
 procedure GameOnStart;

@@ -30,6 +30,9 @@ unit AudioSim;
 interface
 	var
 		AudioSimulationAllowed: boolean;
+	{ Volume range: 0-127 }
+	function AudioGetVolume: byte;
+	procedure AudioSetVolume(volume: byte);
 	procedure AudioSimulateClear;
 	procedure AudioSimulate(stream: PUint8; len: Int32);
 
@@ -42,13 +45,24 @@ const
 	SAMPLES_PER_PIT = 2640;
 	SAMPLES_PER_DRUM = 48;
 	SAMPLES_NOTE_DELAY = 16;
-	AUDIO_MIN = 64;
-	AUDIO_NONE = 128;
-	AUDIO_MAX = 192;
 var
+	AudioSampleMin, AudioSampleNone, AudioSampleMax: byte;
 	CurrentNote: Int32;
 	CurrentNotePos: Uint32;
 	CurrentNoteMax: Uint32;
+
+function AudioGetVolume: byte;
+	begin
+		AudioGetVolume := AudioSampleMax - 128;
+	end;
+
+procedure AudioSetVolume(volume: byte);
+	begin
+		if volume > 127 then volume := 127;
+		AudioSampleNone := 128;
+		AudioSampleMin := 128 - volume;
+		AUdioSampleMax := 128 + volume;
+	end;
 
 procedure AudioSimulateClear;
 	begin
@@ -86,9 +100,9 @@ procedure AudioSimNoteTo(targetNotePos: Uint32; frequency: Uint32; stream: PUint
 		if iMax > 0 then for i := 0 to iMax - 1 do begin
 			samplePos := CurrentNotePos + i;
 			if (samplePos mod samplesPerChange) < (samplesPerChange / 2.0) then
-				stream[streamPos + i] := AUDIO_MIN
+				stream[streamPos + i] := AudioSampleMin
 			else
-				stream[streamPos + i] := AUDIO_MAX;
+				stream[streamPos + i] := AudioSampleMax;
 		end;
 		AudioSimJumpBy(iMax, streamPos);
 	end;
@@ -98,10 +112,10 @@ procedure AudioSimSilenceTo(targetNotePos: Uint32; stream: PUint8; var streamPos
 		i, iMax: Uint32;
 		v: byte;
 	begin
-		v := AUDIO_NONE;
+		v := AudioSampleNone;
 		iMax := AudioSimCalcJump(targetNotePos, streamPos, streamLen);
 		if iMax > 0 then for i := 0 to iMax - 1 do
-			stream[streamPos + i] := AUDIO_NONE;
+			stream[streamPos + i] := AudioSampleNone;
 		AudioSimJumpBy(iMax, streamPos);
 	end;
 
@@ -117,7 +131,7 @@ procedure AudioSimulate(stream: PUint8; len: Int32);
 		if (not SoundEnabled) or (not SoundIsPlaying) or (not AudioSimulationAllowed) then begin
 			CurrentNote := -1;
 			for i := 0 to len - 1 do
-				stream[i] := AUDIO_NONE;
+				stream[i] := AudioSampleNone;
 		end else begin
 			pos := 0;
 			while pos < len do begin
@@ -125,7 +139,7 @@ procedure AudioSimulate(stream: PUint8; len: Int32);
 					if SoundBufferPos >= Length(SoundBuffer) then begin
 						SoundIsPlaying := false;
 						for i := pos to len - 1 do
-							stream[i] := AUDIO_NONE;
+							stream[i] := AudioSampleNone;
 						break;
 					end else begin
 						{ pop note }
@@ -168,4 +182,5 @@ procedure AudioSimulate(stream: PUint8; len: Int32);
 begin
 	CurrentNote := -1;
 	AudioSimulationAllowed := false;
+	AudioSetVolume(48);
 end.
