@@ -628,15 +628,15 @@ procedure EditorLoop;
 
 			repeat
 				state.Selectable := true;
-				state.LineCount := 4;
+				state.LineCount := 5;
 				for i := 1 to state.LineCount do
 					New(state.Lines[i]);
 
 				Str(World.Info.Health, numStr);
-				state.Lines[1]^  := ' Starting health: ' + numStr;
-				state.Lines[2]^  := '';
-				state.Lines[3]^  := '!;Delete board';
-				state.Lines[4]^  := '!;Configure extensions';
+				state.Lines[1]^ := ' Starting health: ' + numStr;
+				state.Lines[2]^ := '';
+				state.Lines[3]^ := '!;Delete board';
+				state.Lines[4]^ := '!;Configure extensions';
 				state.Lines[5]^ := '!;Exit';
 
 				TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
