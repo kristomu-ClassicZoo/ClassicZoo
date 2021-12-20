@@ -77,10 +77,25 @@ interface
 	procedure InputReadWaitKey;
 	function InputConfigure: boolean;
 
+{DEFINE DEBUG_INPUT_FLAGS}
+
 implementation
 uses Keys, Sounds, TimerSys, SDL2;
 
+type
+	TKeyPress = record
+		Value: char;
+		Hsecs: word;
+		Flags: byte;
+	end;
+
 const
+	MAX_KEYS_PRESSED = 16;
+	KP_PRESSED = $01;
+	KP_HELD = $02;
+	KP_REPEATED = $04;
+	JOY_REPEAT_HSECS_DELAY = 25;
+	JOY_REPEAT_HSECS_DELAY_NEXT = 4;
 	PCScancodeMap: array[0 .. 83] of Byte = (
 {  0 } 0,
 {  1 } 0, 0, 0,
@@ -98,7 +113,81 @@ const
 	);
 
 var
-	InputKeyBuffer: string;
+	KeysPressed: array[1 .. MAX_KEYS_PRESSED] of TKeyPress;
+	KeysPressedPos: integer;
+
+procedure InputSetKeyPressed(key: char; oneTime: boolean; isRepeat: boolean);
+	var
+		i, kid, kid2: integer;
+		newHsecs: word;
+	begin
+		{ if isPressed and (key in [KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT]) then begin
+			InputSetKeyPressed(KEY_UP, false, false, false);
+			InputSetKeyPressed(KEY_DOWN, false, false, false);
+			InputSetKeyPressed(KEY_LEFT, false, false, false);
+			InputSetKeyPressed(KEY_RIGHT, false, false, false);
+		end; }
+
+		kid := 0;
+		for i := 1 to MAX_KEYS_PRESSED do with KeysPressed[i] do begin
+			if (Value = key) and (isRepeat or ((Flags and KP_HELD) <> 0)) then begin
+				kid := i;
+				break;
+			end;
+		end;
+
+		if (kid = 0) then begin
+			for i := 1 to MAX_KEYS_PRESSED do begin
+				if KeysPressed[i].Flags = 0 then begin
+					kid := i;
+					break;
+				end;
+			end;
+		end;
+
+		if kid > 0 then begin
+			with KeysPressed[kid] do begin
+				if isRepeat and ((Flags and KP_HELD) <> 0) then exit;
+				Value := key;
+				Hsecs := TimerSysGetHsecs + JOY_REPEAT_HSECS_DELAY;
+				Flags := KP_PRESSED;
+				if not oneTime then Flags := Flags or KP_HELD;
+{$IFDEF DEBUG_INPUT_FLAGS}
+				WriteLn('flag changed by press');
+				WriteLn(Flags);
+{$ENDIF}
+				{ Anti-skating }
+				if key in [KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT] then begin
+					newHsecs := TimerSysGetHsecs + JOY_REPEAT_HSECS_DELAY_NEXT;
+					for kid2 := 1 to MAX_KEYS_PRESSED do with KeysPressed[kid2] do begin
+						if (Value in [KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT]) then
+							if Hsecs < newHsecs then
+								Hsecs := newHsecs;
+					end;
+				end;
+			end;
+		end;
+	end;
+
+procedure InputClearKeyPressed(key: char; forceClear: boolean);
+	var
+		i: integer;
+	begin
+		for i := 1 to MAX_KEYS_PRESSED do begin
+			with KeysPressed[i] do begin
+				if Value = key then begin
+					Flags := Flags and (not KP_HELD);
+					if forceClear or ((Flags and KP_REPEATED) <> 0) then begin
+						Flags := Flags and (not KP_PRESSED) and (not KP_REPEATED);
+					end;
+{$IFDEF DEBUG_INPUT_FLAGS}
+					WriteLn('flag changed by clear');
+					WriteLn(Flags);
+{$ENDIF}
+				end;
+			end;
+		end;
+	end;
 
 procedure InputUpdateKeymod(kmod: Uint16);
 	begin
@@ -115,20 +204,23 @@ procedure InputUpdate;
 		event: TSDL_Event;
 		scode, kcode: Uint32;
 		k: char;
+		i: integer;
+		localHsecs, hsecsDiff: word;
 	begin
 		InputDeltaX := 0;
 		InputDeltaY := 0;
 		InputShiftPressed := false;
 		InputJoystickMoved := false;
+		localHsecs := TimerSysGetHsecs;
 
 		while SDL_PollEvent(@event) <> 0 do begin
 			case event.type_ of
 				SDL_TEXTINPUT: begin
 					k := event.text.text[0];
 					if (Byte(k) >= 32) and (Byte(k) < 127) then
-						InputKeyBuffer := InputKeyBuffer + k;
+						InputSetKeyPressed(k, true, false);
 				end;
-				SDL_KEYDOWN: begin
+				SDL_KEYDOWN, SDL_KEYUP: begin
 					InputUpdateKeymod(event.key.keysym._mod);
 					scode := Uint32(event.key.keysym.scancode);
 					kcode := Uint32(event.key.keysym.sym);
@@ -152,41 +244,60 @@ procedure InputUpdate;
 						k := Char(Integer(PCScancodeMap[scode]) + 128);
 					end else k := #0;
 					if ((Byte(k) and $7F) <> 0) and not ((Byte(k) >= 32) and (Byte(k) < 127)) then
-						InputKeyBuffer := InputKeyBuffer + k;
-				end;
-				SDL_KEYUP: begin
-					InputUpdateKeymod(event.key.keysym._mod);
+						if event.type_ = SDL_KEYDOWN then
+							InputSetKeyPressed(k, false, event.key._repeat <> 0)
+						else
+							InputClearKeyPressed(k, false);
 				end;
 			end;
 		end;
 
-		if Length(InputKeyBuffer) <> 0 then begin
-			InputKeyPressed := InputKeyBuffer[1];
-			if Length(InputKeyBuffer) = 1 then
-				InputKeyBuffer := ''
-			else
-				InputKeyBuffer := Copy(InputKeyBuffer, Length(InputKeyBuffer) - 1, 1);
-
-			case InputKeyPressed of
-				KEY_UP, '8': begin
-					InputDeltaX := 0;
-					InputDeltaY := -1;
+		InputKeyPressed := #0;
+		for i := 1 to MAX_KEYS_PRESSED do begin
+			with KeysPressed[KeysPressedPos + 1] do begin
+				if ((Flags and (KP_PRESSED or KP_HELD)) = KP_HELD) then begin
+					hsecsDiff := Hsecs - localHsecs;
+					if hsecsDiff >= 32768 then begin
+						Hsecs := localHsecs + JOY_REPEAT_HSECS_DELAY_NEXT;
+						Flags := (Flags or KP_PRESSED) or KP_REPEATED;
+{$IFDEF DEBUG_INPUT_FLAGS}
+						WriteLn('flag changed by hsecs diff');
+						WriteLn(Flags);
+{$ENDIF}
+					end;
 				end;
-				KEY_LEFT, '4': begin
-					InputDeltaX := -1;
-					InputDeltaY := 0;
-				end;
-				KEY_RIGHT, '6': begin
-					InputDeltaX := 1;
-					InputDeltaY := 0;
-				end;
-				KEY_DOWN, '2': begin
-					InputDeltaX := 0;
-					InputDeltaY := 1;
+				if ((Flags and KP_PRESSED) = KP_PRESSED) then begin
+					Flags := Flags and (not KP_PRESSED);
+{$IFDEF DEBUG_INPUT_FLAGS}
+					WriteLn('flag changed by unpress');
+					WriteLn(Flags);
+{$ENDIF}
+					InputKeyPressed := Value;
+					KeysPressedPos := (KeysPressedPos + 1) mod MAX_KEYS_PRESSED;
+					break;
 				end;
 			end;
-		end else begin
-			InputKeyPressed := #0;
+
+			KeysPressedPos := (KeysPressedPos + 1) mod MAX_KEYS_PRESSED;
+		end;
+
+		case InputKeyPressed of
+			KEY_UP, '8': begin
+				InputDeltaX := 0;
+				InputDeltaY := -1;
+			end;
+			KEY_LEFT, '4': begin
+				InputDeltaX := -1;
+				InputDeltaY := 0;
+			end;
+			KEY_RIGHT, '6': begin
+				InputDeltaX := 1;
+				InputDeltaY := 0;
+			end;
+			KEY_DOWN, '2': begin
+				InputDeltaX := 0;
+				InputDeltaY := 1;
+			end;
 		end;
 
 		if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
@@ -228,5 +339,6 @@ begin
 	InputMouseActivationY := 60;
 	InputMouseButtonX := 0;
 	InputMouseButtonY := 0;
-	InputKeyBuffer := '';
+
+	KeysPressedPos := 0;
 end.
