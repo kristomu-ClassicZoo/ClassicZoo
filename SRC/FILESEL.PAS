@@ -35,9 +35,9 @@ interface
 
 implementation
 {$IFDEF SDL2}
-uses SysUtils, Game, TxtWind, FileSys;
+uses SysUtils, Game, Input, TxtWind, FileSys;
 {$ELSE}
-uses Dos, Game, TxtWind, FileSys;
+uses Dos, Game, Input, TxtWind, FileSys;
 {$ENDIF}
 const
 	PATH_PREVIEW_LENGTH = 24;
@@ -202,6 +202,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 			TextWindowDrawOpen(textWindow);
 			TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT);
 			TextWindowDrawClose(textWindow);
+			InputKeyPressed := #0;
 
 			if (textWindow.LinePos = textWindow.LineCount) or TextWindowRejected then begin
 				{ Exit }
