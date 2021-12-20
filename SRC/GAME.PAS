@@ -34,7 +34,6 @@ interface
 		PROMPT_ALPHANUM = 1;
 		PROMPT_ANY = 2;
 	function TileOutOfBounds(x, y: integer): boolean;
-	function ZRandom(max: integer): integer;
 	procedure SidebarClearLine(y: integer);
 	procedure SidebarClear;
 	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
@@ -84,8 +83,6 @@ interface
 	function BoardPrepareTileForPlacement(x, y: integer): boolean;
 	procedure MoveStat(statId: integer; newX, newY: integer);
 	procedure PopupPromptString(question: string; var buffer: TString50; maxLen: integer);
-	function Signum(val: integer): integer;
-	function Difference(a, b: integer): integer;
 	procedure DamageStat(attackerStatId: integer);
 	procedure BoardDamageTile(x, y: integer);
 	procedure BoardAttack(attackerStatId: integer; x, y: integer);
@@ -140,7 +137,7 @@ DebugWnd,
 {$IFDEF ZETAEMU}
 ZetaSupp,
 {$ENDIF}
-Dos, FileSel, FileSys, GameConf, ExtMem, ZxtMgr, ZVideo, Sounds, TimerSys, ZDemo, Input, Elements, Editor, Oop;
+Dos, FileSel, FileSys, GameConf, ExtMem, ZxtMgr, ZVideo, Sounds, TimerSys, ZDemo, Input, Elements, Editor, Oop, ZMath;
 
 function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
 	begin
@@ -154,19 +151,6 @@ function TileOutOfBounds(x, y: integer): boolean;
 	begin
 		TileOutOfBounds := (x < 0) or (y < 0) or (x > (BOARD_WIDTH + 1)) or (y > (BOARD_HEIGHT + 1));
 	end;
-
-{$IFDEF FPC}
-function ZRandom(max: integer): integer;
-	begin
-		RandSeed := (LongInt(RandSeed) * 134775813) + 1;
-		ZRandom := (LongInt(RandSeed) shr 16) mod max;
-	end;
-{$ELSE}
-function ZRandom(max: integer): integer;
-	begin
-		ZRandom := Random(max);
-	end;
-{$ENDIF}
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -1604,24 +1588,6 @@ procedure PopupPromptString(question: string; var buffer: TString50; maxLen: int
 		for y := 18 to 23 do
 			for x := 3 to (TextWindowWidth + 3) do
 				BoardDrawTile(x + 1, y + 1);
-	end;
-
-function Signum(val: integer): integer;
-	begin
-		if val > 0 then
-			Signum := 1
-		else if val < 0 then
-			Signum := -1
-		else
-			Signum := 0;
-	end;
-
-function Difference(a, b: integer): integer;
-	begin
-		if (a - b) >= 0 then
-			Difference := a - b
-		else
-			Difference := b - a;
 	end;
 
 procedure GameDemoUpdateSidebar;

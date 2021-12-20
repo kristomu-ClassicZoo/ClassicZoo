@@ -40,7 +40,7 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-ZxtMgr, Sounds, TxtWind, Game, Elements;
+ZxtMgr, Sounds, TxtWind, Game, Elements, ZMath;
 
 procedure OopError(statId: integer; message: string);
 	begin

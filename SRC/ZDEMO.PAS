@@ -66,7 +66,7 @@ interface
 	function DemoSoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 
 implementation
-uses Dos, Crt, GameVars, Game, Input, Sounds, TimerSys;
+uses Dos, Crt, GameVars, Input, Sounds, TimerSys, ZMath;
 
 type
 	DemoMode = (
