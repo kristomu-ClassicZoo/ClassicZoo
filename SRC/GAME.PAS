@@ -33,6 +33,7 @@ interface
 		PROMPT_NUMERIC = 0;
 		PROMPT_ALPHANUM = 1;
 		PROMPT_ANY = 2;
+	function TileOutOfBounds(x, y: integer): boolean;
 	procedure SidebarClearLine(y: integer);
 	procedure SidebarClear;
 	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
@@ -143,6 +144,11 @@ function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
 		tx := (seed - 1) and $3F;
 		ty := ((seed - 1) shr 6) and $3F;
 		LFSR11UpdateSeed := seed = LFSR11_START;
+	end;
+
+function TileOutOfBounds(x, y: integer): boolean;
+	begin
+		TileOutOfBounds := (x < 0) or (y < 0) or (x > (BOARD_WIDTH + 1)) or (y > (BOARD_HEIGHT + 1));
 	end;
 
 procedure SidebarClearLine(y: integer);
@@ -1343,6 +1349,14 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			oldY := Y;
 
 			iUnder := Under;
+{$IFDEF MEMBOUND}
+			if TileOutOfBounds(newX, newY) then begin
+				Board.Tiles[oldX][oldY] := iUnder;
+				X := newX;
+				Y := newY;
+				BoardDrawTile(oldX, oldY);
+			end else begin
+{$ENDIF}
 			Under := Board.Tiles[newX][newY];
 
 			with Board.Tiles[oldX][oldY] do begin
@@ -1363,6 +1377,9 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 
 			BoardDrawTile(X, Y);
 			BoardDrawTile(oldX, oldY);
+{$IFDEF MEMBOUND}
+			end;
+{$ENDIF}
 
 {$IFDEF DEBUGWND}
 			if DebugUndefEnabled and ((X > 61) or (Y > 26)) then begin
