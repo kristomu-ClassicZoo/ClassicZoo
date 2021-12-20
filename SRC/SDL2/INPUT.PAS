@@ -119,6 +119,7 @@ var
 procedure InputSetKeyPressed(key: char; oneTime: boolean; isRepeat: boolean);
 	var
 		i, kid, kid2: integer;
+		anyPressed: boolean;
 		newHsecs: word;
 	begin
 		{ if isPressed and (key in [KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT]) then begin
@@ -128,17 +129,26 @@ procedure InputSetKeyPressed(key: char; oneTime: boolean; isRepeat: boolean);
 			InputSetKeyPressed(KEY_RIGHT, false, false, false);
 		end; }
 
+		anyPressed := false;
+
 		kid := 0;
 		for i := 1 to MAX_KEYS_PRESSED do with KeysPressed[i] do begin
-			if (Value = key) and (isRepeat or ((Flags and KP_HELD) <> 0)) then begin
-				kid := i;
-				break;
+			anyPressed := anyPressed or ((Flags and (KP_PRESSED or KP_HELD)) <> 0);
+			if (Value = key) and ((Flags and (KP_PRESSED or KP_HELD)) <> 0) then begin
+				if (isRepeat or ((Flags and KP_HELD) <> 0)) then begin
+					kid := i;
+					break;
+				end;
 			end;
 		end;
 
+		if not anyPressed then begin
+			KeysPressedPos := 0;
+		end;
+
 		if (kid = 0) then begin
-			for i := 1 to MAX_KEYS_PRESSED do begin
-				if KeysPressed[i].Flags = 0 then begin
+			for i := (KeysPressedPos + 1) to MAX_KEYS_PRESSED do with KeysPressed[i] do begin
+				if ((Flags and (KP_PRESSED or KP_HELD)) = 0) then begin
 					kid := i;
 					break;
 				end;
