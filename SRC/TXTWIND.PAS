@@ -265,6 +265,8 @@ procedure TextWindowAppend(var state: TTextWindowState; line: TTextWindowLine);
 		len: integer;
 	begin
 		with state do begin
+			if LineCount >= MAX_TEXT_WINDOW_LINES then exit;
+
 			len := Length(line);
 			if len > MAX_LINE_LENGTH then len := MAX_LINE_LENGTH;
 
