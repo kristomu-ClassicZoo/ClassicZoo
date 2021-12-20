@@ -57,7 +57,7 @@ interface
 	procedure VideoInvert(x1, y1, x2, y2: integer);
 
 implementation
-uses Crt, Dos;
+uses Crt, Dos, TimerSys;
 
 {$F+}
 
@@ -456,7 +456,6 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 			end;
 		end;
 	end;
-
 
 begin
 	VideoColumns := 80;

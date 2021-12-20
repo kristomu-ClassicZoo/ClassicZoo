@@ -24,6 +24,10 @@
 
 {$I-}
 {$V-}
+{$IFDEF FPC}
+{$PACKRECORDS 1}
+{$ENDIF}
+
 unit Editor;
 
 interface
@@ -45,7 +49,7 @@ interface
 		windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 
 implementation
-uses Dos, FileSel, ExtMem, ZxtEdit, ZxtMgr, ZVideo, Sounds, Input, Elements, Oop, Game;
+uses Dos, FileSel, FileSys, ExtMem, ZxtEdit, ZxtMgr, ZVideo, Sounds, TimerSys, Input, Elements, Oop, Game;
 
 type
 	TBoardShiftMode = (BoardShiftDelete);
@@ -929,7 +933,7 @@ procedure EditorLoop;
 				if i = 0 then begin
 					SavedBoardFileName := FileSelect('ZZT Boards', '.BRD', FileBoardCachedLinePos);
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
-						Assign(f, SavedBoardFileName + '.BRD');
+						AssignFSys(f, SavedBoardFileName + '.BRD');
 						Reset(f, 1);
 						if DisplayIOError then begin
 							Close(f);
@@ -973,7 +977,7 @@ procedure EditorLoop;
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
 						case EnsureIoTmpBufSize(WorldExt.BoardLen[World.Info.CurrentBoard]) of
 							0, 1: begin
-								Assign(f, SavedBoardFileName + '.BRD');
+								AssignFSys(f, SavedBoardFileName + '.BRD');
 								Rewrite(f, 1);
 								if DisplayIOError then begin
 									Close(f);
@@ -1738,7 +1742,11 @@ procedure HighScoresLoad;
 		f: file of THighScoreList;
 		i: integer;
 	begin
+{$IFDEF SDL2}
+		AssignFSys(f, World.Info.Name + '.HI');
+{$ELSE}
 		Assign(f, World.Info.Name + '.HI');
+{$ENDIF}
 		Reset(f);
 		if IOResult = 0 then begin
 			Read(f, HighScoreList);
@@ -1756,7 +1764,11 @@ procedure HighScoresSave;
 	var
 		f: file of THighScoreList;
 	begin
+{$IFDEF SDL2}
+		AssignFSys(f, World.Info.Name + '.HI');
+{$ELSE}
 		Assign(f, World.Info.Name + '.HI');
+{$ENDIF}
 		Rewrite(f);
 		Write(f, HighScoreList);
 		Close(f);

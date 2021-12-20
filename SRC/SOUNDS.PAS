@@ -26,11 +26,7 @@
 unit Sounds;
 
 interface
-	type
-		TDrumData = record
-			Len: integer;
-			Data: array[1 .. 15] of word;
-		end;
+	uses TimerSys;
 	var
 		SoundEnabled: boolean;
 		SoundBlockQueueing: boolean;
@@ -38,21 +34,9 @@ interface
 		SoundDurationMultiplier: byte;
 		SoundDurationCounter: byte;
 		SoundBuffer: string;
-		SoundOldVector: pointer;
 		SoundBufferPos: integer;
 		SoundIsPlaying: boolean;
-		TimerTicks: word;
-{$IFDEF NEC98}
-		TimerSubTicks: byte;
-		SoundOldVector07: pointer;
-		SoundFreqDivisor: longint;
-		SpeakerActive: boolean;
-{$ENDIF}
-{$IFDEF ZETAEMU}
-		ZetaDetected: boolean;
-{$ENDIF}
-	procedure AccurateDelayCalibrate;
-	procedure AccurateDelay(ms: word);
+	procedure SoundIdle(mode: TIdleMode);
 	procedure SoundQueue(priority: integer; pattern: string);
 	procedure SoundClearQueue;
 	function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
@@ -60,96 +44,19 @@ interface
 	function SoundParse(input: string): string;
 
 implementation
-uses
-{$IFDEF ZETAEMU}
-ZetaSupp,
-{$ENDIF}
-{$IFDEF NEC98}
-Pc98,
-{$ELSE}
-Crt,
-{$ENDIF}
-Dos;
 
 const
-	DELAY_LOOP_MAX_ITERATIONS = $7FFFFFFF;
 	SoundParseNoteTable: array['A' .. 'G'] of byte = (9, 11, 0, 2, 4, 5, 7);
 
-{$I SNDFREQ.INC}
-
-{$IFNDEF FPC}
-var
-	DelayLoopIterations: longint;
-
-function AccurateDelayLoop(iterations: longint; var monitor: word): longint;
+procedure SoundIdle(mode: TIdleMode);
 	begin
-		inline(
-			$8B/$BE/monitor/ { MOV DI, SS:[monitor] }
-			$8B/$86/monitor+2/ { MOV AX, SS:[monitor+2] }
-			$8E/$C0/ { MOV ES, AX }
-			$8B/$86/iterations/ { MOV AX, SS:[iterations] }
-			$8B/$96/iterations+2/ { MOV DX, SS:[iterations+2] }
-			$8B/$1D/ { MOV BX, [ES:DI] }
-		{ loop: }
-			$90/$90/ { NOP x 2 }
-			$83/$E8/$01/ { SUB AX, 1 }
-			$83/$DA/$00/ { SBB DX, 0 }
-			$72/$04/ { JC done }
-			$3B/$1D/ { CMP BX, [ES:DI] }
-			$74/$F2/ { JE loop }
-		{ done: }
-			$89/$86/AccurateDelayLoop/ { MOV AX, SS:[AccurateDelayLoop] }
-			$89/$96/AccurateDelayLoop+2 { MOV DX, SS:[AccurateDelayLoop+2] }
-		);
+		TimerSysIdle(mode);
 	end;
-
-procedure AccurateDelayCalibrate;
-	var
-		iterations: longint;
-		ticks: word;
-	begin
-		ticks := TimerTicks;
-		repeat until TimerTicks <> ticks;
-		iterations := AccurateDelayLoop(DELAY_LOOP_MAX_ITERATIONS, TimerTicks);
-		DelayLoopIterations := (DELAY_LOOP_MAX_ITERATIONS - iterations) div 55;
-	end;
-
-procedure AccurateDelay(ms: word);
-	var
-		iterations: longint;
-		unchanged: word;
-	begin
-{$IFDEF ZETAEMU}
-		if ZetaDetected then begin
-			ZetaDelay(ms);
-			exit;
-		end;
-{$ENDIF}
-		iterations := DelayLoopIterations * ms;
-		if iterations <> 0 then
-			iterations := AccurateDelayLoop(iterations, unchanged);
-	end;
-{$ELSE}
-procedure AccurateDelayCalibrate;
-	begin
-		{ I'm not sure if Free Pascal lets you do this, though. }
-	end;
-
-procedure AccurateDelay(ms: word);
-	begin
-		{ Free Pascal contains properly calibrated delay logic. }
-{$IFDEF ZETAEMU}
-		if ZetaDetected then begin
-			ZetaDelay(ms);
-			exit;
-		end;
-{$ENDIF}
-		Delay(ms);
-	end;
-{$ENDIF}
 
 procedure SoundQueue(priority: integer; pattern: string);
 	begin
+		TimerSysLockSoundBuffer;
+
 		if not SoundBlockQueueing and
 			(not SoundIsPlaying or (((priority >= SoundCurrentPriority) and (SoundCurrentPriority <> -1)) or (priority = -1))) then
 		begin
@@ -167,36 +74,29 @@ procedure SoundQueue(priority: integer; pattern: string);
 			end;
 			SoundIsPlaying := true;
 		end;
+
+		TimerSysUnlockSoundBuffer;
 	end;
 
 procedure SoundClearQueue;
 	begin
+		TimerSysLockSoundBuffer;
 		SoundBuffer := '';
 		SoundIsPlaying := false;
-		NoSound;
+		TimerSysUnlockSoundBuffer;
+
+		TimerSysStopSound;
 	end;
 
-procedure SoundPlayDrum(var drum: TDrumData);
-	var
-		i: integer;
-	begin
-		for i := 1 to drum.Len do begin
-			Sound(drum.Data[i]);
-{$IFDEF ZETAEMU}
-			if ZetaDetected then Delay(1) else
-{$ENDIF}
-			AccurateDelay(1);
-		end;
-		NoSound;
-	end;
-
+{ TODO: Can we get rid of the modulo here again? }
 function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 	var
+		hour, minute, sec, hSec: word;
 		hSecsDiff: word;
 		hSecsTotal: integer;
 	begin
-		hSecsTotal := (LongInt(TimerTicks) * 11) shr 1;
-		hSecsDiff := hSecsTotal - counter;
+		hSecsTotal := TimerSysGetHsecs;
+		hSecsDiff := Word((hSecsTotal - counter) + 6000) mod 6000;
 
 		if hSecsDiff >= duration then begin
 			SoundHasTimeElapsed := true;
@@ -204,69 +104,6 @@ function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 		end else begin
 			SoundHasTimeElapsed := false;
 		end;
-	end;
-
-{$IFDEF NEC98}
-procedure SoundUpdateFreqDivisor;
-	begin
-		if (Mem[0:$0501] and $80) = 0 then begin
-			Port[$71] := $D1;
-			Port[$71] := $83;
-			SoundFreqDivisor := 2457600;
-		end else begin
-			Port[$71] := $1A;
-			Port[$71] := $6B;
-			SoundFreqDivisor := 1996800; 
-		end;
-	end;
-{$ENDIF}
-
-procedure SoundTimerHandler;
-	interrupt;
-{$IFDEF NEC98}
-	var
-		regs: Registers;
-{$ENDIF}
-	begin
-{$IFDEF NEC98}
-		Intr($07, regs);
-		SoundUpdateFreqDivisor;
-		Inc(TimerSubTicks);
-		if (TimerSubTicks and 3) <> 0 then exit;
-{$ENDIF}
-		Inc(TimerTicks);
-
-		if not SoundEnabled then begin
-			SoundIsPlaying := false;
-			NoSound;
-		end else if SoundIsPlaying then begin
-			Dec(SoundDurationCounter);
-			if SoundDurationCounter <= 0 then begin
-				NoSound;
-				if SoundBufferPos >= Length(SoundBuffer) then begin
-					SoundIsPlaying := false;
-				end else begin
-					if (SoundBuffer[SoundBufferPos] >= #16) and (SoundBuffer[SoundBufferPos] < #112) then
-						Sound(SoundFreqTable[Ord(SoundBuffer[SoundBufferPos])])
-					else if (SoundBuffer[SoundBufferPos] >= #240) and (SoundBuffer[SoundBufferPos] < #250) then
-						SoundPlayDrum(SoundDrumTable[Ord(SoundBuffer[SoundBufferPos]) - 240]);
-					Inc(SoundBufferPos);
-
-					SoundDurationCounter := SoundDurationMultiplier * Ord(SoundBuffer[SoundBufferPos]);
-					Inc(SoundBufferPos);
-				end;
-			end;
-		end;
-	end;
-
-procedure SoundUninstall;
-	begin
-{$IFDEF NEC98}
-		SetIntVec($08, SoundOldVector);
-		SetIntVec($07, SoundOldVector07);
-{$ELSE}
-		SetIntVec($1C, SoundOldVector);
-{$ENDIF}
 	end;
 
 function SoundParse(input: string): string;
@@ -378,46 +215,17 @@ SoundParseFinish:
 		SoundParse := output;
 	end;
 
+procedure SoundUninstall;
+	begin
+		TimerSysUninstall;
+	end;
+
 begin
+	TimerSysInstall;
+
 	SoundEnabled := true;
 	SoundBlockQueueing := false;
 	SoundClearQueue;
 	SoundDurationMultiplier := 1;
 	SoundIsPlaying := false;
-	TimerTicks := 0;
-{$IFDEF NEC98} { PC-98 init }
-	GetIntVec($08, SoundOldVector);
-	GetIntVec($07, SoundOldVector07);
-	SetIntVec($08, @SoundTimerHandler);
-	SetIntVec($07, SoundOldVector);
-
-	{ configure timing }
-{$IFNDEF FPC}
-	inline($FA); { CLI }
-{$ELSE}
-	asm
-		cli
-	end;
-{$ENDIF}
-	Port[$77] := $36;
-	SoundUpdateFreqDivisor;
-	Port[$02] := (Port[$02] and $FE);
-{$IFNDEF FPC}
-	inline($FB); { STI }
-{$ELSE}
-	asm
-		sti
-	end;
-{$ENDIF}
-{$ELSE} { PC init }
-	GetIntVec($1C, SoundOldVector);
-	SetIntVec($1C, @SoundTimerHandler);
-{$ENDIF}
-{$IFNDEF FPC}
-	DelayLoopIterations := 0;
-	AccurateDelayCalibrate;
-{$ENDIF}
-{$IFDEF ZETAEMU}
-	ZetaDetected := ZetaDetect;
-{$ENDIF}
 end.

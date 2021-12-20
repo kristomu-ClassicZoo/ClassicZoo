@@ -34,15 +34,20 @@ interface
 	function FileSelect(title, extension: TString50; var cachedLinePos: integer): TFilenameString;
 
 implementation
-uses Dos, Game, TxtWind;
+{$IFDEF SDL2}
+uses SysUtils, Game, TxtWind, FileSys;
+{$ELSE}
+uses Dos, Game, TxtWind, FileSys;
+{$ENDIF}
 const
 	PATH_PREVIEW_LENGTH = 24;
+	MAX_FILENAME_LENGTH = 20; { TODO: Increase. }
 
 function FileExists(name: TFilenameString): boolean;
 	var
 		f: file;
 	begin
-		Assign(f, name);
+		AssignFSys(f, name);
 		Reset(f);
 		if IOResult = 0 then begin
 			Close(f);
@@ -77,13 +82,14 @@ function FileReadAll(name: TFilenameString; var fdata: pointer; maxSize: word): 
 function FileSelect(title, extension: TString50; var cachedLinePos: integer): TFilenameString;
 	var
 		textWindow: TTextWindowState;
+{$IFDEF SDL2}
+		fileSearchRec: TRawbyteSearchRec;
+{$ELSE}
 		fileSearchRec: SearchRec;
-		entryName: TFilenameString;
-{$IFDEF WORLDDSC}
-		useWorldFileDesc: boolean;
 {$ENDIF}
+		entryName: TFilenameString;
 		searching: boolean;
-		i: integer;
+		i, iSortStart: integer;
 {$IFDEF SUBDIRS}
 		lastDirLinePos: integer;
 {$ENDIF}
@@ -93,9 +99,6 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 		zxtDividePos: integer;
 	begin
 		searching := true;
-{$IFDEF WORLDDSC}
-		useWorldFileDesc := extension = '.ZZT';
-{$ENDIF}
 {$IFDEF SUBDIRS}
 		GetDir(0, startPath);
 {$ENDIF}
@@ -115,35 +118,93 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 			textWindow.Selectable := true;
 			textWIndow.Hyperlink := '';
 
+
+{$IFDEF SDL2}
 {$IFDEF SUBDIRS}
+			{ .. }
+			if ExpandFileName(curPath) <> ExpandFileName(IncludeTrailingPathDelimiter(curPath) + '..') then
+				TextWindowAppend(textWindow, '!..;[..]');
+			iSortStart := textWindow.LineCount + 1;
+
+			{ Directories }
+			FindFirst('*', faDirectory, fileSearchRec);
+			repeat
+				if (fileSearchRec.Attr and faDirectory) <> 0 then begin
+					entryName := fileSearchRec.Name;
+					if Length(entryName) <= MAX_FILENAME_LENGTH then
+						if (Length(entryName) > 0) and (entryName <> '.') and (entryName <> '..') then
+							TextWindowAppend(textWindow, '!' + entryName + ';[' + entryName + ']');
+				end;
+			until FindNext(fileSearchRec) <> 0;
+			FindClose(fileSearchRec);
+
+			lastDirLinePos := textWindow.LineCount;
+{$ENDIF}
+
+			{ Files }
+			FindFirst('*', faAnyFile, fileSearchRec);
+			repeat
+				if ((fileSearchRec.Attr and faDirectory) = 0) then begin
+					if UpCase(Copy(fileSearchRec.Name,
+						Length(fileSearchRec.name) - Length(extension) + 1,
+						Length(extension))) = extension then begin
+						entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
+
+						if Length(entryName) <= MAX_FILENAME_LENGTH then
+							TextWindowAppend(textWindow, entryName);
+					end;
+				end;
+			until FindNext(fileSearchRec) <> 0;
+
+			{ .ZXT files - hack }
+			if extension = '.ZZT' then begin
+				zxtDividePos := textWindow.LineCount;
+
+				FindFirst('*.ZXT', faAnyFile, fileSearchRec);
+				repeat
+					if ((fileSearchRec.Attr and faDirectory) = 0) then begin
+						if UpCase(Copy(fileSearchRec.Name,
+							Length(fileSearchRec.name) - Length(extension) + 1,
+							Length(extension))) = extension then begin
+							entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
+
+							if Length(entryName) <= MAX_FILENAME_LENGTH then
+								TextWindowAppend(textWindow, entryName);
+						end;
+					end;
+				until FindNext(fileSearchRec) <> 0;
+			end;
+			FindClose(fileSearchRec);
+{$ELSE}
+{$IFDEF SUBDIRS}
+			{ .. }
+			if Length(curPath) > 3 then
+				TextWindowAppend(textWindow, '!..;[..]');
+			iSortStart := textWindow.LineCount + 1;
+
 			{ Directories }
 			FindFirst('*', Directory, fileSearchRec);
 			while DosError = 0 do begin
 				if (fileSearchRec.Attr and Directory) <> 0 then begin
 					entryName := fileSearchRec.Name;
-					if (Length(entryName) > 0) and (entryName <> '.') then
-						if (Length(curPath) > 3) or (entryName <> '..') then
+					if Length(entryName) <= MAX_FILENAME_LENGTH then
+						if (Length(entryName) > 0) and (entryName <> '.') and (entryName <> '..') then
 							TextWindowAppend(textWindow, '!' + entryName + ';[' + entryName + ']');
 				end;
 				FindNext(fileSearchRec);
 			end;
+
 			lastDirLinePos := textWindow.LineCount;
 {$ENDIF}
-		
+
 			{ Files }
 			FindFirst('*' + extension, AnyFile, fileSearchRec);
 			while DosError = 0 do begin
 				if (fileSearchRec.Attr and Directory) = 0 then begin
 					entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
 
-{$IFDEF WORLDDSC}
-					if useWorldFileDesc then
-						for i := 1 to WorldFileDescCount do
-							if entryName = WorldFileDescKeys[i] then
-								entryName := WorldFileDescValues[i];
-{$ENDIF}
-
-					TextWindowAppend(textWindow, entryName);
+					if Length(entryName) <= MAX_FILENAME_LENGTH then
+						TextWindowAppend(textWindow, entryName);
 				end;
 				FindNext(fileSearchRec);
 			end;
@@ -155,15 +216,19 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 				FindFirst('*.ZXT', AnyFile, fileSearchRec);
 				while DosError = 0 do begin
 					if (fileSearchRec.Attr and Directory) = 0 then begin
-						entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - 4);
-						TextWindowAppend(textWindow, entryName);
+						entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
+
+						if Length(entryName) <= MAX_FILENAME_LENGTH then
+							TextWindowAppend(textWindow, entryName);
 					end;
 					FindNext(fileSearchRec);
 				end;
 			end;
+{$ENDIF}
 
 			textWindow.LinePos := cachedLinePos;
 
+			TextWindowSort(textWindow, iSortStart, textWindow.LineCount);
 			TextWindowAppend(textWindow, 'Exit');
 
 			TextWindowDrawOpen(textWindow);
@@ -183,10 +248,6 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 			end else begin
 				{ File }
 				entryName := textWindow.Lines[textWindow.LinePos]^;
-{$IFDEF WORLDDSC}
-				if Pos(' ', entryName) <> 0 then
-					entryName := Copy(entryName, 1, Pos(' ', entryName) - 1);
-{$ENDIF}
 				FileSelect := entryName;
 				searching := false;
 

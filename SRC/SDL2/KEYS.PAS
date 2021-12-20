@@ -23,39 +23,19 @@
 	SOFTWARE.
 }
 
-unit ZxtZoo;
+unit Keys;
 
 interface
-	uses ZxtMgr;
-	function ZxtZZOCustomCharsetHandler(var block: TExtensionBlock; var state: TExtensionHandlerState)
-		: TExtensionHandlerResult;
+	var
+		KeysRightShiftHeld: Boolean;
+		KeysLeftShiftHeld: Boolean;
+		KeysShiftHeld: Boolean;
+		KeysCtrlHeld: Boolean;
+		KeysAltHeld: Boolean;
+		KeysNumLockHeld: Boolean;
+{	procedure KeysUpdateModifiers; }
 
 implementation
-uses ZVideo;
 
-function ZxtZZOCustomCharsetHandler(var block: TExtensionBlock; var state: TExtensionHandlerState)
-	: TExtensionHandlerResult;
 begin
-	ZxtZZOCustomCharsetHandler := ExtResultFailure;
-{$IFNDEF NEC98}
-	with block do begin
-		case state.Action of
-			ExtActionLoad: begin
-				if (Header.FieldLength and $FF) = 0 then
-					if VideoSetCharset(Data, Header.FieldLength shr 8) then
-						ZxtZZOCustomCharsetHandler := ExtResultSuccess;
-			end;
-			ExtActionUnload: begin
-{$IFDEF FPC}
-				if VideoSetCharset(Nil, 14) then
-{$ELSE}
-				if VideoSetCharset(Ptr(0, 0), 14) then
-{$ENDIF}
-					ZxtZZOCustomCharsetHandler := ExtResultSuccess;
-			end;
-		end;
-	end;
-{$ENDIF}
-end;
-
 end.

@@ -1006,7 +1006,12 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 				end else if OopChar = #0 then begin
 					endOfProgram := true;
 				end else begin
-					textLine := OopChar + OopReadLineToEnd(statId, position);
+{$IFDEF SDL2}
+					textLine := OopChar;
+					textLine := textLine + OopReadLineToEnd(statId, position);
+{$ELSE}
+					textLine := OopChar + OopReadLineToEnd(statId, position);					
+{$ENDIF}
 					TextWindowAppend(textWindow, textLine);
 				end;
 			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > 32);

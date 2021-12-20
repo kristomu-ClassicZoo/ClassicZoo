@@ -44,10 +44,16 @@ while getopts "a:d:e:o:p:rg" opt; do
 			FPC_BINARY=ppcross8086
 			;;
 		i386)
-			FPC_BINARY=ppcross386
+#			FPC_BINARY=ppc386
+#			if [ ! -x "$(command -v $FPC_BINARY)" ]; then
+				FPC_BINARY=ppcross386
+#			fi
 			;;
 		x86_64)
-			FPC_BINARY=ppcrossx64
+			FPC_BINARY=ppcx64
+#			if [ ! -x "$(command -v $FPC_BINARY)" ]; then
+#				FPC_BINARY=ppcrossx64
+#			fi
 			;;
 		arm)
 			FPC_BINARY=ppcrossarm
@@ -116,7 +122,7 @@ fi
 
 echo "Preparing Pascal code..."
 
-for i in DOC RES SRC SYSTEM TOOLS VENDOR LICENSE.TXT; do
+for i in DOC HEADERS RES SRC SYSTEM TOOLS VENDOR LICENSE.TXT; do
 	cp -R "$i" "$TEMP_PATH"/
 done
 cp -R "$TEMP_PATH"/SYSTEM/*.BAT "$TEMP_PATH"/
@@ -198,8 +204,14 @@ if [ -n "$FREE_PASCAL" ]; then
 	else
 		cat fpc.base.release.cfg >> ../SRC/fpc.cfg
 	fi
-	cd ../SRC
 
+	cd ..
+	sed -i -e "s/^BUILD$/RUNTOOLS/" SYSTEM/dosbox.conf
+	touch BUILD.LOG
+	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
+	tail --pid $! -n +1 -f BUILD.LOG
+
+	cd SRC
 	echo "[ Building ZZT.EXE ]"
 	echo "$FPC_BINARY_PATH"/bin/"$FPC_BINARY" $FPC_ARGS ZZT.PAS
 	"$FPC_BINARY_PATH"/bin/"$FPC_BINARY" $FPC_ARGS ZZT.PAS
@@ -215,11 +227,6 @@ if [ -n "$FREE_PASCAL" ]; then
 		exit 1
 	fi
 	cd ..
-
-	sed -i -e "s/^BUILD$/PACKDAT/" SYSTEM/dosbox.conf
-	touch BUILD.LOG
-	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
-	tail --pid $! -n +1 -f BUILD.LOG
 else
 	# HACK! NEC98 requires SRC/DOS/EXTMEM.PAS, as the underlying standards are
 	# the same. (We do this on Free Pascal via fpc.any.any.nec98.cfg.)
@@ -237,11 +244,12 @@ else
 	tail --pid $! -n +1 -f BUILD.LOG
 fi
 
-if [ ! -f BUILD/ZZT.EXE ]; then
-       cd "$RETURN_PATH"
-       # rm -r "$TEMP_PATH"
-       exit 1
-fi
+# TODO
+#if [ ! -f BUILD/ZZT.EXE ]; then
+#       cd "$RETURN_PATH"
+#       # rm -r "$TEMP_PATH"
+#       exit 1
+#fi
 
 # Post-processing
 

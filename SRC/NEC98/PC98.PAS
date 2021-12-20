@@ -38,7 +38,7 @@ interface
 	procedure ClrScr;
 
 implementation
-uses Dos, Sounds, PC98FONT;
+uses Dos, TimerSys, PC98FONT;
 
 procedure Sound(hz: word);
 	var

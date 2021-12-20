@@ -38,11 +38,16 @@ interface
 		SoundDurationMultiplier: byte;
 		SoundDurationCounter: byte;
 		SoundBuffer: string;
-		SoundNewVector: pointer;
 		SoundOldVector: pointer;
 		SoundBufferPos: integer;
 		SoundIsPlaying: boolean;
 		TimerTicks: word;
+{$IFDEF NEC98}
+		TimerSubTicks: byte;
+		SoundOldVector07: pointer;
+		SoundFreqDivisor: longint;
+		SpeakerActive: boolean;
+{$ENDIF}
 {$IFDEF ZETAEMU}
 		ZetaDetected: boolean;
 {$ENDIF}
@@ -59,7 +64,12 @@ uses
 {$IFDEF ZETAEMU}
 ZetaSupp,
 {$ENDIF}
-Crt, Dos;
+{$IFDEF NEC98}
+Pc98,
+{$ELSE}
+Crt,
+{$ENDIF}
+Dos;
 
 const
 	DELAY_LOOP_MAX_ITERATIONS = $7FFFFFFF;
@@ -196,9 +206,34 @@ function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 		end;
 	end;
 
+{$IFDEF NEC98}
+procedure SoundUpdateFreqDivisor;
+	begin
+		if (Mem[0:$0501] and $80) = 0 then begin
+			Port[$71] := $D1;
+			Port[$71] := $83;
+			SoundFreqDivisor := 2457600;
+		end else begin
+			Port[$71] := $1A;
+			Port[$71] := $6B;
+			SoundFreqDivisor := 1996800; 
+		end;
+	end;
+{$ENDIF}
+
 procedure SoundTimerHandler;
 	interrupt;
+{$IFDEF NEC98}
+	var
+		regs: Registers;
+{$ENDIF}
 	begin
+{$IFDEF NEC98}
+		Intr($07, regs);
+		SoundUpdateFreqDivisor;
+		Inc(TimerSubTicks);
+		if (TimerSubTicks and 3) <> 0 then exit;
+{$ENDIF}
 		Inc(TimerTicks);
 
 		if not SoundEnabled then begin
@@ -209,15 +244,12 @@ procedure SoundTimerHandler;
 			if SoundDurationCounter <= 0 then begin
 				NoSound;
 				if SoundBufferPos >= Length(SoundBuffer) then begin
-					NoSound;
 					SoundIsPlaying := false;
 				end else begin
 					if (SoundBuffer[SoundBufferPos] >= #16) and (SoundBuffer[SoundBufferPos] < #112) then
 						Sound(SoundFreqTable[Ord(SoundBuffer[SoundBufferPos])])
 					else if (SoundBuffer[SoundBufferPos] >= #240) and (SoundBuffer[SoundBufferPos] < #250) then
-						SoundPlayDrum(SoundDrumTable[Ord(SoundBuffer[SoundBufferPos]) - 240])
-					else
-						NoSound;
+						SoundPlayDrum(SoundDrumTable[Ord(SoundBuffer[SoundBufferPos]) - 240]);
 					Inc(SoundBufferPos);
 
 					SoundDurationCounter := SoundDurationMultiplier * Ord(SoundBuffer[SoundBufferPos]);
@@ -229,7 +261,12 @@ procedure SoundTimerHandler;
 
 procedure SoundUninstall;
 	begin
+{$IFDEF NEC98}
+		SetIntVec($08, SoundOldVector);
+		SetIntVec($07, SoundOldVector07);
+{$ELSE}
 		SetIntVec($1C, SoundOldVector);
+{$ENDIF}
 	end;
 
 function SoundParse(input: string): string;
@@ -238,14 +275,15 @@ function SoundParse(input: string): string;
 		noteDuration: integer;
 		output: string;
 		noteTone: integer;
-		inPos: byte;
+		inPos, outPos: byte;
+	label SoundParseFinish;
 	begin
-		output := '';
 		noteOctave := 3;
 		noteDuration := 1;
 		inPos := 1;
+		outPos := 0;
 
-		while inPos <= Length(input) do begin
+		while (inPos <= Length(input)) do begin
 			noteTone := -1;
 			case UpCase(input[inPos]) of
 				'T': begin
@@ -305,10 +343,19 @@ function SoundParse(input: string): string;
 						end;
 					end;
 
-					output := output + Chr((noteOctave shl 4) + noteTone) + Chr(noteDuration);
+					Inc(outPos);
+					output[outPos] := Chr((noteOctave shl 4) + noteTone);
+					if outPos = 255 then goto SoundParseFinish;
+					Inc(outPos);
+					output[outPos] := Chr(noteDuration);
 				end;
 				'X': begin
-					output := output + #0 + Chr(noteDuration);
+					Inc(outPos);
+					output[outPos] := #0;
+					if outPos = 255 then goto SoundParseFinish;
+					Inc(outPos);
+					output[outPos] := Chr(noteDuration);
+
 					Inc(inPos);
 				end;
 {$IFNDEF FPC}
@@ -317,25 +364,55 @@ function SoundParse(input: string): string;
 				{ FPC does not like overlapping case labels. }
 				'0'..'2','4'..'9': begin
 {$ENDIF}
-					output := output + Chr(Ord(input[inPos]) + $F0 - Ord('0')) + Chr(noteDuration);
+					Inc(outPos);
+					output[outPos] := Chr(Ord(input[inPos]) + $F0 - Ord('0'));
+					if outPos = 255 then goto SoundParseFinish;
+					Inc(outPos);
+					output[outPos] := Chr(noteDuration);
 					Inc(inPos);
 				end;
 			else Inc(inPos) end;
 		end;
+SoundParseFinish:
+		output[0] := Chr(outPos);
 		SoundParse := output;
 	end;
 
 begin
-	TimerTicks := 0;
 	SoundEnabled := true;
 	SoundBlockQueueing := false;
 	SoundClearQueue;
 	SoundDurationMultiplier := 1;
 	SoundIsPlaying := false;
 	TimerTicks := 0;
-	SoundNewVector := @SoundTimerHandler;
+{$IFDEF NEC98} { PC-98 init }
+	GetIntVec($08, SoundOldVector);
+	GetIntVec($07, SoundOldVector07);
+	SetIntVec($08, @SoundTimerHandler);
+	SetIntVec($07, SoundOldVector);
+
+	{ configure timing }
+{$IFNDEF FPC}
+	inline($FA); { CLI }
+{$ELSE}
+	asm
+		cli
+	end;
+{$ENDIF}
+	Port[$77] := $36;
+	SoundUpdateFreqDivisor;
+	Port[$02] := (Port[$02] and $FE);
+{$IFNDEF FPC}
+	inline($FB); { STI }
+{$ELSE}
+	asm
+		sti
+	end;
+{$ENDIF}
+{$ELSE} { PC init }
 	GetIntVec($1C, SoundOldVector);
-	SetIntVec($1C, SoundNewVector);
+	SetIntVec($1C, @SoundTimerHandler);
+{$ENDIF}
 {$IFNDEF FPC}
 	DelayLoopIterations := 0;
 	AccurateDelayCalibrate;

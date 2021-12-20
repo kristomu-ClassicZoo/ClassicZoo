@@ -38,7 +38,13 @@ Pc98,
 {$ELSE}
 Crt,
 {$ENDIF}
-Dos, ExtMem, ZxtMgr, ZxtZoo, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+Dos, ExtMem, FileSys, ZxtMgr, ZxtZoo, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+
+{$IFNDEF NEC98}
+{$IFNDEF SDL2}
+{$DEFINE TEXTCFG}
+{$ENDIF}
+{$ENDIF}
 
 procedure ParseArguments;
 	var
@@ -76,7 +82,7 @@ procedure ParseArguments;
 		ExtMemInstall(enableEms, enableXms);
 	end;
 
-{$IFNDEF NEC98}
+{$IFDEF TEXTCFG}
 procedure WritelnCentered(s: string);
 	var
 		y: byte;
@@ -101,7 +107,7 @@ procedure GameConfigure;
 		ConfigWorldFile := '';
 		GameVersion := '%VERSION%';
 
-		Assign(cfgFile, 'zzt.cfg');
+		AssignFSysText(cfgFile, 'zzt.cfg');
 		Reset(cfgFile);
 		if IOResult = 0 then begin
 			Readln(cfgFile, ConfigWorldFile);
@@ -125,7 +131,7 @@ procedure GameConfigure;
 
 		ParsingConfigFile := false;
 
-{$IFNDEF NEC98}
+{$IFDEF TEXTCFG}
 		Window(1, 1, 80, 25);
 		TextBackground(Black);
 		ClrScr;
@@ -158,44 +164,28 @@ procedure GameConfigure;
 		ClrScr;
 		TextColor(Yellow);
 {$ELSE}
+{$IFNDEF SDL2}
 		Writeln('%NAME% %VERSION%');
 		Writeln('%COPYRIGHT%');
+{$ENDIF}
 {$ENDIF}
 		if not InputConfigure then
 			GameTitleExitRequested := true
 		else begin
-{$IFNDEF NEC98}
+{$IFDEF TEXTCFG}
 			TextColor(LightGreen);
 {$ENDIF}
 			if not VideoConfigure then
 				GameTitleExitRequested := true;
 		end;
-{$IFNDEF NEC98}
+{$IFDEF TEXTCFG}
 		Window(1, 1, 80, 25);
 {$ENDIF}
 	end;
 
 begin
-{$IFDEF WORLDDSC}
-	WorldFileDescCount := 7;
-	WorldFileDescKeys[1] := 'TOWN';
-	WorldFileDescValues[1] := 'TOWN       The Town of ZZT';
-	WorldFileDescKeys[2] := 'DEMO';
-	WorldFileDescValues[2] := 'DEMO       Demo of the ZZT World Editor';
-	WorldFileDescKeys[3] := 'CAVES';
-	WorldFileDescValues[3] := 'CAVES      The Caves of ZZT';
-	WorldFileDescKeys[4] := 'DUNGEONS';
-	WorldFileDescValues[4] := 'DUNGEONS   The Dungeons of ZZT';
-	WorldFileDescKeys[5] := 'CITY';
-	WorldFileDescValues[5] := 'CITY       Underground City of ZZT';
-	WorldFileDescKeys[6] := 'BEST';
-	WorldFileDescValues[6] := 'BEST       The Best of ZZT';
-	WorldFileDescKeys[7] := 'TOUR';
-	WorldFileDescValues[7] := 'TOUR       Guided Tour ZZT'#39's Other Worlds';
-{$ENDIF}
-
 	Randomize;
-{$IFNDEF NEC98}
+{$IFDEF TEXTCFG}
 	SetCBreak(false);
 	InitialTextAttr := TextAttr;
 {$ENDIF}
@@ -218,8 +208,10 @@ begin
 		TextWindowInit; { (5, 3, 50, 18) }
 		GetMem(IoTmpBuf, IoTmpBufSize);
 
+{$IFNDEF SDL2}
 		VideoHideCursor;
 		ClrScr;
+{$ENDIF}
 
 		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);
 		ZxtRegisterExtensionSimple(ExtFixPutBottomRow, $00000001, $0001);
@@ -270,14 +262,16 @@ begin
 		ExtMemUninstall;
 	end;
 
-	SoundUninstall;
 	SoundClearQueue;
 
 	VideoUninstall;
-{$IFNDEF NEC98}
+	SoundUninstall;
+{$IFDEF TEXTCFG}
 	TextAttr := InitialTextAttr;
 {$ENDIF}
+{$IFNDEF SDL2}
 	ClrScr;
 
 	VideoShowCursor;
+{$ENDIF}
 end.

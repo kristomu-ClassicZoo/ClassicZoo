@@ -25,6 +25,10 @@
 
 {$I-}
 {$V-}
+{$IFDEF FPC}
+{$PACKRECORDS 1}
+{$ENDIF}
+
 unit TxtWind;
 
 interface
@@ -45,11 +49,12 @@ interface
 	type
 		TExtensionString = string[4];
 		TTextWindowLine = string[MAX_LINE_LENGTH_EDIT];
+		PTTextWindowLine = ^TTextWindowLine;
 		TTextWindowState = record
 			Selectable: boolean;
 			LineCount: integer;
 			LinePos: integer;
-			Lines: array[1 .. MAX_TEXT_WINDOW_LINES] of ^TTextWindowLine;
+			Lines: array[1 .. MAX_TEXT_WINDOW_LINES] of PTTextWindowLine;
 			Hyperlink: string[20];
 			Title: TTextWindowLine;
 			LoadedFilename: string[50];
@@ -87,6 +92,7 @@ interface
 	procedure TextWindowFree(var state: TTextWindowState);
 	procedure TextWindowFreeEdit(var state: TTextWindowState);
 	procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
+	procedure TextWindowSort(var state: TTextWindowState; fromIdx, toIdx: integer);
 {$IFDEF EDITOR}
 	procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionString; syntaxHighlighting: boolean);
 {$ENDIF}
@@ -97,12 +103,12 @@ interface
 
 implementation
 {$IFDEF PRINTTXT}
-uses Sounds, Input, Keys, Printer, FileSel, Game;
+uses Sounds, TimerSys, FileSys, Input, Keys, Printer, FileSel, Game;
 {$ELSE}
-uses Sounds, Input, Keys, FileSel, Game;
+uses Sounds, TimerSys, FileSys, Input, Keys, FileSel, Game;
 {$ENDIF}
 type
-	TTextWindowLineBuffer = array[1 .. MAX_TEXT_WINDOW_LINES] of ^TTextWindowLine;
+	TTextWindowLineBuffer = array[1 .. MAX_TEXT_WINDOW_LINES] of PTTextWindowLine;
 
 function UpCaseString(input: string): string;
 	var
@@ -358,6 +364,9 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 			Hyperlink := '';
 			TextWindowDraw(state, false, viewingFile);
 			repeat
+{$IFDEF SDL2}
+				SoundIdle(IMUntilFrame);
+{$ENDIF}
 				InputUpdate;
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
@@ -442,6 +451,66 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 				TextWindowRejected := true;
 			end;
 		end;
+	end;
+
+procedure TextWindowSort(var state: TTextWindowState; fromIdx, toIdx: integer);
+	var
+		i, j: integer;
+		smallestIdx: integer;
+
+	procedure Swap(var a, b: PTTextWindowLine);
+		var
+			c: PTTextWindowLine;
+		begin
+			c := a;
+			a := b;
+			b := c;
+		end;
+
+	{ Returns the location of the pivot after separating. }
+	function Partition(var state: TTextWindowState; low: integer;
+		high: integer): integer;
+	var
+		pivot: PTTextWindowLine;
+		i, j: integer;
+	begin
+		{ Choose a random pivot. A cannae be bothered to do anything
+		  faster/more sophisticated. }
+		pivot := state.Lines[Random(high-low) + low];
+		i := low;
+		j := high;
+
+	    repeat
+			while state.Lines[i]^ < pivot^ do Inc(i);
+			while state.Lines[j]^ > pivot^ do Dec(j);
+
+			if i <= j then begin
+				Swap(state.Lines[i], state.Lines[j]);
+
+				Inc(i);
+				Dec(j);
+	    	end;
+		until i > j;
+
+		Partition := i;
+	end;
+
+	procedure Quicksort(var state: TTextWindowState; low: integer;
+		high: integer);
+	var
+		pivotPt: integer;
+	begin
+		if low < high then begin
+			pivotPt := partition(state, low, high);
+			Quicksort(state, low, pivotPt-1);
+			Quicksort(state, pivotPt, high);
+		end;
+	end;
+
+	begin
+		if fromIdx < 1 then fromIdx := 1;
+		if toIdx > state.LineCount then toIdx := state.LineCount;
+		Quicksort(state, fromIdx, toIdx);
 	end;
 
 {$IFDEF EDITOR}
@@ -656,6 +725,9 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 				ClampCharPos;
 				shiftHeld := false;
 				repeat
+{$IFDEF SDL2}
+					SoundIdle(IMUntilFrame);
+{$ENDIF}
 					InputUpdate;
 					shiftHeld := shiftHeld or KeysShiftHeld;
 				until InputKeyPressed <> #0;
@@ -842,7 +914,7 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 			TextWindowInitState(state);
 			LoadedFilename := UpCaseString(filename);
 			if ResourceDataHeader.EntryCount = 0 then begin
-				Assign(f, ResourceDataFileName);
+				AssignFSys(f, ResourceDataFileName);
 				Reset(f, 1);
 				if IOResult = 0 then
 					BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
@@ -870,7 +942,7 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 					exit;
 				end;
 			{$ENDIF}
-				Assign(tf, filename);
+				AssignFSysText(tf, filename);
 				Reset(tf);
 				while (IOResult = 0) and (not Eof(tf)) do begin
 					Inc(LineCount);
@@ -879,7 +951,7 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 				end;
 				Close(tf);
 			end else begin
-				Assign(f, ResourceDataFilename);
+				AssignFSys(f, ResourceDataFilename);
 				Reset(f, 1);
 				Seek(f, ResourceDataHeader.FileOffset[entryPos]);
 				if IOResult = 0 then begin
@@ -893,7 +965,11 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 						else
 							GetMem(Lines[LineCount], lineLen + 1);
 						Lines[LineCount]^[0] := Chr(lineLen);
+						{$IFNDEF FPC}
 						line := Ptr(Seg(Lines[LineCount]^), Ofs(Lines[LineCount]^) + 1);
+						{$ELSE}
+						line := Pointer(Lines[LineCount]) + 1;
+						{$ENDIF}
 
 						if lineLen = 0 then begin
 							Lines[LineCount]^ := '';
@@ -917,7 +993,7 @@ procedure TextWindowSaveFile(filename: TFilenameString; var state: TTextWindowSt
 		i: integer;
 	label OnError;
 	begin
-		Assign(f, filename);
+		AssignFSysText(f, filename);
 		Rewrite(f);
 		if DisplayIOError then goto OnError;
 

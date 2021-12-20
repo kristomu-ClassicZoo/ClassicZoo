@@ -92,7 +92,6 @@ interface
 	procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 	procedure TransitionDrawBoardChange;
 	procedure GameUpdateSidebar;
-	procedure GameAboutScreen;
 	procedure GamePlayLoop(boardChanged: boolean);
 	procedure DisplayMessage(time: integer; message: string);
 	procedure BoardEnter(playerCaused: boolean);
@@ -118,7 +117,13 @@ const
 	StatTemplateDefault: TStat = (
 		X: 0; Y: 0; StepX: 0; StepY: 0;
 		Cycle: 0; P1: 0; P2: 0; P3: 0;
-		Follower: -1; Leader: -1
+		Follower: -1; Leader: -1;
+                Under: (Element: E_EMPTY; Color: $00);
+        {$IFDEF CPU64}
+                UnusedData: 0; DataPos: 0; DataLen: 0; Unused1: 0; Unused2: 0; Data: nil
+        {$ELSE}
+                Data: nil; DataPos: 0; DataLen: 0
+        {$ENDIF}
 	);
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
@@ -130,7 +135,7 @@ DebugWnd,
 {$IFDEF ZETAEMU}
 ZetaSupp,
 {$ENDIF}
-Dos, FileSel, ExtMem, ZxtMgr, ZVideo, Sounds, Input, Elements, Editor, Oop;
+Dos, FileSel, FileSys, GameConf, ExtMem, ZxtMgr, ZVideo, Sounds, TimerSys, Input, Elements, Editor, Oop;
 
 function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
 	begin
@@ -272,7 +277,7 @@ procedure BoardClose;
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
-				Move(Board.Stats[ix], ptr^, SizeOf(TStat));
+				Move(Board.Stats[ix], ptr^, STAT_SIZE_BYTES);
 				AdvancePointer(ptr, STAT_SIZE_BYTES);
 				if DataLen > 0 then begin
 					Move(Data^, ptr^, DataLen);
@@ -367,7 +372,7 @@ procedure BoardOpen(boardId: integer);
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
-				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
+				Move(ptr^, Board.Stats[ix], STAT_SIZE_BYTES);
 				AdvancePointer(ptr, STAT_SIZE_BYTES);
 				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
@@ -619,6 +624,9 @@ procedure SidebarPromptNumeric(editable: boolean; x, y: integer; prompt: string;
 				Str(value, numStr);
 				VideoWriteText(x + 4, y + 2, $1F, numStr);
 
+{$IFDEF SDL2}
+				SoundIdle(IMUntilFrame);
+{$ENDIF}
 				InputUpdate;
 				valueOffset := 0;
 				case InputKeyPressed of
@@ -667,6 +675,9 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 					AccurateDelay(45);
 				VideoWriteText(x + value + 1, y + 1, $9F, #31);
 
+{$IFDEF SDL2}
+				SoundIdle(IMUntilFrame);
+{$ENDIF}
 				InputUpdate;
 				if (InputKeyPressed >= '1') and (InputKeyPressed <= '9') then begin
 					value := Ord(InputKeyPressed) - 49;
@@ -915,7 +926,7 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 		if (extension = '.ZZT') and FileExists(filename + '.ZXT') then
 			extension := '.ZXT';
 
-		Assign(f, filename + extension);
+		AssignFSys(f, filename + extension);
 		Reset(f, 1);
 
 		if not DisplayIOError then begin
@@ -1029,7 +1040,7 @@ procedure WorldSave(filename, extension: TString50; saveZxts: boolean);
 		BoardClose;
 		VideoWriteText(63, 5, $1F, 'Saving...');
 
-		Assign(f, filename + extension);
+		AssignFSys(f, filename + extension);
 		Rewrite(f, 1);
 
 		if not DisplayIOError then begin
@@ -1509,6 +1520,7 @@ procedure GameUpdateSidebar;
 			else
 				VideoWriteText(65, 15, $1F, ' Be noisy');
 
+{$IFDEF MSDOS}
 			if DebugEnabled then begin
 				Str(MemAvail, numStr);
 				VideoWriteText(62, 3, $1E, 'm' + numStr + ' ');
@@ -1523,6 +1535,7 @@ procedure GameUpdateSidebar;
 				end;
 {$ENDIF}
 			end;
+{$ENDIF}
 		end;
 	end;
 
@@ -1978,74 +1991,6 @@ procedure GameDebugPrompt;
 {$ENDIF}
 	end;
 
-procedure GameAboutScreen;
-	begin
-		TextWindowDisplayFile('ABOUT.HLP', 'About ClassicZoo...');
-	end;
-
-procedure GameOptionsScreen;
-	var
-		state: TTextWindowState;
-		i: integer;
-		numStr: TString50;
-		exitRequested: boolean;
-	begin
-		state.Title := 'Options...';
-		TextWindowDrawOpen(state);
-		state.LinePos := 1;
-		exitRequested := false;
-
-		repeat
-			state.Selectable := true;
-			state.LineCount := 6;
-			for i := 1 to state.LineCount do
-				New(state.Lines[i]);
-
-			state.Lines[1]^ := '!;Compatibility: ';
-			if HighCompatAuto then
-				state.Lines[1]^ := state.Lines[1]^ + 'Automatic'
-			else if HighCompat then
-				state.Lines[1]^ := state.Lines[1]^ + 'Strict'
-			else
-				state.Lines[1]^ := state.Lines[1]^ + 'Normal';
-
-			state.Lines[2]^ := '!;Sound: ';
-			if SoundEnabled then
-				state.Lines[2]^ := state.Lines[2]^ + 'On'
-			else
-				state.Lines[2]^ := state.Lines[2]^ + 'Off';
-
-			state.Lines[3]^ := '_________________________________________';
-			state.Lines[4]^ := '';
-			state.Lines[5]^ := '!;About ClassicZoo...';
-			state.Lines[6]^ := '!;Exit';
-
-			TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
-			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 6) then begin
-				case state.LinePos of
-					1: begin
-						if HighCompatAuto then
-							HighCompatAuto := false
-						else
-							HighCompat := not HighCompat;
-					end;
-					2: begin
-						SoundEnabled := not SoundEnabled;
-						SoundClearQueue;
-					end;
-					5: begin
-						GameAboutScreen;
-					end;
-				end;
-			end else begin
-				exitRequested := true;
-				TextWindowDrawClose(state);
-			end;
-
-			TextWindowFreeEdit(state);
-		until exitRequested;
-	end;
-
 procedure GameOnStart;
 	var
 		f: file;
@@ -2176,6 +2121,9 @@ procedure GamePlayLoop(boardChanged: boolean);
 				end;
 
 				VideoWriteText(64, 5, $1F, 'Pausing...');
+{$IFDEF SDL2}
+				SoundIdle(IMUntilFrame);
+{$ENDIF}
 				InputUpdate;
 
 				case UpCase(InputKeyPressed) of KEY_ESCAPE, 'Q': begin
@@ -2246,6 +2194,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 					CurrentStatTicked := 0;
 
 					InputUpdate;
+{$IFDEF SDL2}
+				end else begin
+					SoundIdle(IMUntilPit);
+{$ENDIF}
 {$IFDEF ZETAEMU}
 				end else begin
 					ZetaSleepPit;
