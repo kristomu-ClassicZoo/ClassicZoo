@@ -55,6 +55,7 @@ interface
 implementation
 uses F_ASCII, FileSys, SysUtils, Sounds, TimerSys, SDL2;
 type
+	TByteArray = array of byte;
 	TCharsetTexture = record
 		valid: boolean;
 		charWidth: Uint32;
@@ -330,8 +331,22 @@ function VideoConfigure: boolean;
 
 function VideoSetCharset(data: pointer; height: integer): boolean;
 	begin
-		{ stub }
 		VideoSetCharset := false;
+		if height <> 14 then exit;
+
+		FreeCharsetTexture(charsetTexture);
+
+		if data <> Nil then begin
+			LoadCharsetFromByteArray(charsetTexture, TByteArray(data), height shl 8);
+			if charsetTexture.valid then begin
+				VideoSetCharset := true;
+				exit;
+			end;
+		end;
+
+		LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);
+		if not charsetTexture.valid then
+			RunError(217);
 	end;
 
 procedure VideoInstall(borderColor: integer);

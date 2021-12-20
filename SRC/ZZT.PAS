@@ -36,7 +36,9 @@ uses
 {$IFDEF NEC98}
 Pc98,
 {$ELSE}
+{$IFNDEF SDL2}
 Crt,
+{$ENDIF}
 {$ENDIF}
 Dos, ExtMem, FileSys, ZxtMgr, ZxtZoo, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
 
@@ -203,7 +205,7 @@ begin
 	ParseArguments;
 
 	if not GameTitleExitRequested then begin
-		VideoInstall(Blue);
+		VideoInstall(1);
 		{ OrderPrintId := @GameVersion; }
 		TextWindowInit; { (5, 3, 50, 18) }
 		GetMem(IoTmpBuf, IoTmpBufSize);
