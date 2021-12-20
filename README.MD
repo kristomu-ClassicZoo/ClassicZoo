@@ -1,4 +1,4 @@
-# Weave ZZT 2.0
+# Weave ZZT 2.0e
 
 Unlike previous versions of Weave, this version really is meant to be the forever version.
 

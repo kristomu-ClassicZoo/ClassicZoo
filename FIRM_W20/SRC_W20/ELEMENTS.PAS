@@ -1345,22 +1345,29 @@ procedure ElementPlayerTick(statId: integer);
 				Dec(P3);
 			end;
 
+			if (World.Info.PlayerColor = 0) and (World.Info.PlayerChar = #0) then begin
+				World.Info.PlayerChar := Chr(ParamList[3]);
+				World.Info.PlayerColor := AsColor(ParamList[1],ParamList[2]);
+				ElementDefs[E_PLAYER].Character := World.Info.PlayerChar;
+				ElementDefs[E_PLAYER].Color := World.Info.PlayerColor;
+			end;
+
 			if World.Info.EnergizerTicks > 0 then begin
-				if ElementDefs[E_PLAYER].Character = Chr(ParamList[3]) then
+				if ElementDefs[E_PLAYER].Character = World.Info.PlayerChar then
 					ElementDefs[E_PLAYER].Character := Chr(ParamList[100])
 				else
-					ElementDefs[E_PLAYER].Character := Chr(ParamList[3]);
+					ElementDefs[E_PLAYER].Character := World.Info.PlayerChar;
 
 				if (CurrentTick mod 2) <> 0 then
-					Board.Tiles[X][Y].Color := AsColor(ParamList[1],0)
+					Board.Tiles[X][Y].Color := (World.Info.PlayerColor and $0F)
 				else
-					Board.Tiles[X][Y].Color := AsColor(ParamList[1],(CurrentTick mod 7) + 1);
+					Board.Tiles[X][Y].Color := AsColor(World.Info.PlayerColor and $0F,(CurrentTick mod 7) + 1);
 
 				BoardDrawTile(X, Y);
-			end else if (Board.Tiles[X][Y].Color <> AsColor(ParamList[1],ParamList[2]))
-				or (ElementDefs[E_PLAYER].Character <> Chr(ParamList[3])) then begin
-					Board.Tiles[X][Y].Color := AsColor(ParamList[1],ParamList[2]);
-					ElementDefs[E_PLAYER].Character := Chr(ParamList[3]);
+			end else if (Board.Tiles[X][Y].Color <> World.Info.PlayerColor)
+				or (ElementDefs[E_PLAYER].Character <> World.Info.PlayerChar) then begin
+					Board.Tiles[X][Y].Color := World.Info.PlayerColor;
+					ElementDefs[E_PLAYER].Character := World.Info.PlayerChar;
 					BoardDrawTile(X, Y);
 			end;
 
@@ -1504,7 +1511,7 @@ procedure ElementPlayerTick(statId: integer);
 				if World.Info.EnergizerTicks = 10 then
 					SoundQueue(9, SoundParse(ConfigList[11]))
 				else if World.Info.EnergizerTicks <= 0 then begin
-					Board.Tiles[X][Y].Color := ElementDefs[E_PLAYER].Color;
+					Board.Tiles[X][Y].Color := World.Info.PlayerColor;
 					BoardDrawTile(X, Y);
 				end;
 			end;

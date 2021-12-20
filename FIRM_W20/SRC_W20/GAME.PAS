@@ -289,15 +289,15 @@ procedure CustomOOPLoad;
 			i := 1;
 			while i <= CUSTOM_OOP_COUNT do begin
 				ReadLn(f, OOPList[i]);
-				if (OOPList[i] <> '') and (OOPList[i][1] = '#') then
+				if OOPList[i] = '' then 
+					OOPList[i] := '_nil'
+				else if OOPList[i][1] = '#' then
 					Dec(i);
-				if (OOPList[i] <> '') and (OOPList[i][1] = '_') then
-					OOPList[i] := #255;
 				Inc(i);
 			end;
 		end else
 			for i := 1 to CUSTOM_OOP_COUNT do
-				OOPList[i] := #255;
+				OOPList[i] := '_nil';
 		Close(f);
 		if IOResult <> 0 then begin end;
 	end;
@@ -823,7 +823,7 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 		end;
 
 		SidebarClearLine(y);
-		VideoWriteText(x, y, Integer(editable) + AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), prompt);
+		VideoWriteText(x, y, AsColor(ParamList[THEME_START + Integer(editable) + 2],ParamList[THEME_START]), prompt);
 		SidebarClearLine(y + 1);
 		SidebarClearLine(y + 2);
 		VideoWriteText(x, y + 2, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), startChar + '....:....' + endChar);
@@ -1965,8 +1965,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 		if JustStarted then begin
 			GameAboutScreen;
 			if Length(StartupWorldFileName) <> 0 then begin
-				if FileExists(StartupWorldFileName + '.ZZT')
-					and WorldLoad(StartupWorldFileName, '.ZZT')
+				if (FileExists(StartupWorldFileName + '.ZZT')
+					and WorldLoad(StartupWorldFileName, '.ZZT'))
+					or (FileExists(StartupWorldFileName)
+					and WorldLoad(StartupWorldFileName,''))
 				then begin
 					SidebarClearLine(8);
 					VideoWriteText(69, 8, $1F, StartupWorldFileName);
@@ -2003,8 +2005,12 @@ procedure GamePlayLoop(boardChanged: boolean);
 					pauseBlink := not pauseBlink;
 
 				if pauseBlink then begin
-					VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
-						ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
+					if (World.Info.PlayerColor = 0) and (World.Info.PlayerChar = #0) then
+						VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
+							ElementDefs[E_PLAYER].Color,ElementDefs[E_PLAYER].Character)
+					else
+						VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
+							World.Info.PlayerColor, World.Info.PlayerChar);
 				end else begin
 					if Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER then
 						VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, $0F, ' ')
@@ -2034,7 +2040,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 						Board.Stats[0].X := Board.Stats[0].X + InputDeltaX;
 						Board.Stats[0].Y := Board.Stats[0].Y + InputDeltaY;
 						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
+						if (World.Info.PlayerColor = 0) and (World.Info.PlayerChar = #0) then
+							Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color
+						else
+							Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := World.Info.PlayerColor;
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
 						DrawPlayerSurroundings(Board.Stats[0].X, Board.Stats[0].Y);
 						DrawPlayerSurroundings(Board.Stats[0].X - InputDeltaX, Board.Stats[0].Y - InputDeltaY);
@@ -2085,7 +2094,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 		end;
 
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
+		if (World.Info.PlayerColor = 0) and (World.Info.PlayerChar = #0) then
+			Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color
+		else
+			Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := World.Info.PlayerColor;
 
 		SoundBlockQueueing := false;
 	end;

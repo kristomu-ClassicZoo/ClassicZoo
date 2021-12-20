@@ -1,4 +1,5 @@
 #Extended OOP file
+# Version 2.0-firm-b
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -239,6 +240,23 @@ QUICKLOAD
 # instead.
 # You can rename the QUICKSAVE command below:
 QUICKSAVE
+# ---- PLAYER
+# Usage:
+#        #player <color> <bgcolor> <char>
+# Modifies how the player is displayed in-game.
+# Must specify all three. Use #player 0 0 0
+# to revert the player to the settings in the
+# .PAR file.
+# You can rename the PLAYER command below:
+PLAYER
+# ---- COLOR condition
+# Usage:
+#        #if color <dir> <color> [background color]
+# True if the location at <dir> is a match for
+# <color>. Alternately a <background color> can also
+# be selected.
+# You can rename the COLOR condition below:
+COLOR
 # ---- INTERPOLATION
 # Usage:
 #        #set <counter> <#>

@@ -1,4 +1,5 @@
 #Template OOP file
+# Version 2.0-firm-b
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -239,6 +240,23 @@ _nil
 # has been saved yet, saves <FILENAME>.SAV
 # instead.
 # Set to QUICKSAVE to add to OOP:
+_nil
+# ---- PLAYER
+# Usage:
+#        #player <color> <bgcolor> <char>
+# Modifies how the player is displayed in-game.
+# Must specify all three. Use #player 0 0 0
+# to revert the player to the settings in the
+# .PAR file.
+# Set to PLAYER to add to OOP:
+_nil
+# ---- COLOR condition
+# Usage:
+#        #if color <dir> <color> [background color]
+# True if the location at <dir> is a match for
+# <color>. Alternately a <background color> can also
+# be selected.
+# set to COLOR to add to OOP:
 _nil
 # ---- INTERPOLATION
 # Usage:

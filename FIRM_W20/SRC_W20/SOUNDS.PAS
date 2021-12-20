@@ -59,22 +59,24 @@ uses Crt, Dos;
 
 procedure SoundQueue(priority: integer; pattern: string);
 	begin
-		if not SoundBlockQueueing and
-			(not SoundIsPlaying or (((priority >= SoundCurrentPriority) and (SoundCurrentPriority <> -1)) or (priority = -1))) then
-		begin
-			if (priority >= 0) or not SoundIsPlaying then begin
-				SoundCurrentPriority := priority;
-				SoundBuffer := pattern;
-				SoundBufferPos := 1;
-				SoundDurationCounter := 1;
-			end else begin
-				SoundBuffer := Copy(SoundBuffer, SoundBufferPos, Length(SoundBuffer) - SoundBufferPos + 1);
-				SoundBufferPos := 1;
-				if (Length(SoundBuffer) + Length(pattern)) < 255 then begin
-					SoundBuffer := SoundBuffer + pattern;
+		if pattern <> '' then begin
+			if not SoundBlockQueueing and
+				(not SoundIsPlaying or (((priority >= SoundCurrentPriority) and (SoundCurrentPriority <> -1)) or (priority = -1))) then
+			begin
+				if (priority >= 0) or not SoundIsPlaying then begin
+					SoundCurrentPriority := priority;
+					SoundBuffer := pattern;
+					SoundBufferPos := 1;
+					SoundDurationCounter := 1;
+				end else begin
+					SoundBuffer := Copy(SoundBuffer, SoundBufferPos, Length(SoundBuffer) - SoundBufferPos + 1);
+					SoundBufferPos := 1;
+					if (Length(SoundBuffer) + Length(pattern)) < 255 then begin
+						SoundBuffer := SoundBuffer + pattern;
+					end;
 				end;
+				SoundIsPlaying := true;
 			end;
-			SoundIsPlaying := true;
 		end;
 	end;
 

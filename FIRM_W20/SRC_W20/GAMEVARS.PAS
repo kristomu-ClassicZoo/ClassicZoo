@@ -46,7 +46,7 @@ interface
 		THEME_START = 155;
 		PARAM_FILE_COUNT = 162;
 		CUSTOM_FLAG_COUNT = 64;
-		CUSTOM_OOP_COUNT = 33;
+		CUSTOM_OOP_COUNT = 35;
 		CUSTOM_KEY_COUNT = 24;
 	type
 		TString50 = string[50];
@@ -128,6 +128,8 @@ interface
 			BoardTimeHsec: integer;
 			IsSave: boolean;
 			CustomFlags: array[0 .. CUSTOM_FLAG_COUNT] of integer;
+			PlayerColor: byte;
+			PlayerChar: char;
 		end;
 		TBoard = record
 			Name: TString50;
@@ -147,7 +149,7 @@ interface
 			Score: integer;
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
-		TConfigList = array[1 .. CONFIG_FILE_COUNT] of TString50;
+		TConfigList = array[1 .. CONFIG_FILE_COUNT] of string[80];
 		TCustomFlagList = array[1 .. CUSTOM_FLAG_COUNT + 5] of TString20;
 		TParamList = array[1 .. PARAM_FILE_COUNT] of integer;
 		TCustomOOPList = array[1 .. CUSTOM_OOP_COUNT] of TString20;
@@ -214,12 +216,8 @@ interface
 		OOPList: TCustomOOPList;
 		KeyList: TCustomKeyList;
 		HighScoreList: THighScoreList;
-		ConfigRegistration: string;
-		ConfigWorldFile: TString50;
-		GameVersion: TString50;
-		ParsingConfigFile: boolean;
-		ResetConfig: boolean; { This flag is a remnant from ZZT 3.0. }
 		JustStarted: boolean;
+		ConfigWorldFile: TString50;
 
 		WorldFileDescCount: integer;
 		WorldFileDescKeys: array[1 .. 10] of TString50;

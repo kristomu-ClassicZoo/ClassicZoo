@@ -33,23 +33,7 @@ procedure ParseArguments;
 		i: integer;
 		pArg: string;
 	begin
-		for i := 1 to ParamCount do begin
-			pArg := ParamStr(i);
-			if pArg[1] = '/' then begin
-				case UpCase(pArg[2]) of
-					'T': begin
-						SoundTimeCheckCounter := 0;
-						UseSystemTimeForElapsed := false;
-					end;
-					'R': ResetConfig := true;
-				end;
-			end else begin
-				StartupWorldFileName := pArg;
-				if (Length(StartupWorldFileName) > 4) and (StartupWorldFileName[Length(StartupWorldFileName) - 3] = '.') then begin
-					StartupWorldFileName := Copy(StartupWorldFileName, 1, Length(StartupWorldFileName) - 4);
-				end;
-			end;
-		end;
+		StartupWorldFileName := ParamStr(1);
 		ExtMemInstall(true, true);
 	end;
 
@@ -59,26 +43,21 @@ procedure GameConfigure;
 		joystickEnabled, mouseEnabled: boolean;
 		cfgFile: text;
 	begin
-		ParsingConfigFile := true;
-		ConfigRegistration := '';
 		ConfigWorldFile := '';
-		GameVersion := '3.2';
-
-		Assign(cfgFile, 'zzt.cfg');
-		Reset(cfgFile);
-		if IOResult = 0 then begin
-			ReadLn(cfgFile, ConfigWorldFile);
-			ReadLn(cfgFile, ConfigRegistration);
-		end;
-		if Length(ConfigWorldFile) <> 0 then begin
-			StartupWorldFileName := ConfigWorldFile;
+        Assign(cfgFile, 'zzt.cfg');
+        Reset(cfgFile);
+        if IOResult = 0 then begin
+            ReadLn(cfgFile, ConfigWorldFile);
+            if Length(ConfigWorldFile) <> 0 then begin
+                StartupWorldFileName := ConfigWorldFile;
+            end;
 		end;
 
 		InputInitDevices;
 		joystickEnabled := InputJoystickEnabled;
 		mouseEnabled := InputMouseEnabled;
 
-		ParsingConfigFile := false;
+
 
 		Window(1, 1, 80, 25);
 		TextBackground(Black);
@@ -88,10 +67,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                              <=-  WeaveZZT  -=>');
 		TextColor(Yellow);
-		if Length(ConfigRegistration) = 0 then
-			Writeln('                                 Version  2.0')
-		else
-			Writeln('                                 Version  2.0');
+		Writeln('                                 Version  2.0');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -146,7 +122,6 @@ begin
 	StartupWorldFileName := '';
 	ResourceDataFileName := 'ZZT.DAT';
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
-	ResetConfig := false;
 	GameTitleExitRequested := false;
 	GameConfigure;
 	ParseArguments;

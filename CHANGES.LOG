@@ -1,0 +1,21 @@
+= 12/20/2021: 2.0e
+New Functions:
+* #PLAYER <color> <bgcolor> <char> permanent player color + char
+* #PLAYER 0 0 0 restore .PAR default
+* #TAKE <counter> [label] will attempt to take 1 of the counter
+* #GIVE <counter> will give 1 of the counter
+* #IF COLOR <dir> <color> [background color] conditional
+* #DIE ITEM relocates player to object location after stat removal
+
+Improved:
+* Versions added to config files
+* Extend CFG parsing from 50 to 80 chars
+* Added zedit2 Alt-T compat
+
+Bug Fixes
+* Empty strings passed to SoundParse will no longer interfere with SoundQueue
+* Empty strings in Oop files will now be properly counted as _nil.
+* Some unstatted objects would acquire unwelcome backgrounds whilst SHOVEd.
+
+= 12/19/2021
+Initial release
