@@ -43,7 +43,7 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-ZxtMgr, ZVideo, Sounds, Input, TxtWind, Editor, Oop, Game;
+ZxtMgr, ZVideo, Sounds, Input, ZDemo, TxtWind, Editor, Oop, Game;
 
 const
 	TransporterNSChars: string = '^~^-v_v-';
@@ -91,7 +91,7 @@ procedure ElementLionTick(statId: integer);
 		deltaX, deltaY: integer;
 	begin
 		with Board.Stats[statId] do begin
-			if P1 < Random(10) then
+			if P1 < ZRandom(10) then
 				CalcDirectionRnd(deltaX, deltaY)
 			else
 				CalcDirectionSeek(X, Y, deltaX, deltaY);
@@ -116,7 +116,7 @@ procedure ElementTigerTick(statId: integer);
 			if P2 >= $80 then
 				element := E_STAR;
 
-			if (Random(10) * 3) <= (P2 and $7F) then begin
+			if (ZRandom(10) * 3) <= (P2 and $7F) then begin
 				if Difference(X, Board.Stats[0].X) <= 2 then begin
 					shot := BoardShoot(element, X, Y, 0, Signum(Board.Stats[0].Y - Y), SHOT_SOURCE_ENEMY);
 				end else begin
@@ -138,14 +138,14 @@ procedure ElementRuffianTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
 			if (StepX = 0) and (StepY = 0) then begin
-				if (P2 + 8) <= Random(17) then begin
-					if P1 >= Random(9) then
+				if (P2 + 8) <= ZRandom(17) then begin
+					if P1 >= ZRandom(9) then
 						CalcDirectionSeek(X, Y, StepX, StepY)
 					else
 						CalcDirectionRnd(StepX, StepY);
 				end;
 			end else begin
-				if ((Y = Board.Stats[0].Y) or (X = Board.Stats[0].X)) and (Random(9) <= P1) then begin
+				if ((Y = Board.Stats[0].Y) or (X = Board.Stats[0].X)) and (ZRandom(9) <= P1) then begin
 					CalcDirectionSeek(X, Y, StepX, StepY);
 				end;
 
@@ -154,7 +154,7 @@ procedure ElementRuffianTick(statId: integer);
 						BoardAttack(statId, X + StepX, Y + StepY)
 					end else if ElementDefs[Element].Walkable then begin
 						MoveStat(statId, X + StepX, Y + StepY);
-						if (P2 + 8) <= Random(17) then begin
+						if (P2 + 8) <= ZRandom(17) then begin
 							StepX := 0;
 							StepY := 0;
 						end;
@@ -208,13 +208,13 @@ procedure ElementCentipedeHeadTick(statId: integer);
 		tmp: integer;
 	begin
 		with Board.Stats[statId] do begin
-			if (X = Board.Stats[0].X) and (Random(10) < P1) then begin
+			if (X = Board.Stats[0].X) and (ZRandom(10) < P1) then begin
 				StepY := Signum(Board.Stats[0].Y - Y);
 				StepX := 0;
-			end else if (Y = Board.Stats[0].Y) and (Random(10) < P1) then begin
+			end else if (Y = Board.Stats[0].Y) and (ZRandom(10) < P1) then begin
 				StepX := Signum(Board.Stats[0].X - X);
 				StepY := 0;
-			end else if ((Random(10) * 4) < P2) or ((StepX = 0) and (StepY = 0)) then begin
+			end else if ((ZRandom(10) * 4) < P2) or ((StepX = 0) and (StepY = 0)) then begin
 				CalcDirectionRnd(StepX, StepY);
 			end;
 
@@ -224,8 +224,8 @@ procedure ElementCentipedeHeadTick(statId: integer);
 			begin
 				ix := StepX;
 				iy := StepY;
-				tmp := ((Random(2) * 2) - 1) * iy;
-				StepY := ((Random(2) * 2) - 1) * ix;
+				tmp := ((ZRandom(2) * 2) - 1) * iy;
+				StepY := ((ZRandom(2) * 2) - 1) * ix;
 				StepX := tmp;
 				with Board.Tiles[X + StepX][Y + StepY] do
 				if not ElementDefs[Element].Walkable
@@ -436,8 +436,8 @@ procedure ElementSpinningGunTick(statId: integer);
 			if P2 >= $80 then
 				element := E_STAR;
 
-			if Random(9) < (P2 and $7F) then begin
-				if Random(9) <= P1 then begin
+			if ZRandom(9) < (P2 and $7F) then begin
+				if ZRandom(9) <= P1 then begin
 					if Difference(X, Board.Stats[0].X) <= 2 then begin
 						shot := BoardShoot(element, X, Y, 0, Signum(Board.Stats[0].Y - Y), SHOT_SOURCE_ENEMY);
 					end else begin
@@ -829,7 +829,7 @@ procedure ElementSharkTick(statId: integer);
 		deltaX, deltaY: integer;
 	begin
 		with Board.Stats[statId] do begin
-			if P1 < Random(10) then
+			if P1 < ZRandom(10) then
 				CalcDirectionRnd(deltaX, deltaY)
 			else
 				CalcDirectionSeek(X, Y, deltaX, deltaY);
@@ -1381,7 +1381,7 @@ procedure DrawPlayerSurroundings(x, y: integer; bombPhase: integer);
 
 									if (Element = E_EMPTY) or (Element = E_BREAKABLE) then begin
 										Element := E_BREAKABLE;
-										Color := $09 + Random(7);
+										Color := $09 + ZRandom(7);
 										{ BoardDrawTile(ix, iy); (duplicate) }
 									end;
 								end else begin
@@ -1537,7 +1537,9 @@ procedure ElementPlayerTick(statId: integer);
 					end;
 				end;
 				#27, 'Q': begin
-					GamePromptEndPlay;
+					if not DemoIsPlaying then begin
+						GamePromptEndPlay;
+					end;
 				end;
 				'S': begin
 					GameWorldSave('Save game:', SavedGameFileName, '.SAV');
@@ -1584,7 +1586,7 @@ procedure ElementPlayerTick(statId: integer);
 			end;
 
 			if (Board.Info.TimeLimitSec > 0) and (World.Info.Health > 0) then
-				if SoundHasTimeElapsed(World.Info.BoardTimeHsec, 100) then begin
+				if DemoSoundHasTimeElapsed(World.Info.BoardTimeHsec, 100) then begin
 					Inc(World.Info.BoardTimeSec);
 
 					if (Board.Info.TimeLimitSec - 10) = World.Info.BoardTimeSec then begin

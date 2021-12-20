@@ -50,7 +50,7 @@ interface
 implementation
 uses
 {$IFDEF ZETAEMU} ZetaSupp, {$ENDIF}
-Crt, Dos, Sounds;
+Crt, Dos, ZDemo, Sounds;
 
 {$I SNDFREQ.INC}
 	DELAY_LOOP_MAX_ITERATIONS = $7FFFFFFF;
@@ -175,6 +175,8 @@ procedure SoundTimerHandler;
 	begin
 		Inc(TimerTicks);
 		Inc(TimerHsecs, 11);
+
+		DemoOnPitTick;
 
 		if not SoundEnabled then begin
 			SoundIsPlaying := false;

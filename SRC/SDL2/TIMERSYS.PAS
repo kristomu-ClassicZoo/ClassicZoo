@@ -38,6 +38,8 @@ interface
 	procedure AccurateDelay(ms: word);
 	procedure TimerSysIdle(mode: TIdleMode);
 	procedure TimerSysWake(mode: TIdleMode);
+	procedure TimerSysLockTimer(mode: TIdleMode);
+	procedure TimerSysUnlockTimer(mode: TIdleMode);
 	procedure TimerSysLockSoundBuffer;
 	procedure TimerSysUnlockSoundBuffer;
 	procedure TimerSysStopSound;
@@ -46,7 +48,7 @@ interface
 	procedure TimerSysUninstall;
 
 implementation
-uses AudioSim, Sounds, SDL2;
+uses AudioSim, Sounds, ZDemo, SDL2;
 
 const
 	PIT_SPEED_MS = 55;
@@ -84,6 +86,16 @@ procedure TimerSysWake(mode: TIdleMode);
 		SDL_UnlockMutex(TimerMutexes[mode]);
 	end;
 
+procedure TimerSysLockTimer(mode: TIdleMode);
+	begin
+		SDL_LockMutex(TimerMutexes[mode]);
+	end;
+
+procedure TimerSysUnlockTimer(mode: TIdleMode);
+	begin
+		SDL_UnlockMutex(TimerMutexes[mode]);
+	end;
+
 procedure TimerSysLockSoundBuffer;
 	begin
 		SDL_LockMutex(SoundBufferMutex);
@@ -113,6 +125,8 @@ function PitTimerCallback(interval: Uint32; param: Pointer): Uint32; cdecl;
 		Inc(TimerTicks);
 		TimerHsecs := TimerHsecs + (PIT_SPEED_MS div 5);
 		AudioSimulationAllowed := SoundIsPlaying;
+
+		DemoOnPitTick;
 
 		TimerSysWake(IMUntilPit);
 		PitTimerCallback := PIT_SPEED_MS;

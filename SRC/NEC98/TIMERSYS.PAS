@@ -48,7 +48,7 @@ interface
 	procedure TimerSysUninstall;
 
 implementation
-uses Dos, PC98, Sounds;
+uses Dos, PC98, ZDemo, Sounds;
 var
 	SoundOldVector: pointer;
 	SoundOldVector07: pointer;
@@ -177,6 +177,8 @@ procedure SoundTimerHandler;
 			Exit;
 
 		Inc(TimerTicks);
+
+		DemoOnPitTick;
 
 		if not SoundEnabled then begin
 			SoundIsPlaying := false;

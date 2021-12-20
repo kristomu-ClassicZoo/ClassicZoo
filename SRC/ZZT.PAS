@@ -40,11 +40,13 @@ Pc98,
 Crt,
 {$ENDIF}
 {$ENDIF}
-Dos, ExtMem, FileSys, ZxtMgr, ZxtZoo, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+Dos, ExtMem, FileSys, ZxtMgr, ZxtZoo, ZVideo, ZDemo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
 
 {$IFNDEF NEC98}
 {$IFNDEF SDL2}
+{$IFNDEF ZDEMOVAL}
 {$DEFINE TEXTCFG}
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 
@@ -198,6 +200,7 @@ begin
 {$ELSE}
 	ResourceDataFileName := 'ZZT.DAT';
 {$ENDIF}
+	DemoEngineName := '%NAME% %VERSION%';
 	ResetConfig := false;
 	GameTitleExitRequested := false;
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
@@ -257,7 +260,11 @@ begin
 {$IFDEF EDITONLY}
 		EditorLoop;
 {$ELSE}
+{$IFDEF ZDEMOVAL}
+		GameValidateRun;
+{$ELSE}
 		GameTitleLoop;
+{$ENDIF}
 {$ENDIF}
 
 		FreeMem(IoTmpBuf, IoTmpBufSize);

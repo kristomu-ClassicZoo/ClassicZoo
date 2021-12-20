@@ -80,7 +80,6 @@ interface
 		TextWindowRejected: boolean;
 		ResourceDataFileName: TFilenameString;
 		ResourceDataHeader: TResourceDataHeader;
-		{ OrderPrintId: ^string; }
 	function UpCaseString(input: string): string;
 	procedure TextWindowPromptFilename(title: TString50; var filename: TFilenameString);
 	procedure TextWindowInitState(var state: TTextWindowState);
@@ -103,9 +102,9 @@ interface
 
 implementation
 {$IFDEF PRINTTXT}
-uses Sounds, TimerSys, FileSys, Input, Keys, Printer, FileSel, Game;
+uses Sounds, TimerSys, ZDemo, FileSys, Input, Keys, Printer, FileSel, Game;
 {$ELSE}
-uses Sounds, TimerSys, FileSys, Input, Keys, FileSel, Game;
+uses Sounds, TimerSys, ZDemo, FileSys, Input, Keys, FileSel, Game;
 {$ENDIF}
 type
 	TTextWindowLineBuffer = array[1 .. MAX_TEXT_WINDOW_LINES] of PTTextWindowLine;
@@ -307,14 +306,13 @@ procedure TextWindowFreeEdit(var state: TTextWindowState);
 		end;
 	end;
 
-{$IFDEF PRINTTXT}
-procedure TextWindowPrint(var state: TTextWindowState);
+function TextWindowWrite(var state: TTextWindowState; var f: text): boolean;
 	var
 		iLine, iChar: integer;
 		line: string;
 	begin
+		TextWindowWrite := false;
 		with state do begin
-			Rewrite(Lst);
 			for iLine := 1 to LineCount do begin
 				line := Lines[iLine]^;
 				if Length(line) > 0 then begin
@@ -335,15 +333,22 @@ procedure TextWindowPrint(var state: TTextWindowState);
 						line := '          ' + line
 					end;
 				end;
-				WriteLn(Lst, line);
+				WriteLn(f, line);
 				if IOResult <> 0 then begin
-					Close(Lst);
 					exit;
 				end;
 			end;
-			Write(Lst, Chr(12) { form feed });
-			Close(Lst);
 		end;
+		TextWindowWrite := true;
+	end;
+
+{$IFDEF PRINTTXT}
+procedure TextWindowPrint(var state: TTextWindowState);
+	begin
+		Rewrite(Lst);
+		if TextWindowWrite(state, Lst) then
+			Write(Lst, Chr(12) { form feed });
+		Close(Lst);
 	end;
 {$ENDIF}
 
@@ -367,7 +372,7 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 {$IFDEF SDL2}
 				SoundIdle(IMUntilFrame);
 {$ENDIF}
-				InputUpdate;
+				DemoInputUpdate(0, false);
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
 					Inc(newLinePos, InputDeltaY);
@@ -728,7 +733,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 {$IFDEF SDL2}
 					SoundIdle(IMUntilFrame);
 {$ENDIF}
-					InputUpdate;
+					DemoInputUpdate(0, false);
 					shiftHeld := shiftHeld or KeysShiftHeld;
 				until InputKeyPressed <> #0;
 				newLinePos := LinePos;
