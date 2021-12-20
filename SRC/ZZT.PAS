@@ -221,6 +221,7 @@ begin
 		VideoHideCursor;
 		ClrScr;
 
+		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);
 		ZxtRegisterExtensionSimple(ExtFixPutBottomRow, $00000001, $0001);
 		ZxtRegisterExtensionSimple(ExtFixBindDoubleFree, $00000001, $0002);
 		ZxtRegisterExtensionSimple(ExtFixKoopoBug, $00000001, $0003);
@@ -229,8 +230,7 @@ begin
 		ZxtRegisterExtensionSimple(ExtFixConveyorMissingFinalDraw, $00000001, $0006);
 		ZxtRegisterExtensionSimple(ExtFixConveyorStatSwapping, $00000001, $0007);
 		ZxtRegisterExtensionSimple(ExtFixBlinkWallShift, $00000001, $0008);
-		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);
-		ZxtRegisterExtensionSimple(ExtQuirkArgTile2, $00000000, $1001);
+		ZxtRegisterExtensionSimple(ExtSuperzEnter, $00000002, $0001);
 		ZxtRegisterExtensionSimple(ExtDieItem, $0000A51E, $0001);
 		ZxtRegisterExtensionSimple(ExtDieUnderTile, $0000A51E, $0002);
 		ZxtRegisterExtensionSimple(ExtIfRnd, $0000A51E, $0004);
@@ -240,6 +240,7 @@ begin
 {$ENDIF}
 		ZxtRegisterExtensionSimple(ExtGMDirByAt, $79656D74, $0001);
 		ZxtRegisterExtensionSimple(ExtGMPutPlayer, $79656D74, $0002);
+		ZxtRegisterExtensionSimple(ExtQuirkArgTile2, $00000000, $1001);
 
 		TickSpeed := 4;
 		DebugEnabled := false;

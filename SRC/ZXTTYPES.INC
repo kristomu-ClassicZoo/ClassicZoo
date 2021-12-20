@@ -10,6 +10,7 @@ TExtensionType = (
 	ExtFixConveyorMissingFinalDraw, { on by default }
 	ExtFixConveyorStatSwapping, { on by default }
 	ExtFixBlinkWallShift,
+	ExtSuperzEnter,
 	ExtDieItem,
 	ExtDieUnderTile,
 	ExtIfRnd,

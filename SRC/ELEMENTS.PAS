@@ -1335,7 +1335,7 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 					TransitionDrawBoardChange;
 					deltaX := 0;
 					deltaY := 0;
-					BoardEnter;
+					BoardEnter(true);
 				end else begin
 					BoardChange(boardId);
 				end;

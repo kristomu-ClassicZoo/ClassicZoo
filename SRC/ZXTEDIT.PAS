@@ -44,9 +44,9 @@ uses Dos, FileSel, ZVideo, Input;
 const
 	FZxtEditorCustomAdd = $8000;
 {$IFDEF NEC98}
-	EDITOR_ZXT_INFOS_COUNT = 15;
-{$ELSE}
 	EDITOR_ZXT_INFOS_COUNT = 16;
+{$ELSE}
+	EDITOR_ZXT_INFOS_COUNT = 17;
 {$ENDIF}
 	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
 		(
@@ -83,6 +83,9 @@ const
 			(ExtType: ExtGMDirByAt;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
 			Name: 'OOP: BY/AT directions'),
+			(ExtType: ExtSuperzEnter;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'OOP: :ENTER'),
 			(ExtType: ExtDieItem;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
 			Name: 'OOP: #DIE ITEM'),

@@ -95,7 +95,7 @@ interface
 	procedure GameAboutScreen;
 	procedure GamePlayLoop(boardChanged: boolean);
 	procedure DisplayMessage(time: integer; message: string);
-	procedure BoardEnter;
+	procedure BoardEnter(playerCaused: boolean);
 	procedure BoardPassageTeleport(x, y: integer);
 	procedure GameDebugPrompt;
 	procedure GameTitleLoop;
@@ -1684,7 +1684,7 @@ procedure TransitionDrawBoardChange;
 		TransitionDrawToBoard;
 	end;
 
-procedure BoardEnter;
+procedure BoardEnter(playerCaused: boolean);
 	begin
 		Board.Info.StartPlayerX := Board.Stats[0].X;
 		Board.Info.StartPlayerY := Board.Stats[0].Y;
@@ -1701,6 +1701,9 @@ procedure BoardEnter;
 		if DebugCompatEnabled then
 			DebugBoardIllegalElements;
 {$ENDIF}
+
+		if playerCaused and ExtensionEnabled[ExtSuperzEnter] then
+			if OopSend(0, 'ALL:ENTER', false) then begin end;
 	end;
 
 procedure BoardPassageTeleport(x, y: integer);
@@ -1733,7 +1736,7 @@ procedure BoardPassageTeleport(x, y: integer);
 		GamePaused := true;
 		SoundQueue(4, #48#1#52#1#55#1#49#1#53#1#56#1#50#1#54#1#57#1#51#1#55#1#58#1#52#1#56#1#64#1);
 		TransitionDrawBoardChange;
-		BoardEnter;
+		BoardEnter(true);
 	end;
 
 function DebugPromptParseInt(input: TString50; offset: integer; defaultValue: integer): integer;
@@ -1941,7 +1944,7 @@ procedure GameDebugPrompt;
 							BoardChange(i);
 							GamePaused := true;
 							TransitionDrawBoardChange;
-							BoardEnter;
+							BoardEnter(true);
 						end;
 					end;
 				end else
@@ -2302,7 +2305,7 @@ procedure GameTitleLoop;
 						end;
 						if startPlay then begin
 							BoardChange(ReturnBoardId);
-							BoardEnter;
+							BoardEnter(false);
 						end;
 					end;
 					'A': begin
