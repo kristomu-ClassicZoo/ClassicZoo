@@ -635,7 +635,7 @@ procedure SidebarPromptNumeric(editable: boolean; x, y: integer; prompt: string;
 {$IFDEF SDL2}
 				SoundIdle(IMUntilFrame);
 {$ENDIF}
-				InputUpdate;
+				DemoInputUpdate(0, false);
 				valueOffset := 0;
 				case InputKeyPressed of
 					KEY_UP: valueOffset := 1;

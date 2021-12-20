@@ -34,7 +34,11 @@ unit TxtWind;
 interface
 	uses GameVars, ZVideo;
 	const
+{$IFDEF SDL2}
+		MAX_TEXT_WINDOW_LINES = 6144;
+{$ELSE}
 		MAX_TEXT_WINDOW_LINES = 1024;
+{$ENDIF}
 		MAX_RESOURCE_DATA_FILES = 24;
 		TextWindowX = 5;
 		TextWindowY = 3;
