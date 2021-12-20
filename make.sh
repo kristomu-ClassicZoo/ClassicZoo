@@ -44,16 +44,16 @@ while getopts "a:d:e:o:p:rg" opt; do
 			FPC_BINARY=ppcross8086
 			;;
 		i386)
-			FPC_BINARY=ppc386
-			if [ ! -x "$(command -v $FPC_BINARY)" ]; then
+#			FPC_BINARY=ppc386
+#			if [ ! -x "$(command -v $FPC_BINARY)" ]; then
 				FPC_BINARY=ppcross386
-			fi
+#			fi
 			;;
 		x86_64)
-			FPC_BINARY=ppcx64
-			if [ ! -x "$(command -v $FPC_BINARY)" ]; then
+#			FPC_BINARY=ppcx64
+#			if [ ! -x "$(command -v $FPC_BINARY)" ]; then
 				FPC_BINARY=ppcrossx64
-			fi
+#			fi
 			;;
 		arm)
 			FPC_BINARY=ppcrossarm
