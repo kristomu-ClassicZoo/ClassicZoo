@@ -381,6 +381,7 @@ procedure BoardOpen(boardId: integer);
 			with Board.Stats[ix] do begin
 				Move(ptr^, Board.Stats[ix], STAT_SIZE_BYTES);
 				AdvancePointer(ptr, STAT_SIZE_BYTES);
+				{$IFDEF FPC} Data := Nil; {$ENDIF}
 				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
@@ -1318,8 +1319,11 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 			end;
 
 			if (template.Data <> nil) and (template.DataLen > 0) then begin
-				GetMem(Board.Stats[Board.StatCount].Data, template.DataLen);
-				Move(template.Data^, Board.Stats[Board.StatCount].Data^, template.DataLen);
+				with Board.Stats[Board.StatCount] do begin
+					{$IFDEF FPC} Data := Nil; {$ENDIF}
+					GetMem(Data, template.DataLen);
+					Move(template.Data^, Data^, template.DataLen);
+				end;
 			end;
 
 			if ElementDefs[Board.Tiles[tx][ty].Element].PlaceableOnTop then
