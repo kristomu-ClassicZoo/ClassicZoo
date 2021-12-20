@@ -1321,7 +1321,10 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 			BoardChange(Board.Info.NeighborBoards[neighborId]);
 			with Board.Tiles[entryX][entryY] do begin
 				if Element <> E_PLAYER then begin
-					ElementDefs[Element].TouchProc(entryX, entryY, sourceStatId, InputDeltaX, InputDeltaY);
+					if ExtensionEnabled[ExtFixBoardEdgeTouch] then
+						ElementDefs[Element].TouchProc(entryX, entryY, sourceStatId, deltaX, deltaY)
+					else
+						ElementDefs[Element].TouchProc(entryX, entryY, sourceStatId, InputDeltaX, InputDeltaY);
 				end;
 
 				if ElementDefs[Element].Walkable or (Element = E_PLAYER)

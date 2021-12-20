@@ -44,9 +44,9 @@ uses Dos, FileSel, ZVideo, Input;
 const
 	FZxtEditorCustomAdd = $8000;
 {$IFDEF NEC98}
-	EDITOR_ZXT_INFOS_COUNT = 16;
-{$ELSE}
 	EDITOR_ZXT_INFOS_COUNT = 17;
+{$ELSE}
+	EDITOR_ZXT_INFOS_COUNT = 18;
 {$ENDIF}
 	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
 		(
@@ -56,6 +56,9 @@ const
 			(ExtType: ExtFixBlinkWallShift;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
 			Name: 'FIX: Blink wall shift to left'),
+			(ExtType: ExtFixBoardEdgeTouch;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Board edge touch direction'),
 			(ExtType: ExtFixConveyorStatSwapping;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
 			Name: 'FIX: Conveyor stat swapping'),

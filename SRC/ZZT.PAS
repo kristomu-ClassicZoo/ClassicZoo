@@ -230,6 +230,7 @@ begin
 		ZxtRegisterExtensionSimple(ExtFixConveyorMissingFinalDraw, $00000001, $0006);
 		ZxtRegisterExtensionSimple(ExtFixConveyorStatSwapping, $00000001, $0007);
 		ZxtRegisterExtensionSimple(ExtFixBlinkWallShift, $00000001, $0008);
+		ZxtRegisterExtensionSimple(ExtFixBoardEdgeTouch, $00000001, $0009);
 		ZxtRegisterExtensionSimple(ExtSuperzEnter, $00000002, $0001);
 		ZxtRegisterExtensionSimple(ExtDieItem, $0000A51E, $0001);
 		ZxtRegisterExtensionSimple(ExtDieUnderTile, $0000A51E, $0002);
