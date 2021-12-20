@@ -52,7 +52,7 @@ interface
 	procedure VideoInvert(x1, y1, x2, y2: integer);
 
 implementation
-uses FileSys, SysUtils, Sounds, TimerSys, SDL2;
+uses F_ASCII, FileSys, SysUtils, Sounds, TimerSys, SDL2;
 type
 	TCharsetTexture = record
 		valid: boolean;
@@ -333,8 +333,6 @@ procedure VideoInstall(borderColor: integer);
 		resPath: string;
 		asciiBmpPath: string;
 		f: file;
-		chBuffer: array[0 .. 4095] of byte;
-		chSize: longint;
 	begin
 		VideoColumns := 80;
 		window := SDL_CreateWindow('%NAME% %VERSION%',
@@ -345,16 +343,7 @@ procedure VideoInstall(borderColor: integer);
 		renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED or SDL_RENDERER_PRESENTVSYNC);
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, '0');
 
-		AssignFSys(f, resPath + 'ASCII.CHR');
-		Reset(f, 1);
-		BlockRead(f, chBuffer, 4096, chSize);
-		Close(f);
-
-		asciiBmpPath := FilenameFindIgnoreCase(resPath + 'ASCII.BMP');
-		if FileExists(asciiBmpPath) then
-			LoadCharsetFromBMP(charsetTexture, asciiBmpPath);
-		if not charsetTexture.valid then
-			LoadCharsetFromByteArray(charsetTexture, chBuffer, chSize);
+		LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);
 		if not charsetTexture.valid then
 			RunError(217);
 

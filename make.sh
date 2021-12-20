@@ -50,9 +50,9 @@ while getopts "a:d:e:o:p:rg" opt; do
 #			fi
 			;;
 		x86_64)
-#			FPC_BINARY=ppcx64
+			FPC_BINARY=ppcx64
 #			if [ ! -x "$(command -v $FPC_BINARY)" ]; then
-				FPC_BINARY=ppcrossx64
+#				FPC_BINARY=ppcrossx64
 #			fi
 			;;
 		arm)
@@ -204,8 +204,14 @@ if [ -n "$FREE_PASCAL" ]; then
 	else
 		cat fpc.base.release.cfg >> ../SRC/fpc.cfg
 	fi
-	cd ../SRC
 
+	cd ..
+	sed -i -e "s/^BUILD$/RUNTOOLS/" SYSTEM/dosbox.conf
+	touch BUILD.LOG
+	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
+	tail --pid $! -n +1 -f BUILD.LOG
+
+	cd SRC
 	echo "[ Building ZZT.EXE ]"
 	echo "$FPC_BINARY_PATH"/bin/"$FPC_BINARY" $FPC_ARGS ZZT.PAS
 	"$FPC_BINARY_PATH"/bin/"$FPC_BINARY" $FPC_ARGS ZZT.PAS
@@ -221,11 +227,6 @@ if [ -n "$FREE_PASCAL" ]; then
 		exit 1
 	fi
 	cd ..
-
-	sed -i -e "s/^BUILD$/PACKDAT/" SYSTEM/dosbox.conf
-	touch BUILD.LOG
-	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
-	tail --pid $! -n +1 -f BUILD.LOG
 else
 	# HACK! NEC98 requires SRC/DOS/EXTMEM.PAS, as the underlying standards are
 	# the same. (We do this on Free Pascal via fpc.any.any.nec98.cfg.)
