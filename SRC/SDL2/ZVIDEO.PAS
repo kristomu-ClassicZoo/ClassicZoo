@@ -28,6 +28,7 @@ unit ZVideo;
 
 interface
 	type
+		TSDLScalingMode = (SMNone, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
 		TVideoLine = string[80];
 		TScreenCopyLine = string[160];
 	var
@@ -40,6 +41,8 @@ interface
 		VideoEGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
 		VideoForceNoSnow: boolean;
+	function VideoGetSDLScalingMode: TSDLScalingMode;
+	procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	function VideoConfigure: boolean;
 	function VideoSetCharset(data: pointer; height: integer): boolean;
@@ -94,6 +97,102 @@ var
 	screenBuffer: array[0 .. 3999] of byte;
 	screenBufferChange: array[0 .. 3999] of boolean; { we only use the even ones }
 	blinkActive: boolean;
+	VideoSDLScalingMode: TSDLScalingMode;
+
+{ Window handling }
+
+procedure CalcRenderArea(rect: PSDL_Rect; w, h: Int32);
+	var
+		origw, origh, iw, ih, scale: Int32;
+	begin
+		iw := 80 * charsetTexture.charWidth;
+		ih := 25 * charsetTexture.charHeight;
+		origw := w;
+		origh := h;
+
+		scale := 1;
+		while (((scale+1)*iw <= w) and ((scale+1)*ih <= h)) do Inc(scale);
+
+		if rect <> Nil then begin
+			case VideoSDLScalingMode of
+				SMNone: begin
+					w := iw;
+					h := ih;
+				end;
+				SMInteger: begin
+					w := iw * scale;
+					h := ih * scale;
+				end;
+				SMOrigAspect: begin
+					if (w < iw) then w := iw;
+					if (h < ih) then h := ih;
+
+					if ((w * ih div iw) > h) then
+						w := h * iw div ih
+					else
+						h := w * ih div iw;
+				end;
+				SM43Aspect: begin
+					if (w < iw) then w := iw;
+					if (h < (iw * 3 div 4)) then h := (iw * 3 div 4);
+
+					if (w > 640) and ((w * 3 div 4) > h) then
+						w := h * 4 div 3
+					else
+						h := w * 3 div 4;
+				end;
+				SMIgnoreAspect: begin
+					{ Leave w/h as-is. }
+				end;
+			end;
+
+			rect^.w := w;
+			rect^.h := h;
+			rect^.x := (origw - w) div 2;
+			rect^.y := (origh - h) div 2;
+		end;
+	end;
+
+procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean);
+	var
+		iw, ih, w, h, scale: Int32;
+		destRect: TSDL_Rect;
+	begin
+		if window = Nil then exit;
+		if VideoSDLScalingMode = SMIgnoreAspect then
+			SDL_SetWindowMinimumSize(window, 80, 25)
+		else begin
+			iw := 80 * charsetTexture.charWidth;
+			ih := 25 * charsetTexture.charHeight;
+			if VideoSDLScalingMode = SM43Aspect then
+				ih := iw * 3 div 4;
+
+			SDL_SetWindowMinimumSize(window, iw, ih);
+		end;
+
+		SDL_GetWindowSize(window, @w, @h);
+		CalcRenderArea(@destRect, w, h);
+		Inc(scale, delta);
+		if scale < 1 then scale := 1;
+
+		iw := destRect.w;
+		ih := destRect.h;
+
+		{ TODO: if windowed }
+		if (not onlyIfTooSmall) or ((iw > w) or (ih > h)) then
+			SDL_SetWindowSize(window, iw, ih);
+	end;
+
+function VideoGetSDLScalingMode: TSDLScalingMode;
+	begin
+		VideoGetSDLScalingMode := VideoSDLScalingMode;
+	end;
+
+procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
+	begin
+		VideoSDLScalingMode := value;
+		SDLResizeWindow(0, true);
+	end;
 
 { Charset management }
 
@@ -165,7 +264,7 @@ procedure LoadCharsetFromByteArray(var tex: TCharsetTexture; chByteArray: array 
 		surface: PSDL_Surface;
 		palette: array[0 .. 1] of TSDL_Color;
 		colors: array[0 .. 256*128-1] of byte;
-		i, ix, iy: integer;
+		i, ix, iy: Int32;
 		iyo: Uint32;
 		ib: byte;
 	begin
@@ -276,10 +375,17 @@ procedure VideoDrawCharFg(x, y: integer; blink: boolean);
 function VideoRenderThread(data: pointer): LongInt; cdecl;
 	var
 		ix, iy: integer;
+		w, h: Int32;
 		blink: boolean;
+		destRect: TSDL_Rect;
 	begin
 		while renderThreadRunning do begin
+			SDL_GetRendererOutputSize(renderer, @w, @h);
+			CalcRenderArea(@destRect, w, h);
+
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 			SDL_RenderClear(renderer);
+
 			SDL_SetRenderTarget(renderer, playfieldTexture);
 
 			SDL_LockMutex(playfieldMutex);
@@ -298,7 +404,7 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 			SDL_UnlockMutex(playfieldMutex);
 
 			SDL_SetRenderTarget(renderer, nil);
-			SDL_RenderCopy(renderer, playfieldTexture, nil, nil);
+			SDL_RenderCopy(renderer, playfieldTexture, nil, @destRect);
 
 			SDL_RenderPresent(renderer);
 			TimerSysWake(IMUntilFrame);
@@ -330,9 +436,9 @@ function VideoConfigure: boolean;
 	end;
 
 function VideoSetCharset(data: pointer; height: integer): boolean;
+	label FinishSetCharset;
 	begin
 		VideoSetCharset := false;
-		if height <> 14 then exit;
 
 		FreeCharsetTexture(charsetTexture);
 
@@ -340,13 +446,16 @@ function VideoSetCharset(data: pointer; height: integer): boolean;
 			LoadCharsetFromByteArray(charsetTexture, TByteArray(data), height shl 8);
 			if charsetTexture.valid then begin
 				VideoSetCharset := true;
-				exit;
+				goto FinishSetCharset;
 			end;
 		end;
 
 		LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);
 		if not charsetTexture.valid then
 			RunError(217);
+
+FinishSetCharset:
+		SDLResizeWindow(0, true);
 	end;
 
 procedure VideoInstall(borderColor: integer);
@@ -357,9 +466,11 @@ procedure VideoInstall(borderColor: integer);
 		f: file;
 	begin
 		VideoColumns := 80;
+		VideoSDLScalingMode := SMInteger;
+
 		window := SDL_CreateWindow('%NAME% %VERSION%',
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-			640, 350, 0);
+			640, 350, SDL_WINDOW_RESIZABLE or SDL_WINDOW_ALLOW_HIGHDPI);
 		resPath := IncludeTrailingPathDelimiter(ExtractFileDir(ExpandFileName(ParamStr(0))));
 
 		renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED or SDL_RENDERER_PRESENTVSYNC);
@@ -374,6 +485,8 @@ procedure VideoInstall(borderColor: integer);
 		SDL_SetWindowSize(window, VideoColumns * charsetTexture.charWidth, 25 * charsetTexture.charHeight);
 
 		playfieldMutex := SDL_CreateMutex;
+
+		SDLResizeWindow(0, false);
 
 		SDL_RenderClear(renderer);
 		SDL_RenderPresent(renderer);
