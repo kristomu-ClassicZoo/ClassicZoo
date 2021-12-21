@@ -68,7 +68,7 @@ procedure AccurateDelay(ms: word);
 
 procedure AudioCallback(userdata: pointer; stream: PUint8; len: Int32); cdecl;
 	begin
-		AudioSimulate(stream, len);
+		AudioSimulate(TAudioSampleArray(stream), len);
 	end;
 
 procedure TimerSysIdle(mode: TIdleMode);
@@ -177,7 +177,11 @@ procedure TimerSysInstall;
 
 		requestedAudioSpec := Default(TSDL_AudioSpec);
 		requestedAudioSpec.freq := 48000;
+{$IFDEF AUD16BIT}
+		requestedAudioSpec.format := AUDIO_U16SYS;
+{$ELSE}
 		requestedAudioSpec.format := AUDIO_U8;
+{$ENDIF}
 		requestedAudioSpec.channels := 1;
 		requestedAudioSpec.samples := 2048;
 		requestedAudioSpec.callback := AudioCallback;

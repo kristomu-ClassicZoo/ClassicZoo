@@ -34,7 +34,7 @@ interface
 implementation
 uses
 {$IFDEF SDL2} AudioSim, {$ENDIF}
-Game, GameVars, Sounds, Input, TxtWind;
+Game, GameVars, Sounds, ZVideo, Input, TxtWind;
 
 procedure GameAboutScreen;
 	begin
@@ -55,45 +55,67 @@ procedure GameOptionsScreen;
 
 		repeat
 			state.Selectable := true;
-			state.LineCount := 6;
+			state.LineCount := {$IFNDEF SDL2} 6 {$ELSE} 8 {$ENDIF};
 			for i := 1 to state.LineCount do
 				New(state.Lines[i]);
 
-			state.Lines[1]^ := '!;Compatibility: ';
+			i := 1;
+			state.Lines[i]^ := '!;Compatibility: ';
 			if HighCompatAuto then
-				state.Lines[1]^ := state.Lines[1]^ + 'Automatic'
+				state.Lines[i]^ := state.Lines[1]^ + 'Automatic'
 			else if HighCompat then
-				state.Lines[1]^ := state.Lines[1]^ + 'Strict'
+				state.Lines[i]^ := state.Lines[1]^ + 'Strict'
 			else
-				state.Lines[1]^ := state.Lines[1]^ + 'Normal';
-
+				state.Lines[i]^ := state.Lines[1]^ + 'Normal';
+			Inc(i);
 {$IFNDEF SDL2}
-			state.Lines[2]^ := '!;Sound: ';
+			state.Lines[i]^ := '!;Sound: ';
 			if SoundEnabled then
-				state.Lines[2]^ := state.Lines[2]^ + 'On'
+				state.Lines[i]^ := state.Lines[i]^ + 'On'
 			else
-				state.Lines[2]^ := state.Lines[2]^ + 'Off';
+				state.Lines[i]^ := state.Lines[i]^ + 'Off';
+			Inc(i);
 {$ELSE}
-			state.Lines[2]^ := '!;Sound: ';
+			state.Lines[i]^ := '!;Video scaling: ';
+			case VideoGetSDLScalingMode of
+				SMNone: state.Lines[i]^ := state.Lines[i]^ + '1:1';
+				SM2x: state.Lines[i]^ := state.Lines[i]^ + '2:1';
+				SM3x: state.Lines[i]^ := state.Lines[i]^ + '3:1';
+				SMInteger: state.Lines[i]^ := state.Lines[i]^ + 'Integer';
+				SMOrigAspect: state.Lines[i]^ := state.Lines[i]^ + 'Keep Aspect';
+				SM43Aspect: state.Lines[i]^ := state.Lines[i]^ + '4:3 Aspect';
+				SMIgnoreAspect: state.Lines[i]^ := state.Lines[i]^ + 'Ignore';
+			end;
+			Inc(i);
+
+			state.Lines[i]^ := '!;Sound: ';
 			if AudioGetVolume >= 64 then
-				state.Lines[2]^ := state.Lines[2]^ + '100%'
+				state.Lines[i]^ := state.Lines[i]^ + '100%'
 			else if AudioGetVolume >= 48 then
-				state.Lines[2]^ := state.Lines[2]^ + '75%'
+				state.Lines[i]^ := state.Lines[i]^ + '75%'
 			else if AudioGetVolume >= 32 then
-				state.Lines[2]^ := state.Lines[2]^ + '50%'
+				state.Lines[i]^ := state.Lines[i]^ + '50%'
 			else if AudioGetVolume >= 16 then
-				state.Lines[2]^ := state.Lines[2]^ + '25%'
+				state.Lines[i]^ := state.Lines[i]^ + '25%'
 			else
-				state.Lines[2]^ := state.Lines[2]^ + 'Off';
+				state.Lines[i]^ := state.Lines[i]^ + 'Off';
+			Inc(i);
+
+			state.Lines[i]^ := '!;HQ Sound: ';
+			if AudioGetHighQuality then
+				state.Lines[i]^ := state.Lines[i]^ + 'On'
+			else
+				state.Lines[i]^ := state.Lines[i]^ + 'Off';
+			Inc(i);
 {$ENDIF}
 
-			state.Lines[3]^ := '_________________________________________';
-			state.Lines[4]^ := '';
-			state.Lines[5]^ := '!;About ClassicZoo...';
-			state.Lines[6]^ := '!;Exit';
+			state.Lines[i]^ := '_________________________________________';
+			state.Lines[i + 1]^ := '';
+			state.Lines[i + 2]^ := '!;About ClassicZoo...';
+			state.Lines[i + 3]^ := '!;Exit';
 
 			TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
-			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 6) then begin
+			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
 				case state.LinePos of
 					1: begin
 						if HighCompatAuto then
@@ -106,8 +128,17 @@ procedure GameOptionsScreen;
 						SoundEnabled := not SoundEnabled;
 						SoundClearQueue;
 					end;
+					5: begin
+						GameAboutScreen;
+					end;
 {$ELSE}
 					2: begin
+						if VideoGetSDLScalingMode = SMIgnoreAspect then
+							VideoSetSDLScalingMode(SMNone)
+						else
+							VideoSetSDLScalingMode(Succ(VideoGetSDLScalingMode));
+					end;
+					3: begin
 						i := AudioGetVolume;
 						if i >= 64 then begin
 							i := 0;
@@ -117,10 +148,13 @@ procedure GameOptionsScreen;
 						end;
 						AudioSetVolume(i);
 					end;
-{$ENDIF}
-					5: begin
+					4: begin
+						AudioSetHighQuality(not AudioGetHighQuality);
+					end;
+					7: begin
 						GameAboutScreen;
 					end;
+{$ENDIF}
 				end;
 			end else begin
 				exitRequested := true;

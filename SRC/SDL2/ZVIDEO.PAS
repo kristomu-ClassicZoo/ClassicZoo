@@ -28,7 +28,7 @@ unit ZVideo;
 
 interface
 	type
-		TSDLScalingMode = (SMNone, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
+		TSDLScalingMode = (SMNone, SM2x, SM3x, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
 		TVideoLine = string[80];
 		TScreenCopyLine = string[160];
 	var
@@ -119,6 +119,14 @@ procedure CalcRenderArea(rect: PSDL_Rect; w, h: Int32);
 					w := iw;
 					h := ih;
 				end;
+				SM2x: begin
+					w := iw * 2;
+					h := ih * 2;
+				end;
+				SM3x: begin
+					w := iw * 3;
+					h := ih * 3;
+				end;
 				SMInteger: begin
 					w := iw * scale;
 					h := ih * scale;
@@ -153,24 +161,35 @@ procedure CalcRenderArea(rect: PSDL_Rect; w, h: Int32);
 		end;
 	end;
 
-procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean);
+procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSize: boolean);
 	var
 		iw, ih, w, h, scale: Int32;
 		destRect: TSDL_Rect;
 	begin
 		if window = Nil then exit;
-		if VideoSDLScalingMode = SMIgnoreAspect then
-			SDL_SetWindowMinimumSize(window, 80, 25)
-		else begin
-			iw := 80 * charsetTexture.charWidth;
-			ih := 25 * charsetTexture.charHeight;
-			if VideoSDLScalingMode = SM43Aspect then
-				ih := iw * 3 div 4;
 
-			SDL_SetWindowMinimumSize(window, iw, ih);
+		iw := 80 * charsetTexture.charWidth;
+		ih := 25 * charsetTexture.charHeight;
+		case VideoSDLScalingMode of
+			SM43Aspect: ih := iw * 3 div 4;
+			SM2x: begin
+				iw := iw * 2;
+				ih := ih * 2;
+			end;
+			SM3x: begin
+				iw := iw * 3;
+				ih := ih * 3;
+			end;
 		end;
 
-		SDL_GetWindowSize(window, @w, @h);
+		SDL_SetWindowMinimumSize(window, iw, ih);
+		if forceMinimumSize then begin
+			w := iw;
+			h := ih;
+		end else begin
+			SDL_GetWindowSize(window, @w, @h);
+		end;
+
 		CalcRenderArea(@destRect, w, h);
 		Inc(scale, delta);
 		if scale < 1 then scale := 1;
@@ -191,7 +210,7 @@ function VideoGetSDLScalingMode: TSDLScalingMode;
 procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
 	begin
 		VideoSDLScalingMode := value;
-		SDLResizeWindow(0, true);
+		SDLResizeWindow(-10000, false, true);
 	end;
 
 { Charset management }
@@ -455,7 +474,7 @@ function VideoSetCharset(data: pointer; height: integer): boolean;
 			RunError(217);
 
 FinishSetCharset:
-		SDLResizeWindow(0, true);
+		SDLResizeWindow(0, true, false);
 	end;
 
 procedure VideoInstall(borderColor: integer);
@@ -486,7 +505,7 @@ procedure VideoInstall(borderColor: integer);
 
 		playfieldMutex := SDL_CreateMutex;
 
-		SDLResizeWindow(0, false);
+		SDLResizeWindow(0, false, false);
 
 		SDL_RenderClear(renderer);
 		SDL_RenderPresent(renderer);
