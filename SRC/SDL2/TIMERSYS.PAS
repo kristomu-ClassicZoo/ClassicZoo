@@ -41,6 +41,7 @@ interface
 	procedure TimerSysLockSoundBuffer;
 	procedure TimerSysUnlockSoundBuffer;
 	procedure TimerSysStopSound;
+	procedure TimerSysQueueSound(pattern: string; isForce: boolean);
 	function TimerSysGetHsecs: word;
 	procedure TimerSysInstall;
 	procedure TimerSysUninstall;
@@ -103,6 +104,30 @@ procedure TimerSysStopSound;
 		SDL_UnlockMutex(SoundBufferMutex);
 	end;
 
+procedure TimerSysQueueSound(pattern: string; isForce: boolean);
+	var
+		appendSilence: boolean;
+		diffTicks: integer;
+	begin
+		{ SoundQueue -> We are locked here }
+{
+		WriteLn('Queue sound Timer=', TimerTicks, ' AudioSimStop=', AudioSimSoundBufferStopTicks);
+		WriteLn('AudioSimSB Pos=', AudioSimSoundBufferPos, ' Len=', Length(AudioSimSoundBuffer));
+		WriteLn('SB Pos=', SoundBufferPos, ' Len=', Length(SoundBuffer));
+}
+
+		if isForce then begin
+			AudioSimSoundBuffer := pattern;
+			AudioSimSoundBufferPos := 1;
+		end else begin
+			AudioSimSoundBuffer := Copy(AudioSimSoundBuffer, AudioSimSoundBufferPos, Length(AudioSimSoundBuffer) - AudioSimSoundBufferPos + 1);
+			AudioSimSoundBufferPos := 1;
+			AudioSimSoundBuffer := AudioSimSoundBuffer + pattern;
+		end;
+
+		AudioSimSoundBufferStopTicks := TimerTicks + SoundCountTicks(pattern);
+	end;
+
 function TimerSysGetHsecs: word;
 	begin
 		TimerSysGetHsecs := TimerHsecs shr 1;
@@ -112,6 +137,23 @@ function PitTimerCallback(interval: Uint32; param: Pointer): Uint32; cdecl;
 	begin
 		Inc(TimerTicks);
 		TimerHsecs := TimerHsecs + (PIT_SPEED_MS div 5);
+
+		{ Emulate DOS sound buffer. }
+		if not SoundEnabled then begin
+			SoundIsPlaying := false;
+		end else if SoundIsPlaying then begin
+			Dec(SoundDurationCounter);
+			if SoundDurationCounter <= 0 then begin
+				if SoundBufferPos >= Length(SoundBuffer) then begin
+					SoundIsPlaying := false;
+				end else begin
+					Inc(SoundBufferPos);
+					SoundDurationCounter := SoundDurationMultiplier * Ord(SoundBuffer[SoundBufferPos]);
+					Inc(SoundBufferPos);
+				end;
+			end;
+		end;
+
 		AudioSimulationAllowed := SoundIsPlaying;
 
 		TimerSysWake(IMUntilPit);

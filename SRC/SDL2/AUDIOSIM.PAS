@@ -29,6 +29,9 @@ unit AudioSim;
 
 interface
 	var
+		AudioSimSoundBufferStopTicks: integer;
+		AudioSimSoundBuffer: string;
+		AudioSimSoundBufferPos: integer;
 		AudioSimulationAllowed: boolean;
 	{ Volume range: 0-127 }
 	function AudioGetVolume: byte;
@@ -136,18 +139,18 @@ procedure AudioSimulate(stream: PUint8; len: Int32);
 			pos := 0;
 			while pos < len do begin
 				if CurrentNote < 0 then begin
-					if SoundBufferPos >= Length(SoundBuffer) then begin
+					if AudioSimSoundBufferPos >= Length(AudioSimSoundBuffer) then begin
 						SoundIsPlaying := false;
 						for i := pos to len - 1 do
 							stream[i] := AudioSampleNone;
 						break;
 					end else begin
 						{ pop note }
-						CurrentNote := Uint8(SoundBuffer[SoundBufferPos]);
+						CurrentNote := Uint8(AudioSimSoundBuffer[AudioSimSoundBufferPos]);
 						CurrentNotePos := 0;
-						Inc(SoundBufferPos);
-						CurrentNoteMax := SoundDurationMultiplier * Uint8(SoundBuffer[SoundBufferPos]) * SAMPLES_PER_PIT;
-						Inc(SoundBufferPos);
+						Inc(AudioSimSoundBufferPos);
+						CurrentNoteMax := SoundDurationMultiplier * Uint8(AudioSimSoundBuffer[AudioSimSoundBufferPos]) * SAMPLES_PER_PIT;
+						Inc(AudioSimSoundBufferPos);
 					end;
 				end;
 			
