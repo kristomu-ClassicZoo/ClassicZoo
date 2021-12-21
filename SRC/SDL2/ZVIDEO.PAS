@@ -43,6 +43,9 @@ interface
 		VideoForceNoSnow: boolean;
 	function VideoGetSDLScalingMode: TSDLScalingMode;
 	procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
+	function VideoGetSDLWindowed: boolean;
+	procedure VideoSetSDLWindowed(value: boolean);
+	{ }
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	function VideoConfigure: boolean;
 	function VideoSetCharset(data: pointer; height: integer): boolean;
@@ -97,7 +100,9 @@ var
 	screenBuffer: array[0 .. 3999] of byte;
 	screenBufferChange: array[0 .. 3999] of boolean; { we only use the even ones }
 	blinkActive: boolean;
-	VideoSDLScalingMode: TSDLScalingMode;
+	scalingMode: TSDLScalingMode;
+	windowed: boolean;
+	windowedLastWidth, windowedLastHeight: Int32;
 
 { Window handling }
 
@@ -114,7 +119,7 @@ procedure CalcRenderArea(rect: PSDL_Rect; w, h: Int32);
 		while (((scale+1)*iw <= w) and ((scale+1)*ih <= h)) do Inc(scale);
 
 		if rect <> Nil then begin
-			case VideoSDLScalingMode of
+			case scalingMode of
 				SMNone: begin
 					w := iw;
 					h := ih;
@@ -170,7 +175,7 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 
 		iw := 80 * charsetTexture.charWidth;
 		ih := 25 * charsetTexture.charHeight;
-		case VideoSDLScalingMode of
+		case scalingMode of
 			SM43Aspect: ih := iw * 3 div 4;
 			SM2x: begin
 				iw := iw * 2;
@@ -197,20 +202,46 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 		iw := destRect.w;
 		ih := destRect.h;
 
-		{ TODO: if windowed }
-		if (not onlyIfTooSmall) or ((iw > w) or (ih > h)) then
-			SDL_SetWindowSize(window, iw, ih);
+		if windowed then begin
+			if (not onlyIfTooSmall) or ((iw > w) or (ih > h)) then
+				SDL_SetWindowSize(window, iw, ih);
+		end;
 	end;
 
 function VideoGetSDLScalingMode: TSDLScalingMode;
 	begin
-		VideoGetSDLScalingMode := VideoSDLScalingMode;
+		VideoGetSDLScalingMode := scalingMode;
 	end;
 
 procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
 	begin
-		VideoSDLScalingMode := value;
+		scalingMode := value;
 		SDLResizeWindow(-10000, false, true);
+	end;
+
+function VideoGetSDLWindowed: boolean;
+	begin
+		VideoGetSDLWindowed := windowed;
+	end;
+
+procedure VideoSetSDLWindowed(value: boolean);
+	var
+		mode: TSDL_DisplayMode;
+	begin
+		if windowed <> value then begin
+			if windowed then begin
+				SDL_GetWindowSize(window, @windowedLastWidth, @windowedLastHeight);
+				SDL_GetDesktopDisplayMode(SDL_GetWindowDisplayIndex(window), @mode);
+				SDL_SetWindowSize(window, mode.w, mode.h);
+				SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+				windowed := false;
+			end else begin
+				SDL_SetWindowFullscreen(window, 0);
+				SDL_SetWindowSize(window, windowedLastWidth, windowedLastHeight);
+				SDLResizeWindow(0, true, false);
+				windowed := true;
+			end;
+		end;
 	end;
 
 { Charset management }
@@ -485,7 +516,8 @@ procedure VideoInstall(borderColor: integer);
 		f: file;
 	begin
 		VideoColumns := 80;
-		VideoSDLScalingMode := SMInteger;
+		scalingMode := SMInteger;
+		windowed := true;
 
 		window := SDL_CreateWindow('%NAME% %VERSION%',
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,

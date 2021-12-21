@@ -55,7 +55,7 @@ procedure GameOptionsScreen;
 
 		repeat
 			state.Selectable := true;
-			state.LineCount := {$IFNDEF SDL2} 6 {$ELSE} 8 {$ENDIF};
+			state.LineCount := {$IFNDEF SDL2} 6 {$ELSE} 9 {$ENDIF};
 			for i := 1 to state.LineCount do
 				New(state.Lines[i]);
 
@@ -86,6 +86,13 @@ procedure GameOptionsScreen;
 				SM43Aspect: state.Lines[i]^ := state.Lines[i]^ + '4:3 Aspect';
 				SMIgnoreAspect: state.Lines[i]^ := state.Lines[i]^ + 'Ignore';
 			end;
+			Inc(i);
+
+			state.Lines[i]^ := '!;Display mode: ';
+			if VideoGetSDLWindowed then
+				state.Lines[i]^ := state.Lines[i]^ + 'Windowed'
+			else
+				state.Lines[i]^ := state.Lines[i]^ + 'Fullscreen';
 			Inc(i);
 
 			state.Lines[i]^ := '!;Sound: ';
@@ -139,6 +146,9 @@ procedure GameOptionsScreen;
 							VideoSetSDLScalingMode(Succ(VideoGetSDLScalingMode));
 					end;
 					3: begin
+						VideoSetSDLWindowed(not VideoGetSDLWindowed);
+					end;
+					4: begin
 						i := AudioGetVolume;
 						if i >= 64 then begin
 							i := 0;
@@ -148,10 +158,10 @@ procedure GameOptionsScreen;
 						end;
 						AudioSetVolume(i);
 					end;
-					4: begin
+					5: begin
 						AudioSetHighQuality(not AudioGetHighQuality);
 					end;
-					7: begin
+					8: begin
 						GameAboutScreen;
 					end;
 {$ENDIF}
