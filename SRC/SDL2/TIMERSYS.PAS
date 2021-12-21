@@ -26,6 +26,7 @@
 unit TimerSys;
 
 interface
+	uses SDL2;
 	type
 		TIdleMode = (IMUntilPit, IMUntilFrame);
 		TDrumData = record
@@ -34,6 +35,7 @@ interface
 		end;
 {$I SNDFREQ.INC}
 	var
+		EventMutex: PSDL_Mutex;
 		TimerTicks: word;
 	procedure AccurateDelay(ms: word);
 	procedure TimerSysIdle(mode: TIdleMode);
@@ -47,7 +49,7 @@ interface
 	procedure TimerSysUninstall;
 
 implementation
-uses AudioSim, Sounds, SDL2;
+uses AudioSim, Sounds;
 
 const
 	PIT_SPEED_MS = 55;
@@ -169,6 +171,7 @@ procedure TimerSysInstall;
 		SDL_StartTextInput;
 		PitTimerId := SDL_AddTimer(PIT_SPEED_MS, PitTimerCallback, nil);
 
+		EventMutex := SDL_CreateMutex;
 		SoundBufferMutex := SDL_CreateMutex;
 		for mode in TIdleMode do begin
 			TimerMutexes[mode] := SDL_CreateMutex;
@@ -201,6 +204,7 @@ procedure TimerSysUninstall;
 			SDL_DestroyMutex(TimerMutexes[mode]);
 		end;
 		SDL_DestroyMutex(SoundBufferMutex);
+		SDL_DestroyMutex(EventMutex);
 
 		SDL_RemoveTimer(PitTimerId);
 		SDL_StopTextInput;

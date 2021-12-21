@@ -41,6 +41,7 @@ interface
 		VideoEGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
 		VideoForceNoSnow: boolean;
+	procedure VideoForcePlayfieldRedraw;
 	function VideoGetSDLScalingMode: TSDLScalingMode;
 	procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
 	function VideoGetSDLWindowed: boolean;
@@ -104,6 +105,11 @@ var
 	windowed: boolean;
 	windowedLastWidth, windowedLastHeight: Int32;
 
+procedure VideoForcePlayfieldRedraw;
+	begin
+		FillChar(screenBufferChange, 4000, true);
+	end;
+
 { Window handling }
 
 procedure CalcRenderArea(rect: PSDL_Rect; w, h: Int32);
@@ -166,6 +172,7 @@ procedure CalcRenderArea(rect: PSDL_Rect; w, h: Int32);
 		end;
 	end;
 
+{ TODO: Re-implement delta? }
 procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSize: boolean);
 	var
 		iw, ih, w, h, scale: Int32;
@@ -187,6 +194,8 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 			end;
 		end;
 
+		SDL_LockMutex(eventMutex);
+
 		SDL_SetWindowMinimumSize(window, iw, ih);
 		if forceMinimumSize then begin
 			w := iw;
@@ -196,8 +205,6 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 		end;
 
 		CalcRenderArea(@destRect, w, h);
-		Inc(scale, delta);
-		if scale < 1 then scale := 1;
 
 		iw := destRect.w;
 		ih := destRect.h;
@@ -206,6 +213,10 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 			if (not onlyIfTooSmall) or ((iw > w) or (ih > h)) then
 				SDL_SetWindowSize(window, iw, ih);
 		end;
+
+		VideoForcePlayfieldRedraw;
+
+		SDL_UnlockMutex(eventMutex);
 	end;
 
 function VideoGetSDLScalingMode: TSDLScalingMode;
@@ -430,6 +441,8 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 		destRect: TSDL_Rect;
 	begin
 		while renderThreadRunning do begin
+			SDL_LockMutex(eventMutex);
+
 			SDL_GetRendererOutputSize(renderer, @w, @h);
 			CalcRenderArea(@destRect, w, h);
 
@@ -457,6 +470,9 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 			SDL_RenderCopy(renderer, playfieldTexture, nil, @destRect);
 
 			SDL_RenderPresent(renderer);
+
+			SDL_UnlockMutex(eventMutex);
+
 			TimerSysWake(IMUntilFrame);
 			SDL_Delay(1);
 		end;
@@ -533,7 +549,6 @@ procedure VideoInstall(borderColor: integer);
 
 		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
 			VideoColumns * charsetTexture.charWidth, 25 * charsetTexture.charHeight);
-		SDL_SetWindowSize(window, VideoColumns * charsetTexture.charWidth, 25 * charsetTexture.charHeight);
 
 		playfieldMutex := SDL_CreateMutex;
 
@@ -631,7 +646,7 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 
 begin
 	FillChar(screenBuffer, 4000, 0);
-	FillChar(screenBufferChange, 4000, true);
+	VideoForcePlayfieldRedraw;
 	VideoBorderColor := 0;
 	VideoColumns := 80;
 	VideoCursorVisible := true;
