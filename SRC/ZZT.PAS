@@ -216,6 +216,9 @@ begin
 {$IFNDEF SDL2}
 		VideoHideCursor;
 		ClrScr;
+{$ELSE}
+		{ SDL2 - Fixes initial window size }
+		InputUpdate;
 {$ENDIF}
 
 		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);

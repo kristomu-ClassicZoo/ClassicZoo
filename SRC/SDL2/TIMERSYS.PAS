@@ -26,6 +26,7 @@
 unit TimerSys;
 
 interface
+	uses SDL2;
 	type
 		TIdleMode = (IMUntilPit, IMUntilFrame);
 		TDrumData = record
@@ -34,6 +35,7 @@ interface
 		end;
 {$I SNDFREQ.INC}
 	var
+		EventMutex: PSDL_Mutex;
 		TimerTicks: word;
 	procedure AccurateDelay(ms: word);
 	procedure TimerSysIdle(mode: TIdleMode);
@@ -43,12 +45,13 @@ interface
 	procedure TimerSysLockSoundBuffer;
 	procedure TimerSysUnlockSoundBuffer;
 	procedure TimerSysStopSound;
+	procedure TimerSysQueueSound(pattern: string; isForce: boolean);
 	function TimerSysGetHsecs: word;
 	procedure TimerSysInstall;
 	procedure TimerSysUninstall;
 
 implementation
-uses AudioSim, Sounds, ZDemo, SDL2;
+uses AudioSim, Sounds, ZDemo;
 
 const
 	PIT_SPEED_MS = 55;
@@ -70,7 +73,7 @@ procedure AccurateDelay(ms: word);
 
 procedure AudioCallback(userdata: pointer; stream: PUint8; len: Int32); cdecl;
 	begin
-		AudioSimulate(stream, len);
+		AudioSimulate(TAudioSampleArray(stream), len);
 	end;
 
 procedure TimerSysIdle(mode: TIdleMode);
@@ -117,6 +120,30 @@ procedure TimerSysStopSound;
 		SDL_UnlockMutex(SoundBufferMutex);
 	end;
 
+procedure TimerSysQueueSound(pattern: string; isForce: boolean);
+	var
+		appendSilence: boolean;
+		diffTicks: integer;
+	begin
+		{ SoundQueue -> We are locked here }
+{
+		WriteLn('Queue sound Timer=', TimerTicks, ' AudioSimStop=', AudioSimSoundBufferStopTicks);
+		WriteLn('AudioSimSB Pos=', AudioSimSoundBufferPos, ' Len=', Length(AudioSimSoundBuffer));
+		WriteLn('SB Pos=', SoundBufferPos, ' Len=', Length(SoundBuffer));
+}
+
+		if isForce then begin
+			AudioSimSoundBuffer := pattern;
+			AudioSimSoundBufferPos := 1;
+		end else begin
+			AudioSimSoundBuffer := Copy(AudioSimSoundBuffer, AudioSimSoundBufferPos, Length(AudioSimSoundBuffer) - AudioSimSoundBufferPos + 1);
+			AudioSimSoundBufferPos := 1;
+			AudioSimSoundBuffer := AudioSimSoundBuffer + pattern;
+		end;
+
+		AudioSimSoundBufferStopTicks := TimerTicks + SoundCountTicks(pattern);
+	end;
+
 function TimerSysGetHsecs: word;
 	begin
 		TimerSysGetHsecs := TimerHsecs shr 1;
@@ -126,6 +153,23 @@ function PitTimerCallback(interval: Uint32; param: Pointer): Uint32; cdecl;
 	begin
 		Inc(TimerTicks);
 		TimerHsecs := TimerHsecs + (PIT_SPEED_MS div 5);
+
+		{ Emulate DOS sound buffer. }
+		if not SoundEnabled then begin
+			SoundIsPlaying := false;
+		end else if SoundIsPlaying then begin
+			Dec(SoundDurationCounter);
+			if SoundDurationCounter <= 0 then begin
+				if SoundBufferPos >= Length(SoundBuffer) then begin
+					SoundIsPlaying := false;
+				end else begin
+					Inc(SoundBufferPos);
+					SoundDurationCounter := SoundDurationMultiplier * Ord(SoundBuffer[SoundBufferPos]);
+					Inc(SoundBufferPos);
+				end;
+			end;
+		end;
+
 		AudioSimulationAllowed := SoundIsPlaying;
 
 		DemoOnPitTick;
@@ -143,6 +187,7 @@ procedure TimerSysInstall;
 		SDL_StartTextInput;
 		PitTimerId := SDL_AddTimer(PIT_SPEED_MS, PitTimerCallback, nil);
 
+		EventMutex := SDL_CreateMutex;
 		SoundBufferMutex := SDL_CreateMutex;
 		for mode in TIdleMode do begin
 			TimerMutexes[mode] := SDL_CreateMutex;
@@ -151,7 +196,11 @@ procedure TimerSysInstall;
 
 		requestedAudioSpec := Default(TSDL_AudioSpec);
 		requestedAudioSpec.freq := 48000;
+{$IFDEF AUD16BIT}
+		requestedAudioSpec.format := AUDIO_U16SYS;
+{$ELSE}
 		requestedAudioSpec.format := AUDIO_U8;
+{$ENDIF}
 		requestedAudioSpec.channels := 1;
 		requestedAudioSpec.samples := 2048;
 		requestedAudioSpec.callback := AudioCallback;
@@ -171,6 +220,7 @@ procedure TimerSysUninstall;
 			SDL_DestroyMutex(TimerMutexes[mode]);
 		end;
 		SDL_DestroyMutex(SoundBufferMutex);
+		SDL_DestroyMutex(EventMutex);
 
 		SDL_RemoveTimer(PitTimerId);
 		SDL_StopTextInput;

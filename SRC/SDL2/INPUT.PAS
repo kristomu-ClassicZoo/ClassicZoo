@@ -80,7 +80,7 @@ interface
 {DEFINE DEBUG_INPUT_FLAGS}
 
 implementation
-uses Keys, Sounds, TimerSys, SDL2;
+uses Keys, Sounds, TimerSys, ZVideo, SDL2;
 
 type
 	TKeyPress = record
@@ -223,8 +223,13 @@ procedure InputUpdate;
 		InputJoystickMoved := false;
 		localHsecs := TimerSysGetHsecs;
 
+		SDL_LockMutex(eventMutex);
 		while SDL_PollEvent(@event) <> 0 do begin
 			case event.type_ of
+				SDL_WINDOWEVENT: begin
+					if event.window.event = SDL_WINDOWEVENT_SIZE_CHANGED then
+						VideoForcePlayfieldRedraw;
+				end;
 				SDL_TEXTINPUT: begin
 					k := event.text.text[0];
 					if (Byte(k) >= 32) and (Byte(k) < 127) then
@@ -261,6 +266,7 @@ procedure InputUpdate;
 				end;
 			end;
 		end;
+		SDL_UnlockMutex(eventMutex);
 
 		InputKeyPressed := #0;
 		for i := 1 to MAX_KEYS_PRESSED do begin

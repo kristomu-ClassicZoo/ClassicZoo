@@ -39,6 +39,7 @@ interface
 	procedure SoundIdle(mode: TIdleMode);
 	procedure SoundQueue(priority: integer; pattern: string);
 	procedure SoundClearQueue;
+	function SoundCountTicks(pattern: string): integer;
 	function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 	procedure SoundUninstall;
 	function SoundParse(input: string): string;
@@ -65,11 +66,17 @@ procedure SoundQueue(priority: integer; pattern: string);
 				SoundBuffer := pattern;
 				SoundBufferPos := 1;
 				SoundDurationCounter := 1;
+{$IFDEF SDL2}
+				TimerSysQueueSound(pattern, true);
+{$ENDIF}
 			end else begin
 				SoundBuffer := Copy(SoundBuffer, SoundBufferPos, Length(SoundBuffer) - SoundBufferPos + 1);
 				SoundBufferPos := 1;
 				if (Length(SoundBuffer) + Length(pattern)) < 255 then begin
 					SoundBuffer := SoundBuffer + pattern;
+{$IFDEF SDL2}
+					TimerSysQueueSound(pattern, false);
+{$ENDIF}
 				end;
 			end;
 			SoundIsPlaying := true;
@@ -88,10 +95,22 @@ procedure SoundClearQueue;
 		TimerSysStopSound;
 	end;
 
+function SoundCountTicks(pattern: string): integer;
+	var
+		i, ticks: integer;
+	begin
+		ticks := 0;
+		i := 2;
+		while i <= Length(pattern) do begin
+			Inc(ticks, Ord(pattern[i]));
+			Inc(i, 2);
+		end;
+		SoundCountTicks := ticks;
+	end;
+
 { TODO: Can we get rid of the modulo here again? }
 function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 	var
-		hour, minute, sec, hSec: word;
 		hSecsDiff: word;
 		hSecsTotal: integer;
 	begin

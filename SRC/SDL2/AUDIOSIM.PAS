@@ -28,40 +28,67 @@
 unit AudioSim;
 
 interface
+	type
+{$IFDEF AUD16BIT}
+		TAudioSample = UInt16;
+		TAudioSampleArray = PUint16;
+{$ELSE}
+		TAudioSample = UInt8;
+		TAudioSampleArray = PUint8;
+{$ENDIF}
 	var
+		AudioSimRoundSamples: boolean;
+		AudioSimSoundBufferStopTicks: integer;
+		AudioSimSoundBuffer: string;
+		AudioSimSoundBufferPos: integer;
 		AudioSimulationAllowed: boolean;
 	{ Volume range: 0-127 }
 	function AudioGetVolume: byte;
 	procedure AudioSetVolume(volume: byte);
+	function AudioGetHighQuality: boolean;
+	procedure AudioSetHighQuality(value: boolean);
 	procedure AudioSimulateClear;
-	procedure AudioSimulate(stream: PUint8; len: Int32);
+	procedure AudioSimulate(stream: TAudioSampleArray; len: Int32);
 
 implementation
 uses Sounds, TimerSys, Math;
 
+type
+	TAudioSimNoteToProc = procedure(targetNotePos: Uint32; frequency: Uint32; isDrum: boolean; stream: TAudioSampleArray; var streamPos: Int32; streamLen: Int32);
 const
-	PIT_DIVISOR = 1193182.0;
-	AUDIO_FREQUENCY = 48000.0;
+	PIT_DIVISOR = 1193182;
+	AUDIO_FREQUENCY = 48000;
 	SAMPLES_PER_PIT = 2640;
 	SAMPLES_PER_DRUM = 48;
 	SAMPLES_NOTE_DELAY = 16;
 var
-	AudioSampleMin, AudioSampleNone, AudioSampleMax: byte;
+	AudioSampleMin, AudioSampleNone, AudioSampleMax: TAudioSample;
+	AudioSimNoteTo: TAudioSimNoteToProc;
 	CurrentNote: Int32;
 	CurrentNotePos: Uint32;
 	CurrentNoteMax: Uint32;
 
 function AudioGetVolume: byte;
 	begin
+{$IFDEF AUD16BIT}
+		AudioGetVolume := (AudioSampleMax shr 8) - 128;
+{$ELSE}
 		AudioGetVolume := AudioSampleMax - 128;
+{$ENDIF}
 	end;
 
 procedure AudioSetVolume(volume: byte);
 	begin
 		if volume > 127 then volume := 127;
+{$IFDEF AUD16BIT}
+		AudioSampleNone := 32768;
+		AudioSampleMin := 32768 - (volume * 256);
+		AudioSampleMax := 32768 + (volume * 256);
+{$ELSE}
 		AudioSampleNone := 128;
 		AudioSampleMin := 128 - volume;
-		AUdioSampleMax := 128 + volume;
+		AudioSampleMax := 128 + volume;
+{$ENDIF}
 	end;
 
 procedure AudioSimulateClear;
@@ -90,16 +117,20 @@ procedure AudioSimJumpBy(amount: Uint32; var streamPos: Int32);
 		if CurrentNotePos >= CurrentNoteMax then CurrentNote := -1;
 	end;
 
-procedure AudioSimNoteTo(targetNotePos: Uint32; frequency: Uint32; stream: PUint8; var streamPos: Int32; streamLen: Int32);
+procedure AudioSimNoteToNearest(targetNotePos: Uint32; frequency: Uint32; isDrum: boolean; stream: TAudioSampleArray; var streamPos: Int32; streamLen: Int32);
 	var
 		i, iMax, samplePos: Uint32;
-		samplesPerChange: Double;
+		samplesPerChange: Uint32;
 	begin
-		iMax := AudioSimCalcJump(targetNotePos, streamPos, streamLen);
-		samplesPerChange := AUDIO_FREQUENCY / (PIT_DIVISOR / Floor(PIT_DIVISOR / frequency));
+		iMax := AudioSimCalcJump(targetNotePos, streamPos, streamLen); 
+		if AudioSimRoundSamples or isDrum then begin
+			samplesPerChange := (Uint64(AUDIO_FREQUENCY * 256) * (PIT_DIVISOR div (frequency shr 8))) div PIT_DIVISOR;
+		end else begin
+			samplesPerChange := Uint64(AUDIO_FREQUENCY * 65536) div frequency;
+		end;
 		if iMax > 0 then for i := 0 to iMax - 1 do begin
-			samplePos := CurrentNotePos + i;
-			if (samplePos mod samplesPerChange) < (samplesPerChange / 2.0) then
+			samplePos := (CurrentNotePos + i) * 256;
+			if (samplePos mod samplesPerChange) < (samplesPerChange shr 1) then
 				stream[streamPos + i] := AudioSampleMin
 			else
 				stream[streamPos + i] := AudioSampleMax;
@@ -107,25 +138,104 @@ procedure AudioSimNoteTo(targetNotePos: Uint32; frequency: Uint32; stream: PUint
 		AudioSimJumpBy(iMax, streamPos);
 	end;
 
-procedure AudioSimSilenceTo(targetNotePos: Uint32; stream: PUint8; var streamPos: Int32; streamLen: Int32);
+const
+	BLTrigShift = 14;
+	BLTrigMask = (1 shl BLTrigShift) - 1;
+	BLCoeffMax = 512;
+var
+	BLCosTable: array[0 .. ((1 shl BLTrigShift) - 1)] of Int16;
+	BLCoeffTable: array[1 .. (BLCoeffMax - 1)] of Int16;
+
+procedure AudioSimInitBandlimit;
+	var
+		i: integer;
+	begin
+		for i := 0 to BLTrigMask do begin
+			BLCosTable[i] := Trunc(Cos(2.0 * Pi * (i / (1 shl BLTrigShift))) * 16384.0);
+		end;
+		for i := 1 to (BLCoeffMax - 1) do begin
+			BLCoeffTable[i] := Trunc(32768.0 * Sin(0.5 * i * Pi) / (i * Pi));
+		end;
+	end;
+
+procedure AudioSimNoteToBandlimit(targetNotePos: Uint32; frequency: Uint32; isDrum: boolean; stream: TAudioSampleArray; var streamPos: Int32; streamLen: Int32);
+	var
+		i, iMax, sample: Int32;
+		pos, posFixed: Uint32;
+		pitTicks, freqRealFixed: Uint32;
+		cosIndice: Uint64;
+		coeffPos: Int32;
+	begin
+		iMax := AudioSimCalcJump(targetNotePos, streamPos, streamLen); 
+
+		if AudioSimRoundSamples or isDrum then begin
+			pitTicks := PIT_DIVISOR div (frequency shr 8);
+			freqRealFixed := (PIT_DIVISOR shl 6) div pitTicks;
+		end else begin
+			freqRealFixed := frequency shr 2;
+		end;
+		posFixed := (CurrentNotePos + i) * 256;
+
+		if iMax > 0 then for i := 0 to iMax - 1 do begin
+			pos := freqRealFixed;
+			cosIndice := (Uint64(freqRealFixed) * Uint64(posFixed)) div AUDIO_FREQUENCY;
+			coeffPos := 1;
+
+			sample := 0;
+			while ((pos < (AUDIO_FREQUENCY shl (6 - 1))) and (coeffPos < BLCoeffMax)) do begin
+				sample := sample + (Int64(BLCoeffTable[coeffPos]) * BLCosTable[(cosIndice * coeffPos) and BLTrigMask]);
+				pos := pos + freqRealFixed;
+				Inc(coeffPos);
+			end;
+
+			{ sample = 0 .. 1 in the .28 range }
+			sample := ((((sample div (1 shl 13)) + (1 shl 14)) * (AudioSampleMax - AudioSampleMin)) div (1 shl 15)) + AudioSampleMin;
+
+			if sample < AudioSampleMin then sample := AudioSampleMin
+			else if sample > AudioSampleMax then sample := AudioSampleMax;
+			stream[streamPos + i] := sample;
+
+			Inc(posFixed, 256);
+		end;
+		AudioSimJumpBy(iMax, streamPos);
+	end;
+
+function AudioGetHighQuality: boolean;
+	begin
+		AudioGetHighQuality := @AudioSimNoteTo <> @AudioSimNoteToNearest;
+	end;
+
+procedure AudioSetHighQuality(value: boolean);
+	begin
+		if value then begin
+			AudioSimNoteTo := AudioSimNoteToBandlimit;
+			AudioSimRoundSamples := false;
+		end else begin
+			AudioSimNoteTo := AudioSimNoteToNearest;
+			AudioSimRoundSamples := true;
+		end;
+	end;
+
+procedure AudioSimSilenceTo(targetNotePos: Uint32; stream: TAudioSampleArray; var streamPos: Int32; streamLen: Int32);
 	var
 		i, iMax: Uint32;
-		v: byte;
 	begin
-		v := AudioSampleNone;
 		iMax := AudioSimCalcJump(targetNotePos, streamPos, streamLen);
 		if iMax > 0 then for i := 0 to iMax - 1 do
 			stream[streamPos + i] := AudioSampleNone;
 		AudioSimJumpBy(iMax, streamPos);
 	end;
 
-procedure AudioSimulate(stream: PUint8; len: Int32);
+procedure AudioSimulate(stream: TAudioSampleArray; len: Int32);
 	var
 		i, pos: Int32;
 		drum: ^TDrumData;
 		drumPos: Uint32;
 		posStr: string;
 	begin
+{$IFDEF AUD16BIT}
+		len := len div 2;
+{$ENDIF}
 		TimerSysLockSoundBuffer;
 
 		if (not SoundEnabled) or (not SoundIsPlaying) or (not AudioSimulationAllowed) then begin
@@ -136,28 +246,28 @@ procedure AudioSimulate(stream: PUint8; len: Int32);
 			pos := 0;
 			while pos < len do begin
 				if CurrentNote < 0 then begin
-					if SoundBufferPos >= Length(SoundBuffer) then begin
+					if AudioSimSoundBufferPos >= Length(AudioSimSoundBuffer) then begin
 						SoundIsPlaying := false;
 						for i := pos to len - 1 do
 							stream[i] := AudioSampleNone;
 						break;
 					end else begin
 						{ pop note }
-						CurrentNote := Uint8(SoundBuffer[SoundBufferPos]);
+						CurrentNote := Uint8(AudioSimSoundBuffer[AudioSimSoundBufferPos]);
 						CurrentNotePos := 0;
-						Inc(SoundBufferPos);
-						CurrentNoteMax := SoundDurationMultiplier * Uint8(SoundBuffer[SoundBufferPos]) * SAMPLES_PER_PIT;
-						Inc(SoundBufferPos);
+						Inc(AudioSimSoundBufferPos);
+						CurrentNoteMax := SoundDurationMultiplier * Uint8(AudioSimSoundBuffer[AudioSimSoundBufferPos]) * SAMPLES_PER_PIT;
+						Inc(AudioSimSoundBufferPos);
 					end;
 				end;
 			
-				if (CurrentNote > 0) and (CurrentNote < 240) then begin
+				if (CurrentNote >= 16) and (CurrentNote < 112) then begin
 					{ note }
 					if CurrentNotePos < SAMPLES_NOTE_DELAY then
 						AudioSimSilenceTo(SAMPLES_NOTE_DELAY, stream, pos, len)
 					else begin
 						if SoundFreqTable[CurrentNote] > 0 then
-							AudioSimNoteTo(CurrentNoteMax, SoundFreqTable[CurrentNote], stream, pos, len)
+							AudioSimNoteTo(CurrentNoteMax, SoundFreqTable[CurrentNote] shl 8, false, stream, pos, len)
 						else
 							AudioSimSilenceTo(CurrentNoteMax, stream, pos, len);
 					end;
@@ -166,7 +276,7 @@ procedure AudioSimulate(stream: PUint8; len: Int32);
 					drum := @SoundDrumTable[CurrentNote - 240];
 					drumPos := CurrentNotePos div SAMPLES_PER_DRUM;
 					if drumPos < drum^.Len then
-						AudioSimNoteTo((drumPos + 1) * SAMPLES_PER_DRUM, drum^.Data[drumPos + 1], stream, pos, len)
+						AudioSimNoteTo((drumPos + 1) * SAMPLES_PER_DRUM, drum^.Data[drumPos + 1] shl 8, true, stream, pos, len)
 					else
 						AudioSimSilenceTo(CurrentNoteMax, stream, pos, len);
 				end else begin
@@ -183,4 +293,6 @@ begin
 	CurrentNote := -1;
 	AudioSimulationAllowed := false;
 	AudioSetVolume(48);
+	AudioSimInitBandlimit;
+	AudioSetHighQuality(true);
 end.
