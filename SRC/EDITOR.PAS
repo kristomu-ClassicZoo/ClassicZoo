@@ -32,6 +32,8 @@ unit Editor;
 
 interface
 	uses GameVars, TxtWind;
+	var
+		EditorAutoAppendPats: boolean;
 {$IFDEF EDITOR}
 	procedure EditorLoop;
 {$ENDIF}
@@ -345,9 +347,17 @@ procedure EditorLoop;
 		end;
 
 	procedure EditorCopyPatternToCurrent(x, y: integer);
+		var
+			i: integer;
 		begin
-			if cursorPattern > EditorPatternCount then
-				EditorCopyPattern(x, y, copiedTiles[cursorPattern - EditorPatternCount]);
+			if EditorAutoAppendPats then begin
+				for i := COPIED_TILES_COUNT downto 2 do
+					copiedTiles[i] := copiedTiles[i - 1];
+				EditorCopyPattern(x, y, copiedTiles[1]);
+			end else begin
+				if cursorPattern > EditorPatternCount then
+					EditorCopyPattern(x, y, copiedTiles[cursorPattern - EditorPatternCount]);
+			end;
 		end;
 
 	procedure EditorDrawSidebar;
@@ -1922,4 +1932,6 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 		EditorSelectBoard := textWindow.LinePos - 1;
 	end;
 
+begin
+	EditorAutoAppendPats := false;
 end.

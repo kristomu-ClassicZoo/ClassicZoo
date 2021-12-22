@@ -2236,6 +2236,7 @@ procedure GameTitleLoop;
 					end;
 					'A': begin
 						GameOptionsScreen;
+						TransitionDrawToBoard;
 					end;
 {$IFDEF EDITOR}
 					'E': if EditorEnabled then begin

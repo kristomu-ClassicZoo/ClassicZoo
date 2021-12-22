@@ -30,11 +30,28 @@ unit GameConf;
 interface
 	procedure GameAboutScreen;
 	procedure GameOptionsScreen;
+{$IFNDEF FPC}
+	function ConfigCustomActionNone: boolean;
+	function ConfigCompatibilityGetValue: integer;
+	procedure ConfigCompatibilitySetValue(value: integer);
+	function ConfigCompatibilityShowValue: string;
+	function ConfigEdAutoAppendGetValue: integer;
+	procedure ConfigEdAutoAppendSetValue(value: integer);
+	function ConfigEdAutoAppendShowValue: string;
+	function ConfigVidColorGetValue: integer;
+	procedure ConfigVidColorSetValue(value: integer);
+	function ConfigVidColorShowValue: string;
+{$IFNDEF SDL2}
+	function ConfigSoundGetValue: integer;
+	procedure ConfigSoundSetValue(value: integer);
+	function ConfigSoundShowValue: string;
+{$ENDIF}
+{$ENDIF}
 
 implementation
 uses
 {$IFDEF SDL2} AudioSim, {$ENDIF}
-Game, GameVars, Sounds, ZVideo, Input, TxtWind;
+Editor, Game, GameVars, Sounds, ZVideo, Input, TxtWind;
 
 type
 	TConfigCategory = (CCEngine, CCFrontend, CCEditor);
@@ -51,6 +68,8 @@ type
 		ShowValue: TConfigShowValueProc;
 		CustomAction: TConfigCustomActionProc;
 	end;
+var
+	HardEscapeHack: boolean;
 
 function ConfigCustomActionNone: boolean;
 	begin
@@ -82,6 +101,44 @@ function ConfigCompatibilityShowValue: string;
 			ConfigCompatibilityShowValue := 'Strict'
 		else
 			ConfigCompatibilityShowValue := 'Normal';
+	end;
+
+function ConfigEdAutoAppendGetValue: integer;
+	begin
+		ConfigEdAutoAppendGetValue := Byte(EditorAutoAppendPats);
+	end;
+
+procedure ConfigEdAutoAppendSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		EditorAutoAppendPats := Boolean(value);
+	end;
+
+function ConfigEdAutoAppendShowValue: string;
+	begin
+		if EditorAutoAppendPats then
+			ConfigEdAutoAppendShowValue := 'Yes'
+		else
+			ConfigEdAutoAppendShowValue := 'No';
+	end;
+
+function ConfigVidColorGetValue: integer;
+	begin
+		ConfigVidColorGetValue := Byte(VideoMonochrome);
+	end;
+
+procedure ConfigVidColorSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		VideoMonochrome := Boolean(value);
+	end;
+
+function ConfigVidColorShowValue: string;
+	begin
+		if VideoMonochrome then
+			ConfigVidColorShowValue := 'Monochrome'
+		else
+			ConfigVidColorShowValue := 'Color';
 	end;
 
 {$IFNDEF SDL2}
@@ -193,70 +250,98 @@ function ConfigSoundVolumeShowValue: string;
 {$ENDIF}
 
 const
+	ConfigEntryCount = 2
+{$IFDEF EDITOR}
+	+ 1
+{$ENDIF}
 {$IFDEF SDL2}
-	ConfigEntryCount = 5;
+	+ 4
 {$ELSE}
-	ConfigEntryCount = 2;
+	+ 1
 {$ENDIF}
-	ConfigEntries: array[1 .. ConfigEntryCount] of TConfigEntry = (
-		(
-			Category: CCEngine;
-			Key: 'ECompat';
-			Name: 'Compatibility';
-			GetValue: ConfigCompatibilityGetValue;
-			SetValue: ConfigCompatibilitySetValue;
-			ShowValue: ConfigCompatibilityShowValue;
-			CustomAction: ConfigCustomActionNone;
-		),
+	;
+var
+	ConfigEntries: array[1 .. ConfigEntryCount] of TConfigEntry;
+
+procedure ConfigInitEntries;
+	var
+		i: integer;
+	begin
+		i := 1;
+
+		ConfigEntries[i].Category := CCEngine;
+		ConfigEntries[i].Key := 'ECompat';
+		ConfigEntries[i].Name := 'Compatibility';
+		ConfigEntries[i].GetValue := ConfigCompatibilityGetValue;
+		ConfigEntries[i].SetValue := ConfigCompatibilitySetValue;
+		ConfigEntries[i].ShowValue := ConfigCompatibilityShowValue;
+		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		Inc(i);
+{$IFDEF EDITOR}
+		ConfigEntries[i].Category := CCEditor;
+		ConfigEntries[i].Key := 'EdApPats';
+		ConfigEntries[i].Name := 'Auto-Append';
+		ConfigEntries[i].GetValue := ConfigEdAutoAppendGetValue;
+		ConfigEntries[i].SetValue := ConfigEdAutoAppendSetValue;
+		ConfigEntries[i].ShowValue := ConfigEdAutoAppendShowValue;
+		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		Inc(i);
+{$ENDIF}
+		ConfigEntries[i].Category := CCFrontend;
+		ConfigEntries[i].Key := 'FVidMono';
+		ConfigEntries[i].Name := 'Video';
+		ConfigEntries[i].GetValue := ConfigVidColorGetValue;
+		ConfigEntries[i].SetValue := ConfigVidColorSetValue;
+		ConfigEntries[i].ShowValue := ConfigVidColorShowValue;
+		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		Inc(i);
 {$IFNDEF SDL2}
-		(
-			Category: CCFrontend;
-			Key: 'FSoundOn';
-			Name: 'Sound';
-			GetValue: ConfigSoundGetValue;
-			SetValue: ConfigSoundSetValue;
-			ShowValue: ConfigSoundShowValue;
-			CustomAction: ConfigCustomActionNone;
-		),
+		ConfigEntries[i].Category := CCFrontend;
+		ConfigEntries[i].Key := 'FSoundOn';
+		ConfigEntries[i].Name := 'Sound';
+		ConfigEntries[i].GetValue := ConfigSoundGetValue;
+		ConfigEntries[i].SetValue := ConfigSoundSetValue;
+		ConfigEntries[i].ShowValue := ConfigSoundShowValue;
+		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		Inc(i);
 {$ELSE}
-		(
-			Category: CCFrontend;
-			Key: 'FVidWin';
-			Name: 'Display mode';
-			GetValue: ConfigFullscreenGetValue;
-			SetValue: ConfigFullscreenSetValue;
-			ShowValue: ConfigFullscreenShowValue;
-			CustomAction: ConfigCustomActionNone;
-		),
-		(
-			Category: CCFrontend;
-			Key: 'FVidScal';
-			Name: 'Display scaling';
-			GetValue: ConfigVideoScalingGetValue;
-			SetValue: ConfigVideoScalingSetValue;
-			ShowValue: ConfigVideoScalingShowValue;
-			CustomAction: ConfigCustomActionNone;
-		),
-		(
-			Category: CCFrontend;
-			Key: 'FSndVol';
-			Name: 'Volume';
-			GetValue: ConfigSoundVolumeGetValue;
-			SetValue: ConfigSoundVolumeSetValue;
-			ShowValue: ConfigSoundVolumeShowValue;
-			CustomAction: ConfigCustomActionNone;
-		),
-		(
-			Category: CCFrontend;
-			Key: 'FSndHQ';
-			Name: 'HQ Sound';
-			GetValue: ConfigHQSoundGetValue;
-			SetValue: ConfigHQSoundSetValue;
-			ShowValue: ConfigHQSoundShowValue;
-			CustomAction: ConfigCustomActionNone;
-		)
+		ConfigEntries[i].Category := CCFrontend;
+		ConfigEntries[i].Key := 'FVidWin';
+		ConfigEntries[i].Name := 'Display mode';
+		ConfigEntries[i].GetValue := ConfigFullscreenGetValue;
+		ConfigEntries[i].SetValue := ConfigFullscreenSetValue;
+		ConfigEntries[i].ShowValue := ConfigFullscreenShowValue;
+		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		Inc(i);
+
+		ConfigEntries[i].Category := CCFrontend;
+		ConfigEntries[i].Key := 'FVidScal';
+		ConfigEntries[i].Name := 'Display scaling';
+		ConfigEntries[i].GetValue := ConfigVideoScalingGetValue;
+		ConfigEntries[i].SetValue := ConfigVideoScalingSetValue;
+		ConfigEntries[i].ShowValue := ConfigVideoScalingShowValue;
+		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		Inc(i);
+
+		ConfigEntries[i].Category := CCFrontend;
+		ConfigEntries[i].Key := 'FSndVol';
+		ConfigEntries[i].Name := 'Volume';
+		ConfigEntries[i].GetValue := ConfigSoundVolumeGetValue;
+		ConfigEntries[i].SetValue := ConfigSoundVolumeSetValue;
+		ConfigEntries[i].ShowValue := ConfigSoundVolumeShowValue;
+		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		Inc(i);
+
+		ConfigEntries[i].Category := CCFrontend;
+		ConfigEntries[i].Key := 'FSndHQ';
+		ConfigEntries[i].Name := 'HQ Sound';
+		ConfigEntries[i].GetValue := ConfigHQSoundGetValue;
+		ConfigEntries[i].SetValue := ConfigHQSoundSetValue;
+		ConfigEntries[i].ShowValue := ConfigHQSoundShowValue;
+		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		Inc(i);
 {$ENDIF}
-	);
+	end;
 
 procedure GameSubOptionsScreen(subCategory: TConfigCategory; var state: TTextWindowState);
 	var
@@ -292,6 +377,16 @@ procedure GameSubOptionsScreen(subCategory: TConfigCategory; var state: TTextWin
 			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
 				with ConfigEntries[actionMap[state.LinePos]] do begin
 					SetValue(GetValue + 1);
+{$IFNDEF SDL2}
+					if Key = 'FVidMono' then begin
+						VideoUninstall;
+						VideoInstall(1);
+						HardEscapeHack := true;
+					end;
+{$ENDIF}
+				end;
+				if HardEscapeHack then begin
+					exitRequested := true;
 				end;
 			end else begin
 				exitRequested := true;
@@ -315,27 +410,45 @@ procedure GameOptionsScreen;
 		TextWindowDrawOpen(state);
 		state.LinePos := 1;
 		exitRequested := false;
+		HardEscapeHack := false;
 
 		repeat
 			state.Selectable := true;
+{$IFDEF EDITOR}
 			state.LineCount := 6;
+{$ELSE}
+			state.LineCount := 5;
+{$ENDIF}
 			for i := 1 to state.LineCount do
 				New(state.Lines[i]);
 
 			state.Lines[1]^ := '!;Engine';
 			state.Lines[2]^ := '!;Frontend';
+{$IFDEF EDITOR}
 			state.Lines[3]^ := '!;Editor';
 			state.Lines[4]^ := '';
 			state.Lines[5]^ := '!;About ClassicZoo...';
 			state.Lines[6]^ := '!;Exit';
+{$ELSE}
+			state.Lines[3]^ := '';
+			state.Lines[4]^ := '!;About ClassicZoo...';
+			state.Lines[5]^ := '!;Exit';
+{$ENDIF}
 
 			TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
 			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
 				case state.LinePos of
 					1: GameSubOptionsScreen(CCEngine, state);
 					2: GameSubOptionsScreen(CCFrontend, state);
+{$IFDEF EDITOR}
 					3: GameSubOptionsScreen(CCEditor, state);
 					5: GameAboutScreen;
+{$ELSE}
+					4: GameAboutScreen;
+{$ENDIF}
+				end;
+				if HardEscapeHack then begin
+					exitRequested := true;
 				end;
 			end else begin
 				exitRequested := true;
@@ -346,4 +459,6 @@ procedure GameOptionsScreen;
 		until exitRequested;
 	end;
 
+begin
+	ConfigInitEntries;
 end.

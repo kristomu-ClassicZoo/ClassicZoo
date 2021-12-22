@@ -372,6 +372,29 @@ procedure LoadCharsetFromByteArray(var tex: TCharsetTexture; chByteArray: array 
 
 { Video drawing }
 
+function ColorToBW(color: byte): byte;
+	begin
+		{ FIX: Special handling of blinking solids }
+		if (color and $80) = $80 then
+			if ((color shr 4) and $07) = (color and $0F) then
+				color := (color and $7F);
+
+		if (color and $09) = $09 then
+			color := (color and $F0) or $0F
+		else if (color and $07) <> 0 then
+			color := (color and $F0) or $07;
+
+		if (color and $0F) = $00 then begin
+			if (color and $70) = $00 then
+				color := (color and $8F)
+			else
+				color := (color and $8F) or $70;
+		end else if (color and $70) <> $70 then
+			color := color and $8F;
+
+		ColorToBW := color;
+	end;
+
 procedure VideoDrawCharBg(x, y: integer);
 	var
 		offset: integer;
@@ -386,6 +409,8 @@ procedure VideoDrawCharBg(x, y: integer);
 		if (col < $80) and (not screenBufferChange[offset]) then exit;
 
 		col := col and $7F;
+		if VideoMonochrome then
+			col := ColorToBW(col);
 
 		bgCol := EGA_PALETTE[col shr 4];
 
@@ -417,6 +442,9 @@ procedure VideoDrawCharFg(x, y: integer; blink: boolean);
 			col := col and $7F;
 			if blink or ((col shr 4) = (col and $0F)) then exit;
 		end;
+
+		if VideoMonochrome then
+			col := ColorToBW(col);
 
 		fgCol := EGA_PALETTE[col and 15];
 
