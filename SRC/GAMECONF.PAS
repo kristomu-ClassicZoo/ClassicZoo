@@ -36,6 +36,269 @@ uses
 {$IFDEF SDL2} AudioSim, {$ENDIF}
 Game, GameVars, Sounds, ZVideo, Input, TxtWind;
 
+type
+	TConfigCategory = (CCEngine, CCFrontend, CCEditor);
+	TConfigGetValueProc = function: integer;
+	TConfigSetValueProc = procedure(value: integer);
+	TConfigShowValueProc = function: string;
+	TConfigCustomActionProc = function: boolean;
+	TConfigEntry = record
+		Category: TConfigCategory;
+		Key: string[8];
+		Name: string[20];
+		GetValue: TConfigGetValueProc;
+		SetValue: TConfigSetValueProc;
+		ShowValue: TConfigShowValueProc;
+		CustomAction: TConfigCustomActionProc;
+	end;
+
+function ConfigCustomActionNone: boolean;
+	begin
+		ConfigCustomActionNone := false;
+	end;
+
+function ConfigCompatibilityGetValue: integer;
+	begin
+		if HighCompatAuto then
+			ConfigCompatibilityGetValue := 2
+		else if HighCompat then
+			ConfigCompatibilityGetValue := 1
+		else
+			ConfigCompatibilityGetValue := 0;
+	end;
+
+procedure ConfigCompatibilitySetValue(value: integer);
+	begin
+		if value > 2 then value := 0;
+		HighCompatAuto := (value = 2);
+		HighCompat := (value = 1);
+	end;
+
+function ConfigCompatibilityShowValue: string;
+	begin
+		if HighCompatAuto then
+			ConfigCompatibilityShowValue := 'Automatic'
+		else if HighCompat then
+			ConfigCompatibilityShowValue := 'Strict'
+		else
+			ConfigCompatibilityShowValue := 'Normal';
+	end;
+
+{$IFNDEF SDL2}
+function ConfigSoundGetValue: integer;
+	begin
+		ConfigSoundGetValue := Byte(SoundEnabled);
+	end;
+
+procedure ConfigSoundSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		SoundEnabled := Boolean(value);
+	end;
+
+function ConfigSoundShowValue: string;
+	begin
+		if SoundEnabled then
+			ConfigSoundShowValue := 'On'
+		else
+			ConfigSoundShowValue := 'Off';
+	end;
+{$ELSE}
+function ConfigVideoScalingGetValue: integer;
+	begin
+		ConfigVideoScalingGetValue := Byte(Ord(VideoGetSDLScalingMode));
+	end;
+
+procedure ConfigVideoScalingSetValue(value: integer);
+	begin
+		if value > Ord(High(TSDLScalingMode)) then value := 0;
+		VideoSetSDLScalingMode(TSDLScalingMode(value));
+	end;
+
+function ConfigVideoScalingShowValue: string;
+	begin
+		case VideoGetSDLScalingMode of
+			SMNone: ConfigVideoScalingShowValue := '1:1';
+			SM2x: ConfigVideoScalingShowValue := '2:1';
+			SM3x: ConfigVideoScalingShowValue := '3:1';
+			SMInteger: ConfigVideoScalingShowValue := 'Integer';
+			SMOrigAspect: ConfigVideoScalingShowValue := 'Keep Aspect';
+			SM43Aspect: ConfigVideoScalingShowValue := '4:3 Aspect';
+			SMIgnoreAspect: ConfigVideoScalingShowValue := 'Ignore';
+		end;
+	end;
+
+function ConfigHQSoundGetValue: integer;
+	begin
+		ConfigHQSoundGetValue := Byte(AudioGetHighQuality);
+	end;
+
+procedure ConfigHQSoundSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		AudioSetHighQuality(Boolean(value));
+	end;
+
+function ConfigHQSoundShowValue: string;
+	begin
+		if AudioGetHighQuality then
+			ConfigHQSoundShowValue := 'On'
+		else
+			ConfigHQSoundShowValue := 'Off';
+	end;
+
+function ConfigFullscreenGetValue: integer;
+	begin
+		ConfigFullscreenGetValue := Byte(VideoGetSDLWindowed);
+	end;
+
+procedure ConfigFullscreenSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		VideoSetSDLWindowed(Boolean(value));
+	end;
+
+function ConfigFullscreenShowValue: string;
+	begin
+		if VideoGetSDLWindowed then
+			ConfigFullscreenShowValue := 'Windowed'
+		else
+			ConfigFullscreenShowValue := 'Fullscreen';
+	end;
+
+function ConfigSoundVolumeGetValue: integer;
+	begin
+		ConfigSoundVolumeGetValue := Byte(AudioGetVolume shr 4);
+	end;
+
+procedure ConfigSoundVolumeSetValue(value: integer);
+	begin
+		if value > 4 then value := 0;
+		AudioSetVolume(Byte(value shl 4));
+	end;
+
+function ConfigSoundVolumeShowValue: string;
+	begin
+		if AudioGetVolume > 48 then
+			ConfigSoundVolumeShowValue := '100%'
+		else if AudioGetVolume > 32 then
+			ConfigSoundVolumeShowValue := '75%'
+		else if AudioGetVolume > 16 then
+			ConfigSoundVolumeShowValue := '50%'
+		else if AudioGetVolume > 0 then
+			ConfigSoundVolumeShowValue := '25%'
+		else
+			ConfigSoundVolumeShowValue := 'Off';
+	end;
+{$ENDIF}
+
+const
+{$IFDEF SDL2}
+	ConfigEntryCount = 5;
+{$ELSE}
+	ConfigEntryCount = 2;
+{$ENDIF}
+	ConfigEntries: array[1 .. ConfigEntryCount] of TConfigEntry = (
+		(
+			Category: CCEngine;
+			Key: 'ECompat';
+			Name: 'Compatibility';
+			GetValue: ConfigCompatibilityGetValue;
+			SetValue: ConfigCompatibilitySetValue;
+			ShowValue: ConfigCompatibilityShowValue;
+			CustomAction: ConfigCustomActionNone;
+		),
+{$IFNDEF SDL2}
+		(
+			Category: CCFrontend;
+			Key: 'FSoundOn';
+			Name: 'Sound';
+			GetValue: ConfigSoundGetValue;
+			SetValue: ConfigSoundSetValue;
+			ShowValue: ConfigSoundShowValue;
+			CustomAction: ConfigCustomActionNone;
+		),
+{$ELSE}
+		(
+			Category: CCFrontend;
+			Key: 'FVidWin';
+			Name: 'Display mode';
+			GetValue: ConfigFullscreenGetValue;
+			SetValue: ConfigFullscreenSetValue;
+			ShowValue: ConfigFullscreenShowValue;
+			CustomAction: ConfigCustomActionNone;
+		),
+		(
+			Category: CCFrontend;
+			Key: 'FVidScal';
+			Name: 'Display scaling';
+			GetValue: ConfigVideoScalingGetValue;
+			SetValue: ConfigVideoScalingSetValue;
+			ShowValue: ConfigVideoScalingShowValue;
+			CustomAction: ConfigCustomActionNone;
+		),
+		(
+			Category: CCFrontend;
+			Key: 'FSndVol';
+			Name: 'Volume';
+			GetValue: ConfigSoundVolumeGetValue;
+			SetValue: ConfigSoundVolumeSetValue;
+			ShowValue: ConfigSoundVolumeShowValue;
+			CustomAction: ConfigCustomActionNone;
+		),
+		(
+			Category: CCFrontend;
+			Key: 'FSndHQ';
+			Name: 'HQ Sound';
+			GetValue: ConfigHQSoundGetValue;
+			SetValue: ConfigHQSoundSetValue;
+			ShowValue: ConfigHQSoundShowValue;
+			CustomAction: ConfigCustomActionNone;
+		)
+{$ENDIF}
+	);
+
+procedure GameSubOptionsScreen(subCategory: TConfigCategory; var state: TTextWindowState);
+	var
+		i: integer;
+		actionMap: array[1 .. ConfigEntryCount] of integer;
+		exitRequested: boolean;
+	begin
+		exitRequested := false;
+		state.LinePos := 1;
+
+		repeat
+			TextWindowFreeEdit(state);
+
+			state.Selectable := true;
+			state.LineCount := 1;
+
+			for i := 1 to ConfigEntryCount do with ConfigEntries[i] do begin
+				if Category = subCategory then begin
+					actionMap[state.LineCount] := i;
+					New(state.Lines[state.LineCount]);
+					state.Lines[state.LineCount]^ := '!;' + Name + ': ' + ShowValue;
+					Inc(state.LineCount);
+				end;
+			end;
+
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := '';
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := '!;Return';
+
+			TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
+			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
+				with ConfigEntries[actionMap[state.LinePos]] do begin
+					SetValue(GetValue + 1);
+				end;
+			end else begin
+				exitRequested := true;
+			end;
+		until exitRequested;
+	end;
+
 procedure GameAboutScreen;
 	begin
 		TextWindowDisplayFile('ABOUT.HLP', 'About ClassicZoo...');
@@ -55,116 +318,24 @@ procedure GameOptionsScreen;
 
 		repeat
 			state.Selectable := true;
-			state.LineCount := {$IFNDEF SDL2} 6 {$ELSE} 9 {$ENDIF};
+			state.LineCount := 6;
 			for i := 1 to state.LineCount do
 				New(state.Lines[i]);
 
-			i := 1;
-			state.Lines[i]^ := '!;Compatibility: ';
-			if HighCompatAuto then
-				state.Lines[i]^ := state.Lines[1]^ + 'Automatic'
-			else if HighCompat then
-				state.Lines[i]^ := state.Lines[1]^ + 'Strict'
-			else
-				state.Lines[i]^ := state.Lines[1]^ + 'Normal';
-			Inc(i);
-{$IFNDEF SDL2}
-			state.Lines[i]^ := '!;Sound: ';
-			if SoundEnabled then
-				state.Lines[i]^ := state.Lines[i]^ + 'On'
-			else
-				state.Lines[i]^ := state.Lines[i]^ + 'Off';
-			Inc(i);
-{$ELSE}
-			state.Lines[i]^ := '!;Video scaling: ';
-			case VideoGetSDLScalingMode of
-				SMNone: state.Lines[i]^ := state.Lines[i]^ + '1:1';
-				SM2x: state.Lines[i]^ := state.Lines[i]^ + '2:1';
-				SM3x: state.Lines[i]^ := state.Lines[i]^ + '3:1';
-				SMInteger: state.Lines[i]^ := state.Lines[i]^ + 'Integer';
-				SMOrigAspect: state.Lines[i]^ := state.Lines[i]^ + 'Keep Aspect';
-				SM43Aspect: state.Lines[i]^ := state.Lines[i]^ + '4:3 Aspect';
-				SMIgnoreAspect: state.Lines[i]^ := state.Lines[i]^ + 'Ignore';
-			end;
-			Inc(i);
-
-			state.Lines[i]^ := '!;Display mode: ';
-			if VideoGetSDLWindowed then
-				state.Lines[i]^ := state.Lines[i]^ + 'Windowed'
-			else
-				state.Lines[i]^ := state.Lines[i]^ + 'Fullscreen';
-			Inc(i);
-
-			state.Lines[i]^ := '!;Sound: ';
-			if AudioGetVolume >= 64 then
-				state.Lines[i]^ := state.Lines[i]^ + '100%'
-			else if AudioGetVolume >= 48 then
-				state.Lines[i]^ := state.Lines[i]^ + '75%'
-			else if AudioGetVolume >= 32 then
-				state.Lines[i]^ := state.Lines[i]^ + '50%'
-			else if AudioGetVolume >= 16 then
-				state.Lines[i]^ := state.Lines[i]^ + '25%'
-			else
-				state.Lines[i]^ := state.Lines[i]^ + 'Off';
-			Inc(i);
-
-			state.Lines[i]^ := '!;HQ Sound: ';
-			if AudioGetHighQuality then
-				state.Lines[i]^ := state.Lines[i]^ + 'On'
-			else
-				state.Lines[i]^ := state.Lines[i]^ + 'Off';
-			Inc(i);
-{$ENDIF}
-
-			state.Lines[i]^ := '_________________________________________';
-			state.Lines[i + 1]^ := '';
-			state.Lines[i + 2]^ := '!;About ClassicZoo...';
-			state.Lines[i + 3]^ := '!;Exit';
+			state.Lines[1]^ := '!;Engine';
+			state.Lines[2]^ := '!;Frontend';
+			state.Lines[3]^ := '!;Editor';
+			state.Lines[4]^ := '';
+			state.Lines[5]^ := '!;About ClassicZoo...';
+			state.Lines[6]^ := '!;Exit';
 
 			TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
 			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
 				case state.LinePos of
-					1: begin
-						if HighCompatAuto then
-							HighCompatAuto := false
-						else
-							HighCompat := not HighCompat;
-					end;
-{$IFNDEF SDL2}
-					2: begin
-						SoundEnabled := not SoundEnabled;
-						SoundClearQueue;
-					end;
-					5: begin
-						GameAboutScreen;
-					end;
-{$ELSE}
-					2: begin
-						if VideoGetSDLScalingMode = SMIgnoreAspect then
-							VideoSetSDLScalingMode(SMNone)
-						else
-							VideoSetSDLScalingMode(Succ(VideoGetSDLScalingMode));
-					end;
-					3: begin
-						VideoSetSDLWindowed(not VideoGetSDLWindowed);
-					end;
-					4: begin
-						i := AudioGetVolume;
-						if i >= 64 then begin
-							i := 0;
-							SoundClearQueue;
-						end else begin
-							i := (i and $F0) + 16;
-						end;
-						AudioSetVolume(i);
-					end;
-					5: begin
-						AudioSetHighQuality(not AudioGetHighQuality);
-					end;
-					8: begin
-						GameAboutScreen;
-					end;
-{$ENDIF}
+					1: GameSubOptionsScreen(CCEngine, state);
+					2: GameSubOptionsScreen(CCFrontend, state);
+					3: GameSubOptionsScreen(CCEditor, state);
+					5: GameAboutScreen;
 				end;
 			end else begin
 				exitRequested := true;

@@ -228,6 +228,7 @@ procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
 	begin
 		scalingMode := value;
 		SDLResizeWindow(-10000, false, true);
+		SDLResizeWindow(0, true, false);
 	end;
 
 function VideoGetSDLWindowed: boolean;
