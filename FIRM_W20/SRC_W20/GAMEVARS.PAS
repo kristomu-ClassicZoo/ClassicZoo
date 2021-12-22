@@ -61,6 +61,12 @@ interface
 			Element: byte;
 			Color: byte;
 		end;
+		TMatchTile = record
+			Element: byte;
+			Color: byte;
+			SetFG: boolean;
+			SetBG: boolean;
+		end;
 		TElementDrawProc = procedure(x, y: integer; var ch: byte);
 		TElementTickProc = procedure(statId: integer);
 		TElementTouchProc = procedure(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -179,6 +185,9 @@ interface
 		IoTmpBufSize: word;
 		FileWorldCachedLinePos: integer; 
 		FileSaveCachedLinePos: integer;
+
+		InspectNext: boolean;
+		NoClip: boolean;
 
 		GameTitleExitRequested: boolean;
 		GamePlayExitRequested: boolean;

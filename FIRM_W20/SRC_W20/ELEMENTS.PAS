@@ -951,7 +951,11 @@ procedure ElementObjectTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 		retVal: boolean;
 	begin
 		statId := GetStatIdAt(x, y);
-		retVal := OopSend(-statId, 'TOUCH', false);
+		if InspectNext then begin
+			InspectObjectCode(statid);
+			InspectNext := false;
+		end else
+			retVal := OopSend(-statId, 'TOUCH', false);
 	end;
 
 function ElementDuplicate(srcX, srcY, dstX, dstY, statId: integer): boolean;
@@ -1341,7 +1345,7 @@ procedure ElementPlayerTick(statId: integer);
 				BoardDrawBorder;
 				Board.Info.Message := '';
 			end else if P3 > 1 then begin
-				VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, 9 + (P3 mod 7), ' '+Board.Info.Message+' ');
+				VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, 9 + ((P3 - 1) mod 7), ' '+Board.Info.Message+' ');
 				Dec(P3);
 			end;
 
@@ -1372,9 +1376,14 @@ procedure ElementPlayerTick(statId: integer);
 			end;
 
 			if (World.Info.Health <= 0) then begin
-				if World.Info.GracePeriod < ParamList[118] then
-					Inc(World.Info.GracePeriod)
-				else begin
+				if World.Info.GracePeriod < ParamList[118] then begin
+					Inc(World.Info.GracePeriod);
+					if World.Info.GracePeriod = ParamList[118] - 1 then begin
+						InputDeltaX := 0;
+						InputDeltaY := 0;
+						InputShiftPressed := false;
+					end;
+				end else begin
 					if World.Info.GracePeriod = ParamList[118] then begin
 						Inc(World.Info.GracePeriod);
 						SoundQueue(5, SoundParse(ConfigList[39]));
@@ -1552,6 +1561,8 @@ procedure ResetMessageNotShownFlags;
 		MessageFakeNotShown := true;
 		MessageGemNotShown := true;
 		MessageEnergizerNotShown := true;
+		InspectNext := false;
+		NoClip := false;
 	end;
 
 procedure InitElementDefs;

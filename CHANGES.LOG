@@ -1,3 +1,20 @@
+= 12/22/2021: 2.0f
+Added cheats:
+* ?inspect cheat makes the next object you touch reveal its code.
+* ?speed cheat lets you set game speed in-game.
+* ?board cheat lets you move to a different board.
+* ?nodmg cheat causes the player to take no damage from bullets, bombs, or enemies.
+
+Improved:
+* Anywhere you could list a color (#PUT #CHANGE etc) you can now use a number (0-15) or a counter.
+* Player input now locks out on the last grace frame, ensuring all stats execute at least once before #endgame.
+
+Bug Fixes:
+* Fixed bottom row #PUT bug.
+* Players with default black BG no longer inherit background colors as they move.
+* #change black <element> now correctly targets only <element> with a black foreground.
+* DisplayMessage no longer delays 1 tick before showing up.
+
 = 12/20/2021: 2.0e
 New Functions:
 * #PLAYER <color> <bgcolor> <char> permanent player color + char
@@ -12,7 +29,7 @@ Improved:
 * Extend CFG parsing from 50 to 80 chars
 * Added zedit2 Alt-T compat
 
-Bug Fixes
+Bug Fixes:
 * Empty strings passed to SoundParse will no longer interfere with SoundQueue
 * Empty strings in Oop files will now be properly counted as _nil.
 * Some unstatted objects would acquire unwelcome backgrounds whilst SHOVEd.

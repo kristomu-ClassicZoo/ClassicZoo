@@ -271,7 +271,7 @@ Black
 #PlaceableOnTop: Range 0-1. Defines whether
 #bullets can pass over this text. 0 = Off, 1 = On
 # ---
-#Passable: Range 0-1. Defines whether things
+#Walkable: Range 0-1. Defines whether things
 #can walk on this text. 0 = Solid, 1 = Passable
 #  -------------
 #Blue Text

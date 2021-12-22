@@ -28,17 +28,21 @@ unit Oop;
 
 interface
 	uses GameVars;
+	type
+		cInt = ^integer;
+		cShort = ^shortint;
 	function WorldGetFlagPosition(name: TString50): integer;
 	procedure WorldSetFlag(name: TString50);
 	procedure WorldClearFlag(name: TString50);
+	procedure InspectObjectCode(statId: integer);
 	function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
 	function OopExecute(statId: integer; var position: integer; name: TString50): boolean;
+	function ShortWord(s: string): boolean;
+	procedure OopGetShort(s: string; var cPtr: cShort);
+	function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 
 implementation
 uses Sounds, TxtWind, Game, Elements;
-type
-	cInt = ^integer;
-	cShort = ^shortint;
 
 procedure OopError(statId: integer; message: string);
 	begin
@@ -69,14 +73,12 @@ procedure OopReadWord(statId: integer; var position: integer);
 			OopReadChar(statId, position);
 		until OopChar <> ' ';
 		OopChar := UpCase(OopChar);
-		if (OopChar < '0') or (OopChar > '9') then begin
-			while ((OopChar >= 'A') and (OopChar <= 'Z')) or (OopChar = ':')
-				or ((OopChar >= '0') and (OopChar <= '9')) or (OopChar = '_') do
-			begin
-				OopWord := OopWord + OopChar;
-				OopReadChar(statId, position);
-				OopChar := UpCase(OopChar);
-			end;
+		while ((OopChar >= 'A') and (OopChar <= 'Z')) or (OopChar = ':')
+			or ((OopChar >= '0') and (OopChar <= '9')) or (OopChar = '_') do
+		begin
+			OopWord := OopWord + OopChar;
+			OopReadChar(statId, position);
+			OopChar := UpCase(OopChar);
 		end;
 		if position > 0 then
 			Dec(position);
@@ -246,7 +248,7 @@ procedure OopReadValue(statId: integer; var position: integer);
 				OopValue := shortPtr^;
 			end else if OopGetCounter(statId, s, counterPtr) then
 				OopValue := counterPtr^
-			else OopValue := ColorNumber(s);
+			else OopValue := ColorNumber(s, -1);
 		end;
 	end;
 
@@ -521,21 +523,27 @@ procedure WorldClearFlag(name: TString50);
 			World.Info.Flags[WorldGetFlagPosition(name)] := '';
 	end;
 
-function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
+function OopParseTile(var statId, position: integer; var tile: TMatchTile): boolean;
 	var		
-		i: integer;
+		i, j: integer;
 	label FindElement;
 	begin
 		OopParseTile := false;
 		tile.Color := 0;
+		tile.setBG := false;
+		tile.setFG := false;
 
 		OopReadWord(statId, position);
-		i := ColorNumber(OopWord);
+		i := ColorNumber(OopWord, statId);
+		
 		if i = -128 then goto FindElement;
+		if i = 0 then tile.SetFG := true;
 		tile.Color := AsColor(i,0);
 		OopReadWord(statId, position);
-		if ColorNumber(OopWord) = -128 then goto FindElement;
-		tile.Color := AsColor(i,ColorNumber(OopWord));
+		j := ColorNumber(OopWord, statId);
+		if j = -128 then goto FindElement;
+		if j = 0 then tile.SetBG := true;
+		tile.Color := AsColor(i,j);
 		OopReadWord(statId, position);
 
 	FindElement:
@@ -548,12 +556,12 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 		end;
 	end;
 
-function MatchTiles(sourceTile, searchTile: TTile): boolean;
+function MatchTiles(sourceTile: TTile; searchTile: TMatchTile): boolean;
 	begin
 		MatchTiles := false;
 		if (sourceTile.Element = searchTile.Element) or (searchTile.Element = 2) then
-			if searchTile.Color <> 0 then begin
-				if searchTile.Color and $F0 > 0 then
+			if (searchTile.Color <> 0) or (searchTile.SetFG = true) then begin
+				if (searchTile.Color and $F0 > 0) or (searchTile.SetBG = true) then
 					MatchTiles := (searchTile.Color = sourceTile.Color)
 				else
 					MatchTiles := (searchTile.Color = (sourceTile.Color and $0F));
@@ -561,7 +569,7 @@ function MatchTiles(sourceTile, searchTile: TTile): boolean;
 				MatchTiles := true;
 	end;
 
-function FindTileOnBoard(var x, y: integer; tile: TTile): boolean;
+function FindTileOnBoard(var x, y: integer; tile: TMatchTile): boolean;
 	begin
 		FindTileOnBoard := false;
 		while true do begin
@@ -583,7 +591,7 @@ function FindTileOnBoard(var x, y: integer; tile: TTile): boolean;
 function OopCheckCondition(statId: integer; var position: integer): boolean;
 	var
 		deltaX, deltaY: integer;
-		tile: TTile;
+		tile: TMatchTile;
 		code, ix, iy: integer;
 		isCounter: boolean;
 		counterPtr: cInt;
@@ -604,8 +612,16 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				OopReadDirection(statId, position, deltaX, deltaY);
 				OopReadValue(statId, position);
 				ix := OopValue;
+				if ix = 0 then
+					tile.setFG := true
+				else
+					tile.setFG := false;
 				code := position;
 				OopReadValue(statId, position);
+				if OopValue = 0 then
+					tile.setBG := true
+				else
+					tile.setBG := false;
 				if OopValue = -128 then begin
 					position := code;
 					OopValue := 0;
@@ -616,7 +632,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 						iy := 0;
 					tile.Element := 2;
 					tile.Color := AsColor( ix, iy );
-					if deltaX + deltaY = 0 then
+					if (deltaX = 0) and (deltaY = 0) then
 						OopCheckCondition := MatchTiles(Under, tile)
 					else
 						OopCheckCondition := MatchTiles(Board.Tiles[X + DeltaX][Y + DeltaY], tile);
@@ -676,7 +692,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				OopReadDirection(statId, position, deltaX, deltaY);
 				if not OopParseTile(statId, position, tile) then
 					OopError(statId, 'Bad object kind');
-				if deltaX + deltaY = 0 then
+				if (deltaX = 0) and (deltaY = 0) then
 					OopCheckCondition := MatchTiles(Under, tile)
 				else
 					OopCheckCondition := MatchTiles(Board.Tiles[X + DeltaX][Y + DeltaY], tile);
@@ -703,6 +719,38 @@ function OopReadLineToEnd(statId: integer; var position: integer) : string;
 			OopReadChar(statId, position);
 		end;
 		OopReadLineToEnd := s;
+	end;
+
+procedure InspectObjectCode(statId: integer);
+	var
+		s: string;
+		ch: char;
+		pos: integer;
+		textWindow: TTextWindowState;
+	begin
+		with Board.Stats[statId] do begin
+			pos := 0;
+			s := '';
+			TextWindowInitState(textWindow);
+			textWindow.Selectable := false;
+			TextWindowAppend(textWindow, '  Object Data:');
+			while pos <= DataLen do begin
+				Move(Ptr(Seg(Data^), Ofs(Data^) + pos)^, ch, 1);
+				if ch = #13 then begin
+					TextWindowAppend(textWindow, s);
+					s := '';
+				end else
+					s := s + ch;
+				Inc(pos);
+			end;
+			if DataLen = 0 then
+				TextWindowAppend(textWindow, 'There is no object data.');
+			textWindow.Title := 'Inspecting Object';
+			TextWindowDrawOpen(textWindow);
+			TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
+			TextWindowDrawClose(textWindow);
+			TextWindowFree(textWindow);
+		end;
 	end;
 
 function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
@@ -745,6 +793,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 		lastPosition: integer;
 		repeatInsNextTick: boolean;
 		replaceStat, dieItem: boolean;
+		MatchFG, MatchBG: boolean;
 		lineFinished: boolean;
 		labelPtr: pointer;
 		labelDataPos: integer;
@@ -754,8 +803,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 		counterSubtract: boolean;
 		bindStatId: integer;
 		insCount: integer;
-		argTile: TTile;
-		argTile2: TTile;
+		argTile: TMatchTile;
+		argTile2: TMatchTile;
 	label StartParsing;
 	label ReadInstruction;
 	label ReadCommand;
@@ -1161,12 +1210,16 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							else if ((X + deltaX) > 0)
 								and ((X + deltaX) <= BOARD_WIDTH)
 								and ((Y + deltaY) > 0)
-								and ((Y + deltaY) < BOARD_HEIGHT) then
+								and ((Y + deltaY) <= BOARD_HEIGHT) then
 							begin
 								if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 									ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
-
-								OopPlaceTile(X + deltaX, Y + deltaY, argTile);
+								replaceTile.Element := argTile.Element;
+								replaceTile.Color := argTile.Color;
+								if (argTile.setFG = true) or (argTile.setBG = true) then
+									OopForceTile(X + deltaX, Y + deltaY, replaceTile)
+								else
+									OopPlaceTile(X + deltaX, Y + deltaY, replaceTile);
 							end;
 						end else if OopWord = OopStringToWord(OOPList[3]) then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
@@ -1188,11 +1241,19 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 
 							ix := 0;
 							iy := 1;
-							if argTile2.Color = 0 then
+							if (argTile2.Color = 0) and (argtile2.SetFG = false) then
 								argTile2.Color := ElementDefs[argTile2.Element].Color;
+							replaceTile.Element := argTile2.Element;
+							replaceTile.Color := argTile2.Color;
 
-							while FindTileOnBoard(ix, iy, argTile) do
-								OopPlaceTile(ix, iy, argTile2);
+							while FindTileOnBoard(ix, iy, argTile) do begin
+								if ElementDefs[argTile.Element].Cycle < 0 then
+									Board.Tiles[ix][iy].Element := E_EMPTY;
+								if (argTile2.SetFG = true) or (argTile2.SetBG = true) then
+									OopForceTile(ix, iy, replaceTile)
+								else
+									OopPlaceTile(ix, iy, replaceTile);
+							end;
 						end else if OopWord = 'PLAY' then begin
 							OopReadChar(statId, position);
 							if OopChar = #13 then

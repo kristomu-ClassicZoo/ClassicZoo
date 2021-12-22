@@ -33,7 +33,7 @@ interface
 		PROMPT_NUMERIC = 0;
 		PROMPT_ALPHANUM = 1;
 		PROMPT_ANY = 2;
-	function ColorNumber(s: string): integer;
+	function ColorNumber(s: string; statId: integer): integer;
 	procedure SidebarClearLine(y: integer);
 	procedure SidebarClear;
 	procedure GenerateTransitionTable;
@@ -74,6 +74,7 @@ interface
 	procedure BoardDamageTile(x, y: integer);
 	procedure BoardAttack(attackerStatId: integer; x, y: integer);
 	procedure OopPlaceTile(x, y: integer; var tile: TTile);
+	procedure OopForceTile(x, y: integer; tile: TTile);
 	function BoardShoot(txelement: byte; tx, ty, deltaX, deltaY: integer; source: integer): boolean;
 	procedure CalcDirectionRnd(var deltaX, deltaY: integer);
 	procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
@@ -152,7 +153,10 @@ const
 implementation
 uses Dos, FileSel, Crt, ExtMem, Video, Sounds, Input, Elements, Oop;
 
-function ColorNumber(s: string): integer;
+function ColorNumber(s: string; statId: integer): integer;
+	var
+		counterPtr: cInt;
+		shortPtr: cShort;
 	begin
         if (s = 'BLACK') or (s = '0') then ColorNumber := 0
 		else if (s = 'DKBLUE') or (s = '1') then ColorNumber := 1
@@ -171,6 +175,17 @@ function ColorNumber(s: string): integer;
 		else if (s = 'YELLOW') or (s = '14') then ColorNumber := 14
 		else if (s = 'WHITE') or (s = '15') then ColorNumber := 15
 		else ColorNumber := -128;
+
+		if statId <> -1 then begin
+			if ShortWord(s) then begin
+				OopGetShort(s, shortPtr);
+				if (shortPtr^ >= 0) and (shortPtr^ <= 15) then
+					ColorNumber := shortPtr^;
+			end else if OopGetCounter(statId, s, counterPtr) then begin
+				if (counterPtr^ >= 0) and (counterPtr^ <= 15) then
+					ColorNumber := counterPtr^;
+			end;
+		end;
 	end;
 	
 procedure CustomFlagsLoad;
@@ -228,8 +243,8 @@ procedure ParamsLoad;
 				ReadLn(f, s);
 				if s <> '' then begin
 					if s[1] <> '#' then begin
-						ParamList[i] := ColorNumber(UpCaseString(s));
-						if ParamList[i] = -128 then
+						ParamList[i] := ColorNumber(UpCaseString(s), -1);
+						if (ParamList[i] = -128) then
 							Val(s, ParamList[i], code);
 					end else
 						Dec(i);
@@ -823,7 +838,7 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 		end;
 
 		SidebarClearLine(y);
-		VideoWriteText(x, y, AsColor(ParamList[THEME_START + Integer(editable) + 2],ParamList[THEME_START]), prompt);
+		VideoWriteText(x, y, AsColor(ParamList[THEME_START + 2 - Integer(editable)],ParamList[THEME_START]), prompt);
 		SidebarClearLine(y + 1);
 		SidebarClearLine(y + 2);
 		VideoWriteText(x, y + 2, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), startChar + '....:....' + endChar);
@@ -1361,7 +1376,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			Under := Board.Tiles[newX][newY];
 
 			with Board.Tiles[X][Y] do begin
-				if (ElementDefs[Element].Color and $F0) > 0 then
+				if (Element = E_PLAYER) or ((ElementDefs[Element].Color and $F0) > 0) then
 					Board.Tiles[newX][newY].Color := Color
 				else if Board.Tiles[newX][newY].Element = E_EMPTY then
 					Board.Tiles[newX][newY].Color := Color and $0F
@@ -1525,6 +1540,7 @@ procedure DisplayMessage(time: integer; message: string);
 				BoardDrawBorder;
 			Board.Stats[0].P3 := time div (TickTimeDuration + 1);
 			Board.Info.Message := message;
+			VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, 9 + (Board.Stats[0].P3 mod 7), ' '+Board.Info.Message+' ');
 		end;
 	end;
 
@@ -1631,6 +1647,27 @@ function TileSetColor(toptile, bottomtile: TTile): byte;
 		if fg + bg = 0 then
 			fg := 15;
 		TileSetColor := AsColor(fg,bg);
+	end;
+
+procedure OopForceTile(x, y: integer; tile: TTile);
+	begin
+		with Board.Tiles[x][y] do begin
+			if (Element <> E_PLAYER) then begin
+				if Element = tile.Element then
+					Color := tile.Color
+				else begin
+					BoardDamageTile(x, y);
+					if ElementDefs[tile.Element].Cycle >= 0 then
+						AddStat(x, y, tile.Element, tile.Color,
+							ElementDefs[tile.Element].Cycle, StatTemplateDefault)
+					else begin
+						Element := tile.Element;
+						Color := tile.Color;
+					end;
+				end;
+				BoardDrawTile(x, y);					
+			end;
+		end;
 	end;
 
 procedure OopPlaceTile(x, y: integer; var tile: TTile);
@@ -1792,6 +1829,7 @@ procedure GameDebugPrompt;
 		input: TString50;
 		i: integer;
 		toggle: boolean;
+		textWindow: TTextWindowState;
 	begin
 		input := '';
 		SidebarClearLine(4);
@@ -1828,7 +1866,37 @@ procedure GameDebugPrompt;
 			World.Info.BoardTimeSec := World.Info.BoardTimeSec - 30
 		else if input = 'GEMS' then
 			World.Info.Gems := World.Info.Gems + 5
-		else if input = 'DARK' then begin
+		else if (input = 'NODMG') or (input = 'IDDQD') then
+			ParamList[101] := 0
+		else if input = 'INSPECT' then
+			InspectNext := true
+		else if (input = 'NOCLIP') or (input = 'CLIP') then begin
+			GamePaused := true;
+			NoClip := not NoClip;
+		end else if input = 'SPEED' then begin
+			SidebarPromptSlider(true, 64, 4, 'Game speed:;FS', TickSpeed);
+			TickTimeDuration := TickSpeed * 2;
+			GameUpdateSidebar;
+		end else if input = 'BOARD' then begin
+			TextWindowInitState(textWindow);
+			textWindow.Selectable := true;
+			textWindow.Title := 'Warp To Board';
+			for i := 0 to World.BoardCount do
+				TextWindowAppend(textWindow, BoardNames[i]);
+			TextWindowAppend(textWindow, 'Cancel');
+			TextWindowDrawOpen(textWindow);
+			TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
+			TextWindowDrawClose(textWindow);
+			if ((textWindow.LinePos <> textWindow.LineCount) 
+				and (TextWindowRejected = false))
+				and (textWindow.LinePos <> (World.Info.CurrentBoard + 1))
+			then begin
+				BoardChange(textWindow.LinePos - 1);
+				TransitionDrawToBoard;
+				BoardEnter;
+			end;
+			TextWindowFree(textWindow);
+		end else if input = 'DARK' then begin
 			Board.Info.IsDark := 1 - Board.Info.IsDark;
 			TransitionDrawToBoard;
 		end else if input = 'ZAP' then begin
