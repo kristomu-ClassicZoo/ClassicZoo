@@ -1210,7 +1210,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			Under := Board.Tiles[newX][newY];
 
 			with Board.Tiles[X][Y] do begin
-				if (ElementDefs[Element].Color and $F0) > 0 then
+				if ((ElementDefs[Element].Color and $F0) > 0) or (Element = E_PLAYER) then
 					Board.Tiles[newX][newY].Color := Color
 				else if Board.Tiles[newX][newY].Element = E_EMPTY then
 					Board.Tiles[newX][newY].Color := Color and $0F

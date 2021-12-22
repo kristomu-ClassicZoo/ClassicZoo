@@ -1,4 +1,4 @@
-Soft Weave 2.0
+Soft Weave 2.0f
 Part of the WeaveZZT 2.0 Project
 
 - - - - -

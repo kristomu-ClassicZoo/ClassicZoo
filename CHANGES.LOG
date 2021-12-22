@@ -11,7 +11,8 @@ Improved:
 
 Bug Fixes:
 * Fixed bottom row #PUT bug.
-* Players with default black BG no longer inherit background colors as they move.
+* Players with default black BG no longer inherit background colors as they move. (Firm)
+* Players with default black BG no longer inherit background colors as they move. (Soft)
 * #change black <element> now correctly targets only <element> with a black foreground.
 * DisplayMessage no longer delays 1 tick before showing up.
 
