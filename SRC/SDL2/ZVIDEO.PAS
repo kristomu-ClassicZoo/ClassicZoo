@@ -506,6 +506,8 @@ function VideoSetCharset(data: pointer; height: integer): boolean;
 	begin
 		VideoSetCharset := false;
 
+		SDL_LockMutex(eventMutex);
+
 		FreeCharsetTexture(charsetTexture);
 
 		if data <> Nil then begin
@@ -521,6 +523,8 @@ function VideoSetCharset(data: pointer; height: integer): boolean;
 			RunError(217);
 
 FinishSetCharset:
+		SDL_UnlockMutex(eventMutex);
+
 		SDLResizeWindow(0, true, false);
 	end;
 
