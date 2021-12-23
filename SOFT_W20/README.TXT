@@ -1,11 +1,11 @@
-Soft Weave 2.0f
-Part of the WeaveZZT 2.0 Project
+Soft Weave 2.0g
+Part of the Weave 2.0 Project
 
 - - - - -
 
 What is it?
 
-  If you run your 3.2 compatible games with Soft Weave it will play them exactly as 3.2 does, bugs and all.  The only difference is it attempts to load them into EMS/XMS. If your machine or emulator does not have either of those, WeaveZZT 2.0 will probably not work. Sorry, them's the breaks.
+  If you run your ZZT 3.2 compatible games with Soft Weave it will play them exactly as 3.2 does, bugs and all.  The only difference is it attempts to load them into EMS/XMS. If your machine or emulator does not have either of those, Weave 2.0 will probably not work. Sorry, them's the breaks.
 
   If you want to enhance games, you may change many fundamental strings, sounds, and attributes by copying the provided TEMPLATE.CFG and TEMPLATE.PAR files and renaming them the same name as your .ZZT file, then altering them per the directions in the template files themselves. Changes to the files will take effect on reload of the .ZZT world.
 
