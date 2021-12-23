@@ -249,7 +249,7 @@ interface
 		TickTimeCounter: integer;
 
 		ForceDarknessOff: boolean;
-		InitialTextAttr: byte;
+		{ InitialTextAttr: byte; }
 
 		OopChar: char;
 		OopWord: string[OOP_TOKEN_LENGTH];
@@ -258,14 +258,12 @@ interface
 		DebugEnabled: boolean;
 
 		HighScoreList: THighScoreList;
-{$IFDEF CONFREGI}
-		ConfigRegistration: string;
-{$ENDIF}
-		ConfigWorldFile: TString50;
+		{ ConfigRegistration: string; }
+		{ ConfigWorldFile: TString50; }
 		EditorEnabled: boolean;
-		GameVersion: TString50;
-		ParsingConfigFile: boolean;
-		ResetConfig: boolean; { This flag is a remnant from ZZT 3.0. }
+		GameVersion: string[20];
+		{ ParsingConfigFile: boolean; }
+		{ ResetConfig: boolean; } { This flag is a remnant from ZZT 3.0. }
 		JustStarted: boolean;
 
 		WorldExt: TWorldExt;

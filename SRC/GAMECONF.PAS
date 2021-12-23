@@ -28,6 +28,8 @@
 unit GameConf;
 
 interface
+	function GameConfigLoad: boolean;
+	function GameConfigSave: boolean;
 	procedure GameAboutScreen;
 	procedure GameOptionsScreen;
 {$IFNDEF FPC}
@@ -42,6 +44,9 @@ interface
 	procedure ConfigVidColorSetValue(value: integer);
 	function ConfigVidColorShowValue: string;
 {$IFNDEF SDL2}
+	function ConfigInputGetValue: integer;
+	procedure ConfigInputSetValue(value: integer);
+	function ConfigInputShowValue: string;
 	function ConfigSoundGetValue: integer;
 	procedure ConfigSoundSetValue(value: integer);
 	function ConfigSoundShowValue: string;
@@ -51,7 +56,7 @@ interface
 implementation
 uses
 {$IFDEF SDL2} AudioSim, {$ENDIF}
-Editor, Game, GameVars, Sounds, ZVideo, Input, TxtWind;
+Editor, Game, GameVars, Sounds, ZVideo, Input, FileSys, TxtWind;
 
 type
 	TConfigCategory = (CCEngine, CCFrontend, CCEditor);
@@ -67,8 +72,14 @@ type
 		SetValue: TConfigSetValueProc;
 		ShowValue: TConfigShowValueProc;
 		CustomAction: TConfigCustomActionProc;
+		Changed: boolean;
+	end;
+	TConfigHiddenEntry = record
+		Key: string[8];
+		IntPointer: ^integer;
 	end;
 var
+	ConfigEntryInputPos: integer;
 	HardEscapeHack: boolean;
 
 function ConfigCustomActionNone: boolean;
@@ -142,6 +153,32 @@ function ConfigVidColorShowValue: string;
 	end;
 
 {$IFNDEF SDL2}
+function ConfigInputGetValue: integer;
+	begin
+		ConfigInputGetValue := Byte(InputMode);
+	end;
+
+procedure ConfigInputSetValue(value: integer);
+	begin
+		if value > 2 then value := 0;
+{$IFDEF NEC98}
+		if value = 1 then value := 2;
+{$ENDIF}
+		InputMode := TInputMode(value);
+	end;
+
+function ConfigInputShowValue: string;
+	begin
+		if InputMode = IMMouse then
+			ConfigInputShowValue := 'Mouse'
+{$IFNDEF NEC98}
+		else if InputMode = IMJoystick then
+			ConfigInputShowValue := 'Joystick'
+{$ENDIF}
+		else
+			ConfigInputShowValue := 'Keyboard';
+	end;
+
 function ConfigSoundGetValue: integer;
 	begin
 		ConfigSoundGetValue := Byte(SoundEnabled);
@@ -257,11 +294,19 @@ const
 {$IFDEF SDL2}
 	+ 4
 {$ELSE}
-	+ 1
+	+ 2
+{$ENDIF}
+	;
+	ConfigHiddenEntryCount = 0
+{$IFDEF MSDOS}
+{$IFNDEF NEC98}
+	+ 6
+{$ENDIF}
 {$ENDIF}
 	;
 var
 	ConfigEntries: array[1 .. ConfigEntryCount] of TConfigEntry;
+	ConfigHiddenEntries: array[1 .. ConfigHiddenEntryCount + 1] of TConfigHiddenEntry;
 
 procedure ConfigInitEntries;
 	var
@@ -304,6 +349,15 @@ procedure ConfigInitEntries;
 		ConfigEntries[i].ShowValue := ConfigSoundShowValue;
 		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
 		Inc(i);
+		ConfigEntries[i].Category := CCFrontend;
+		ConfigEntries[i].Key := 'FInpMode';
+		ConfigEntries[i].Name := 'Input';
+		ConfigEntries[i].GetValue := ConfigInputGetValue;
+		ConfigEntries[i].SetValue := ConfigInputSetValue;
+		ConfigEntries[i].ShowValue := ConfigInputShowValue;
+		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		ConfigEntryInputPos := i;
+		Inc(i);
 {$ELSE}
 		ConfigEntries[i].Category := CCFrontend;
 		ConfigEntries[i].Key := 'FVidWin';
@@ -341,6 +395,30 @@ procedure ConfigInitEntries;
 		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
 		Inc(i);
 {$ENDIF}
+
+		i := 1;
+{$IFDEF MSDOS}
+{$IFNDEF NEC98}
+		ConfigHiddenEntries[i].Key := 'FJoyXMin';
+		ConfigHiddenEntries[i].IntPointer := @JoystickXMin;
+		Inc(i);
+		ConfigHiddenEntries[i].Key := 'FJoyXCtr';
+		ConfigHiddenEntries[i].IntPointer := @JoystickXCenter;
+		Inc(i);
+		ConfigHiddenEntries[i].Key := 'FJoyXMax';
+		ConfigHiddenEntries[i].IntPointer := @JoystickXMax;
+		Inc(i);
+		ConfigHiddenEntries[i].Key := 'FJoyYMin';
+		ConfigHiddenEntries[i].IntPointer := @JoystickYMin;
+		Inc(i);
+		ConfigHiddenEntries[i].Key := 'FJoyYCtr';
+		ConfigHiddenEntries[i].IntPointer := @JoystickYCenter;
+		Inc(i);
+		ConfigHiddenEntries[i].Key := 'FJoyYMax';
+		ConfigHiddenEntries[i].IntPointer := @JoystickYMax;
+		Inc(i);
+{$ENDIF}
+{$ENDIF}
 	end;
 
 procedure GameSubOptionsScreen(subCategory: TConfigCategory; var state: TTextWindowState);
@@ -368,6 +446,7 @@ procedure GameSubOptionsScreen(subCategory: TConfigCategory; var state: TTextWin
 			end;
 
 			New(state.Lines[state.LineCount]);
+			actionMap[state.LineCount] := 0;
 			state.Lines[state.LineCount]^ := '';
 			Inc(state.LineCount);
 			New(state.Lines[state.LineCount]);
@@ -375,15 +454,19 @@ procedure GameSubOptionsScreen(subCategory: TConfigCategory; var state: TTextWin
 
 			TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
 			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
-				with ConfigEntries[actionMap[state.LinePos]] do begin
-					SetValue(GetValue + 1);
+				if actionMap[state.LinePos] <> 0 then begin
+					with ConfigEntries[actionMap[state.LinePos]] do begin
+						if not CustomAction then
+							SetValue(GetValue + 1);
+						Changed := true;
 {$IFNDEF SDL2}
-					if Key = 'FVidMono' then begin
-						VideoUninstall;
-						VideoInstall(1);
-						HardEscapeHack := true;
-					end;
+						if Key = 'FVidMono' then begin
+							VideoUninstall;
+							VideoInstall(1);
+							HardEscapeHack := true;
+						end;
 {$ENDIF}
+					end;
 				end;
 				if HardEscapeHack then begin
 					exitRequested := true;
@@ -394,9 +477,69 @@ procedure GameSubOptionsScreen(subCategory: TConfigCategory; var state: TTextWin
 		until exitRequested;
 	end;
 
+function GameConfigLoad: boolean;
+	var
+		f: text;
+		i, v, code: integer;
+		s: string[128];
+		k: string[12];
+	begin
+		GameConfigLoad := false;
+		AssignFSysText(f, 'ZZT.INI');
+		Reset(f);
+		while (IOResult = 0) and (not Eof(f)) do begin
+			ReadLn(f, s);
+			if (Length(s) > 0) and (s[1] <> ';') and (s[1] <> '[') then begin
+				v := Pos('=', s);
+				if v <= 12 then begin
+					k := Copy(s, 1, v - 1);
+					s := Copy(s, v + 1, Length(s) - v);
+					if Length(s) > 0 then begin
+						Val(s, v, code);
+						for i := 1 to ConfigEntryCount do with ConfigEntries[i] do begin
+							if k = Key then
+								SetValue(v);
+						end;
+						for i := 1 to ConfigHiddenEntryCount do with ConfigHiddenEntries[i] do begin
+							if k = Key then
+								IntPointer^ := v;
+						end;
+					end;
+				end;
+			end;
+		end;
+		Close(f);
+		if IOResult = 0 then GameConfigLoad := true;
+	end;
+
+function GameConfigSave: boolean;
+	var
+		f: text;
+		i, v: integer;
+		s: string[20];
+	begin
+		GameConfigSave := false;
+		AssignFSysText(f, 'ZZT.INI');
+		Rewrite(f);
+		WriteLn(f, '; Generated by %NAME% %VERSION%');
+		WriteLn(f, '[Config]');
+		for i := 1 to ConfigEntryCount do with ConfigEntries[i] do begin
+			v := GetValue;
+			Str(v, s);
+			WriteLn(f, Key + '=' + s);
+		end;
+		for i := 1 to ConfigHiddenEntryCount do with ConfigHiddenEntries[i] do begin
+			v := IntPointer^;
+			Str(v, s);
+			WriteLn(f, Key + '=' + s);
+		end;
+		Close(f);
+		if IOResult = 0 then GameConfigSave := true;
+	end;
+
 procedure GameAboutScreen;
 	begin
-		TextWindowDisplayFile('ABOUT.HLP', 'About ClassicZoo...');
+		TextWindowDisplayFile('ABOUT.HLP', 'About %NAME%...');
 	end;
 
 procedure GameOptionsScreen;
@@ -408,9 +551,11 @@ procedure GameOptionsScreen;
 	begin
 		state.Title := 'Options...';
 		TextWindowDrawOpen(state);
-		state.LinePos := 1;
 		exitRequested := false;
 		HardEscapeHack := false;
+		state.LinePos := 1;
+
+		for i := 1 to ConfigEntryCount do ConfigEntries[i].Changed := false;
 
 		repeat
 			state.Selectable := true;
@@ -427,11 +572,11 @@ procedure GameOptionsScreen;
 {$IFDEF EDITOR}
 			state.Lines[3]^ := '!;Editor';
 			state.Lines[4]^ := '';
-			state.Lines[5]^ := '!;About ClassicZoo...';
+			state.Lines[5]^ := '!;About %NAME%...';
 			state.Lines[6]^ := '!;Exit';
 {$ELSE}
 			state.Lines[3]^ := '';
-			state.Lines[4]^ := '!;About ClassicZoo...';
+			state.Lines[4]^ := '!;About %NAME%...';
 			state.Lines[5]^ := '!;Exit';
 {$ENDIF}
 
@@ -457,6 +602,23 @@ procedure GameOptionsScreen;
 
 			TextWindowFreeEdit(state);
 		until exitRequested;
+
+{$IFDEF MSDOS}
+{$IFNDEF NEC98}
+		if ConfigEntries[ConfigEntryInputPos].Changed then begin begin
+			if InputMode = IMJoystick then
+				VideoUninstall;
+				if not InputCalibrateJoystick then
+					InputMode := IMKeyboard;
+				VideoInstall(1);
+			end;
+		end;
+{$ENDIF}
+{$ENDIF}
+
+		if not GameConfigSave then begin
+			{ TODO: Warn user. }
+		end;
 	end;
 
 begin

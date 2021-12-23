@@ -48,7 +48,6 @@ interface
 	procedure VideoSetSDLWindowed(value: boolean);
 	{ }
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
-	function VideoConfigure: boolean;
 	function VideoSetCharset(data: pointer; height: integer): boolean;
 	procedure VideoInstall(borderColor: integer);
 	procedure VideoUninstall;
@@ -522,12 +521,6 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 			Inc(offset);
 		end;
 		SDL_UnlockMutex(playfieldMutex);
-	end;
-
-function VideoConfigure: boolean;
-	begin
-		{ stub }
-		VideoConfigure := true;
 	end;
 
 function VideoSetCharset(data: pointer; height: integer): boolean;

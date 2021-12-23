@@ -40,13 +40,7 @@ Pc98,
 Crt,
 {$ENDIF}
 {$ENDIF}
-Dos, ExtMem, FileSys, ZVideo, Keys, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
-
-{$IFNDEF NEC98}
-{$IFNDEF SDL2}
-{$DEFINE TEXTCFG}
-{$ENDIF}
-{$ENDIF}
+Dos, ExtMem, FileSys, ZVideo, Keys, Sounds, Input, TxtWind, GameConf, GameVars, Elements, Editor, Oop, Game;
 
 procedure ParseArguments;
 	var
@@ -84,113 +78,12 @@ procedure ParseArguments;
 		ExtMemInstall(enableEms, enableXms);
 	end;
 
-{$IFDEF TEXTCFG}
-procedure WritelnCentered(s: string);
-	var
-		y: byte;
-	begin
-		y := WhereY;
-		GotoXY(1 + ((80 - Length(s)) shr 1), y);
-		Writeln(s);
-	end;
-{$ENDIF}
-
-procedure GameConfigure;
-	var
-		unk1: integer;
-		joystickEnabled, mouseEnabled: boolean;
-		cfgFile: text;
-	begin
-		ParsingConfigFile := true;
-		EditorEnabled := true;
-{$IFDEF CONFREGI}
-		ConfigRegistration := '';
-{$ENDIF}
-		ConfigWorldFile := '';
-		GameVersion := '%VERSION%';
-
-		AssignFSysText(cfgFile, 'zzt.cfg');
-		Reset(cfgFile);
-		if IOResult = 0 then begin
-			Readln(cfgFile, ConfigWorldFile);
-{$IFDEF CONFREGI}
-			Readln(cfgFile, ConfigRegistration);
-{$ENDIF}
-			Close(cfgFile);
-		end;
-
-		if ConfigWorldFile[1] = '*' then begin
-			EditorEnabled := false;
-			ConfigWorldFile := Copy(ConfigWorldFile, 2, Length(ConfigWorldFile) - 1);
-		end;
-		if Length(ConfigWorldFile) <> 0 then begin
-			StartupWorldFileName := ConfigWorldFile;
-		end;
-
-		InputInitDevices;
-		joystickEnabled := InputJoystickEnabled;
-		mouseEnabled := InputMouseEnabled;
-
-		ParsingConfigFile := false;
-
-{$IFDEF TEXTCFG}
-		Window(1, 1, 80, 25);
-		TextBackground(Black);
-		ClrScr;
-		TextColor(White);
-		TextColor(White);
-		Writeln;
-		WritelnCentered('<=-  %NAME%  -=>');
-		TextColor(Yellow);
-		WritelnCentered('Version %VERSION%');
-		WritelnCentered('%CONFIG_SUBTITLE%');
-		GotoXY(1, 7);
-		TextColor(Blue);
-		Write('================================================================================');
-		GotoXY(1, 24);
-		Write('================================================================================');
-		TextColor(White);
-		GotoXY(30, 7);
-		Write(' Game Configuration ');
-		GotoXY(1, 25);
-		Write(' %COPYRIGHT% ');
-		GotoXY(59, 25);
-		Write(' Press ... to abort ');
-		TextColor(Black);
-		TextBackground(LightGray);
-		GotoXY(66, 25);
-		Write('ESC');
-		Window(1, 8, 80, 23);
-		TextColor(Yellow);
-		TextBackground(Black);
-		ClrScr;
-		TextColor(Yellow);
-{$ELSE}
-{$IFNDEF SDL2}
-		Writeln('%NAME% %VERSION%');
-		Writeln('%COPYRIGHT%');
-{$ENDIF}
-{$ENDIF}
-		if not InputConfigure then
-			GameTitleExitRequested := true
-		else begin
-{$IFDEF TEXTCFG}
-			TextColor(LightGreen);
-{$ENDIF}
-			if not VideoConfigure then
-				GameTitleExitRequested := true;
-		end;
-{$IFDEF TEXTCFG}
-		Window(1, 1, 80, 25);
-{$ENDIF}
-	end;
-
 begin
-	Randomize;
-{$IFDEF TEXTCFG}
-	SetCBreak(false);
-	InitialTextAttr := TextAttr;
+{$IFNDEF SDL2}
+	Writeln('%NAME% %VERSION%');
+	Writeln('%COPYRIGHT%');
 {$ENDIF}
+	Randomize;
 
 	StartupWorldFileName := 'TOWN';
 {$IFDEF SUBDIRS}
@@ -198,15 +91,34 @@ begin
 {$ELSE}
 	ResourceDataFileName := 'ZZT.DAT';
 {$ENDIF}
-	ResetConfig := false;
 	GameTitleExitRequested := false;
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
-	GameConfigure;
+
+	EditorEnabled := true;
+	GameVersion := '%VERSION%';
+	InputInitDevices;
+
+	TickSpeed := 4;
+	DebugEnabled := false;
+	HighCompat := false;
+	HighCompatAuto := true;
+{$IFDEF EXTCHEAT}
+	CheatNoClip := false;
+	CheatFreeze := false;
+{$ENDIF}
+{$IFDEF DEBUGWND}
+	DebugCompatEnabled := false;
+	DebugUndefEnabled := false;
+{$ENDIF}
+
 	ParseArguments;
+	if not GameConfigLoad then begin
+		if not GameConfigSave then begin end;
+		JustStarted := true;
+	end;
 
 	if not GameTitleExitRequested then begin
 		VideoInstall(1);
-		{ OrderPrintId := @GameVersion; }
 		TextWindowInit; { (5, 3, 50, 18) }
 		GetMem(IoTmpBuf, IoTmpBufSize);
 
@@ -216,19 +128,6 @@ begin
 {$ELSE}
 		{ SDL2 - Fixes initial window size }
 		InputUpdate;
-{$ENDIF}
-
-		TickSpeed := 4;
-		DebugEnabled := false;
-		HighCompat := false;
-		HighCompatAuto := true;
-{$IFDEF EXTCHEAT}
-		CheatNoClip := false;
-		CheatFreeze := false;
-{$ENDIF}
-{$IFDEF DEBUGWND}
-		DebugCompatEnabled := false;
-		DebugUndefEnabled := false;
 {$ENDIF}
 		SavedGameFileName := 'SAVED';
 		SavedBoardFileName := 'TEMP';
@@ -249,12 +148,4 @@ begin
 
 	VideoUninstall;
 	SoundUninstall;
-{$IFDEF TEXTCFG}
-	TextAttr := InitialTextAttr;
-{$ENDIF}
-{$IFNDEF SDL2}
-	ClrScr;
-
-	VideoShowCursor;
-{$ENDIF}
 end.

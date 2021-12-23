@@ -1231,7 +1231,7 @@ procedure EditorLoop;
 				if drawCursor then
 					VideoWriteText(cursorX - 1, cursorY - 1, $0F, #197);
 
-				if (InputKeyPressed = #0) and InputJoystickEnabled then
+				if (InputKeyPressed = #0) and InputJoystickMoved then
 					AccurateDelay(70);
 				InputShiftAccepted := false;
 			end;

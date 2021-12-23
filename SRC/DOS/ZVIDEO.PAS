@@ -45,7 +45,6 @@ interface
 		VideoVGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
 		VideoLastMode: word;
-	function VideoConfigure: boolean;
 	procedure VideoInstall(borderColor: integer);
 	procedure VideoUninstall;
 	procedure VideoShowCursor;
@@ -57,6 +56,8 @@ interface
 
 implementation
 uses Crt, Dos, TimerSys;
+var
+	InitialTextAttr: byte;
 
 {$F+}
 
@@ -253,30 +254,6 @@ procedure VideoWriteTextFastBW(x, y, color: byte; text: TVideoLine);
 
 {$F-}
 
-function VideoConfigure: boolean;
-	var
-		charTyped: Char;
-	begin
-		charTyped := ' ';
-		if VideoLastMode = 7 then begin
-			VideoWriteText := VideoWriteTextFastBW;
-			VideoMonochrome := true;
-		end else begin
-			Writeln;
-			Write('  Video mode:  C)olor,  M)onochrome?  ');
-			repeat
-				repeat until KeyPressed;
-				charTyped := UpCase(ReadKey);
-			until charTyped in [#27, 'C', 'M'];
-			case charTyped of
-				'C', #27: VideoMonochrome := false;
-				'M': VideoMonochrome := true;
-				{ #27: false if (VideoLastMode = 7);, checked above }
-			end;
-		end;
-		VideoConfigure := charTyped <> #27;
-	end;
-
 procedure VideoPreInstall;
 	var
 		regs: Registers;
@@ -294,6 +271,9 @@ procedure VideoPreInstall;
 			Intr($10, regs);
 			VideoVGAInstalled := regs.AL = $1A;
 		end;
+
+		SetCBreak(false);
+		InitialTextAttr := TextAttr;
 	end;
 
 procedure VideoInstall(borderColor: integer);
@@ -354,7 +334,10 @@ procedure VideoUninstall;
 		VideoColumns := 80;
 		TextMode(VideoLastMode);
 		VideoSetBorderColor(0);
+
+		TextAttr := InitialTextAttr;
 		ClrScr;
+		VideoShowCUrsor;
 	end;
 
 procedure VideoSetCursorShape(value: integer);
