@@ -270,7 +270,7 @@ interface
 		{ ConfigRegistration: string; }
 		{ ConfigWorldFile: TString50; }
 		EditorEnabled: boolean;
-		GameVersion: string[20];
+		{ GameVersion: string[20]; }
 		{ ParsingConfigFile: boolean; }
 		{ ResetConfig: boolean; } { This flag is a remnant from ZZT 3.0. }
 		JustStarted: boolean;

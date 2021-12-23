@@ -97,7 +97,6 @@ begin
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
 
 	EditorEnabled := true;
-	GameVersion := '%VERSION%';
 	InputInitDevices;
 
 	TickSpeed := 4;
