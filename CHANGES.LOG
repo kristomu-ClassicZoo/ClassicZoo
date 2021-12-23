@@ -4,6 +4,7 @@ Added:
 * #UNLOCK <dir> similarly lets you #UNLOCK objects remotely
 * #LOCK <dir> and #UNLOCK <dir> also work on the player. So #LOCK PLAYER and #UNLOCK PLAYER work as expected.
 * ?NOCLIP cheat allows player to move anywhere, and ?CLIP lets the player clip back into the world.
+* ?FREE cheat allows a #LOCKed player to freely move again.
 
 Improved:
 * PAR files are updated to 2.0g, including the ability to set the health of projectiles (which determines their lifespan), and how much their health drains per cycle (stars 1, bullets 0)

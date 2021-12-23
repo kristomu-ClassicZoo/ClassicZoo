@@ -1468,6 +1468,11 @@ procedure ElementPlayerTick(statId: integer);
 			end;
 
 			inputC := UpCase(InputKeyPressed);
+			if ((P2 = 1) and (inputC <> #27))
+				and ((inputC <> UpCase(ConfigList[83][1]))
+				and (inputC <> UpCase(ConfigList[77][1])))
+			then
+				inputC := #0;
 			if inputC =	UpCase(ConfigList[70][1]) then begin
 				if World.Info.TorchTicks = 0 then begin
 					if World.Info.Torches > 0 then begin

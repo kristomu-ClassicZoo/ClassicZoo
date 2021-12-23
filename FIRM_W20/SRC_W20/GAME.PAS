@@ -1870,6 +1870,8 @@ procedure GameDebugPrompt;
 			ParamList[101] := 0
 		else if input = 'INSPECT' then
 			InspectNext := true
+		else if input = 'FREE' then
+			Board.Stats[0].P2 := 0
 		else if (input = 'NOCLIP') or (input = 'CLIP') then begin
 			GamePaused := true;
 			NoClip := not NoClip;
