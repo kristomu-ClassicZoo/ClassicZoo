@@ -5,7 +5,7 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
-$< ClassicZoo dev >
+$< ClassicZoo 4.20 >
 
 + Experimental SDL2 port! This allows
   running ClassicZoo natively on various

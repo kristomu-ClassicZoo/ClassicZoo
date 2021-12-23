@@ -6,3 +6,4 @@
 -a tp55-i8086-msdos-dos -d PRINTTXT -d EDITOR -d EDITONLY -d NOEXTMEM -e ZZTEDIT -o zztlowm.zip -p build.properties
 -a fpc-i8086-msdos-dos -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -d PRINTTXT -d ZETAEMU -e ZZTL -o zztlibre.zip -p build.properties
 -a fpc-i8086-msdos-dos -d SUBDIRS -d PRINTTXT -d ZETAEMU -e ZZTLRUN -o zztlibre.zip -p build.properties
+-a fpc-x86_64-win64-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -o zztwin64.zip -p build.properties
