@@ -55,7 +55,11 @@ interface
 		EditorPatternCount = 6;
 	type
 		TString50 = string[50];
+{$IFDEF SUBDIRS}
 		TFilenameString = string[128];
+{$ELSE}
+		TFilenameString = string[20];
+{$ENDIF}
 		TCoord = record
 			X: integer;
 			Y: integer;

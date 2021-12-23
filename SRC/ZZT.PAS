@@ -85,11 +85,13 @@ begin
 {$ENDIF}
 	Randomize;
 
-	StartupWorldFileName := 'TOWN';
+	StartupWorldFileName := '';
 {$IFDEF SUBDIRS}
 	ResourceDataFileName := FExpand('ZZT.DAT');
+	ConfigFileName := FExpand('ZZT.INI');
 {$ELSE}
 	ResourceDataFileName := 'ZZT.DAT';
+	ConfigFileName := 'ZZT.INI';
 {$ENDIF}
 	GameTitleExitRequested := false;
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
@@ -111,11 +113,14 @@ begin
 	DebugUndefEnabled := false;
 {$ENDIF}
 
-	ParseArguments;
+	GameConfigInit;
 	if not GameConfigLoad then begin
 		if not GameConfigSave then begin end;
 		JustStarted := true;
+	end else begin
+		JustStarted := false;
 	end;
+	ParseArguments;
 
 	if not GameTitleExitRequested then begin
 		VideoInstall(1);
@@ -143,6 +148,8 @@ begin
 		FreeMem(IoTmpBuf, IoTmpBufSize);
 		ExtMemUninstall;
 	end;
+
+	if not GameConfigSave then begin end;
 
 	SoundClearQueue;
 
