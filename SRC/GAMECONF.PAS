@@ -90,18 +90,18 @@ function ConfigCustomActionNone: boolean;
 function ConfigCompatibilityGetValue: integer;
 	begin
 		if HighCompatAuto then
-			ConfigCompatibilityGetValue := 2
+			ConfigCompatibilityGetValue := 0
 		else if HighCompat then
-			ConfigCompatibilityGetValue := 1
+			ConfigCompatibilityGetValue := 2
 		else
-			ConfigCompatibilityGetValue := 0;
+			ConfigCompatibilityGetValue := 1;
 	end;
 
 procedure ConfigCompatibilitySetValue(value: integer);
 	begin
 		if value > 2 then value := 0;
-		HighCompatAuto := (value = 2);
-		HighCompat := (value = 1);
+		HighCompatAuto := (value = 0);
+		HighCompat := (value = 2);
 	end;
 
 function ConfigCompatibilityShowValue: string;
@@ -421,62 +421,6 @@ procedure ConfigInitEntries;
 {$ENDIF}
 	end;
 
-procedure GameSubOptionsScreen(subCategory: TConfigCategory; var state: TTextWindowState);
-	var
-		i: integer;
-		actionMap: array[1 .. ConfigEntryCount] of integer;
-		exitRequested: boolean;
-	begin
-		exitRequested := false;
-		state.LinePos := 1;
-
-		repeat
-			TextWindowFreeEdit(state);
-
-			state.Selectable := true;
-			state.LineCount := 1;
-
-			for i := 1 to ConfigEntryCount do with ConfigEntries[i] do begin
-				if Category = subCategory then begin
-					actionMap[state.LineCount] := i;
-					New(state.Lines[state.LineCount]);
-					state.Lines[state.LineCount]^ := '!;' + Name + ': ' + ShowValue;
-					Inc(state.LineCount);
-				end;
-			end;
-
-			New(state.Lines[state.LineCount]);
-			actionMap[state.LineCount] := 0;
-			state.Lines[state.LineCount]^ := '';
-			Inc(state.LineCount);
-			New(state.Lines[state.LineCount]);
-			state.Lines[state.LineCount]^ := '!;Return';
-
-			TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
-			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
-				if actionMap[state.LinePos] <> 0 then begin
-					with ConfigEntries[actionMap[state.LinePos]] do begin
-						if not CustomAction then
-							SetValue(GetValue + 1);
-						Changed := true;
-{$IFNDEF SDL2}
-						if Key = 'FVidMono' then begin
-							VideoUninstall;
-							VideoInstall(1);
-							HardEscapeHack := true;
-						end;
-{$ENDIF}
-					end;
-				end;
-				if HardEscapeHack then begin
-					exitRequested := true;
-				end;
-			end else begin
-				exitRequested := true;
-			end;
-		until exitRequested;
-	end;
-
 function GameConfigLoad: boolean;
 	var
 		f: text;
@@ -547,7 +491,24 @@ procedure GameOptionsScreen;
 		state: TTextWindowState;
 		i: integer;
 		numStr: TString50;
+		actionMap: array[1 .. (ConfigEntryCount + 4)] of byte;
 		exitRequested: boolean;
+	procedure AppendCategory(subCategory: TConfigCategory);
+		var
+			k: integer;
+		begin
+			for k := 1 to ConfigEntryCount do with ConfigEntries[k] do begin
+				if Category = subCategory then begin
+					Inc(state.LineCount);
+					actionMap[state.LineCount] := k;
+					New(state.Lines[state.LineCount]);
+					state.Lines[state.LineCount]^ := '!;' + Name + ': ' + ShowValue;
+				end;
+			end;
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := '';
+		end;
 	begin
 		state.Title := 'Options...';
 		TextWindowDrawOpen(state);
@@ -558,39 +519,48 @@ procedure GameOptionsScreen;
 		for i := 1 to ConfigEntryCount do ConfigEntries[i].Changed := false;
 
 		repeat
+			for i := 1 to (ConfigEntryCount + 4) do actionMap[i] := 0;
 			state.Selectable := true;
-{$IFDEF EDITOR}
-			state.LineCount := 6;
-{$ELSE}
-			state.LineCount := 5;
-{$ENDIF}
-			for i := 1 to state.LineCount do
-				New(state.Lines[i]);
 
-			state.Lines[1]^ := '!;Engine';
-			state.Lines[2]^ := '!;Frontend';
-{$IFDEF EDITOR}
-			state.Lines[3]^ := '!;Editor';
-			state.Lines[4]^ := '';
-			state.Lines[5]^ := '!;About %NAME%...';
-			state.Lines[6]^ := '!;Exit';
-{$ELSE}
-			state.Lines[3]^ := '';
-			state.Lines[4]^ := '!;About %NAME%...';
-			state.Lines[5]^ := '!;Exit';
-{$ENDIF}
+			state.LineCount := 1;
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := 'Engine';
+			AppendCategory(CCEngine);
+
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := 'Frontend';
+			AppendCategory(CCFrontend);
+
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := 'Editor';
+			AppendCategory(CCEditor);
+
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := '!;About %NAME%...';
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := '!;Exit';
 
 			TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
 			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
-				case state.LinePos of
-					1: GameSubOptionsScreen(CCEngine, state);
-					2: GameSubOptionsScreen(CCFrontend, state);
-{$IFDEF EDITOR}
-					3: GameSubOptionsScreen(CCEditor, state);
-					5: GameAboutScreen;
-{$ELSE}
-					4: GameAboutScreen;
+				if state.LinePos = (state.LineCount - 1) then begin
+					GameAboutScreen;
+				end else if actionMap[state.LinePos] <> 0 then begin
+					with ConfigEntries[actionMap[state.LinePos]] do begin
+						if not CustomAction then
+							SetValue(GetValue + 1);
+						Changed := true;
+{$IFNDEF SDL2}
+						if Key = 'FVidMono' then begin
+							VideoUninstall;
+							VideoInstall(1);
+							HardEscapeHack := true;
+						end;
 {$ENDIF}
+					end;
 				end;
 				if HardEscapeHack then begin
 					exitRequested := true;
