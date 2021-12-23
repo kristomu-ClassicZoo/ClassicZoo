@@ -51,7 +51,7 @@ interface
 		windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 
 implementation
-uses Dos, FileSel, FileSys, ExtMem, ZVideo, Sounds, TimerSys, Input, Elements, Oop, Game;
+uses Dos, FileSel, FileSys, ExtMem, GameConf, ZVideo, Sounds, TimerSys, Input, Elements, Oop, Game;
 
 type
 	TBoardShiftMode = (BoardShiftDelete);
@@ -1711,6 +1711,11 @@ procedure EditorLoop;
 					end;
 					KEY_CTRL_V: begin
 						EditorAskAndPasteCopyBuffer(cursorX, cursorY);
+					end;
+					'A': begin
+						GameOptionsScreen;
+						TransitionDrawToBoard;
+						EditorDrawSidebar;
 					end;
 				end;
 			end;
