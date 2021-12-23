@@ -1,3 +1,16 @@
+= 12/23/2021: 2.0g
+Added:
+* #LOCK <dir> allows you to #LOCK objects remotely in the direction of <dir>.
+* #UNLOCK <dir> similarly lets you #UNLOCK objects remotely
+* #LOCK <dir> and #UNLOCK <dir> also work on the player. So #LOCK PLAYER and #UNLOCK PLAYER work as expected.
+* ?NOCLIP cheat allows player to move anywhere, and ?CLIP lets the player clip back into the world.
+
+Improved:
+* PAR files are updated to 2.0g, including the ability to set the health of projectiles (which determines their lifespan), and how much their health drains per cycle (stars 1, bullets 0)
+
+Other:
+* Project name has been shortened to "Weave".
+
 = 12/22/2021: 2.0f
 Added cheats:
 * ?inspect cheat makes the next object you touch reveal its code.

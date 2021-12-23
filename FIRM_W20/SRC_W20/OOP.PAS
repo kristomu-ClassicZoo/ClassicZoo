@@ -635,7 +635,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					if (deltaX = 0) and (deltaY = 0) then
 						OopCheckCondition := MatchTiles(Under, tile)
 					else
-						OopCheckCondition := MatchTiles(Board.Tiles[X + DeltaX][Y + DeltaY], tile);
+						OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile);
 				end else OopError(statId,'Unknown color');
 			end else if OopWord = OopStringToWord(OOPList[10]) then begin
 				OopCheckCondition := Random(2) = 0;
@@ -695,7 +695,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				if (deltaX = 0) and (deltaY = 0) then
 					OopCheckCondition := MatchTiles(Under, tile)
 				else
-					OopCheckCondition := MatchTiles(Board.Tiles[X + DeltaX][Y + DeltaY], tile);
+					OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile);
 			end else if OopWord = 'ANY' then begin
 				if not OopParseTile(statId, position, tile) then
 					OopError(statId, 'Bad object kind');
@@ -1131,10 +1131,21 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 
 									labelDataPos := OopFindString(labelStatId, #13#39 + OopWord + #13);
 								until labelDataPos <= 0;
-						end else if OopWord = 'LOCK' then begin
-							P2 := 1;
-						end else if OopWord = 'UNLOCK' then begin
-							P2 := 0;
+						end else if (OopWord = 'UNLOCK') or (OopWord = 'LOCK') then begin
+							if OopWord[1] = 'U' then
+								iy := 0
+							else
+								iy := 1;
+							OopReadWord(statId, position);
+							if not OopParseDirection(statId, position, deltaX, deltaY) then
+								P2 := iy
+							else begin
+								ix := GetStatIdAt( X + deltaX, Y + deltaY );
+								if ix <> -1 then
+									Board.Stats[ix].P2 := iy
+								else
+									DisplayMessage(200,'dfgdfg');
+							end;
 						end else if OopWord = 'SEND' then begin
 							OopReadWord(statId, position);
 							if OopSend(statId, OopWord, false) then

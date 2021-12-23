@@ -1,5 +1,5 @@
 Reconstruction of ZZT Copyright (c) 2021 Adrian "asie" Siekierka
-WeaveZZT 1.4s Copyright (c) 2021 WiL "WiL" Whitlark
+Weave 2.0 Copyright (c) 2021 Mean Girls Games
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

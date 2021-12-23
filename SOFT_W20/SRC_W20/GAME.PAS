@@ -125,7 +125,7 @@ const
 		178,  32,22,  206,186,205,  10,0,42,  6,0,153,3,1,0,  13,0,5,1,2,0,0,
 		42,3,0,  7,0,94,3,0,  2,0,0,  12,0,234,2,1,0,  11,0,227,2,2,0,0,
 		233,2,1,0,0,  79,2,3,  0,7,  7,0,  232,  1,10,  0,  7,0,176,
-		32,  0,0,  8,5,50,  8,5,50,  150,  33,
+		32,  0,0,  8,5,50,  8,5,50,  150,  33,  100,1,0,
 		1,15,14,0,7,3,12,0
 	);
 	{}
@@ -1462,7 +1462,7 @@ function BoardShoot(element: byte; tx, ty, deltaX, deltaY: integer; source: inte
 				P1 := source;
 				StepX := deltaX;
 				StepY := deltaY;
-				P2 := 100;
+				P2 := ParamList[117];
 			end;
 			BoardShoot := true;
 		end else if (Board.Tiles[tx + deltaX][ty + deltaY].Element = E_BREAKABLE)

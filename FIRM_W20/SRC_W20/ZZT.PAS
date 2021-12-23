@@ -65,9 +65,9 @@ procedure GameConfigure;
 		TextColor(White);
 		TextColor(White);
 		Writeln;
-		Writeln('                              <=-  WeaveZZT  -=>');
+		Writeln('                                <=-  Weave  -=>');
 		TextColor(Yellow);
-		Writeln('                                 Version  2.0');
+		Writeln('                                 Version  2.0g');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -99,21 +99,6 @@ procedure GameConfigure;
 	end;
 
 begin
-	WorldFileDescCount := 7;
-	WorldFileDescKeys[1] := 'TOWN';
-	WorldFileDescValues[1] := 'TOWN       The Town of ZZT';
-	WorldFileDescKeys[2] := 'DEMO';
-	WorldFileDescValues[2] := 'DEMO       Demo of the ZZT World';
-	WorldFileDescKeys[3] := 'CAVES';
-	WorldFileDescValues[3] := 'CAVES      The Caves of ZZT';
-	WorldFileDescKeys[4] := 'DUNGEONS';
-	WorldFileDescValues[4] := 'DUNGEONS   The Dungeons of ZZT';
-	WorldFileDescKeys[5] := 'CITY';
-	WorldFileDescValues[5] := 'CITY       Underground City of ZZT';
-	WorldFileDescKeys[6] := 'BEST';
-	WorldFileDescValues[6] := 'BEST       The Best of ZZT';
-	WorldFileDescKeys[7] := 'TOUR';
-	WorldFileDescValues[7] := 'TOUR       Guided Tour ZZT'#39's Other Worlds';
 
 	Randomize;
 	SetCBreak(false);

@@ -42,9 +42,9 @@ interface
 		IO_BUFFER_MAXIMUM_SIZE = 65500;
 		IO_BUFFER_SIZE_INCREMENT = 500;
 		LOAD_OBJ_LENGTH = 40960;
-		TEXT_DEF_START = 119;
-		THEME_START = 155;
-		PARAM_FILE_COUNT = 162;
+		TEXT_DEF_START = 122;
+		THEME_START = 158;
+		PARAM_FILE_COUNT = 165;
 		CUSTOM_FLAG_COUNT = 64;
 		CUSTOM_OOP_COUNT = 35;
 		CUSTOM_KEY_COUNT = 24;
@@ -228,9 +228,6 @@ interface
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
 
-		WorldFileDescCount: integer;
-		WorldFileDescKeys: array[1 .. 10] of TString50;
-		WorldFileDescValues: array[1 .. 10] of TString50;
 		BoardNames: array[0 .. MAX_BOARD] of TString50;
 	const
 		E_EMPTY = 0;

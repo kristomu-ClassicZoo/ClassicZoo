@@ -258,6 +258,15 @@ Black
 #  Object-to-object friendly fire:
 #  (1 is enabled, 0 is disabled)
 1
+#  Projectile Health
+#  (Set on Bullets and Stars)
+100
+#  Star Health Drain
+#  (Reduces by this amount per animation cycle)
+1
+#  Bullet Health Drain
+#  (Reduces by this amount each time it moves)
+0
 #  ----------------
 #  TEXT ATTRIBUTES
 #  ----------------

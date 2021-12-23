@@ -1,4 +1,5 @@
 #Template PAR file
+# Version 2.0-soft-g
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -251,6 +252,18 @@ Black
 #  (Max lines of Oop per cycle)
 #  ----------------
 33
+#  ----------------
+#  Projectile limits
+#  ----------------
+#  Projectile Health
+#  (Set on Bullets and Stars)
+100
+#  Star Health Drain
+#  (Reduces by this amount per animation cycle)
+1
+#  Bullet Health Drain
+#  (Reduces by this amount each time it moves)
+0
 #  -----------
 #  COLOR THEME
 #  -----------

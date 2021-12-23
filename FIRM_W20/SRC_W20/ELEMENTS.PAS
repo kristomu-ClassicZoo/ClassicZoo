@@ -311,8 +311,13 @@ procedure ElementBulletTick(statId: integer);
 		iElem: byte;
 		firstTry: boolean;
 	label TryMove;
+	label BulletExpire;
 	begin
 		with Board.Stats[statId] do begin
+			if P2 < ParamList[122] then
+				goto BulletExpire
+			else
+				P2 := P2 - ParamList[122];
 			firstTry := true;
 
 		TryMove:
@@ -365,6 +370,7 @@ procedure ElementBulletTick(statId: integer);
 				exit;
 			end;
 
+		BulletExpire:
 			if (iElem = E_OBJECT) or (iElem = E_SCROLL) then begin
 				if (P1 = ParamList[119]) or (P1 = SHOT_SOURCE_PLAYER) then begin
 					iStat := GetStatIdAt(ix, iy);
@@ -667,25 +673,26 @@ procedure ElementStarDraw(x, y: integer; var ch: byte);
 procedure ElementStarTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			P2 := P2 - 1;
-			if P2 <= 0 then begin
-				RemoveStat(statId);
-			end else if (P2 mod 2) = 0 then begin
-				CalcDirectionSeek(X, Y, StepX, StepY);
-				with Board.Tiles[X + StepX][Y + StepY] do begin
-					if (Element = E_PLAYER) or (Element = E_BREAKABLE) then begin
-						BoardAttack(statId, X + StepX, Y + StepY);
-					end else begin
-						if not ElementDefs[Element].Walkable then
-							ElementPushablePush(X + StepX, Y + StepY, StepX, StepY);
+			if P2 < ParamList[121] then
+				RemoveStat(statId)
+			else begin
+				P2 := P2 - ParamList[121];
+				if (P2 mod 2) = 0 then begin
+					CalcDirectionSeek(X, Y, StepX, StepY);
+					with Board.Tiles[X + StepX][Y + StepY] do begin
+						if (Element = E_PLAYER) or (Element = E_BREAKABLE) then begin
+							BoardAttack(statId, X + StepX, Y + StepY);
+						end else begin
+							if not ElementDefs[Element].Walkable then
+								ElementPushablePush(X + StepX, Y + StepY, StepX, StepY);
 
-						if ElementDefs[Element].Walkable or (Element = E_WATER) then
-							MoveStat(statId, X + StepX, Y + StepY);
+							if ElementDefs[Element].Walkable or (Element = E_WATER) then
+								MoveStat(statId, X + StepX, Y + StepY);
+						end;
 					end;
 				end;
-			end else begin
-				BoardDrawTile(X, Y);
 			end;
+			BoardDrawTile(X, Y);
 		end;
 	end;
 
@@ -1373,6 +1380,12 @@ procedure ElementPlayerTick(statId: integer);
 					Board.Tiles[X][Y].Color := World.Info.PlayerColor;
 					ElementDefs[E_PLAYER].Character := World.Info.PlayerChar;
 					BoardDrawTile(X, Y);
+			end;
+
+			if P2 = 1 then begin
+				InputDeltaX := 0;
+				InputDeltaY := 0;
+				InputShiftPressed := false;
 			end;
 
 			if (World.Info.Health <= 0) then begin

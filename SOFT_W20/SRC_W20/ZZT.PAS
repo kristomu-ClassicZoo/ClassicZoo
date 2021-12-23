@@ -86,12 +86,12 @@ procedure GameConfigure;
 		TextColor(White);
 		TextColor(White);
 		Writeln;
-		Writeln('                              <=-  WeaveZZT  -=>');
+		Writeln('                               <=-  Weave  -=>');
 		TextColor(Yellow);
 		if Length(ConfigRegistration) = 0 then
-			Writeln('                                 Version  2.0')
+			Writeln('                                 Version  2.0g')
 		else
-			Writeln('                                 Version  2.0');
+			Writeln('                                 Version  2.0g');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);

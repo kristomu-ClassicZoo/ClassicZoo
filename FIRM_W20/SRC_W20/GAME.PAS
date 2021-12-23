@@ -130,7 +130,7 @@ const
 		178,  32,22,  206,186,205,  10,0,42,  6,0,153,3,1,0,  13,0,5,1,2,0,0,
 		42,3,0,  7,0,94,3,0,  2,0,0,  12,0,234,2,1,0,  11,0,227,2,2,0,0,
 		233,2,1,0,0,  79,2,3,  0,7,  7,0,  232,  1,10,  0,  7,0,176,
-		32,  0,0,  8,5,50,  8,5,50,  150,  33,  1,  0,  1,
+		32,  0,0,  8,5,50,  8,5,50,  150,  33,  1,  0,  1,  100,1,0,
 		15,1,0,0,0,  15,2,0,0,0,  15,3,0,0,0,  15,4,0,0,0, 
 		15,5,0,0,0,  15,6,0,0,0,  15,0,0,0,0,
 		1,15,14,0,7,3,12,0
@@ -1707,7 +1707,7 @@ function BoardShoot(txelement: byte; tx, ty, deltaX, deltaY: integer; source: in
 					P1 := source;
 					StepX := deltaX;
 					StepY := deltaY;
-					P2 := 100;
+					P2 := ParamList[120];
 				end;
 				BoardShoot := true;
 			end else if (
@@ -2089,41 +2089,62 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(64, 5, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ConfigList[81]);
 				InputUpdate;
 
+
 				if InputKeyPressed = KEY_ESCAPE then
 					GamePromptEndPlay;
 
-				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element].TouchProc(
-						Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
+				if UpCase(InputKeyPressed) = UpCase(ConfigList[83][1]) then begin
+					GameDebugPrompt;
+					InputKeyPressed := #0;
 				end;
 
-				if ((InputDeltaX <> 0) or (InputDeltaY <> 0))
-					and ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element].Walkable
-				then begin
-					{ Move player }
-					if Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER then
-						MoveStat(0, Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY)
-					else begin
-						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
-						Board.Stats[0].X := Board.Stats[0].X + InputDeltaX;
-						Board.Stats[0].Y := Board.Stats[0].Y + InputDeltaY;
-						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-						if (World.Info.PlayerColor = 0) and (World.Info.PlayerChar = #0) then
-							Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color
-						else
-							Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := World.Info.PlayerColor;
-						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
-						DrawPlayerSurroundings(Board.Stats[0].X, Board.Stats[0].Y);
-						DrawPlayerSurroundings(Board.Stats[0].X - InputDeltaX, Board.Stats[0].Y - InputDeltaY);
+				if NoClip then begin
+					if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+						with Board.Stats[0] do begin
+							if Board.Tiles[X][Y].Element = E_PLAYER then
+								Board.Tiles[X][Y] := Under;
+							if (X + InputDeltaX > 0) and (X + InputDeltaX <= BOARD_WIDTH) then
+								X := X + InputDeltaX;
+							if (Y + InputDeltaY > 0) and (Y + InputDeltaY <= BOARD_HEIGHT) then
+								Y := Y + InputDeltaY;
+							BoardDrawTile(X, Y);
+							BoardDrawTile(X - InputDeltaX, Y - InputDeltaY);
+						end;
+					end;						
+				end else begin
+					if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+						ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element].TouchProc(
+							Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 					end;
 
-					{ Unpause }
-					GamePaused := false;
-					SidebarClearLine(5);
-					GameDrawCustomSidebar;
-					CurrentTick := Random(100);
-					CurrentStatTicked := Board.StatCount + 1;
-					World.Info.IsSave := true;
+					if ((InputDeltaX <> 0) or (InputDeltaY <> 0))
+						and ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element].Walkable
+					then begin
+						{ Move player }
+						if Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER then
+							MoveStat(0, Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY)
+						else begin
+							BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
+							Board.Stats[0].X := Board.Stats[0].X + InputDeltaX;
+							Board.Stats[0].Y := Board.Stats[0].Y + InputDeltaY;
+							Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
+							if (World.Info.PlayerColor = 0) and (World.Info.PlayerChar = #0) then
+								Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color
+							else
+								Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := World.Info.PlayerColor;
+							BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
+							DrawPlayerSurroundings(Board.Stats[0].X, Board.Stats[0].Y);
+							DrawPlayerSurroundings(Board.Stats[0].X - InputDeltaX, Board.Stats[0].Y - InputDeltaY);
+						end;
+
+						{ Unpause }
+						GamePaused := false;
+						SidebarClearLine(5);
+						GameDrawCustomSidebar;
+						CurrentTick := Random(100);
+						CurrentStatTicked := Board.StatCount + 1;
+						World.Info.IsSave := true;
+					end;
 				end;
 
 			end else begin { not GamePaused }

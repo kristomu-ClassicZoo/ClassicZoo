@@ -1,4 +1,5 @@
 #BLUE DRAGON MODE!
+# Version 2.0-soft-g
 #  -------------
 #How to Use:
 #  Copy BLUEDRGN.PAR to <YOURZZT>.PAR;
@@ -125,6 +126,9 @@ Black
 50
 150
 33
+100
+1
+0
 DkBlue
 White
 Yellow

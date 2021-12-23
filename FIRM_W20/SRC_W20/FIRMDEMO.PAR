@@ -1,5 +1,5 @@
 #Template PAR file (Extended for FirmWeave)
-# Version 2.0-firm-b
+# Version 2.0-firm-g
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -257,6 +257,15 @@ Black
 22
 #  Object-to-object friendly fire:
 #  (1 is enabled, 0 is disabled)
+0
+#  Projectile Health
+#  (Set on Bullets and Stars)
+50
+#  Star Health Drain
+#  (Reduces by this amount per animation cycle)
+1
+#  Bullet Health Drain
+#  (Reduces by this amount each time it moves)
 0
 #  ----------------
 #  TEXT ATTRIBUTES
