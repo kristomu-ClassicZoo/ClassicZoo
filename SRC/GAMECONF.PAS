@@ -291,10 +291,7 @@ function ConfigSoundVolumeShowValue: string;
 {$ENDIF}
 
 const
-	ConfigEntryCount = 2
-{$IFDEF EDITOR}
-	+ 1
-{$ENDIF}
+	ConfigEntryCount = 3
 {$IFDEF SDL2}
 	+ 4
 {$ELSE}
@@ -318,108 +315,136 @@ procedure GameConfigInit;
 	begin
 		i := 1;
 
-		ConfigEntries[i].Category := CCEngine;
-		ConfigEntries[i].Key := 'ECompat';
-		ConfigEntries[i].Name := 'Compatibility';
-		ConfigEntries[i].GetValue := ConfigCompatibilityGetValue;
-		ConfigEntries[i].SetValue := ConfigCompatibilitySetValue;
-		ConfigEntries[i].ShowValue := ConfigCompatibilityShowValue;
-		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		with ConfigEntries[i] do begin
+			Category := CCEngine;
+			Key := 'ECompat';
+			Name := 'Compatibility';
+			GetValue := ConfigCompatibilityGetValue;
+			SetValue := ConfigCompatibilitySetValue;
+			ShowValue := ConfigCompatibilityShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
 		Inc(i);
-{$IFDEF EDITOR}
-		ConfigEntries[i].Category := CCEditor;
-		ConfigEntries[i].Key := 'EdApPats';
-		ConfigEntries[i].Name := 'Auto-Append';
-		ConfigEntries[i].GetValue := ConfigEdAutoAppendGetValue;
-		ConfigEntries[i].SetValue := ConfigEdAutoAppendSetValue;
-		ConfigEntries[i].ShowValue := ConfigEdAutoAppendShowValue;
-		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		with ConfigEntries[i] do begin
+			Category := CCEditor;
+			Key := 'EdApPats';
+			Name := 'Auto-Append';
+			GetValue := ConfigEdAutoAppendGetValue;
+			SetValue := ConfigEdAutoAppendSetValue;
+			ShowValue := ConfigEdAutoAppendShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
 		Inc(i);
-{$ENDIF}
-		ConfigEntries[i].Category := CCFrontend;
-		ConfigEntries[i].Key := 'FVidMono';
-		ConfigEntries[i].Name := 'Video';
-		ConfigEntries[i].GetValue := ConfigVidColorGetValue;
-		ConfigEntries[i].SetValue := ConfigVidColorSetValue;
-		ConfigEntries[i].ShowValue := ConfigVidColorShowValue;
-		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FVidMono';
+			Name := 'Video';
+			GetValue := ConfigVidColorGetValue;
+			SetValue := ConfigVidColorSetValue;
+			ShowValue := ConfigVidColorShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
 		Inc(i);
 {$IFNDEF SDL2}
-		ConfigEntries[i].Category := CCFrontend;
-		ConfigEntries[i].Key := 'FSoundOn';
-		ConfigEntries[i].Name := 'Sound';
-		ConfigEntries[i].GetValue := ConfigSoundGetValue;
-		ConfigEntries[i].SetValue := ConfigSoundSetValue;
-		ConfigEntries[i].ShowValue := ConfigSoundShowValue;
-		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FSoundOn';
+			Name := 'Sound';
+			GetValue := ConfigSoundGetValue;
+			SetValue := ConfigSoundSetValue;
+			ShowValue := ConfigSoundShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
 		Inc(i);
-		ConfigEntries[i].Category := CCFrontend;
-		ConfigEntries[i].Key := 'FInpMode';
-		ConfigEntries[i].Name := 'Input';
-		ConfigEntries[i].GetValue := ConfigInputGetValue;
-		ConfigEntries[i].SetValue := ConfigInputSetValue;
-		ConfigEntries[i].ShowValue := ConfigInputShowValue;
-		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FInpMode';
+			Name := 'Input';
+			GetValue := ConfigInputGetValue;
+			SetValue := ConfigInputSetValue;
+			ShowValue := ConfigInputShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
 		ConfigEntryInputPos := i;
 		Inc(i);
 {$ELSE}
-		ConfigEntries[i].Category := CCFrontend;
-		ConfigEntries[i].Key := 'FVidWin';
-		ConfigEntries[i].Name := 'Display mode';
-		ConfigEntries[i].GetValue := ConfigFullscreenGetValue;
-		ConfigEntries[i].SetValue := ConfigFullscreenSetValue;
-		ConfigEntries[i].ShowValue := ConfigFullscreenShowValue;
-		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FVidWin';
+			Name := 'Display mode';
+			GetValue := ConfigFullscreenGetValue;
+			SetValue := ConfigFullscreenSetValue;
+			ShowValue := ConfigFullscreenShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
 		Inc(i);
 
-		ConfigEntries[i].Category := CCFrontend;
-		ConfigEntries[i].Key := 'FVidScal';
-		ConfigEntries[i].Name := 'Display scaling';
-		ConfigEntries[i].GetValue := ConfigVideoScalingGetValue;
-		ConfigEntries[i].SetValue := ConfigVideoScalingSetValue;
-		ConfigEntries[i].ShowValue := ConfigVideoScalingShowValue;
-		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FVidScal';
+			Name := 'Display scaling';
+			GetValue := ConfigVideoScalingGetValue;
+			SetValue := ConfigVideoScalingSetValue;
+			ShowValue := ConfigVideoScalingShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
 		Inc(i);
 
-		ConfigEntries[i].Category := CCFrontend;
-		ConfigEntries[i].Key := 'FSndVol';
-		ConfigEntries[i].Name := 'Volume';
-		ConfigEntries[i].GetValue := ConfigSoundVolumeGetValue;
-		ConfigEntries[i].SetValue := ConfigSoundVolumeSetValue;
-		ConfigEntries[i].ShowValue := ConfigSoundVolumeShowValue;
-		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FSndVol';
+			Name := 'Volume';
+			GetValue := ConfigSoundVolumeGetValue;
+			SetValue := ConfigSoundVolumeSetValue;
+			ShowValue := ConfigSoundVolumeShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
 		Inc(i);
 
-		ConfigEntries[i].Category := CCFrontend;
-		ConfigEntries[i].Key := 'FSndHQ';
-		ConfigEntries[i].Name := 'HQ Sound';
-		ConfigEntries[i].GetValue := ConfigHQSoundGetValue;
-		ConfigEntries[i].SetValue := ConfigHQSoundSetValue;
-		ConfigEntries[i].ShowValue := ConfigHQSoundShowValue;
-		ConfigEntries[i].CustomAction := ConfigCustomActionNone;
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FSndHQ';
+			Name := 'HQ Sound';
+			GetValue := ConfigHQSoundGetValue;
+			SetValue := ConfigHQSoundSetValue;
+			ShowValue := ConfigHQSoundShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
 		Inc(i);
 {$ENDIF}
 
 		i := 1;
 {$IFDEF MSDOS}
 {$IFNDEF NEC98}
-		ConfigHiddenEntries[i].Key := 'FJoyXMin';
-		ConfigHiddenEntries[i].IntPointer := @JoystickXMin;
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyXMin';
+			IntPointer := @JoystickXMin;
+		end;
 		Inc(i);
-		ConfigHiddenEntries[i].Key := 'FJoyXCtr';
-		ConfigHiddenEntries[i].IntPointer := @JoystickXCenter;
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyXCtr';
+			IntPointer := @JoystickXCenter;
+		end;
 		Inc(i);
-		ConfigHiddenEntries[i].Key := 'FJoyXMax';
-		ConfigHiddenEntries[i].IntPointer := @JoystickXMax;
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyXMax';
+			IntPointer := @JoystickXMax;
+		end;
 		Inc(i);
-		ConfigHiddenEntries[i].Key := 'FJoyYMin';
-		ConfigHiddenEntries[i].IntPointer := @JoystickYMin;
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyYMin';
+			IntPointer := @JoystickYMin;
+		end;
 		Inc(i);
-		ConfigHiddenEntries[i].Key := 'FJoyYCtr';
-		ConfigHiddenEntries[i].IntPointer := @JoystickYCenter;
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyYCtr';
+			IntPointer := @JoystickYCenter;
+		end;
 		Inc(i);
-		ConfigHiddenEntries[i].Key := 'FJoyYMax';
-		ConfigHiddenEntries[i].IntPointer := @JoystickYMax;
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyYMax';
+			IntPointer := @JoystickYMax;
+		end;
 		Inc(i);
 {$ENDIF}
 {$ENDIF}
@@ -506,7 +531,7 @@ procedure GameOptionsScreen;
 		state: TTextWindowState;
 		i: integer;
 		numStr: TString50;
-		actionMap: array[1 .. (ConfigEntryCount + 4)] of byte;
+		actionMap: array[1 .. (ConfigEntryCount + 6)] of byte;
 		exitRequested: boolean;
 	procedure AppendCategory(subCategory: TConfigCategory);
 		var
@@ -534,7 +559,7 @@ procedure GameOptionsScreen;
 		for i := 1 to ConfigEntryCount do ConfigEntries[i].Changed := false;
 
 		repeat
-			for i := 1 to (ConfigEntryCount + 4) do actionMap[i] := 0;
+			for i := 1 to (ConfigEntryCount + 6) do actionMap[i] := 0;
 			state.Selectable := true;
 
 			state.LineCount := 1;
@@ -547,10 +572,12 @@ procedure GameOptionsScreen;
 			state.Lines[state.LineCount]^ := 'Frontend';
 			AppendCategory(CCFrontend);
 
+{$IFDEF EDITOR}
 			Inc(state.LineCount);
 			New(state.Lines[state.LineCount]);
 			state.Lines[state.LineCount]^ := 'Editor';
 			AppendCategory(CCEditor);
+{$ENDIF}
 
 			Inc(state.LineCount);
 			New(state.Lines[state.LineCount]);
