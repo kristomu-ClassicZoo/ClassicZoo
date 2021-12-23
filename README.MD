@@ -21,7 +21,7 @@ There are two directory structures in the project, one for SOFT and one for FIRM
 There are a few different kinds of files found in this project:
 
 * PAS files
-    * These are Turbo Pascal 5.5 source files for WeaveZZT.
+    * These are Turbo Pascal 5.5 source files for Weave.
 * CFG files
     * These are custom string and sound files for ZZT worlds.
 * PAR files
@@ -33,7 +33,7 @@ There are a few different kinds of files found in this project:
 * KB files
     * These list custom keybinds for ZZT worlds.
 * BAT files
-    * These are used to compile WeaveZZT in DOS or DOSBox.
+    * These are used to compile Weave in DOS or DOSBox.
 * TXT and DOC files
     * These are documents designed to be shipped with Weave.
 * OBJ files
