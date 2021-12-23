@@ -2203,7 +2203,6 @@ procedure GameTitleLoop;
 		startPlay: boolean;
 	begin
 		GameTitleExitRequested := false;
-		JustStarted := true;
 		ReturnBoardId := 0;
 		boardChanged := true;
 		repeat

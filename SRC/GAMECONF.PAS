@@ -458,7 +458,6 @@ function GameConfigLoad: boolean;
 		k: string[12];
 		foundTag: boolean;
 	begin
-		GameConfigLoad := false;
 		foundTag := false;
 		AssignFSysText(f, ConfigFileName);
 		Reset(f);
@@ -490,7 +489,7 @@ function GameConfigLoad: boolean;
 			end;
 		end;
 		Close(f);
-		if IOResult = 0 then GameConfigLoad := foundTag;
+		GameConfigLoad := foundTag;
 	end;
 
 function GameConfigSave: boolean;
