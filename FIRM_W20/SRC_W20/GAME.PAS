@@ -1876,7 +1876,7 @@ procedure GameDebugPrompt;
 		end else if input = 'SPEED' then begin
 			SidebarPromptSlider(true, 64, 4, 'Game speed:;FS', TickSpeed);
 			TickTimeDuration := TickSpeed * 2;
-			GameUpdateSidebar;
+			SidebarClearLine(6);
 		end else if input = 'BOARD' then begin
 			TextWindowInitState(textWindow);
 			textWindow.Selectable := true;
