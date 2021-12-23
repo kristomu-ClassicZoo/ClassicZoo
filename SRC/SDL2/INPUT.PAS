@@ -70,12 +70,10 @@ interface
 		InputMouseActivationX, InputMouseActivationY: integer;
 		InputMouseButtonX, InputMouseButtonY: integer;
 		InputJoystickMoved: boolean;
-		JoystickXInitial, JoystickYInitial: integer;
 		InputLastDeltaX, InputLastDeltaY: integer;
 	procedure InputUpdate;
 	procedure InputInitDevices;
 	procedure InputReadWaitKey;
-	function InputConfigure: boolean;
 
 {DEFINE DEBUG_INPUT_FLAGS}
 
@@ -326,12 +324,6 @@ procedure InputInitDevices;
 	begin
 		InputJoystickEnabled := false; 
 		InputMouseEnabled := false;
-	end;
-
-function InputConfigure: boolean;
-	begin
-		{ stub }
-		InputConfigure := true;
 	end;
 
 procedure InputReadWaitKey;

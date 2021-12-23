@@ -26,6 +26,8 @@
 unit Input;
 
 interface
+	type
+		TInputMode = (IMKeyboard, IMJoystick, IMMouse);
 	const
 		KEY_BACKSPACE = #8;
 		KEY_TAB = #9;
@@ -64,18 +66,17 @@ interface
 		InputDeltaX, InputDeltaY: integer;
 		InputShiftPressed: boolean;
 		InputShiftAccepted: boolean;
-		InputJoystickEnabled: boolean;
-		InputMouseEnabled: boolean;
 		InputKeyPressed: char;
 		InputMouseX, InputMouseY: integer;
 		InputMouseActivationX, InputMouseActivationY: integer;
 		InputMouseButtonX, InputMouseButtonY: integer;
 		InputJoystickMoved: boolean;
 		InputLastDeltaX, InputLastDeltaY: integer;
+		InputMode: TInputMode;
+		InputMousePresent: boolean;
 	procedure InputUpdate;
 	procedure InputInitDevices;
 	procedure InputReadWaitKey;
-	function InputConfigure: boolean;
 
 implementation
 uses Dos, Keys, TimerSys;
@@ -156,7 +157,7 @@ procedure InputUpdate;
 
 		{ TODO: Joystick? }
 
-		if InputMouseEnabled then begin
+		if InputMode = IMMouse then begin
 			regs.AX := $0B;
 			Intr($33, regs);
 			Inc(InputMouseX, Integer(regs.CX));
@@ -228,39 +229,7 @@ function InputInitMouse: boolean;
 
 procedure InputInitDevices;
 	begin
-		InputMouseEnabled := InputInitMouse;
-	end;
-
-function InputConfigure: boolean;
-	var
-		charTyped: char;
-	begin
-		charTyped := ' ';
-		if InputJoystickEnabled or InputMouseEnabled then begin
-			Writeln;
-			Write('Game controller:  K)eyboard');
-			if InputMouseEnabled then
-				Write(',  M)ouse');
-			Write('?  ');
-
-			repeat
-				repeat until KeyPressed;
-				charTyped := UpCase(ReadKey);
-			until (charTyped = 'K')
-				or (InputJoystickEnabled and (charTyped = 'J'))
-				or (InputMouseEnabled and (charTyped = 'M'))
-				or (charTyped = #27);
-			Writeln;
-
-			InputMouseEnabled := false;
-			case charTyped of
-				'M': begin
-					InputMouseEnabled := true;
-				end;
-			end;
-			Writeln;
-		end;
-		InputConfigure := charTyped <> #27;
+		InputMousePresent := InputInitMouse;
 	end;
 
 procedure InputReadWaitKey;
@@ -284,4 +253,5 @@ begin
 	InputMouseButtonX := 0;
 	InputMouseButtonY := 0;
 	InputKeyBuffer := '';
+	InputMode := IMKeyboard;
 end.

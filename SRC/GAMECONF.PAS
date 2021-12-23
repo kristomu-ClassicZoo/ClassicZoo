@@ -28,17 +28,501 @@
 unit GameConf;
 
 interface
+	uses GameVars;
+	var
+		ConfigFileName: TFilenameString;
+	procedure GameConfigInit;
+	function GameConfigLoad: boolean;
+	function GameConfigSave: boolean;
 	procedure GameAboutScreen;
 	procedure GameOptionsScreen;
+{$IFNDEF FPC}
+	function ConfigCustomActionNone: boolean;
+	function ConfigCompatibilityGetValue: integer;
+	procedure ConfigCompatibilitySetValue(value: integer);
+	function ConfigCompatibilityShowValue: string;
+	function ConfigEdAutoAppendGetValue: integer;
+	procedure ConfigEdAutoAppendSetValue(value: integer);
+	function ConfigEdAutoAppendShowValue: string;
+	function ConfigVidColorGetValue: integer;
+	procedure ConfigVidColorSetValue(value: integer);
+	function ConfigVidColorShowValue: string;
+{$IFNDEF SDL2}
+	function ConfigInputGetValue: integer;
+	procedure ConfigInputSetValue(value: integer);
+	function ConfigInputShowValue: string;
+	function ConfigSoundGetValue: integer;
+	procedure ConfigSoundSetValue(value: integer);
+	function ConfigSoundShowValue: string;
+{$ENDIF}
+{$ENDIF}
 
 implementation
 uses
 {$IFDEF SDL2} AudioSim, {$ENDIF}
-Game, GameVars, Sounds, ZVideo, Input, TxtWind;
+Editor, Game, Sounds, ZVideo, Input, FileSys, TxtWind;
+
+type
+	TConfigCategory = (CCEngine, CCFrontend, CCEditor);
+	TConfigGetValueProc = function: integer;
+	TConfigSetValueProc = procedure(value: integer);
+	TConfigShowValueProc = function: string;
+	TConfigCustomActionProc = function: boolean;
+	TConfigEntry = record
+		Category: TConfigCategory;
+		Key: string[8];
+		Name: string[20];
+		GetValue: TConfigGetValueProc;
+		SetValue: TConfigSetValueProc;
+		ShowValue: TConfigShowValueProc;
+		CustomAction: TConfigCustomActionProc;
+		Changed: boolean;
+	end;
+	TConfigHiddenEntry = record
+		Key: string[8];
+		IntPointer: ^integer;
+	end;
+var
+	ConfigEntryInputPos: integer;
+	HardEscapeHack: boolean;
+
+function ConfigCustomActionNone: boolean;
+	begin
+		ConfigCustomActionNone := false;
+	end;
+
+function ConfigCompatibilityGetValue: integer;
+	begin
+		if HighCompatAuto then
+			ConfigCompatibilityGetValue := 0
+		else if HighCompat then
+			ConfigCompatibilityGetValue := 2
+		else
+			ConfigCompatibilityGetValue := 1;
+	end;
+
+procedure ConfigCompatibilitySetValue(value: integer);
+	begin
+		if value > 2 then value := 0;
+		HighCompatAuto := (value = 0);
+		HighCompat := (value = 2);
+	end;
+
+function ConfigCompatibilityShowValue: string;
+	begin
+		if HighCompatAuto then
+			ConfigCompatibilityShowValue := 'Automatic'
+		else if HighCompat then
+			ConfigCompatibilityShowValue := 'Strict'
+		else
+			ConfigCompatibilityShowValue := 'Normal';
+	end;
+
+function ConfigEdAutoAppendGetValue: integer;
+	begin
+		ConfigEdAutoAppendGetValue := Byte(EditorAutoAppendPats);
+	end;
+
+procedure ConfigEdAutoAppendSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		EditorAutoAppendPats := Boolean(value);
+	end;
+
+function ConfigEdAutoAppendShowValue: string;
+	begin
+		if EditorAutoAppendPats then
+			ConfigEdAutoAppendShowValue := 'Yes'
+		else
+			ConfigEdAutoAppendShowValue := 'No';
+	end;
+
+function ConfigVidColorGetValue: integer;
+	begin
+		ConfigVidColorGetValue := Byte(VideoMonochrome);
+	end;
+
+procedure ConfigVidColorSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		VideoMonochrome := Boolean(value);
+	end;
+
+function ConfigVidColorShowValue: string;
+	begin
+		if VideoMonochrome then
+			ConfigVidColorShowValue := 'Monochrome'
+		else
+			ConfigVidColorShowValue := 'Color';
+	end;
+
+{$IFNDEF SDL2}
+function ConfigInputGetValue: integer;
+	begin
+		ConfigInputGetValue := Byte(InputMode);
+	end;
+
+procedure ConfigInputSetValue(value: integer);
+	begin
+		if value > 2 then value := 0;
+{$IFDEF NEC98}
+		if value = 1 then value := 2;
+{$ENDIF}
+		InputMode := TInputMode(value);
+	end;
+
+function ConfigInputShowValue: string;
+	begin
+		if InputMode = IMMouse then
+			ConfigInputShowValue := 'Mouse'
+{$IFNDEF NEC98}
+		else if InputMode = IMJoystick then
+			ConfigInputShowValue := 'Joystick'
+{$ENDIF}
+		else
+			ConfigInputShowValue := 'Keyboard';
+	end;
+
+function ConfigSoundGetValue: integer;
+	begin
+		ConfigSoundGetValue := Byte(SoundEnabled);
+	end;
+
+procedure ConfigSoundSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		SoundEnabled := Boolean(value);
+	end;
+
+function ConfigSoundShowValue: string;
+	begin
+		if SoundEnabled then
+			ConfigSoundShowValue := 'On'
+		else
+			ConfigSoundShowValue := 'Off';
+	end;
+{$ELSE}
+function ConfigVideoScalingGetValue: integer;
+	begin
+		ConfigVideoScalingGetValue := Byte(Ord(VideoGetSDLScalingMode));
+	end;
+
+procedure ConfigVideoScalingSetValue(value: integer);
+	begin
+		if value > Ord(High(TSDLScalingMode)) then value := 0;
+		VideoSetSDLScalingMode(TSDLScalingMode(value));
+	end;
+
+function ConfigVideoScalingShowValue: string;
+	begin
+		case VideoGetSDLScalingMode of
+			SMNone: ConfigVideoScalingShowValue := '1:1';
+			SM2x: ConfigVideoScalingShowValue := '2:1';
+			SM3x: ConfigVideoScalingShowValue := '3:1';
+			SMInteger: ConfigVideoScalingShowValue := 'Integer';
+			SMOrigAspect: ConfigVideoScalingShowValue := 'Keep Aspect';
+			SM43Aspect: ConfigVideoScalingShowValue := '4:3 Aspect';
+			SMIgnoreAspect: ConfigVideoScalingShowValue := 'Ignore';
+		end;
+	end;
+
+function ConfigHQSoundGetValue: integer;
+	begin
+		ConfigHQSoundGetValue := Byte(AudioGetHighQuality);
+	end;
+
+procedure ConfigHQSoundSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		AudioSetHighQuality(Boolean(value));
+	end;
+
+function ConfigHQSoundShowValue: string;
+	begin
+		if AudioGetHighQuality then
+			ConfigHQSoundShowValue := 'On'
+		else
+			ConfigHQSoundShowValue := 'Off';
+	end;
+
+function ConfigFullscreenGetValue: integer;
+	begin
+		ConfigFullscreenGetValue := Byte(VideoGetSDLWindowed);
+	end;
+
+procedure ConfigFullscreenSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		VideoSetSDLWindowed(Boolean(value));
+	end;
+
+function ConfigFullscreenShowValue: string;
+	begin
+		if VideoGetSDLWindowed then
+			ConfigFullscreenShowValue := 'Windowed'
+		else
+			ConfigFullscreenShowValue := 'Fullscreen';
+	end;
+
+function ConfigSoundVolumeGetValue: integer;
+	begin
+		ConfigSoundVolumeGetValue := Byte(AudioGetVolume shr 4);
+	end;
+
+procedure ConfigSoundVolumeSetValue(value: integer);
+	begin
+		if value > 4 then value := 0;
+		AudioSetVolume(Byte(value shl 4));
+	end;
+
+function ConfigSoundVolumeShowValue: string;
+	begin
+		if AudioGetVolume > 48 then
+			ConfigSoundVolumeShowValue := '100%'
+		else if AudioGetVolume > 32 then
+			ConfigSoundVolumeShowValue := '75%'
+		else if AudioGetVolume > 16 then
+			ConfigSoundVolumeShowValue := '50%'
+		else if AudioGetVolume > 0 then
+			ConfigSoundVolumeShowValue := '25%'
+		else
+			ConfigSoundVolumeShowValue := 'Off';
+	end;
+{$ENDIF}
+
+const
+	ConfigEntryCount = 3
+{$IFDEF SDL2}
+	+ 4
+{$ELSE}
+	+ 2
+{$ENDIF}
+	;
+	ConfigHiddenEntryCount = 0
+{$IFDEF MSDOS}
+{$IFNDEF NEC98}
+	+ 6
+{$ENDIF}
+{$ENDIF}
+	;
+var
+	ConfigEntries: array[1 .. ConfigEntryCount] of TConfigEntry;
+	ConfigHiddenEntries: array[1 .. ConfigHiddenEntryCount + 1] of TConfigHiddenEntry;
+
+procedure GameConfigInit;
+	var
+		i: integer;
+	begin
+		i := 1;
+
+		with ConfigEntries[i] do begin
+			Category := CCEngine;
+			Key := 'ECompat';
+			Name := 'Compatibility';
+			GetValue := ConfigCompatibilityGetValue;
+			SetValue := ConfigCompatibilitySetValue;
+			ShowValue := ConfigCompatibilityShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCEditor;
+			Key := 'EdApPats';
+			Name := 'Auto-Append';
+			GetValue := ConfigEdAutoAppendGetValue;
+			SetValue := ConfigEdAutoAppendSetValue;
+			ShowValue := ConfigEdAutoAppendShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FVidMono';
+			Name := 'Video';
+			GetValue := ConfigVidColorGetValue;
+			SetValue := ConfigVidColorSetValue;
+			ShowValue := ConfigVidColorShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+{$IFNDEF SDL2}
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FSoundOn';
+			Name := 'Sound';
+			GetValue := ConfigSoundGetValue;
+			SetValue := ConfigSoundSetValue;
+			ShowValue := ConfigSoundShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FInpMode';
+			Name := 'Input';
+			GetValue := ConfigInputGetValue;
+			SetValue := ConfigInputSetValue;
+			ShowValue := ConfigInputShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		ConfigEntryInputPos := i;
+		Inc(i);
+{$ELSE}
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FVidWin';
+			Name := 'Display mode';
+			GetValue := ConfigFullscreenGetValue;
+			SetValue := ConfigFullscreenSetValue;
+			ShowValue := ConfigFullscreenShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FVidScal';
+			Name := 'Display scaling';
+			GetValue := ConfigVideoScalingGetValue;
+			SetValue := ConfigVideoScalingSetValue;
+			ShowValue := ConfigVideoScalingShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FSndVol';
+			Name := 'Volume';
+			GetValue := ConfigSoundVolumeGetValue;
+			SetValue := ConfigSoundVolumeSetValue;
+			ShowValue := ConfigSoundVolumeShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FSndHQ';
+			Name := 'HQ Sound';
+			GetValue := ConfigHQSoundGetValue;
+			SetValue := ConfigHQSoundSetValue;
+			ShowValue := ConfigHQSoundShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+{$ENDIF}
+
+		i := 1;
+{$IFDEF MSDOS}
+{$IFNDEF NEC98}
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyXMin';
+			IntPointer := @JoystickXMin;
+		end;
+		Inc(i);
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyXCtr';
+			IntPointer := @JoystickXCenter;
+		end;
+		Inc(i);
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyXMax';
+			IntPointer := @JoystickXMax;
+		end;
+		Inc(i);
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyYMin';
+			IntPointer := @JoystickYMin;
+		end;
+		Inc(i);
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyYCtr';
+			IntPointer := @JoystickYCenter;
+		end;
+		Inc(i);
+		with ConfigHiddenEntries[i] do begin
+			Key := 'FJoyYMax';
+			IntPointer := @JoystickYMax;
+		end;
+		Inc(i);
+{$ENDIF}
+{$ENDIF}
+	end;
+
+function GameConfigLoad: boolean;
+	var
+		f: text;
+		i, v, code: integer;
+		s: string[128];
+		k: string[12];
+		foundTag: boolean;
+	begin
+		foundTag := false;
+		AssignFSysText(f, ConfigFileName);
+		Reset(f);
+		while (IOResult = 0) and (not Eof(f)) do begin
+			ReadLn(f, s);
+			if (Length(s) > 0) and (s[1] = '[') then begin
+				foundTag := true;
+			end else if (Length(s) > 0) and (s[1] <> ';') then begin
+				v := Pos('=', s);
+				if v <= 12 then begin
+					k := Copy(s, 1, v - 1);
+					s := Copy(s, v + 1, Length(s) - v);
+					if Length(s) > 0 then begin
+						if k = 'Start' then begin
+							StartupWorldFileName := s;
+						end else begin
+							Val(s, v, code);
+							for i := 1 to ConfigEntryCount do with ConfigEntries[i] do begin
+								if k = Key then
+									SetValue(v);
+							end;
+							for i := 1 to ConfigHiddenEntryCount do with ConfigHiddenEntries[i] do begin
+								if k = Key then
+								IntPointer^ := v;
+							end;
+						end;
+					end;
+				end;
+			end;
+		end;
+		Close(f);
+		GameConfigLoad := foundTag;
+	end;
+
+function GameConfigSave: boolean;
+	var
+		f: text;
+		i, v: integer;
+		s: string[20];
+	begin
+		GameConfigSave := false;
+		AssignFSysText(f, 'ZZT.INI');
+		Rewrite(f);
+		WriteLn(f, '; Generated by %NAME% %VERSION%');
+		WriteLn(f, '[Config]');
+		if StartupWorldFilename <> '' then begin
+			WriteLn(f, 'Start=' + StartupWorldFilename);
+		end;
+		for i := 1 to ConfigEntryCount do with ConfigEntries[i] do begin
+			v := GetValue;
+			Str(v, s);
+			WriteLn(f, Key + '=' + s);
+		end;
+		for i := 1 to ConfigHiddenEntryCount do with ConfigHiddenEntries[i] do begin
+			v := IntPointer^;
+			Str(v, s);
+			WriteLn(f, Key + '=' + s);
+		end;
+		Close(f);
+		if IOResult = 0 then GameConfigSave := true;
+	end;
 
 procedure GameAboutScreen;
 	begin
-		TextWindowDisplayFile('ABOUT.HLP', 'About ClassicZoo...');
+		TextWindowDisplayFile('ABOUT.HLP', 'About %NAME%...');
 	end;
 
 procedure GameOptionsScreen;
@@ -46,125 +530,81 @@ procedure GameOptionsScreen;
 		state: TTextWindowState;
 		i: integer;
 		numStr: TString50;
+		actionMap: array[1 .. (ConfigEntryCount + 6)] of byte;
 		exitRequested: boolean;
+	procedure AppendCategory(subCategory: TConfigCategory);
+		var
+			k: integer;
+		begin
+			for k := 1 to ConfigEntryCount do with ConfigEntries[k] do begin
+				if Category = subCategory then begin
+					Inc(state.LineCount);
+					actionMap[state.LineCount] := k;
+					New(state.Lines[state.LineCount]);
+					state.Lines[state.LineCount]^ := '!;' + Name + ': ' + ShowValue;
+				end;
+			end;
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := '';
+		end;
 	begin
 		state.Title := 'Options...';
 		TextWindowDrawOpen(state);
-		state.LinePos := 1;
 		exitRequested := false;
+		HardEscapeHack := false;
+		state.LinePos := 1;
+
+		for i := 1 to ConfigEntryCount do ConfigEntries[i].Changed := false;
 
 		repeat
+			for i := 1 to (ConfigEntryCount + 6) do actionMap[i] := 0;
 			state.Selectable := true;
-			state.LineCount := {$IFNDEF SDL2} 6 {$ELSE} 9 {$ENDIF};
-			for i := 1 to state.LineCount do
-				New(state.Lines[i]);
 
-			i := 1;
-			state.Lines[i]^ := '!;Compatibility: ';
-			if HighCompatAuto then
-				state.Lines[i]^ := state.Lines[1]^ + 'Automatic'
-			else if HighCompat then
-				state.Lines[i]^ := state.Lines[1]^ + 'Strict'
-			else
-				state.Lines[i]^ := state.Lines[1]^ + 'Normal';
-			Inc(i);
-{$IFNDEF SDL2}
-			state.Lines[i]^ := '!;Sound: ';
-			if SoundEnabled then
-				state.Lines[i]^ := state.Lines[i]^ + 'On'
-			else
-				state.Lines[i]^ := state.Lines[i]^ + 'Off';
-			Inc(i);
-{$ELSE}
-			state.Lines[i]^ := '!;Video scaling: ';
-			case VideoGetSDLScalingMode of
-				SMNone: state.Lines[i]^ := state.Lines[i]^ + '1:1';
-				SM2x: state.Lines[i]^ := state.Lines[i]^ + '2:1';
-				SM3x: state.Lines[i]^ := state.Lines[i]^ + '3:1';
-				SMInteger: state.Lines[i]^ := state.Lines[i]^ + 'Integer';
-				SMOrigAspect: state.Lines[i]^ := state.Lines[i]^ + 'Keep Aspect';
-				SM43Aspect: state.Lines[i]^ := state.Lines[i]^ + '4:3 Aspect';
-				SMIgnoreAspect: state.Lines[i]^ := state.Lines[i]^ + 'Ignore';
-			end;
-			Inc(i);
+			state.LineCount := 1;
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := 'Engine';
+			AppendCategory(CCEngine);
 
-			state.Lines[i]^ := '!;Display mode: ';
-			if VideoGetSDLWindowed then
-				state.Lines[i]^ := state.Lines[i]^ + 'Windowed'
-			else
-				state.Lines[i]^ := state.Lines[i]^ + 'Fullscreen';
-			Inc(i);
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := 'Frontend';
+			AppendCategory(CCFrontend);
 
-			state.Lines[i]^ := '!;Sound: ';
-			if AudioGetVolume >= 64 then
-				state.Lines[i]^ := state.Lines[i]^ + '100%'
-			else if AudioGetVolume >= 48 then
-				state.Lines[i]^ := state.Lines[i]^ + '75%'
-			else if AudioGetVolume >= 32 then
-				state.Lines[i]^ := state.Lines[i]^ + '50%'
-			else if AudioGetVolume >= 16 then
-				state.Lines[i]^ := state.Lines[i]^ + '25%'
-			else
-				state.Lines[i]^ := state.Lines[i]^ + 'Off';
-			Inc(i);
-
-			state.Lines[i]^ := '!;HQ Sound: ';
-			if AudioGetHighQuality then
-				state.Lines[i]^ := state.Lines[i]^ + 'On'
-			else
-				state.Lines[i]^ := state.Lines[i]^ + 'Off';
-			Inc(i);
+{$IFDEF EDITOR}
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := 'Editor';
+			AppendCategory(CCEditor);
 {$ENDIF}
 
-			state.Lines[i]^ := '_________________________________________';
-			state.Lines[i + 1]^ := '';
-			state.Lines[i + 2]^ := '!;About ClassicZoo...';
-			state.Lines[i + 3]^ := '!;Exit';
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := '!;About %NAME%...';
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := '!;Exit';
 
 			TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
 			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
-				case state.LinePos of
-					1: begin
-						if HighCompatAuto then
-							HighCompatAuto := false
-						else
-							HighCompat := not HighCompat;
-					end;
+				if state.LinePos = (state.LineCount - 1) then begin
+					GameAboutScreen;
+				end else if actionMap[state.LinePos] <> 0 then begin
+					with ConfigEntries[actionMap[state.LinePos]] do begin
+						if not CustomAction then
+							SetValue(GetValue + 1);
+						Changed := true;
 {$IFNDEF SDL2}
-					2: begin
-						SoundEnabled := not SoundEnabled;
-						SoundClearQueue;
-					end;
-					5: begin
-						GameAboutScreen;
-					end;
-{$ELSE}
-					2: begin
-						if VideoGetSDLScalingMode = SMIgnoreAspect then
-							VideoSetSDLScalingMode(SMNone)
-						else
-							VideoSetSDLScalingMode(Succ(VideoGetSDLScalingMode));
-					end;
-					3: begin
-						VideoSetSDLWindowed(not VideoGetSDLWindowed);
-					end;
-					4: begin
-						i := AudioGetVolume;
-						if i >= 64 then begin
-							i := 0;
-							SoundClearQueue;
-						end else begin
-							i := (i and $F0) + 16;
+						if Key = 'FVidMono' then begin
+							VideoUninstall;
+							VideoInstall(1);
+							HardEscapeHack := true;
 						end;
-						AudioSetVolume(i);
-					end;
-					5: begin
-						AudioSetHighQuality(not AudioGetHighQuality);
-					end;
-					8: begin
-						GameAboutScreen;
-					end;
 {$ENDIF}
+					end;
+				end;
+				if HardEscapeHack then begin
+					exitRequested := true;
 				end;
 			end else begin
 				exitRequested := true;
@@ -173,6 +613,23 @@ procedure GameOptionsScreen;
 
 			TextWindowFreeEdit(state);
 		until exitRequested;
+
+{$IFDEF MSDOS}
+{$IFNDEF NEC98}
+		if ConfigEntries[ConfigEntryInputPos].Changed then begin begin
+			if InputMode = IMJoystick then
+				VideoUninstall;
+				if not InputCalibrateJoystick then
+					InputMode := IMKeyboard;
+				VideoInstall(1);
+			end;
+		end;
+{$ENDIF}
+{$ENDIF}
+
+		if not GameConfigSave then begin
+			{ TODO: Warn user. }
+		end;
 	end;
 
 end.

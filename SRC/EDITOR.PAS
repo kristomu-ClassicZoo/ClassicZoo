@@ -32,6 +32,8 @@ unit Editor;
 
 interface
 	uses GameVars, TxtWind;
+	var
+		EditorAutoAppendPats: boolean;
 {$IFDEF EDITOR}
 	procedure EditorLoop;
 {$ENDIF}
@@ -49,7 +51,7 @@ interface
 		windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 
 implementation
-uses Dos, FileSel, FileSys, ExtMem, ZxtEdit, ZxtMgr, ZVideo, Sounds, TimerSys, Input, Elements, Oop, Game;
+uses Dos, FileSel, FileSys, ExtMem, ZxtEdit, ZxtMgr, GameConf, ZVideo, Sounds, TimerSys, Input, Elements, Oop, Game;
 
 type
 	TBoardShiftMode = (BoardShiftDelete);
@@ -345,9 +347,17 @@ procedure EditorLoop;
 		end;
 
 	procedure EditorCopyPatternToCurrent(x, y: integer);
+		var
+			i: integer;
 		begin
-			if cursorPattern > EditorPatternCount then
-				EditorCopyPattern(x, y, copiedTiles[cursorPattern - EditorPatternCount]);
+			if EditorAutoAppendPats then begin
+				for i := COPIED_TILES_COUNT downto 2 do
+					copiedTiles[i] := copiedTiles[i - 1];
+				EditorCopyPattern(x, y, copiedTiles[1]);
+			end else begin
+				if cursorPattern > EditorPatternCount then
+					EditorCopyPattern(x, y, copiedTiles[cursorPattern - EditorPatternCount]);
+			end;
 		end;
 
 	procedure EditorDrawSidebar;
@@ -1236,7 +1246,7 @@ procedure EditorLoop;
 				if drawCursor then
 					VideoWriteText(cursorX - 1, cursorY - 1, $0F, #197);
 
-				if (InputKeyPressed = #0) and InputJoystickEnabled then
+				if (InputKeyPressed = #0) and InputJoystickMoved then
 					AccurateDelay(70);
 				InputShiftAccepted := false;
 			end;
@@ -1717,6 +1727,11 @@ procedure EditorLoop;
 					KEY_CTRL_V: begin
 						EditorAskAndPasteCopyBuffer(cursorX, cursorY);
 					end;
+					'A': begin
+						GameOptionsScreen;
+						TransitionDrawToBoard;
+						EditorDrawSidebar;
+					end;
 				end;
 			end;
 
@@ -1937,4 +1952,6 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 		EditorSelectBoard := textWindow.LinePos - 1;
 	end;
 
+begin
+	EditorAutoAppendPats := false;
 end.

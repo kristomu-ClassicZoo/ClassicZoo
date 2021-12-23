@@ -45,8 +45,13 @@ interface
 		TORCH_DY = 5;
 		TORCH_DIST_SQR = 50;
 		OOP_TOKEN_LENGTH = 20;
+{$IFDEF SDL2}
+		IO_BUFFER_DEFAULT_SIZE = 65535;
+		IO_BUFFER_MAXIMUM_SIZE = 65535;
+{$ELSE}
 		IO_BUFFER_DEFAULT_SIZE = 20000;
 		IO_BUFFER_MAXIMUM_SIZE = 65500;
+{$ENDIF}
 		IO_BUFFER_SIZE_INCREMENT = 500;
 		STAT_SIZE_BYTES = 33;
 		{ UI-only }
@@ -55,7 +60,11 @@ interface
 		EditorPatternCount = 6;
 	type
 		TString50 = string[50];
+{$IFDEF SUBDIRS}
 		TFilenameString = string[128];
+{$ELSE}
+		TFilenameString = string[20];
+{$ENDIF}
 		TCoord = record
 			X: integer;
 			Y: integer;
@@ -249,7 +258,7 @@ interface
 		TickTimeCounter: integer;
 
 		ForceDarknessOff: boolean;
-		InitialTextAttr: byte;
+		{ InitialTextAttr: byte; }
 
 		OopChar: char;
 		OopWord: string[OOP_TOKEN_LENGTH];
@@ -258,14 +267,12 @@ interface
 		DebugEnabled: boolean;
 
 		HighScoreList: THighScoreList;
-{$IFDEF CONFREGI}
-		ConfigRegistration: string;
-{$ENDIF}
-		ConfigWorldFile: TString50;
+		{ ConfigRegistration: string; }
+		{ ConfigWorldFile: TString50; }
 		EditorEnabled: boolean;
-		GameVersion: TString50;
-		ParsingConfigFile: boolean;
-		ResetConfig: boolean; { This flag is a remnant from ZZT 3.0. }
+		{ GameVersion: string[20]; }
+		{ ParsingConfigFile: boolean; }
+		{ ResetConfig: boolean; } { This flag is a remnant from ZZT 3.0. }
 		JustStarted: boolean;
 
 		WorldExt: TWorldExt;

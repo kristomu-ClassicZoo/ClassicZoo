@@ -35,7 +35,6 @@ interface
 		VideoForceNoSnow: boolean;
 		VideoMonochrome: boolean;
 		VideoBlinkMask: byte;
-	function VideoConfigure: boolean;
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	procedure VideoInstall(borderColor: integer);
 	procedure VideoUninstall;
@@ -73,11 +72,6 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 				Inc(offset, 2);
 			end;
 		end;
-	end;
-
-function VideoConfigure: boolean;
-	begin
-		VideoConfigure := True;
 	end;
 
 procedure VideoInstall(borderColor: integer);

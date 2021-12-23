@@ -5,6 +5,23 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
+$< ClassicZoo 4.20 >
+
++ Experimental SDL2 port! This allows
+  running ClassicZoo natively on various
+  "modern" machines - in particular,
+  Linux and Windows have been tested.
+  This port unlocks many improvements,
+  such as vastly improved input code.
++ Configuration system! ClassicZoo will
+  now remember your config options and
+  allow you to change them from an in-
+  game menu.
++ Editor improvements.
+  + Added option to configure KevEdit-
+    style "auto-append" of patterns.
+/ Fixed a crash in text window code.
+
 $< ClassicZoo 4.17 >
 
 + Add Options menu! So far, this menu

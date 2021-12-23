@@ -2489,7 +2489,6 @@ procedure GameTitleLoop;
 	label PlayStart;
 	begin
 		GameTitleExitRequested := false;
-		JustStarted := true;
 		ReturnBoardId := 0;
 		boardChanged := true;
 		repeat
@@ -2526,6 +2525,7 @@ procedure GameTitleLoop;
 					end;
 					'A': begin
 						GameOptionsScreen;
+						TransitionDrawToBoard;
 					end;
 {$IFDEF EDITOR}
 					'E': if EditorEnabled then begin
