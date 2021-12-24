@@ -25,6 +25,7 @@
 
 {$I-}
 {$V-}
+{$F+}
 unit GameConf;
 
 interface
