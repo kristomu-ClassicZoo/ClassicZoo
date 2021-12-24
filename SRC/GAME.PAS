@@ -540,7 +540,6 @@ procedure TransitionDrawToFill(chr: char; color: integer);
 
 		if (tx < 60) and (ty < 25) then
 			VideoWriteText(tx, ty, color, chr);
-
 		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 	end;
 

@@ -24,6 +24,7 @@
 }
 
 {$I-}
+{$MODE OBJFPC}
 unit ZVideo;
 
 interface
@@ -57,7 +58,7 @@ interface
 	procedure VideoInvert(x1, y1, x2, y2: integer);
 
 implementation
-uses Dos, {$IFDEF HASAMIGA} VidCrt, {$ENDIF} Video, TimerSys;
+uses Dos, Video, Keyboard, Mouse, SysUtils, TimerSys;
 
 procedure VideoLockScreenUpdate;
 	begin
@@ -123,20 +124,10 @@ function VideoSetCharset(data: pointer; height: integer): boolean;
 
 procedure VideoPreInstall;
 	begin
-		VideoMDAInstalled := false;
-		VideoVGAInstalled := false;
 	end;
 
 procedure VideoInstall(borderColor: integer);
 	begin
-		InitVideo;
-		VideoColumns := ScreenWidth;
-
-		if VideoMonochrome then
-			VideoWriteText := VideoWriteTextBufBW
-		else
-			VideoWriteText := VideoWriteTextBuf;
-
 		FillChar(VideoBuf^, 0, VideoColumns * 25);
 		VideoHideCursor;
 	end;
@@ -203,11 +194,21 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 		UpdateScreen(false);
 	end;
 
-begin
-	VideoColumns := 80;
-	VideoWriteText := VideoWriteTextBuf;
+initialization
+	InitVideo;
+{$IFDEF HASAMIGA}
+	SetWindowTitle(ExtractFileName(ParamStr(0)), '%NAME% %VERSION%');
+{$ENDIF}
+	InitMouse;
+	InitKeyboard;
+	VideoColumns := ScreenWidth;
+	VideoWriteText := @VideoWriteTextBuf;
 	VideoForceNoSnow := false;
 	VideoForceSafe := false;
-
-	VideoPreInstall;
+	VideoMDAInstalled := false;
+	VideoVGAInstalled := false;
+finalization
+	DoneKeyboard;
+	DoneMouse;
+	DoneVideo;
 end.

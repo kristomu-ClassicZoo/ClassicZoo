@@ -38,6 +38,23 @@ interface
 		KEY_CTRL_Y = #25;
 		KEY_ESCAPE = #27;
 		KEY_ALT_P = #153;
+{$IFDEF HASAMIGA}
+		KEY_F1 = #$81;
+		KEY_F2 = #$82;
+		KEY_F3 = #$83;
+		KEY_F4 = #$84;
+		KEY_F5 = #$85;
+		KEY_F6 = #$86;
+		KEY_F7 = #$87;
+		KEY_F8 = #$88;
+		KEY_F9 = #$89;
+		KEY_F10 = #$8A;
+		KEY_UP = #$A1;
+		KEY_LEFT = #$A3;
+		KEY_RIGHT = #$A5;
+		KEY_DOWN = #$A7;
+		KEY_DELETE = #$AA;
+{$ELSE}
 		KEY_F1 = #187;
 		KEY_F2 = #188;
 		KEY_F3 = #189;
@@ -49,13 +66,14 @@ interface
 		KEY_F9 = #195;
 		KEY_F10 = #196;
 		KEY_UP = #200;
-		KEY_PAGE_UP = #201;
 		KEY_LEFT = #203;
 		KEY_RIGHT = #205;
 		KEY_DOWN = #208;
+		KEY_DELETE = #211;
+{$ENDIF}
+		KEY_PAGE_UP = #201;
 		KEY_PAGE_DOWN = #209;
 		KEY_INSERT = #210;
-		KEY_DELETE = #211;
 		KEY_HOME = #212;
 		KEY_END = #213;
 	var
@@ -95,6 +113,10 @@ procedure InputUpdate;
 {$IFDEF MSDOS}
 			if (GetKeyEventCode(ev) shr 8) = $FF then
 				InputKeyPressed := Chr(Ord(InputKeyPressed) or $80);
+{$ENDIF}
+{$IFDEF HASAMIGA}
+			if (GetKeyEventCode(ev) shr 8) = $FF then
+				InputKeyPressed := Chr((GetKeyEventCode(ev) and $7F) or $80);
 {$ENDIF}
 {$IFDEF UNIX}
 			{ TODO: This is hacky and incomplete! Notably missing: F-keys }
