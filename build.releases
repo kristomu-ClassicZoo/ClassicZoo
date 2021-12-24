@@ -8,3 +8,4 @@
 -a fpc-i8086-msdos-dos -d SUBDIRS -d PRINTTXT -d ZETAEMU -e ZZTLRUN -o zztlibre.zip -p build.properties
 -a fpc-x86_64-win64-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -o zztwin64.zip -p build.properties
 -a fpc-x86_64-linux-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -o zztlin64.zip -p build.properties
+-a fpc-m68k-amiga-basic -d EXTCHEAT -d EDITOR -d SUBDIRS -o zztamiga020.zip -p build.properties
