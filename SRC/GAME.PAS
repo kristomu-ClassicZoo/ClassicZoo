@@ -2148,6 +2148,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 		repeat
 			if GamePaused then begin
+				{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 				if SoundHasTimeElapsed(TickTimeCounter, 25) then
 					pauseBlink := not pauseBlink;
 
@@ -2209,6 +2210,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 					World.Info.IsSave := true;
 				end;
 
+				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 			end else begin { not GamePaused }
 				if CurrentStatTicked <= Board.StatCount then begin
 					with Board.Stats[CurrentStatTicked] do begin
@@ -2226,6 +2228,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end;
 
 			if ((CurrentStatTicked > Board.StatCount)) and not GamePlayExitRequested then begin
+				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 				{ all stats ticked }
 				if SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
 					{ next cycle }
@@ -2233,6 +2236,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 					if CurrentTick > 420 then
 						CurrentTick := 1;
 					CurrentStatTicked := 0;
+					{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 
 					InputUpdate;
 {$IFDEF SDL2}
@@ -2247,6 +2251,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end;
 		until GamePlayExitRequested;
 
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 		SoundClearQueue;
 
 		if GameStateElement = E_PLAYER then begin

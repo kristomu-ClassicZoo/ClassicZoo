@@ -164,10 +164,12 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 				VideoMove(TextWindowX, iy + TextWindowY - 1, TextWindowWidth, @ScreenCopy[iy], false);
 
 			for iy := (TextWindowHeight shr 1) downto 0 do begin
+				{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 				VideoWriteText(TextWindowX, TextWindowY + iy + 1, $0F, TextWindowStrText);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1, $0F, TextWindowStrText);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
+				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 				AccurateDelay(25);
 			end;
 
@@ -182,15 +184,19 @@ procedure TextWindowDrawClose(var state: TTextWindowState);
 		unk1, unk2: integer;
 	begin
 		with state do begin
+			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 			for iy := 0 to (TextWindowHeight shr 1) do begin
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
+				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 				AccurateDelay(18);
+				{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 				VideoMove(TextWindowX, TextWindowY + iy, TextWindowWidth,
 					@ScreenCopy[iy + 1], true);
 				VideoMove(TextWindowX, TextWindowY + TextWindowHeight - iy, TextWindowWidth,
 					@ScreenCopy[(TextWindowHeight - iy) + 1], true);
 			end;
+			{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 		end;
 	end;
 
