@@ -165,9 +165,11 @@ function ConfigInputGetValue: integer;
 procedure ConfigInputSetValue(value: integer);
 	begin
 		if value > 2 then value := 0;
-{$IFDEF NEC98}
-		if value = 1 then value := 2;
-{$ENDIF}
+		if (value = 1) and (not InputJoystickPresent) then value := 2;
+		{ TODO: HACK - VideoForceSafe disables WriteLn due to DOS/V,
+		  and so the calibrator won't work }
+		if (value = 1) and (VideoForceSafe) then value := 2;
+		if (value = 2) and (not InputMousePresent) then value := 0;
 		InputMode := TInputMode(value);
 	end;
 

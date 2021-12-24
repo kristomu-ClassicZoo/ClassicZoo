@@ -31,12 +31,14 @@ interface
 		TVideoLine = string[80];
 		{ Was 160 in ZZT 3.2. }
 		TScreenCopyLine = string[100];
+		TScreenCopyLine16 = array[0 .. 49] of word;
 		TVideoWriteTextProc = procedure(x, y, color: byte; text: TVideoLine);
 	const
 		PORT_CGA_MODE = $03D8;
 		PORT_CGA_PALETTE = $03D9;
 	var
 		VideoWriteText: TVideoWriteTextProc;
+		VideoForceSafe: boolean;
 		VideoForceNoSnow: boolean;
 		VideoMonochrome: boolean;
 		VideoColumns: integer;
@@ -252,6 +254,39 @@ procedure VideoWriteTextFastBW(x, y, color: byte; text: TVideoLine);
 		VideoWriteTextFast(x, y, ColorToBW(color), text);
 	end;
 
+procedure VideoWriteTextSafe(x, y, color: byte; text: TVideoLine);
+	var
+		i: byte;
+		regs: Registers;
+	begin
+		for i := 1 to Length(text) do begin
+			{ move cursor }
+			regs.AH := $02;
+			regs.BX := $0000;
+			regs.DH := y;
+			regs.DL := x;
+			Intr($10, regs);
+
+			{ write character }
+			regs.AL := Ord(text[i]);
+			regs.AH := $09;
+			regs.BL := color;
+			regs.CX := 1;
+			Intr($10, regs);
+
+			Inc(x);
+			if x >= VideoColumns then begin
+				x := 1;
+				Inc(y);
+			end;
+		end;
+	end;
+
+procedure VideoWriteTextSafeBW(x, y, color: byte; text: TVideoLine);
+	begin
+		VideoWriteTextSafe(x, y, ColorToBW(color), text);
+	end;
+
 {$F-}
 
 procedure VideoPreInstall;
@@ -288,7 +323,9 @@ procedure VideoInstall(borderColor: integer);
 
 		VideoColumns := 80;
 		if VideoMonochrome then begin
-			if VideoEGAInstalled or VideoMDAInstalled or VideoForceNoSnow then
+			if VideoForceSafe then
+				VideoWriteText := VideoWriteTextSafeBW
+			else if VideoEGAInstalled or VideoMDAInstalled or VideoForceNoSnow then
 				VideoWriteText := VideoWriteTextFastBW
 			else
 				VideoWriteText := VideoWriteTextCGABW;
@@ -299,7 +336,9 @@ procedure VideoInstall(borderColor: integer);
 				TextMode(7);
 			end;
 		end else begin
-			if VideoEGAInstalled or VideoForceNoSnow then
+			if VideoForceSafe then
+				VideoWriteText := VideoWriteTextSafe
+			else if VideoEGAInstalled or VideoForceNoSnow then
 				VideoWriteText := VideoWriteTextFast
 			else
 				VideoWriteText := VideoWriteTextCGA;
@@ -361,7 +400,9 @@ procedure VideoHideCursor;
 
 procedure VideoSetBorderColor(value: integer);
 	begin
-		Port[PORT_CGA_PALETTE] := value;
+		if not VideoForceSafe then begin
+			Port[PORT_CGA_PALETTE] := value;
+		end;
 	end;
 
 procedure VideoSetBlink(value: boolean);
@@ -369,10 +410,12 @@ procedure VideoSetBlink(value: boolean);
 		regs: Registers;
 	begin
 		{ CGA route }
-		if value then
-			Port[PORT_CGA_MODE] := Port[PORT_CGA_MODE] or $20
-		else
-			Port[PORT_CGA_MODE] := Port[PORT_CGA_MODE] and $DF;
+		if not VideoForceSafe then begin
+			if value then
+				Port[PORT_CGA_MODE] := Port[PORT_CGA_MODE] or $20
+			else
+				Port[PORT_CGA_MODE] := Port[PORT_CGA_MODE] and $DF;
+		end;
 		{ EGA/VGA route }
 		regs.AX := $1003;
 		regs.BH := 0;
@@ -382,8 +425,42 @@ procedure VideoSetBlink(value: boolean);
 
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	var
-		offset: integer;
+		regs: Registers;
+		i, offset: integer;
 	begin
+		if VideoForceSafe then begin
+			offset := 0;
+			for i := 1 to chars do begin
+				regs.AH := $02;
+				regs.BX := $0000;
+				regs.DH := y;
+				regs.DL := x;
+				Intr($10, regs);
+
+				if toVideo then begin
+					regs.AH := $09;
+					regs.CX := 1;
+					regs.AL := Ord(TVideoLine(data^)[offset]);
+					Inc(offset);
+					regs.BL := Ord(TVideoLine(data^)[offset]);
+					Intr($10, regs);
+				end else begin
+					regs.AH := $08;
+					Intr($10, regs);
+					TScreenCopyLine16(data^)[offset] := regs.AX;
+				end;
+
+				Inc(offset);
+				Inc(x);
+				if x >= VideoColumns then begin
+					x := 1;
+					Inc(y);
+				end;
+			end;
+
+			exit;
+		end;
+
 		offset := (y * VideoColumns + x) * 2;
 		if toVideo then
 			Move(data^, Ptr(VideoTextSegment, offset)^, chars * 2)
@@ -426,6 +503,7 @@ begin
 		VideoMonochrome := false;
 	end;
 	VideoForceNoSnow := false;
+	VideoForceSafe := false;
 
 	VideoPreInstall;
 end.

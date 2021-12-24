@@ -29,6 +29,7 @@ interface
 	type
 		TInputMode = (IMKeyboard, IMJoystick, IMMouse);
 	const
+		InputJoystickPresent = false;
 		KEY_BACKSPACE = #8;
 		KEY_TAB = #9;
 		KEY_ENTER = #13;

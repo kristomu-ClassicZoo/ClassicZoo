@@ -59,10 +59,16 @@ procedure ParseArguments;
 			if pArg[1] = '/' then begin
 				pArg := UpCaseString(pArg);
 
+{$IFDEF MSDOS}
+{$IFNDEF NEC98}
 				if pArg = '/NOSNOW' then
 					VideoForceNoSnow := true
+				else if pArg = '/SAFEV' then
+					VideoForceSafe := true;
+{$ENDIF}
+{$ENDIF}
 {$IFNDEF NOEXTMEM}
-				else if pArg = '/NOEMS' then
+				if pArg = '/NOEMS' then
 					enableEms := false
 				else if pArg = '/NOXMS' then
 					enableXms := false;
@@ -79,11 +85,14 @@ procedure ParseArguments;
 	end;
 
 begin
+	Randomize;
+
 {$IFNDEF SDL2}
+{ TODO
 	Writeln('%NAME% %VERSION%');
 	Writeln('%COPYRIGHT%');
+}
 {$ENDIF}
-	Randomize;
 
 	StartupWorldFileName := '';
 {$IFDEF SUBDIRS}
