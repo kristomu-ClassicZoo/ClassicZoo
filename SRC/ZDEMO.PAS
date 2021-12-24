@@ -431,10 +431,14 @@ procedure Cli;
 	end;
 {$ELSE}
 procedure Sti;
-asm sti end;
+	begin
+		asm sti end;
+	end;
 
 procedure Cli;
-asm cli end;
+	begin
+		asm cli end;
+	end;
 {$ENDIF}
 {$ELSE}
 procedure Sti;
