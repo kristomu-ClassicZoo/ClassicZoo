@@ -37,7 +37,7 @@ interface
 	function ZxtEditorOpenHyperlink(var state: TTextWindowState; var extBlock: TExtensionBlock; extType: TExtensionType): boolean;
 
 implementation
-uses Dos, FileSel, ZVideo, Input;
+uses Dos, FileSel, ZVideo, ZInput;
 
 { START YOUR EDITS HERE }
 

@@ -35,9 +35,9 @@ interface
 
 implementation
 {$IFDEF SDL2}
-uses SysUtils, Game, Input, TxtWind, FileSys;
+uses SysUtils, Game, ZInput, TxtWind, FileSys;
 {$ELSE}
-uses Dos, Game, Input, TxtWind, FileSys;
+uses Dos, Game, ZInput, TxtWind, FileSys;
 {$ENDIF}
 const
 	PATH_PREVIEW_LENGTH = 24;

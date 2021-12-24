@@ -36,11 +36,11 @@ uses
 {$IFDEF NEC98}
 Pc98,
 {$ELSE}
-{$IFNDEF SDL2}
+{$IFDEF MSDOS}
 Crt,
 {$ENDIF}
 {$ENDIF}
-Dos, ExtMem, FileSys, ZxtMgr, ZxtZoo, ZVideo, Keys, Sounds, Input, TxtWind,
+Dos, ExtMem, FileSys, ZxtMgr, ZxtZoo, ZVideo, Keys, Sounds, ZInput, TxtWind,
 ZDemo, GameConf, GameVars, Elements, Editor, Oop, Game;
 
 procedure ParseArguments;
@@ -137,10 +137,7 @@ begin
 		TextWindowInit; { (5, 3, 50, 18) }
 		GetMem(IoTmpBuf, IoTmpBufSize);
 
-{$IFNDEF SDL2}
-		VideoHideCursor;
-		ClrScr;
-{$ELSE}
+{$IFDEF SDL2}
 		{ SDL2 - Fixes initial window size }
 		InputUpdate;
 {$ENDIF}

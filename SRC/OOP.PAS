@@ -1009,7 +1009,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 				end else if OopChar = #0 then begin
 					endOfProgram := true;
 				end else begin
-{$IFDEF SDL2}
+{$IFNDEF MSDOS}
 					textLine := OopChar;
 					textLine := textLine + OopReadLineToEnd(statId, position);
 {$ELSE}

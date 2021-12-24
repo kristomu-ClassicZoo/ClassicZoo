@@ -48,7 +48,6 @@ interface
 	function ConfigVidColorGetValue: integer;
 	procedure ConfigVidColorSetValue(value: integer);
 	function ConfigVidColorShowValue: string;
-{$IFNDEF SDL2}
 	function ConfigInputGetValue: integer;
 	procedure ConfigInputSetValue(value: integer);
 	function ConfigInputShowValue: string;
@@ -56,12 +55,11 @@ interface
 	procedure ConfigSoundSetValue(value: integer);
 	function ConfigSoundShowValue: string;
 {$ENDIF}
-{$ENDIF}
 
 implementation
 uses
 {$IFDEF SDL2} AudioSim, {$ENDIF}
-Editor, Game, Sounds, ZVideo, Input, FileSys, TxtWind;
+Editor, Game, Sounds, ZVideo, ZInput, FileSys, TxtWind;
 
 type
 	TConfigCategory = (CCEngine, CCFrontend, CCEditor);
@@ -157,7 +155,7 @@ function ConfigVidColorShowValue: string;
 			ConfigVidColorShowValue := 'Color';
 	end;
 
-{$IFNDEF SDL2}
+{$IFDEF MSDOS}
 function ConfigInputGetValue: integer;
 	begin
 		ConfigInputGetValue := Byte(InputMode);
@@ -204,7 +202,9 @@ function ConfigSoundShowValue: string;
 		else
 			ConfigSoundShowValue := 'Off';
 	end;
-{$ELSE}
+{$ENDIF}
+
+{$IFDEF SDL2}
 function ConfigVideoScalingGetValue: integer;
 	begin
 		ConfigVideoScalingGetValue := Byte(Ord(VideoGetSDLScalingMode));
@@ -295,11 +295,8 @@ function ConfigSoundVolumeShowValue: string;
 
 const
 	ConfigEntryCount = 3
-{$IFDEF SDL2}
-	+ 4
-{$ELSE}
-	+ 2
-{$ENDIF}
+	{$IFDEF MSDOS} + 2 {$ENDIF}
+	{$IFDEF SDL2} + 4 {$ENDIF}
 	;
 	ConfigHiddenEntryCount = 0
 {$IFDEF MSDOS}
@@ -348,7 +345,7 @@ procedure GameConfigInit;
 			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
-{$IFNDEF SDL2}
+{$IFDEF MSDOS}
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;
 			Key := 'FSoundOn';
@@ -370,7 +367,8 @@ procedure GameConfigInit;
 		end;
 		ConfigEntryInputPos := i;
 		Inc(i);
-{$ELSE}
+{$ENDIF}
+{$IFDEF SDL2}
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;
 			Key := 'FVidWin';
@@ -597,7 +595,7 @@ procedure GameOptionsScreen;
 						if not CustomAction then
 							SetValue(GetValue + 1);
 						Changed := true;
-{$IFNDEF SDL2}
+{$IFDEF MSDOS}
 						if Key = 'FVidMono' then begin
 							VideoUninstall;
 							VideoInstall(1);

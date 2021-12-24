@@ -66,7 +66,7 @@ interface
 	function DemoSoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 
 implementation
-uses Dos, Crt, GameVars, Input, Sounds, TimerSys, ZMath;
+uses Dos, GameVars, ZInput, Sounds, TimerSys, ZMath;
 
 type
 	DemoMode = (
@@ -146,7 +146,7 @@ var
 	DemoLogActive: boolean;
 	DemoLogBoard: integer;
 
-{$IFDEF SDL2}
+{$IFNDEF MSDOS}
 procedure DemoFlushFile(var f: text);
 	begin
 		Flush(f);
@@ -175,6 +175,7 @@ procedure DemoFlushFile(var f: text);
 	end;
 {$ENDIF}
 
+{$IFDEF DEMO}
 procedure DemoLogEmit(code: string; ticks: longint);
 	begin
 		if not DemoLogActive then exit;
@@ -419,7 +420,7 @@ procedure DemoStop(ignoreErrors: boolean);
 	end;		
 
 {$IFDEF FPC}
-{$IFDEF SDL2}
+{$IFNDEF MSDOS}
 procedure Sti;
 	begin
 		TimerSysUnlockTimer(IMUntilPit);
@@ -652,6 +653,67 @@ function DemoSoundHasTimeElapsed(var counter: integer; duration: integer): boole
 			end;
 		end else DemoSoundHasTimeElapsed := SoundHasTimeElapsed(counter, duration);
 	end;
+{$ELSE}
+function DemoStartRecord(filename: string): boolean;
+	begin
+		DemoStartRecord := false;
+	end;
+
+function DemoStartPlay(filename: string): boolean;
+	begin
+		DemoStartPlay := false;
+	end;
+
+function DemoStartLogging(filename: string): boolean;
+	begin
+		DemoStartLogging := false;
+	end;
+
+procedure DemoStop(ignoreErrors: boolean);
+	begin
+	end;
+
+function DemoIsComplete: boolean;
+	begin
+		DemoIsComplete := false;
+	end;
+
+function DemoIsPlaying: boolean;
+	begin
+		DemoIsPlaying := false;
+	end;
+
+function DemoIsRecording: boolean;
+	begin
+		DemoIsRecording := false;
+	end;
+
+procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean); { Replaces InputUpdate; }
+	begin
+		InputUpdate;
+	end;
+
+procedure DemoInputReadWaitKey;
+	begin
+		repeat
+			DemoInputUpdate(0, false)
+		until InputKeyPressed <> #0;
+	end;
+
+procedure DemoReseedCurrentTick;
+	begin
+		CurrentTick := ZRandom(100);
+	end;
+
+procedure DemoOnPitTick;
+	begin
+	end;
+
+function DemoSoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
+	begin
+		DemoSoundHasTimeElapsed := SoundHasTimeElapsed(counter, duration);
+	end;
+{$ENDIF}
 
 begin
 	DemoCurrentMode := DModeNone;

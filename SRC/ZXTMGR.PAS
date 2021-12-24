@@ -151,6 +151,22 @@ var
 
 { --- HOOKS/INTERNAL --- }
 
+{$IFDEF ENDIAN_BIG}
+procedure ZxtSwapEndianBhdr(var bhdr: TExtensionBlockHeader);
+	begin
+		bhdr.Flags := SwapEndian(bhdr.Flags);
+		bhdr.Id.Owner := SwapEndian(bhdr.Id.Owner);
+		bhdr.Id.Selector := SwapEndian(bhdr.Id.Selector);
+		bhdr.FieldLength := SwapEndian(bhdr.FieldLength);
+	end;
+
+procedure ZxtSwapEndianHdr(var hdr: TExtensionHeader);
+	begin
+		hdr.Magic := LEtoN(hdr.Magic);
+		hdr.BlockCount := LEtoN(hdr.BlockCount);
+	end;
+{$ENDIF}
+
 {$F+}
 
 function ZxtDefaultExtensionHandler(var block: TExtensionBlock; var state: TExtensionHandlerState):
@@ -226,6 +242,9 @@ begin
 		{ Read extension header. }
 		hdr.Magic := ZXT_HEADER_MAGIC;
 		BlockRead(worldFile, hdr.BlockCount, 4);
+{$IFDEF ENDIAN_BIG}
+		hdr.BlockCount := LEtoN(hdr.BlockCount);
+{$ENDIF}
 	end else begin
 		Assign(zaxFile, filename + '.ZAX');
 		Reset(zaxFile, 1);
@@ -235,6 +254,7 @@ begin
 
 			{ Read extension header. }
 			BlockRead(extFile^, hdr, SizeOf(hdr));
+			{$IFDEF ENDIAN_BIG} ZxtSwapEndianHdr(hdr); {$ENDIF}
 		end else begin
 			{ No extensions found. }
 			exit;
@@ -258,6 +278,7 @@ begin
 	for bi := 1 to hdr.BlockCount do begin
 		{ Parse extension. }
 		BlockRead(extFile^, bhdr, SizeOf(bhdr));
+		{$IFDEF ENDIAN_BIG} ZxtSwapEndianBhdr(bhdr); {$ENDIF}
 		if (IOResult <> 0)
 			or ((bhdr.Flags and (not FZxtExtBlockHeaderKnown)) <> 0)
 			or (bhdr.FieldLength > 65519)
@@ -339,6 +360,9 @@ OnError:
 	if World.BoardCount = ZXT_HEADER_MAGIC then begin
 		{ .ZXT file. }
 		BlockRead(extFile^, World.BoardCount, 2);
+{$IFDEF ENDIAN_BIG}
+		World.BoardCount := LEtoN(World.BoardCount);
+{$ENDIF}
 	end else begin
 		{ .ZAX file. }
 		Close(zaxFile);
@@ -361,6 +385,7 @@ begin
 
 	hdr.Magic := ZXT_HEADER_MAGIC;
 	hdr.BlockCount := ExtensionBlockCount;
+	{$IFDEF ENDIAN_BIG} ZxtSwapEndianHdr(hdr); {$ENDIF}
 	BlockWrite(extFile, hdr, SizeOf(hdr));
 	if IOResult <> 0 then goto OnError;
 
@@ -368,7 +393,9 @@ begin
 		with ExtensionBlocks^[i] do begin
 			Header.Reserved0 := 0;
 
+			{$IFDEF ENDIAN_BIG} ZxtSwapEndianBhdr(Header); {$ENDIF}
 			BlockWrite(extFile, Header, SizeOf(Header));
+			{$IFDEF ENDIAN_BIG} ZxtSwapEndianBhdr(Header); {$ENDIF}
 			if (IOResult <> 0) then goto OnError;
 
 			if Header.FieldLength > 0 then begin
