@@ -1516,7 +1516,6 @@ procedure GameUpdateSidebar;
 		numStr: string[8];
 		i: integer;
 	begin
-		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		if GameStateElement = E_PLAYER then begin
 			if Board.Info.TimeLimitSec > 0 then begin
 				VideoWriteText(64, 6, $1E, '   Time:');
@@ -1580,7 +1579,6 @@ procedure GameUpdateSidebar;
 			end;
 {$ENDIF}
 		end;
-		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 	end;
 
 procedure DisplayMessage(time: integer; message: string);
@@ -2055,7 +2053,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 		pausedElement: byte;
 	procedure GameDrawSidebar;
 		begin
-			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 			SidebarClear;
 			SidebarClearLine(0);
 			SidebarClearLine(1);
@@ -2118,9 +2115,9 @@ procedure GamePlayLoop(boardChanged: boolean);
 				end;
 {$ENDIF}
 			end;
-			{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 		end;
 	begin
+		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		GameDrawSidebar;
 		GameUpdateSidebar;
 
@@ -2128,6 +2125,9 @@ procedure GamePlayLoop(boardChanged: boolean);
 			GameOnStart;
 			JustStarted := false;
 		end;
+
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
+		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := GameStateElement;
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[GameStateElement].Color;
@@ -2145,6 +2145,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 		CurrentTick := Random(100);
 		CurrentStatTicked := Board.StatCount + 1;
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 
 		repeat
 			if GamePaused then begin
