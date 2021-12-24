@@ -1532,6 +1532,7 @@ procedure EditorLoop;
 							if (InputKeyPressed <> KEY_ESCAPE) then begin
 								WorldUnload;
 								WorldCreate;
+								InitElementsEditor;
 								EditorDrawRefresh;
 								wasModified := false;
 							end;

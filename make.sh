@@ -50,9 +50,9 @@ while getopts "a:d:e:o:p:rg" opt; do
 #			fi
 			;;
 		x86_64)
-			FPC_BINARY=ppcx64
+#			FPC_BINARY=ppcx64
 #			if [ ! -x "$(command -v $FPC_BINARY)" ]; then
-#				FPC_BINARY=ppcrossx64
+				FPC_BINARY=ppcrossx64
 #			fi
 			;;
 		arm)

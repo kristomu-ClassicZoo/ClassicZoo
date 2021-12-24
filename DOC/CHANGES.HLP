@@ -17,9 +17,15 @@ $< ClassicZoo 4.20 >
   now remember your config options and
   allow you to change them from an in-
   game menu.
++ [DOS] Added a "/SAFEV" parameter for
+  compatibility, which disables direct
+  video access. Quite slow, though!
 + Editor improvements.
   + Added option to configure KevEdit-
     style "auto-append" of patterns.
+  / Fixed invisible/board edge tiles
+    becoming invisible after creating
+    a new world.
 / Fixed a crash in text window code.
 
 $< ClassicZoo 4.17 >

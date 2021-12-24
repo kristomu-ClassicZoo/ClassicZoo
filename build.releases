@@ -5,3 +5,4 @@
 -a tp55-i8086-msdos-nec98 -d EXTCHEAT -d EDITOR -d SUBDIRS -d NEC98 -g -e ZZT -o zztpc98.zip -p build.properties
 -a tp55-i8086-msdos-nec98 -d SUBDIRS -d NEC98 -e ZZTRUN -o zztpc98.zip -p build.properties
 -a fpc-x86_64-win64-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -o zztwin64.zip -p build.properties
+-a fpc-x86_64-linux-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -o zztlin64.zip -p build.properties
