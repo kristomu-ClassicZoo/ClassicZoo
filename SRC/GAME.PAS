@@ -136,7 +136,7 @@ DebugWnd,
 {$IFDEF ZETAEMU}
 ZetaSupp,
 {$ENDIF}
-Dos, FileSel, FileSys, GameConf, ExtMem, ZVideo, Sounds, TimerSys, Input, Elements, Editor, Oop;
+Dos, FileSel, FileSys, GameConf, ExtMem, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop;
 
 function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
 	begin
@@ -204,6 +204,33 @@ procedure AdvancePointer(var address: pointer; count: integer);
 {$ENDIF}
 {$ENDIF}
 
+{$IFDEF ENDIAN_BIG}
+procedure WorldInfoSwapEndian;
+	begin
+		World.Info.Ammo := SwapEndian(World.Info.Ammo);
+		World.Info.Gems := SwapEndian(World.Info.Gems);
+		World.Info.Health := SwapEndian(World.Info.Health);
+		World.Info.CurrentBoard := SwapEndian(World.Info.CurrentBoard);
+		World.Info.Torches := SwapEndian(World.Info.Torches);
+		World.Info.TorchTicks := SwapEndian(World.Info.TorchTicks);
+		World.Info.EnergizerTicks := SwapEndian(World.Info.EnergizerTicks);
+		World.Info.Score := SwapEndian(World.Info.Score);
+		World.Info.BoardTimeSec := SwapEndian(World.Info.BoardTimeSec);
+		World.Info.BoardTimeHsec := SwapEndian(World.Info.BoardTimeHsec);
+	end;
+
+procedure StatSwapEndian(var stat: TStat);
+	begin
+		stat.StepX := SwapEndian(stat.StepX);
+		stat.StepY := SwapEndian(stat.StepY);
+		stat.Cycle := SwapEndian(stat.Cycle);
+		stat.Follower := SwapEndian(stat.Follower);
+		stat.Leader := SwapEndian(stat.Leader);
+		stat.DataPos := SwapEndian(stat.DataPos);
+		stat.DataLen := SwapEndian(stat.DataLen);
+	end;
+{$ENDIF}
+
 procedure BoardClose;
 	var
 		ix, iy: integer;
@@ -252,11 +279,19 @@ procedure BoardClose;
 			end;
 		until iy > BOARD_HEIGHT;
 
+{$IFDEF ENDIAN_BIG}
+		Board.Info.TimeLimitSec := NtoLE(Board.Info.TimeLimitSec);
+		Board.StatCount := NtoLE(Board.StatCount);
+{$ENDIF}
 		Move(Board.Info, ptr^, SizeOf(Board.Info));
 		AdvancePointer(ptr, SizeOf(Board.Info));
 
 		Move(Board.StatCount, ptr^, SizeOf(Board.StatCount));
 		AdvancePointer(ptr, SizeOf(Board.StatCount));
+{$IFDEF ENDIAN_BIG}
+		Board.Info.TimeLimitSec := LEtoN(Board.Info.TimeLimitSec);
+		Board.StatCount := LEtoN(Board.StatCount);
+{$ENDIF}
 
 		{ We will always have enough size to store the above in the default IoTmpBuf. }
 		{ From here, do size estimation. }
@@ -283,8 +318,10 @@ procedure BoardClose;
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
+				{$IFDEF ENDIAN_BIG} StatSwapEndian(Board.Stats[ix]); {$ENDIF}
 				Move(Board.Stats[ix], ptr^, STAT_SIZE_BYTES);
 				AdvancePointer(ptr, STAT_SIZE_BYTES);
+				{$IFDEF ENDIAN_BIG} StatSwapEndian(Board.Stats[ix]); {$ENDIF}
 				if DataLen > 0 then begin
 					Move(Data^, ptr^, DataLen);
 					FreeMem(Data, DataLen);
@@ -372,15 +409,22 @@ procedure BoardOpen(boardId: integer);
 
 		Move(ptr^, Board.Info, SizeOf(Board.Info));
 		AdvancePointer(ptr, SizeOf(Board.Info));
+{$IFDEF ENDIAN_BIG}
+		Board.Info.TimeLimitSec := LEtoN(Board.Info.TimeLimitSec);
+{$ENDIF}
 
 		Move(ptr^, Board.StatCount, SizeOf(Board.StatCount));
 		AdvancePointer(ptr, SizeOf(Board.StatCount));
+{$IFDEF ENDIAN_BIG}
+		Board.StatCount := LEtoN(Board.StatCount);
+{$ENDIF}
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
 				Move(ptr^, Board.Stats[ix], STAT_SIZE_BYTES);
 				AdvancePointer(ptr, STAT_SIZE_BYTES);
 				{$IFDEF FPC} Data := Nil; {$ENDIF}
+				{$IFDEF ENDIAN_BIG} StatSwapEndian(Board.Stats[ix]); {$ENDIF}
 				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
@@ -487,6 +531,7 @@ procedure TransitionDrawToFill(chr: char; color: integer);
 		seed: word;
 		tx, ty: byte;
 	begin
+		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		seed := LFSR11_START;
 		repeat
 			if (tx < 60) and (ty < 25) then
@@ -495,6 +540,8 @@ procedure TransitionDrawToFill(chr: char; color: integer);
 
 		if (tx < 60) and (ty < 25) then
 			VideoWriteText(tx, ty, color, chr);
+
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 	end;
 
 procedure BoardDrawTile(x, y: integer);
@@ -565,6 +612,7 @@ procedure TransitionDrawToBoard;
 		seed: word;
 		tx, ty: byte;
 	begin
+		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		BoardDrawBorder;
 
 		seed := LFSR11_START;
@@ -573,9 +621,9 @@ procedure TransitionDrawToBoard;
 				BoardDrawTile(tx+1, ty+1);
 		until LFSR11UpdateSeed(seed, tx, ty);
 
-
 		if (tx < 60) and (ty < 25) then
 			BoardDrawTile(tx+1, ty+1);
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 	end;
 
 procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TString50; var value: byte);
@@ -939,6 +987,9 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 				ptr := IoTmpBuf;
 				Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
 				AdvancePointer(ptr, SizeOf(World.BoardCount));
+{$IFDEF ENDIAN_BIG}
+				World.BoardCount := LEtoN(World.BoardCount);
+{$ENDIF}
 
 				if World.BoardCount < 0 then begin
 					if World.BoardCount <> -1 then begin
@@ -948,6 +999,9 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 					end else begin
 						Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
 						AdvancePointer(ptr, SizeOf(World.BoardCount));
+{$IFDEF ENDIAN_BIG}
+						World.BoardCount := LEtoN(World.BoardCount);
+{$ENDIF}
 					end;
 				end;
 
@@ -959,6 +1013,7 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));
+				{$IFDEF ENDIAN_BIG} WorldInfoSwapEndian; {$ENDIF}
 
 				if titleOnly then begin
 					World.BoardCount := 0;
@@ -969,6 +1024,9 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 				for boardId := 0 to World.BoardCount do begin
 					SidebarAnimateLoading(loadProgress);
 					BlockRead(f, WorldExt.BoardLen[boardId], 2);
+{$IFDEF ENDIAN_BIG}
+					WorldExt.BoardLen[boardId] := LEtoN(WorldExt.BoardLen[boardId]);
+{$ENDIF}
 
 					{ Try to un-corrupt Super Locked worlds. }
 					if (boardId = World.BoardCount) and (WorldExt.BoardLen[boardId] <= 51) then begin
@@ -1035,14 +1093,20 @@ procedure WorldSave(filename, extension: TString50);
 			Move(World.BoardCount, ptr^, SizeOf(World.BoardCount));
 			AdvancePointer(ptr, SizeOf(World.BoardCount));
 
+			{$IFDEF ENDIAN_BIG} WorldInfoSwapEndian; {$ENDIF}
 			Move(World.Info, ptr^, SizeOf(World.Info));
+			{$IFDEF ENDIAN_BIG} WorldInfoSwapEndian; {$ENDIF}
 			AdvancePointer(ptr, SizeOf(World.Info));
 
 			BlockWrite(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE);
 			if DisplayIOError then goto OnError;
 
 			for i := 0 to World.BoardCount do begin
+{$IFDEF ENDIAN_BIG}
+				BlockWrite(f, SwapEndian(WorldExt.BoardLen[i]), 2);
+{$ELSE}
 				BlockWrite(f, WorldExt.BoardLen[i], 2);
+{$ENDIF}
 				if DisplayIOError then goto OnError;
 
 				ExtMemRead(WorldExt.BoardData[i], IoTmpBuf^, WorldExt.BoardLen[i]);
@@ -1453,6 +1517,7 @@ procedure GameUpdateSidebar;
 		numStr: string[8];
 		i: integer;
 	begin
+		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		if GameStateElement = E_PLAYER then begin
 			if Board.Info.TimeLimitSec > 0 then begin
 				VideoWriteText(64, 6, $1E, '   Time:');
@@ -1516,6 +1581,7 @@ procedure GameUpdateSidebar;
 			end;
 {$ENDIF}
 		end;
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 	end;
 
 procedure DisplayMessage(time: integer; message: string);
@@ -1990,6 +2056,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 		pausedElement: byte;
 	procedure GameDrawSidebar;
 		begin
+			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 			SidebarClear;
 			SidebarClearLine(0);
 			SidebarClearLine(1);
@@ -2045,7 +2112,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(65, 16, $1F, ' Options/About');
 				VideoWriteText(62, 17, $70, ' H ');
 				VideoWriteText(65, 17, $1E, ' High Scores');
-
 {$IFDEF EDITOR}
 				if EditorEnabled then begin
 					VideoWriteText(62, 18, $30, ' E ');
@@ -2053,6 +2119,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				end;
 {$ENDIF}
 			end;
+			{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 		end;
 	begin
 		GameDrawSidebar;

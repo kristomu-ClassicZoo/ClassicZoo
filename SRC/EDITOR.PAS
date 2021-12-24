@@ -24,9 +24,6 @@
 
 {$I-}
 {$V-}
-{$IFDEF FPC}
-{$PACKRECORDS 1}
-{$ENDIF}
 
 unit Editor;
 
@@ -51,7 +48,7 @@ interface
 		windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 
 implementation
-uses Dos, FileSel, FileSys, ExtMem, GameConf, ZVideo, Sounds, TimerSys, Input, Elements, Oop, Game;
+uses Dos, FileSel, FileSys, ExtMem, GameConf, ZVideo, Sounds, TimerSys, ZInput, Elements, Oop, Game;
 
 type
 	TBoardShiftMode = (BoardShiftDelete);
@@ -365,6 +362,7 @@ procedure EditorLoop;
 			i: integer;
 			copiedChr: byte;
 		begin
+			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 			SidebarClear;
 			SidebarClearLine(1);
 			VideoWriteText(61, 0, $1F, '     - - - -       ');
@@ -411,6 +409,7 @@ procedure EditorLoop;
 			EditorUpdateCursorPattern;
 
 			EditorUpdateDrawMode;
+			{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 		end;
 
 	procedure EditorDrawTileAndNeighborsAt(x, y: integer);
@@ -938,6 +937,9 @@ procedure EditorLoop;
 						BoardClose;
 						ExtMemFree(WorldExt.BoardData[World.Info.CurrentBoard], WorldExt.BoardLen[World.Info.CurrentBoard]);
 						BlockRead(f, WorldExt.BoardLen[World.Info.CurrentBoard], 2);
+{$IFDEF ENDIAN_BIG}
+						WorldExt.BoardLen[World.Info.CurrentBoard] := LEtoN(WorldExt.BoardLen[World.Info.CurrentBoard]);
+{$ENDIF}
 						if not DisplayIOError then begin
 							case EnsureIoTmpBufSize(WorldExt.BoardLen[World.Info.CurrentBoard]) of
 								2: memoryError := true;
@@ -980,7 +982,11 @@ procedure EditorLoop;
 								end;
 
 								BoardClose;
+{$IFDEF ENDIAN_BIG}
+								BlockWrite(f, NtoLE(WorldExt.BoardLen[World.Info.CurrentBoard]), 2);
+{$ELSE}
 								BlockWrite(f, WorldExt.BoardLen[World.Info.CurrentBoard], 2);
+{$ENDIF}
 								ExtMemRead(WorldExt.BoardData[World.Info.CurrentBoard], IoTmpBuf^,
 									WorldExt.BoardLen[World.Info.CurrentBoard]);
 								BlockWrite(f, IoTmpBuf^,
@@ -1565,6 +1571,7 @@ procedure EditorLoop;
 						EditorUpdateDrawMode;
 					end;
 					KEY_F5: begin
+						{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 						VideoWriteText(cursorX - 1, cursorY - 1, $0F, #197);
 						for i := 3 to 20 do
 							SidebarClearLine(i);
@@ -1599,6 +1606,7 @@ procedure EditorLoop;
 						VideoWriteText(61, 13, $70, ' A ');
 						VideoWriteText(65, 13, $1F, 'Star');
 						VideoWriteText(78, 13, cursorColor, '/');
+						{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 
 						InputReadWaitKey;
 						case UpCase(InputKeyPressed) of
@@ -1627,6 +1635,7 @@ procedure EditorLoop;
 						EditorDrawSidebar;
 					end;
 					KEY_F1, KEY_F2, KEY_F3: begin
+						{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 						VideoWriteText(cursorX - 1, cursorY - 1, $0F, #197);
 						for i := 3 to 20 do
 							SidebarClearLine(i);
@@ -1651,6 +1660,7 @@ procedure EditorLoop;
 								Inc(i);
 							end;
 						end;
+						{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 						InputReadWaitKey;
 						for iElem := 1 to MAX_ELEMENT do begin
 							if (ElementDefs[iElem].EditorCategory = selectedCategory)

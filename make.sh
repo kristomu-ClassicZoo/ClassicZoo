@@ -43,6 +43,9 @@ while getopts "a:d:e:o:p:rg" opt; do
 		i8086)
 			FPC_BINARY=ppcross8086
 			;;
+		m68k)
+			FPC_BINARY=ppcross68k
+			;;
 		i386)
 #			FPC_BINARY=ppc386
 #			if [ ! -x "$(command -v $FPC_BINARY)" ]; then
@@ -142,7 +145,7 @@ fi
 
 FPC_BINARY_PATH="$FPC_PATH"
 if [ -x "$(command -v $FPC_BINARY)" ]; then
-	FPC_BINARY_PATH=$(realpath $(dirname $(command -v fpc))/..)
+	FPC_BINARY_PATH=$(realpath $(dirname $(command -v $FPC_BINARY))/..)
 fi
 
 sed -i -e 's#%COMPARGS%#'"$TPC_ARGS"'#g' "$TEMP_PATH"/BUILD.BAT
@@ -170,6 +173,7 @@ if [ -n "$FREE_PASCAL" ]; then
 
 	cd SYSTEM
 	touch ../SRC/fpc.cfg
+	echo '-FuBASIC' >> ../SRC/fpc.cfg
 	if [ -f fpc."$ARCH"."$PLATFORM"."$PLATFORM_UNIT_LOWER".cfg ]; then
 		cat fpc."$ARCH"."$PLATFORM"."$PLATFORM_UNIT_LOWER".cfg >> ../SRC/fpc.cfg
 	elif [ -f fpc."$ARCH"."$PLATFORM".any.cfg ]; then

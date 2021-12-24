@@ -40,7 +40,8 @@ Pc98,
 Crt,
 {$ENDIF}
 {$ENDIF}
-Dos, ExtMem, FileSys, ZVideo, Keys, Sounds, Input, TxtWind, GameConf, GameVars, Elements, Editor, Oop, Game;
+Dos, ExtMem, FileSys, ZVideo, Keys, Sounds, ZInput, TxtWind,
+GameConf, GameVars, Elements, Editor, Oop, Game;
 
 procedure ParseArguments;
 	var

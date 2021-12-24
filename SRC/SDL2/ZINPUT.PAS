@@ -23,7 +23,7 @@
 	SOFTWARE.
 }
 
-unit Input;
+unit ZInput;
 
 interface
 	const

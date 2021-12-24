@@ -107,9 +107,9 @@ interface
 
 implementation
 {$IFDEF PRINTTXT}
-uses Sounds, TimerSys, FileSys, Input, Keys, Printer, FileSel, Game;
+uses Sounds, TimerSys, FileSys, ZInput, Keys, Printer, FileSel, Game;
 {$ELSE}
-uses Sounds, TimerSys, FileSys, Input, Keys, FileSel, Game;
+uses Sounds, TimerSys, FileSys, ZInput, Keys, FileSel, Game;
 {$ENDIF}
 type
 	TTextWindowLineBuffer = array[1 .. MAX_TEXT_WINDOW_LINES] of PTTextWindowLine;
@@ -259,10 +259,12 @@ procedure TextWindowDraw(var state: TTextWindowState; withoutFormatting, viewing
 		i: integer;
 		unk1: integer;
 	begin
+		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		for i := 0 to (TextWindowHeight - 4) do
 			TextWindowDrawLine(state, state.LinePos - (TextWindowHeight shr 1) + i + 2,
 				withoutFormatting, viewingFile);
 		TextWindowDrawTitle($1E, state.Title);
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 	end;
 
 procedure TextWindowAppend(var state: TTextWindowState; line: TTextWindowLine);
@@ -922,8 +924,13 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 			if ResourceDataHeader.EntryCount = 0 then begin
 				AssignFSys(f, ResourceDataFileName);
 				Reset(f, 1);
-				if IOResult = 0 then
+				if IOResult = 0 then begin
 					BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
+{$IFDEF ENDIAN_BIG}
+					ResourceDataHeader.Version := LEtoN(ResourceDataHeader.Version);
+					ResourceDataHeader.EntryCount := LEtoN(ResourceDataHeader.EntryCount);
+{$ENDIF}
+				end;
 				if (IOResult <> 0) or (ResourceDataHeader.Version <> -2) then
 					ResourceDataHeader.EntryCount := -1;
 				Close(f);
