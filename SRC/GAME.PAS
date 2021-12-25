@@ -1690,7 +1690,6 @@ procedure GameUpdateSidebar;
 		numStr: string[8];
 		i: integer;
 	begin
-		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		if GameStateElement = E_PLAYER then begin
 			if Board.Info.TimeLimitSec > 0 then begin
 				VideoWriteText(64, 6, $1E, '   Time:');
@@ -1761,7 +1760,6 @@ procedure GameUpdateSidebar;
 			end;
 {$ENDIF}
 		end;
-		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 	end;
 
 procedure DisplayMessage(time: integer; message: string);
@@ -2240,7 +2238,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 		pausedElement: byte;
 	procedure GameDrawSidebar;
 		begin
-			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 			SidebarClear;
 			SidebarClearLine(0);
 			SidebarClearLine(1);
@@ -2328,9 +2325,9 @@ procedure GamePlayLoop(boardChanged: boolean);
 {$ENDIF}
 {$ENDIF}
 			end;
-			{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 		end;
 	begin
+		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		GameDrawSidebar;
 		GameUpdateSidebar;
 
@@ -2340,6 +2337,9 @@ procedure GamePlayLoop(boardChanged: boolean);
 			JustStarted := false;
 		end;
 {$ENDIF}
+
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
+		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := GameStateElement;
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[GameStateElement].Color;
@@ -2357,9 +2357,11 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 		DemoReseedCurrentTick;
 		CurrentStatTicked := Board.StatCount + 1;
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 
 		repeat
 			if GamePaused then begin
+				{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 				if SoundHasTimeElapsed(TickTimeCounter, 25) then
 					pauseBlink := not pauseBlink;
 
@@ -2422,6 +2424,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 					World.Info.IsSave := true;
 				end;
 
+				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 			end else begin { not GamePaused }
 				if CurrentStatTicked <= Board.StatCount then begin
 					with Board.Stats[CurrentStatTicked] do begin
@@ -2439,6 +2442,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end;
 
 			if ((CurrentStatTicked > Board.StatCount)) and not GamePlayExitRequested then begin
+				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 				{ all stats ticked }
 				{ TODO: Having DemoFastForward here is a bit of a hack. }
 				if DemoFastForward or DemoSoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
@@ -2447,6 +2451,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 					if CurrentTick > 420 then
 						CurrentTick := 1;
 					CurrentStatTicked := 0;
+					{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 
 					DemoInputUpdate(((TickTimeDuration shl 1) + 10) div 11, true);
 					if DemoIsPlaying then GameDemoUpdateSidebar;
@@ -2477,8 +2482,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end;
 		until GamePlayExitRequested;
 
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 		DemoStop(false);
-
 		SoundClearQueue;
 
 		if GameStateElement = E_PLAYER then begin

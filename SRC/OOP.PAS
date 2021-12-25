@@ -40,7 +40,7 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-ZxtMgr, Sounds, TxtWind, Game, Elements, ZMath;
+ZxtMgr, Sounds, TxtWind, Game, Elements, ZVideo, ZMath;
 
 procedure OopError(statId: integer; message: string);
 	begin
@@ -1040,6 +1040,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 				TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT);
 				TextWindowDrawClose(textWindow);
 				TextWindowFree(textWindow);
+				{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 
 				if Length(textWindow.Hyperlink) <> 0 then
 					if OopSend(statId, textWindow.Hyperlink, false) then

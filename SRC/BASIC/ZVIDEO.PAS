@@ -60,15 +60,24 @@ interface
 implementation
 uses Dos, Video, Keyboard, Mouse, SysUtils, TimerSys;
 
+var
+	VSULocked: boolean;
+
 procedure VideoLockScreenUpdate;
 	begin
-		LockScreenUpdate;
+		if not VSULocked then begin
+			VSULocked := true;
+			LockScreenUpdate;
+		end;
 	end;
 
 procedure VideoUnlockScreenUpdate;
 	begin
-		UnlockScreenUpdate;
-		UpdateScreen(false);
+		if VSULocked then begin
+			UnlockScreenUpdate;
+			UpdateScreen(false);
+			VSULocked := false;
+		end;
 	end;
 
 function ColorToBW(color: byte): byte;
@@ -207,6 +216,7 @@ initialization
 	VideoForceSafe := false;
 	VideoMDAInstalled := false;
 	VideoVGAInstalled := false;
+	VSULocked := false;
 finalization
 	DoneKeyboard;
 	DoneMouse;
