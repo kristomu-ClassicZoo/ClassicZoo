@@ -56,30 +56,32 @@ var
 {$I SNDFREQ.INC}
 	DELAY_LOOP_MAX_ITERATIONS = $7FFFFFFF;
 
-{$IFNDEF FPC}
 var
 	DelayLoopIterations: longint;
 
 function AccurateDelayLoop(iterations: longint; var monitor: word): longint;
+	label ADLoop;
+	label ADDone;
 	begin
-		inline(
-			$8B/$BE/monitor/ { MOV DI, SS:[monitor] }
-			$8B/$86/monitor+2/ { MOV AX, SS:[monitor+2] }
-			$8E/$C0/ { MOV ES, AX }
-			$8B/$86/iterations/ { MOV AX, SS:[iterations] }
-			$8B/$96/iterations+2/ { MOV DX, SS:[iterations+2] }
-			$8B/$1D/ { MOV BX, [ES:DI] }
-		{ loop: }
-			$90/$90/ { NOP x 2 }
-			$83/$E8/$01/ { SUB AX, 1 }
-			$83/$DA/$00/ { SBB DX, 0 }
-			$72/$04/ { JC done }
-			$3B/$1D/ { CMP BX, [ES:DI] }
-			$74/$F2/ { JE loop }
-		{ done: }
-			$89/$86/AccurateDelayLoop/ { MOV AX, SS:[AccurateDelayLoop] }
-			$89/$96/AccurateDelayLoop+2 { MOV DX, SS:[AccurateDelayLoop+2] }
-		);
+		asm
+			MOV DI, SS:[monitor]
+			MOV AX, SS:[monitor+2]
+			MOV ES, AX
+			MOV AX, SS:[iterations]
+			MOV DX, SS:[iterations+2]
+			MOV BX, [ES:DI]
+		ADLoop:
+			NOP
+			NOP
+			SUB AX, 1
+			SBB DX, 0
+			JC ADDone
+			CMP BX, [ES:DI]
+			JE ADLoop
+		ADDone:
+			MOV SS:[AccurateDelayLoop], AX
+			MOV SS:[AccurateDelayLoop+2], DX
+		end;
 	end;
 
 procedure AccurateDelayCalibrate;
@@ -103,19 +105,6 @@ procedure AccurateDelay(ms: word);
 		if iterations <> 0 then
 			iterations := AccurateDelayLoop(iterations, unchanged);
 	end;
-{$ELSE}
-procedure AccurateDelayCalibrate;
-	begin
-		{ I'm not sure if Free Pascal lets you do this, though. }
-	end;
-
-procedure AccurateDelay(ms: word);
-	begin
-		{ Free Pascal contains properly calibrated delay logic. }
-		if DemoFastForward then exit;
-		Delay(ms);
-	end;
-{$ENDIF}
 
 procedure SoundUpdateFreqDivisor;
 	begin
@@ -217,30 +206,16 @@ procedure TimerSysInstall;
 		SetIntVec($07, SoundOldVector);
 
 		{ configure timing }
-	{$IFNDEF FPC}
-		inline($FA); { CLI }
-	{$ELSE}
-		asm
-			cli
-		end;
-	{$ENDIF}
+		asm cli end;
 		Port[$77] := $36;
 		SoundUpdateFreqDivisor;
 		Port[$02] := (Port[$02] and $FE);
-	{$IFNDEF FPC}
-		inline($FB); { STI }
-	{$ELSE}
-		asm
-			sti
-		end;
-	{$ENDIF}
+		asm sti end;
 
 		NoSound;
 
-{$IFNDEF FPC}
 		DelayLoopIterations := 0;
 		AccurateDelayCalibrate;
-{$ENDIF}
 	end;
 
 procedure TimerSysUninstall;

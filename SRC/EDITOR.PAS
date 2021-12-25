@@ -752,24 +752,12 @@ procedure EditorLoop;
 				i := 0;
 				for iLine := 1 to state.LineCount do begin
 					for iChar := 1 to Length(state.Lines[iLine]^) do begin
-						{$IFNDEF FPC}
-						{ On Turbo Pascal, the array pointer is actually }
-						{ a poiter to a string. }
-						Data^[i] := state.Lines[iLine]^[iChar];
-						{$ELSE}
 						Data[i] := state.Lines[iLine]^[iChar];
-						{$ENDIF}
 						Inc(i);
 					end;
 
 
-					{$IFNDEF FPC}
-					{ On Turbo Pascal, the array pointer is actually }
-					{ a poiter to a string. }
-					Data^[i] := #13;
-					{$ELSE}
 					Data[i] := #13;
-					{$ENDIF}
 					Inc(i);
 				end;
 

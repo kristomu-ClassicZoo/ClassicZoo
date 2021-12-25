@@ -23,9 +23,7 @@
 	SOFTWARE.
 }
 
-{$IFDEF FPC}
 {$PACKRECORDS 1}
-{$ENDIF}
 
 unit GameVars;
 
@@ -119,12 +117,7 @@ interface
 			{ Workaround for 64-bit CPUs, which have 8-byte pointers. }
 			UnusedData: longint;
 			{$ELSE}
-			{$IFNDEF FPC}
-			Data: ^string;
-			{$ELSE}
-			{ Free Pascal allows pointers to act as arrays. }
 			Data: ^char;
-			{$ENDIF}
 			{$ENDIF}
 			DataPos: integer;
 			DataLen: integer;

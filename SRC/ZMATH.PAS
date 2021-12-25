@@ -32,18 +32,11 @@ interface
 
 implementation
 
-{$IFDEF FPC}
 function ZRandom(max: integer): integer;
 	begin
 		RandSeed := (LongInt(RandSeed) * 134775813) + 1;
 		ZRandom := (LongInt(RandSeed) shr 16) mod max;
 	end;
-{$ELSE}
-function ZRandom(max: integer): integer;
-	begin
-		ZRandom := Random(max);
-	end;
-{$ENDIF}
 
 function Signum(val: integer): integer;
 	begin

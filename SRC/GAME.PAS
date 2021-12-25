@@ -37,19 +37,7 @@ interface
 	procedure SidebarClearLine(y: integer);
 	procedure SidebarClear;
 	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
-{$IFNDEF FPC}
-{$IFDEF CPU86}
 	procedure AdvancePointer(var address: pointer; count: integer);
-		inline(
-			$58/$5F/$07/ { POP AX, DI, ES }
-			$26/$01/$05 { ADD ES:[DI], AX }
-		);
-{$ELSE}
-	procedure AdvancePointer(var address: pointer; count: integer);
-{$ENDIF}
-{$ELSE}
-	procedure AdvancePointer(var address: pointer; count: integer);
-{$ENDIF}
 	procedure BoardClose;
 	procedure BoardOpen(boardId: integer);
 	procedure BoardChange(boardId: integer);
@@ -191,19 +179,10 @@ function EnsureIoTmpBufSize(newSize: word): integer;
 	end;
 
 
-{$IFDEF FPC}
 procedure AdvancePointer(var address: pointer; count: integer);
 	begin
 		Inc(address, count);
 	end;
-{$ELSE}
-{$IFNDEF CPU86}
-procedure AdvancePointer(var address: pointer; count: integer);
-	begin
-		address := Ptr(Seg(address^), Ofs(address^) + count);
-	end;
-{$ENDIF}
-{$ENDIF}
 
 {$IFDEF ENDIAN_BIG}
 procedure WorldInfoSwapEndian;
@@ -424,7 +403,7 @@ procedure BoardOpen(boardId: integer);
 			with Board.Stats[ix] do begin
 				Move(ptr^, Board.Stats[ix], STAT_SIZE_BYTES);
 				AdvancePointer(ptr, STAT_SIZE_BYTES);
-				{$IFDEF FPC} Data := Nil; {$ENDIF}
+				Data := Nil;
 				{$IFDEF ENDIAN_BIG} StatSwapEndian(Board.Stats[ix]); {$ENDIF}
 				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
@@ -1344,13 +1323,7 @@ procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState)
 			dataStrLen := 0;
 
 			for i := 0 to (DataLen - 1) do begin
-				{$IFNDEF FPC}
-				{ On Turbo Pascal, the array pointer is actually }
-				{ a poiter to a string. }
-				dataChr := Data^[i];
-				{$ELSE}
 				dataChr := Data[i];
-				{$ENDIF}
 				if dataChr = KEY_ENTER then begin
 					dataStr[0] := Chr(dataStrLen);
 					TextWindowAppendEdit(state, dataStr);
@@ -1383,7 +1356,7 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 
 			if (template.Data <> nil) and (template.DataLen > 0) then begin
 				with Board.Stats[Board.StatCount] do begin
-					{$IFDEF FPC} Data := Nil; {$ENDIF}
+					Data := Nil;
 					GetMem(Data, template.DataLen);
 					Move(template.Data^, Data^, template.DataLen);
 				end;
@@ -1460,45 +1433,6 @@ procedure RemoveStat(statId: integer);
 
 {$IFDEF CPU86}
 { GetStatIdAt - hand-rolled ASM version }
-{$IFNDEF FPC}
-function GetStatIdAt(tx, ty: integer): integer;
-	var
-		sc: integer;
-		st: word;
-	begin
-		{ Work around TP 5.5 flaw }
-		sc := Board.StatCount;
-		st := Ofs(Board.Stats);
-
-		inline(
-			$8B/$46/<tx/ { MOV AX, tx }
-			$0B/$46/<ty/ { OR AX, ty }
-			$25/$00/$FF/ { AND AX, 0xFF00 }
-			$74/$02/ { JZ func_valid_range }
-			$EB/$1E/ { JMP func_notfound }
-			{ func_valid_range: }
-			$8B/$5E/<ty/ { MOV BX, ty }
-			$B1/$08/ { MOV CL, 0x8 }
-			$D3/$E3/ { SHL BX, CL }
-			$0B/$5E/<tx/ { OR BX, tx }
-			$8B/$7E/<st/ { MOV DI, Board.Stats }
-			$8B/$4E/<sc/ { MOV CX, [Board.StatCount] }
-			$31/$C0/ { XOR AX, AX }
-			{ func_loop: }
-			$39/$1D/ { CMP [DI], BX }
-			$74/$0B/ { JZ func_exit }
-			$83/$C7/SizeOf(TStat)/ { ADD DI, SizeOf(TStat) }
-			$40/ { INC AX }
-			$39/$C8/ { CMP AX, CX }
-			$7E/$F4/ { JLE func_loop }
-			{ func_notfound: }
-			$B8/$FF/$FF/ { MOV AX, 0xFFFF }
-			{ func_finish: }
-			{ Another TP 5.5 workaround... }
-			$89/$46/$FE { MOV [return value], AX }
-		);
-	end;
-{$ELSE}
 function GetStatIdAt(tx, ty: integer): integer;
 	assembler;
 	label func_valid_range;
@@ -1530,8 +1464,6 @@ function GetStatIdAt(tx, ty: integer): integer;
 		mov ax, 0FFFFh
 	func_finish:
 	end ['ax', 'bx', 'cx', 'di'];
-{$ENDIF}
-
 {$ELSE}
 function GetStatIdAt(tx, ty: integer): integer;
 	var

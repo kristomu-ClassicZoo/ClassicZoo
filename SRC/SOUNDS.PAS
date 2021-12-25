@@ -214,12 +214,7 @@ function SoundParse(input: string): string;
 
 					Inc(inPos);
 				end;
-{$IFNDEF FPC}
-				'0'..'9': begin
-{$ELSE}
-				{ FPC does not like overlapping case labels. }
 				'0'..'2','4'..'9': begin
-{$ENDIF}
 					Inc(outPos);
 					output[outPos] := Chr(Ord(input[inPos]) + $F0 - Ord('0'));
 					if outPos = 255 then goto SoundParseFinish;

@@ -62,13 +62,7 @@ procedure OopReadChar(statId: integer; var position: integer);
 	begin
 		with Board.Stats[statId] do begin
 			if (position >= 0) and (position < DataLen) then begin
-				{$IFNDEF FPC}
-				{ On Turbo Pascal, the array pointer is actually }
-				{ a poiter to a string. }
-				OopChar := Data^[position];
-				{$ELSE}
 				OopChar := Data[position];
-				{$ENDIF}
 				Inc(position);
 			end else begin
 				OopChar := #0
@@ -322,13 +316,7 @@ function OopFindString(statId: integer; startPos: integer; s: string): integer;
 				wordPos := 1;
 				cmpPos := pos;
 				repeat
-					{$IFNDEF FPC}
-					{ On Turbo Pascal, the array pointer is actually }
-					{ a poiter to a string. }
-					OopChar := Data^[cmpPos];
-					{$ELSE}
 					OopChar := Data[cmpPos];
-					{$ENDIF}
 					if s[wordPos] <> UpCase(OopChar) then
 						goto NoMatch;
 					Inc(wordPos);

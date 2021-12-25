@@ -37,24 +37,6 @@ interface
 	function GameConfigSave: boolean;
 	procedure GameAboutScreen;
 	procedure GameOptionsScreen;
-{$IFNDEF FPC}
-	function ConfigCustomActionNone: boolean;
-	function ConfigCompatibilityGetValue: integer;
-	procedure ConfigCompatibilitySetValue(value: integer);
-	function ConfigCompatibilityShowValue: string;
-	function ConfigEdAutoAppendGetValue: integer;
-	procedure ConfigEdAutoAppendSetValue(value: integer);
-	function ConfigEdAutoAppendShowValue: string;
-	function ConfigVidColorGetValue: integer;
-	procedure ConfigVidColorSetValue(value: integer);
-	function ConfigVidColorShowValue: string;
-	function ConfigInputGetValue: integer;
-	procedure ConfigInputSetValue(value: integer);
-	function ConfigInputShowValue: string;
-	function ConfigSoundGetValue: integer;
-	procedure ConfigSoundSetValue(value: integer);
-	function ConfigSoundShowValue: string;
-{$ENDIF}
 
 implementation
 uses

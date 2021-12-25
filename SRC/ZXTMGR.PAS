@@ -23,9 +23,8 @@
 
 {$I-}
 {$V-}
-{$IFDEF FPC}
 {$PACKRECORDS 1}
-{$ENDIF}
+
 unit ZxtMgr;
 
 interface

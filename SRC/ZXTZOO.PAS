@@ -46,11 +46,7 @@ begin
 						ZxtZZOCustomCharsetHandler := ExtResultSuccess;
 			end;
 			ExtActionUnload: begin
-{$IFDEF FPC}
 				if VideoSetCharset(Nil, 14) then
-{$ELSE}
-				if VideoSetCharset(Ptr(0, 0), 14) then
-{$ENDIF}
 					ZxtZZOCustomCharsetHandler := ExtResultSuccess;
 			end;
 		end;

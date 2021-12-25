@@ -25,9 +25,7 @@
 
 {$I-}
 {$V-}
-{$IFDEF FPC}
 {$PACKRECORDS 1}
-{$ENDIF}
 
 unit TxtWind;
 
@@ -989,11 +987,7 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 						else
 							GetMem(Lines[LineCount], lineLen + 1);
 						Lines[LineCount]^[0] := Chr(lineLen);
-						{$IFNDEF FPC}
-						line := Ptr(Seg(Lines[LineCount]^), Ofs(Lines[LineCount]^) + 1);
-						{$ELSE}
 						line := Pointer(Lines[LineCount]) + 1;
-						{$ENDIF}
 
 						if lineLen = 0 then begin
 							Lines[LineCount]^ := '';

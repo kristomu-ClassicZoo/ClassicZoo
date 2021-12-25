@@ -24,13 +24,6 @@
 }
 
 {$I-}
-{$IFNDEF FPC}
-{$IFDEF NEC98}
-{$M 24576,163840,655360}
-{$ELSE}
-{$M 20480,163840,655360}
-{$ENDIF}
-{$ENDIF}
 program ZZT;
 uses 
 {$IFDEF NEC98}
