@@ -276,7 +276,10 @@ if [ -f BUILD/ZZT.DAT ]; then
 	cp BUILD/ZZT.DAT DIST/
 fi
 cp LICENSE.TXT DIST/
-cp RES/* DIST/
+cp RES/BASIC/* DIST/
+if [ -d RES/"$PLATFORM_UNIT" ]; then
+	cp RES/"$PLATFORM_UNIT"/* DIST/
+fi
 
 cd DIST
 zip -9 -r "$RETURN_PATH"/OUTPUT/"$OUTPUT_ARCHIVE" .

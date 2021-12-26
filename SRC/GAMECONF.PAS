@@ -372,13 +372,29 @@ function ConfigSoundVolumeCustomAction: boolean;
 			AudioSetVolume(AudioGetVolume + 6);
 		ConfigSoundVolumeCustomAction := true;
 	end;
+
+function ConfigInputShowValue: string;
+	var
+		s: string;
+	begin
+		s := InputGetControllerName;
+		if Length(s) > 32 then
+			s := Copy(s, 1, 29) + '...';
+		ConfigInputShowValue := s;
+	end;
+
+function ConfigInputCustomAction: boolean;
+	begin
+		InputSwitchToNextController;
+		ConfigInputCustomAction := true;
+	end;
 {$ENDIF}
 
 const
 	ConfigEntryCount = 3
 	{$IFDEF MSDOS} + 2 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
-	{$IFDEF SDL2} + 4 {$ENDIF}
+	{$IFDEF SDL2} + 5 {$ENDIF}
 	;
 	ConfigHiddenEntryCount = 0
 {$IFDEF MSDOS}
@@ -497,6 +513,18 @@ procedure GameConfigInit;
 
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;
+			Key := 'FInpMode';
+			Name := 'Input';
+			GetValue := nil;
+			SetValue := nil;
+			ShowValue := ConfigInputShowValue;
+			CustomAction := ConfigInputCustomAction;
+		end;
+		ConfigEntryInputPos := i;
+		Inc(i);
+
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
 			Key := 'FSndVol';
 			Name := 'Volume';
 			GetValue := ConfigSoundVolumeGetValue;
@@ -578,9 +606,14 @@ function GameConfigLoad: boolean;
 					if Length(s) > 0 then begin
 						if k = 'Start' then begin
 							StartupWorldFileName := s;
+{$IFDEF SDL2}
+						end else if k = 'FInputID' then begin
+							InputSetControllerID(s);
+{$ENDIF}
 						end else begin
 							Val(s, v, code);
 							for i := 1 to ConfigEntryCount do with ConfigEntries[i] do begin
+								{$IFDEF FPC} if @SetValue = nil then continue; {$ENDIF}
 								if k = Key then
 									SetValue(v);
 							end;
@@ -611,7 +644,11 @@ function GameConfigSave: boolean;
 		if StartupWorldFilename <> '' then begin
 			WriteLn(f, 'Start=' + StartupWorldFilename);
 		end;
+{$IFDEF SDL2}
+		WriteLn(f, 'Input=' + InputGetControllerID);
+{$ENDIF} 
 		for i := 1 to ConfigEntryCount do with ConfigEntries[i] do begin
+			{$IFDEF FPC} if @GetValue = nil then continue; {$ENDIF}
 			v := GetValue;
 			Str(v, s);
 			WriteLn(f, Key + '=' + s);
