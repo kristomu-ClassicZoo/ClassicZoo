@@ -185,8 +185,8 @@ procedure CopyStatFromLocal(var ptr: pointer; var stat: TStat);
 		i: integer;
 		s: TStatPacked;
 	begin
-		s.X := NtoLE(stat.X);
-		s.Y := NtoLE(stat.Y);
+		s.X := stat.X;
+		s.Y := stat.Y;
 		s.StepX := NtoLE(stat.StepX);
 		s.StepY := NtoLE(stat.StepY);
 		s.Cycle := NtoLE(stat.Cycle);
@@ -214,8 +214,8 @@ procedure CopyStatToLocal(var ptr: pointer; var stat: TStat);
 		Move(ptr^, s, SizeOf(s));
 		AdvancePointer(ptr, SizeOf(s));
 
-		stat.X := LEtoN(s.X);
-		stat.Y := LEtoN(s.Y);
+		stat.X := s.X;
+		stat.Y := s.Y;
 		stat.StepX := LEtoN(s.StepX);
 		stat.StepY := LEtoN(s.StepY);
 		stat.Cycle := LEtoN(s.Cycle);
