@@ -343,6 +343,9 @@ interface
 		FileBoardCachedLinePos: integer;
 		FileTextCachedLinePos: integer;
 {$ENDIF}
+{$IFDEF FASTVID}
+		TransitionBlocksPerFrame: integer;
+{$ENDIF}
 	const
 		E_EMPTY = 0;
 		E_BOARD_EDGE = 1;
@@ -414,8 +417,8 @@ interface
 
 implementation
 
-begin
 {$IFDEF MEMBOUND}
+begin
 	with Board.Stats[-1] do begin
 		X := 0;
 		Y := 1;

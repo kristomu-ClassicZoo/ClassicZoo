@@ -70,7 +70,7 @@ type
 	TConfigEntry = record
 		Category: TConfigCategory;
 		Key: string[8];
-		Name: string[20];
+		Name: string[24];
 		GetValue: TConfigGetValueProc;
 		SetValue: TConfigSetValueProc;
 		ShowValue: TConfigShowValueProc;
@@ -204,6 +204,44 @@ function ConfigSoundShowValue: string;
 	end;
 {$ENDIF}
 
+{$IFDEF FASTVID}
+function ConfigTransitionBlocksPerFrameGetValue: integer;
+	begin
+		ConfigTransitionBlocksPerFrameGetValue := TransitionBlocksPerFrame;
+	end;
+
+procedure ConfigTransitionBlocksPerFrameSetValue(value: integer);
+	begin
+		if (value < 1) or (value >= (BOARD_WIDTH * BOARD_HEIGHT)) then value := 32767;
+		TransitionBlocksPerFrame := value;
+	end;
+
+function ConfigTransitionBlocksPerFrameShowValue: string;
+	begin
+		if TransitionBlocksPerFrame >= (BOARD_WIDTH * BOARD_HEIGHT) then
+			ConfigTransitionBlocksPerFrameShowValue := 'Instant'
+		else if TransitionBlocksPerFrame >= ((BOARD_WIDTH * BOARD_HEIGHT) div 10) then
+			ConfigTransitionBlocksPerFrameShowValue := 'Fast'
+		else if TransitionBlocksPerFrame >= ((BOARD_WIDTH * BOARD_HEIGHT) div 30) then
+			ConfigTransitionBlocksPerFrameShowValue := 'Medium'
+		else
+			ConfigTransitionBlocksPerFrameShowValue := 'Slow';
+	end;
+
+function ConfigTransitionBlocksPerFrameCustomAction: boolean;
+	begin
+		{ Instant -> Fast -> Medium -> Slow }
+		if TransitionBlocksPerFrame >= (BOARD_WIDTH * BOARD_HEIGHT) then
+			TransitionBlocksPerFrame := ((BOARD_WIDTH * BOARD_HEIGHT) div 10)
+		else if TransitionBlocksPerFrame >= ((BOARD_WIDTH * BOARD_HEIGHT) div 10) then
+			TransitionBlocksPerFrame := ((BOARD_WIDTH * BOARD_HEIGHT) div 30)
+		else if TransitionBlocksPerFrame >= ((BOARD_WIDTH * BOARD_HEIGHT) div 30) then
+			TransitionBlocksPerFrame := ((BOARD_WIDTH * BOARD_HEIGHT) div 90)
+		else
+			TransitionBlocksPerFrame := ((BOARD_WIDTH * BOARD_HEIGHT));
+	end;
+{$ENDIF}
+
 {$IFDEF SDL2}
 function ConfigVideoScalingGetValue: integer;
 	begin
@@ -296,6 +334,7 @@ function ConfigSoundVolumeShowValue: string;
 const
 	ConfigEntryCount = 3
 	{$IFDEF MSDOS} + 2 {$ENDIF}
+	{$IFDEF FASTVID} + 1 {$ENDIF}
 	{$IFDEF SDL2} + 4 {$ENDIF}
 	;
 	ConfigHiddenEntryCount = 0
@@ -366,6 +405,18 @@ procedure GameConfigInit;
 			CustomAction := ConfigCustomActionNone;
 		end;
 		ConfigEntryInputPos := i;
+		Inc(i);
+{$ENDIF}
+{$IFDEF FASTVID}
+		with ConfigEntries[i] do begin
+			Category := CCEngine;
+			Key := 'ETrBlkFr';
+			Name := 'Board transition speed';
+			GetValue := ConfigTransitionBlocksPerFrameGetValue;
+			SetValue := ConfigTransitionBlocksPerFrameSetValue;
+			ShowValue := ConfigTransitionBlocksPerFrameShowValue;
+			CustomAction := ConfigTransitionBlocksPerFrameCustomAction;
+		end;
 		Inc(i);
 {$ENDIF}
 {$IFDEF SDL2}

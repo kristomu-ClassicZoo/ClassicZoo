@@ -109,6 +109,9 @@ begin
 	EditorEnabled := true;
 	InputInitDevices;
 
+{$IFDEF FASTVID}
+	TransitionBlocksPerFrame := 32767;
+{$ENDIF}
 	TickSpeed := 4;
 	DebugEnabled := false;
 	HighCompat := false;

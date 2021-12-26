@@ -516,14 +516,23 @@ procedure WorldCreate;
 
 procedure TransitionDrawToFill(chr: char; color: integer);
 	var
-		seed: word;
+		i, seed: word;
 		tx, ty: byte;
 	begin
 		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		seed := LFSR11_START;
+		i := 0;
 		repeat
-			if (tx < 60) and (ty < 25) then
+			if (tx < 60) and (ty < 25) then begin
 				VideoWriteText(tx, ty, color, chr);
+{$IFDEF FASTVID}
+				Inc(i);
+				if i >= TransitionBlocksPerFrame then begin
+					SoundIdle(IMUntilFrame);
+					i := 0;
+				end;
+{$ENDIF}
+			end;
 		until LFSR11UpdateSeed(seed, tx, ty);
 
 		if (tx < 60) and (ty < 25) then
@@ -596,16 +605,25 @@ procedure BoardDrawBorder;
 
 procedure TransitionDrawToBoard;
 	var
-		seed: word;
+		i, seed: word;
 		tx, ty: byte;
 	begin
 		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		BoardDrawBorder;
 
+		i := 0;
 		seed := LFSR11_START;
 		repeat
-			if (tx < 60) and (ty < 25) then
+			if (tx < 60) and (ty < 25) then begin
 				BoardDrawTile(tx+1, ty+1);
+{$IFDEF FASTVID}
+				Inc(i);
+				if i >= TransitionBlocksPerFrame then begin
+					SoundIdle(IMUntilFrame);
+					i := 0;
+				end;
+{$ENDIF}
+			end;
 		until LFSR11UpdateSeed(seed, tx, ty);
 
 		if (tx < 60) and (ty < 25) then
