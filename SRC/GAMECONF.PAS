@@ -384,6 +384,10 @@ function ConfigFullscreenShowValue: string;
 			ConfigFullscreenShowValue := 'Fullscreen';
 	end;
 
+const
+	SoundVolumeTable: array[0 .. 10] of byte =
+		(0, 4, 8, 13, 18, 24, 31, 38, 46, 54, 64);
+
 function ConfigSoundVolumeGetValue: integer;
 	begin
 		ConfigSoundVolumeGetValue := AudioGetVolume;
@@ -400,23 +404,34 @@ function ConfigSoundVolumeShowValue: string;
 		i: integer;
 		s: string[10];
 	begin
-		i := (AudioGetVolume + 5) div 6;
-		if i > 10 then i := 10;
-		Str(i, s);
+		for i := 10 downto 0 do begin
+			if AudioGetVolume >= SoundVolumeTable[i] then
+				break;
+		end;
 
-		if AudioGetVolume > 0 then
+		if AudioGetVolume > 0 then begin
+			Str(i, s);
 			ConfigSoundVolumeShowValue := s + '0%'
-		else
+		end else begin
 			ConfigSoundVolumeShowValue := 'Off';
+		end;
 	end;
 
 function ConfigSoundVolumeCustomAction: boolean;
+	var
+		i: integer;
 	begin
-		if AudioGetVolume >= 60 then
-			AudioSetVolume(0)
-		else
-			AudioSetVolume(AudioGetVolume + 6);
 		ConfigSoundVolumeCustomAction := true;
+		if AudioGetVolume >= 64 then begin
+			AudioSetVolume(0);
+		end else begin
+			for i := 9 downto 0 do begin
+				if AudioGetVolume >= SoundVolumeTable[i] then begin
+					AudioSetVolume(SoundVolumeTable[i + 1]);
+					exit;
+				end;
+			end;
+		end;
 	end;
 
 function ConfigInputShowValue: string;
