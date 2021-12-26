@@ -62,7 +62,7 @@ uses
 Editor, Game, Sounds, ZVideo, ZInput, FileSys, TxtWind;
 
 type
-	TConfigCategory = (CCEngine, CCFrontend, CCEditor);
+	TConfigCategory = (CCEngine, CCFrontend, CCEditor, CCDebugger);
 	TConfigGetValueProc = function: integer;
 	TConfigSetValueProc = procedure(value: integer);
 	TConfigShowValueProc = function: string;
@@ -70,7 +70,7 @@ type
 	TConfigEntry = record
 		Category: TConfigCategory;
 		Key: string[8];
-		Name: string[24];
+		Name: string[25];
 		GetValue: TConfigGetValueProc;
 		SetValue: TConfigSetValueProc;
 		ShowValue: TConfigShowValueProc;
@@ -89,6 +89,15 @@ function ConfigCustomActionNone: boolean;
 	begin
 		ConfigCustomActionNone := false;
 	end;
+
+function ConfigShowOnOffValue(val: boolean): string;
+	begin
+		if val then
+			ConfigShowOnOffValue := 'On'
+		else
+			ConfigShowOnOffValue := 'Off';
+	end;
+{ }
 
 function ConfigCompatibilityGetValue: integer;
 	begin
@@ -197,10 +206,7 @@ procedure ConfigSoundSetValue(value: integer);
 
 function ConfigSoundShowValue: string;
 	begin
-		if SoundEnabled then
-			ConfigSoundShowValue := 'On'
-		else
-			ConfigSoundShowValue := 'Off';
+		ConfigSoundShowValue := ConfigShowOnOffValue(SoundEnabled);
 	end;
 {$ENDIF}
 
@@ -275,6 +281,49 @@ function ConfigTransitionTextWindowDelayCustomAction: boolean;
 	end;
 {$ENDIF}
 
+{$IFDEF DEBUGWND}
+function ConfigDebugShowValue: string;
+	begin
+		ConfigDebugShowValue := ConfigShowOnOffValue(DebugEnabled);
+	end;
+
+function ConfigDebugCustomAction: boolean;
+	begin
+		if DebugEnabled then begin
+			DebugEnabled := false;
+			DebugCompatEnabled := false;
+			DebugUndefEnabled := false;
+		end else DebugEnabled := true;
+		ConfigDebugCustomAction := true;
+	end;
+
+function ConfigDCompatShowValue: string;
+	begin
+		ConfigDCompatShowValue := ConfigShowOnOffValue(DebugCompatEnabled);
+	end;
+
+function ConfigDCompatCustomAction: boolean;
+	begin
+		if DebugEnabled then begin
+			DebugCompatEnabled := not DebugCompatEnabled;
+		end else DebugCompatEnabled := true;
+		ConfigDCompatCustomAction := true;
+	end;
+
+function ConfigDUndefShowValue: string;
+	begin
+		ConfigDUndefShowValue := ConfigShowOnOffValue(DebugUndefEnabled);
+	end;
+
+function ConfigDUndefCustomAction: boolean;
+	begin
+		if DebugEnabled then begin
+			DebugUndefEnabled := not DebugUndefEnabled;
+		end else DebugUndefEnabled := true;
+		ConfigDUndefCustomAction := true;
+	end;
+{$ENDIF}
+
 {$IFDEF SDL2}
 function ConfigVideoScalingGetValue: integer;
 	begin
@@ -313,10 +362,7 @@ procedure ConfigHQSoundSetValue(value: integer);
 
 function ConfigHQSoundShowValue: string;
 	begin
-		if AudioGetHighQuality then
-			ConfigHQSoundShowValue := 'On'
-		else
-			ConfigHQSoundShowValue := 'Off';
+		ConfigHQSoundShowValue := ConfigShowOnOffValue(AudioGetHighQuality);
 	end;
 
 function ConfigFullscreenGetValue: integer;
@@ -394,6 +440,7 @@ const
 	ConfigEntryCount = 3
 	{$IFDEF MSDOS} + 2 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
+	{$IFDEF DEBUGWND} + 3 {$ENDIF}
 	{$IFDEF SDL2} + 5 {$ENDIF}
 	;
 	ConfigHiddenEntryCount = 0
@@ -411,6 +458,15 @@ procedure GameConfigInit;
 	var
 		i: integer;
 	begin
+		for i := 1 to ConfigEntryCount do
+			with ConfigEntries[i] do begin
+				Key := '';
+{$IFDEF FPC}
+				GetValue := nil;
+				SetValue := nil;
+{$ENDIF}
+			end;
+
 		i := 1;
 
 		with ConfigEntries[i] do begin
@@ -488,6 +544,29 @@ procedure GameConfigInit;
 		end;
 		Inc(i);
 {$ENDIF}
+{$IFDEF DEBUGWND}
+		with ConfigEntries[i] do begin
+			Category := CCDebugger;
+			Name := 'Enable';
+			ShowValue := ConfigDebugShowValue;
+			CustomAction := ConfigDebugCustomAction;
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCDebugger;
+			Name := 'ZZT 3.2 compat checks';
+			ShowValue := ConfigDCompatShowValue;
+			CustomAction := ConfigDCompatCustomAction;
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCDebugger;
+			Name := 'Undefined behavior checks';
+			ShowValue := ConfigDUndefShowValue;
+			CustomAction := ConfigDUndefCustomAction;
+		end;
+		Inc(i);
+{$ENDIF}
 {$IFDEF SDL2}
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;
@@ -515,8 +594,6 @@ procedure GameConfigInit;
 			Category := CCFrontend;
 			Key := 'FInpMode';
 			Name := 'Input';
-			GetValue := nil;
-			SetValue := nil;
 			ShowValue := ConfigInputShowValue;
 			CustomAction := ConfigInputCustomAction;
 		end;
@@ -614,6 +691,7 @@ function GameConfigLoad: boolean;
 							Val(s, v, code);
 							for i := 1 to ConfigEntryCount do with ConfigEntries[i] do begin
 								{$IFDEF FPC} if @SetValue = nil then continue; {$ENDIF}
+								{$IFNDEF FPC} if Length(Key) > 0 then {$ENDIF}
 								if k = Key then
 									SetValue(v);
 							end;
@@ -648,10 +726,12 @@ function GameConfigSave: boolean;
 		WriteLn(f, 'Input=' + InputGetControllerID);
 {$ENDIF} 
 		for i := 1 to ConfigEntryCount do with ConfigEntries[i] do begin
+			{$IFNDEF FPC} if Length(Key) > 0 then begin {$ENDIF}
 			{$IFDEF FPC} if @GetValue = nil then continue; {$ENDIF}
 			v := GetValue;
 			Str(v, s);
 			WriteLn(f, Key + '=' + s);
+			{$IFNDEF FPC} end; {$ENDIF}
 		end;
 		for i := 1 to ConfigHiddenEntryCount do with ConfigHiddenEntries[i] do begin
 			v := IntPointer^;
@@ -718,6 +798,12 @@ procedure GameOptionsScreen;
 			New(state.Lines[state.LineCount]);
 			state.Lines[state.LineCount]^ := 'Editor';
 			AppendCategory(CCEditor);
+{$ENDIF}
+{$IFDEF DEBUGWND}
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := 'Debug mode';
+			AppendCategory(CCDebugger);
 {$ENDIF}
 
 			Inc(state.LineCount);

@@ -79,7 +79,7 @@ interface
 	procedure InputSetControllerID(value: string);
 	procedure InputSwitchToNextController;
 
-{$DEFINE DEBUG_INPUT_FLAGS}
+{DEFINE DEBUG_INPUT_FLAGS}
 
 implementation
 uses Classes, SysUtils, Keys, Sounds, TimerSys, ZVideo, SDL2;
