@@ -1305,7 +1305,7 @@ procedure RemoveStat(statId: integer);
 		end;
 	end;
 
-{$IFDEF CPU86}
+{$IFDEF CPU8086}
 { GetStatIdAt - hand-rolled ASM version }
 {$IFNDEF FPC}
 function GetStatIdAt(tx, ty: integer): integer;
