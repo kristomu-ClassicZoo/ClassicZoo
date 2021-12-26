@@ -120,11 +120,15 @@ const
 		Cycle: 0; P1: 0; P2: 0; P3: 0;
 		Follower: -1; Leader: -1;
                 Under: (Element: E_EMPTY; Color: $00);
+	{$IFDEF RAWSTRUCTS}
         {$IFDEF CPU64}
                 UnusedData: 0; DataPos: 0; DataLen: 0; Unused1: 0; Unused2: 0; Data: nil
         {$ELSE}
                 Data: nil; DataPos: 0; DataLen: 0
         {$ENDIF}
+	{$ELSE}
+                Data: nil; DataPos: 0; DataLen: 0
+	{$ENDIF}
 	);
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
@@ -135,6 +139,9 @@ DebugWnd,
 {$ENDIF}
 {$IFDEF ZETAEMU}
 ZetaSupp,
+{$ENDIF}
+{$IFNDEF RAWSTRUCTS}
+GameVSer,
 {$ENDIF}
 Dos, FileSel, FileSys, GameConf, ExtMem, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop;
 
@@ -204,33 +211,6 @@ procedure AdvancePointer(var address: pointer; count: integer);
 {$ENDIF}
 {$ENDIF}
 
-{$IFDEF ENDIAN_BIG}
-procedure WorldInfoSwapEndian;
-	begin
-		World.Info.Ammo := SwapEndian(World.Info.Ammo);
-		World.Info.Gems := SwapEndian(World.Info.Gems);
-		World.Info.Health := SwapEndian(World.Info.Health);
-		World.Info.CurrentBoard := SwapEndian(World.Info.CurrentBoard);
-		World.Info.Torches := SwapEndian(World.Info.Torches);
-		World.Info.TorchTicks := SwapEndian(World.Info.TorchTicks);
-		World.Info.EnergizerTicks := SwapEndian(World.Info.EnergizerTicks);
-		World.Info.Score := SwapEndian(World.Info.Score);
-		World.Info.BoardTimeSec := SwapEndian(World.Info.BoardTimeSec);
-		World.Info.BoardTimeHsec := SwapEndian(World.Info.BoardTimeHsec);
-	end;
-
-procedure StatSwapEndian(var stat: TStat);
-	begin
-		stat.StepX := SwapEndian(stat.StepX);
-		stat.StepY := SwapEndian(stat.StepY);
-		stat.Cycle := SwapEndian(stat.Cycle);
-		stat.Follower := SwapEndian(stat.Follower);
-		stat.Leader := SwapEndian(stat.Leader);
-		stat.DataPos := SwapEndian(stat.DataPos);
-		stat.DataLen := SwapEndian(stat.DataLen);
-	end;
-{$ENDIF}
-
 procedure BoardClose;
 	var
 		ix, iy: integer;
@@ -279,17 +259,19 @@ procedure BoardClose;
 			end;
 		until iy > BOARD_HEIGHT;
 
-{$IFDEF ENDIAN_BIG}
-		Board.Info.TimeLimitSec := NtoLE(Board.Info.TimeLimitSec);
-		Board.StatCount := NtoLE(Board.StatCount);
-{$ENDIF}
+{$IFDEF RAWSTRUCTS}
 		Move(Board.Info, ptr^, SizeOf(Board.Info));
 		AdvancePointer(ptr, SizeOf(Board.Info));
+{$ELSE}
+		CopyBoardInfoFromLocal(ptr);
+{$ENDIF}
 
+{$IFDEF ENDIAN_BIG}
+		Board.StatCount := NtoLE(Board.StatCount);
+{$ENDIF}
 		Move(Board.StatCount, ptr^, SizeOf(Board.StatCount));
 		AdvancePointer(ptr, SizeOf(Board.StatCount));
 {$IFDEF ENDIAN_BIG}
-		Board.Info.TimeLimitSec := LEtoN(Board.Info.TimeLimitSec);
 		Board.StatCount := LEtoN(Board.StatCount);
 {$ENDIF}
 
@@ -318,10 +300,12 @@ procedure BoardClose;
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
-				{$IFDEF ENDIAN_BIG} StatSwapEndian(Board.Stats[ix]); {$ENDIF}
+{$IFDEF RAWSTRUCTS}
 				Move(Board.Stats[ix], ptr^, STAT_SIZE_BYTES);
 				AdvancePointer(ptr, STAT_SIZE_BYTES);
-				{$IFDEF ENDIAN_BIG} StatSwapEndian(Board.Stats[ix]); {$ENDIF}
+{$ELSE}
+				CopyStatFromLocal(ptr, Board.Stats[ix]);
+{$ENDIF}
 				if DataLen > 0 then begin
 					Move(Data^, ptr^, DataLen);
 					FreeMem(Data, DataLen);
@@ -407,10 +391,11 @@ procedure BoardOpen(boardId: integer);
 			Dec(rle.Count);
 		until iy > BOARD_HEIGHT;
 
+{$IFDEF RAWSTRUCTS}
 		Move(ptr^, Board.Info, SizeOf(Board.Info));
 		AdvancePointer(ptr, SizeOf(Board.Info));
-{$IFDEF ENDIAN_BIG}
-		Board.Info.TimeLimitSec := LEtoN(Board.Info.TimeLimitSec);
+{$ELSE}
+		CopyBoardInfoToLocal(ptr);
 {$ENDIF}
 
 		Move(ptr^, Board.StatCount, SizeOf(Board.StatCount));
@@ -421,10 +406,13 @@ procedure BoardOpen(boardId: integer);
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
+{$IFDEF RAWSTRUCTS}
 				Move(ptr^, Board.Stats[ix], STAT_SIZE_BYTES);
 				AdvancePointer(ptr, STAT_SIZE_BYTES);
 				{$IFDEF FPC} Data := Nil; {$ENDIF}
-				{$IFDEF ENDIAN_BIG} StatSwapEndian(Board.Stats[ix]); {$ENDIF}
+{$ELSE}
+				CopyStatToLocal(ptr, Board.Stats[ix]);
+{$ENDIF}
 				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
@@ -1010,9 +998,12 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 					exit;
 				end;
 
+{$IFDEF RAWSTRUCTS}
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));
-				{$IFDEF ENDIAN_BIG} WorldInfoSwapEndian; {$ENDIF}
+{$ELSE}
+				CopyWorldInfoToLocal(ptr);
+{$ENDIF}
 
 				if titleOnly then begin
 					World.BoardCount := 0;
@@ -1092,10 +1083,12 @@ procedure WorldSave(filename, extension: TString50);
 			Move(World.BoardCount, ptr^, SizeOf(World.BoardCount));
 			AdvancePointer(ptr, SizeOf(World.BoardCount));
 
-			{$IFDEF ENDIAN_BIG} WorldInfoSwapEndian; {$ENDIF}
+{$IFDEF RAWSTRUCTS}
 			Move(World.Info, ptr^, SizeOf(World.Info));
-			{$IFDEF ENDIAN_BIG} WorldInfoSwapEndian; {$ENDIF}
 			AdvancePointer(ptr, SizeOf(World.Info));
+{$ELSE}
+			CopyWorldInfoFromLocal(ptr);
+{$ENDIF}
 
 			BlockWrite(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE);
 			if DisplayIOError then goto OnError;
