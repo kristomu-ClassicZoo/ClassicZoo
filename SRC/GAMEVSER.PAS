@@ -96,7 +96,7 @@ procedure CopyBoardInfoFromLocal(var ptr: pointer);
 		s.Message := Board.Info.Message;
 		s.StartPlayerX := Board.Info.StartPlayerX;
 		s.StartPlayerY := Board.Info.StartPlayerY;
-		s.TimeLimitSec := Board.Info.TimeLimitSec;
+		s.TimeLimitSec := NtoLE(Board.Info.TimeLimitSec);
 		FillChar(s.unk1, 0, SizeOf(s.unk1));
 
 		Move(s, ptr^, SizeOf(s));
@@ -119,7 +119,7 @@ procedure CopyBoardInfoToLocal(var ptr: pointer);
 		Board.Info.Message := s.Message;
 		Board.Info.StartPlayerX := s.StartPlayerX;
 		Board.Info.StartPlayerY := s.StartPlayerY;
-		Board.Info.TimeLimitSec := s.TimeLimitSec;
+		Board.Info.TimeLimitSec := LEtoN(s.TimeLimitSec);
 	end;
 
 procedure CopyWorldInfoFromLocal(var ptr: pointer);
@@ -127,22 +127,22 @@ procedure CopyWorldInfoFromLocal(var ptr: pointer);
 		i: integer;
 		s: TWorldInfoPacked;
 	begin
-		s.Ammo := World.Info.Ammo;
-		s.Gems := World.Info.Gems;
+		s.Ammo := NtoLE(World.Info.Ammo);
+		s.Gems := NtoLE(World.Info.Gems);
 		for i := 1 to 7 do
 			s.Keys[i] := World.Info.Keys[i];
-		s.Health := World.Info.Health;
-		s.CurrentBoard := World.Info.CurrentBoard;
-		s.Torches := World.Info.Torches;
-		s.TorchTicks := World.Info.TorchTicks;
-		s.EnergizerTicks := World.Info.EnergizerTicks;
+		s.Health := NtoLE(World.Info.Health);
+		s.CurrentBoard := NtoLE(World.Info.CurrentBoard);
+		s.Torches := NtoLE(World.Info.Torches);
+		s.TorchTicks := NtoLE(World.Info.TorchTicks);
+		s.EnergizerTicks := NtoLE(World.Info.EnergizerTicks);
 		s.unk1 := 0;
-		s.Score := World.Info.Score;
+		s.Score := NtoLE(World.Info.Score);
 		s.Name := World.Info.Name;
 		for i := 1 to 10 do
 			s.Flags[i] := World.Info.Flags[i];
-		s.BoardTimeSec := World.Info.BoardTimeSec;
-		s.BoardTimeHsec := World.Info.BoardTimeHsec;
+		s.BoardTimeSec := NtoLE(World.Info.BoardTimeSec);
+		s.BoardTimeHsec := NtoLE(World.Info.BoardTimeHsec);
 		s.IsSave := World.Info.IsSave;
 		FillChar(s.unkPad, 0, SizeOf(s.unkPad));
 
@@ -158,16 +158,16 @@ procedure CopyWorldInfoToLocal(var ptr: pointer);
 		Move(ptr^, s, SizeOf(s));
 		AdvancePointer(ptr, SizeOf(s));
 
-		World.Info.Ammo := s.Ammo;
-		World.Info.Gems := s.Gems;
+		World.Info.Ammo := LEtoN(s.Ammo);
+		World.Info.Gems := LEtoN(s.Gems);
 		for i := 1 to 7 do
 			World.Info.Keys[i] := s.Keys[i];
-		World.Info.Health := s.Health;
-		World.Info.CurrentBoard := s.CurrentBoard;
-		World.Info.Torches := s.Torches;
-		World.Info.TorchTicks := s.TorchTicks;
-		World.Info.EnergizerTicks := s.EnergizerTicks;
-		World.Info.Score := s.Score;
+		World.Info.Health := LEtoN(s.Health);
+		World.Info.CurrentBoard := LEtoN(s.CurrentBoard);
+		World.Info.Torches := LEtoN(s.Torches);
+		World.Info.TorchTicks := LEtoN(s.TorchTicks);
+		World.Info.EnergizerTicks := LEtoN(s.EnergizerTicks);
+		World.Info.Score := LEtoN(s.Score);
 		World.Info.Name := s.Name;
 		for i := 1 to 10 do
 			World.Info.Flags[i] := s.Flags[i];
@@ -175,8 +175,8 @@ procedure CopyWorldInfoToLocal(var ptr: pointer);
 			for i := 11 to MAX_FLAG do
 				World.Info.Flags[i] := '';
 		end;
-		World.Info.BoardTimeSec := s.BoardTimeSec;
-		World.Info.BoardTimeHsec := s.BoardTimeHsec;
+		World.Info.BoardTimeSec := LEtoN(s.BoardTimeSec);
+		World.Info.BoardTimeHsec := LEtoN(s.BoardTimeHsec);
 		World.Info.IsSave := s.IsSave;
 	end;
 
@@ -185,20 +185,20 @@ procedure CopyStatFromLocal(var ptr: pointer; var stat: TStat);
 		i: integer;
 		s: TStatPacked;
 	begin
-		s.X := stat.X;
-		s.Y := stat.Y;
-		s.StepX := stat.StepX;
-		s.StepY := stat.StepY;
-		s.Cycle := stat.Cycle;
+		s.X := NtoLE(stat.X);
+		s.Y := NtoLE(stat.Y);
+		s.StepX := NtoLE(stat.StepX);
+		s.StepY := NtoLE(stat.StepY);
+		s.Cycle := NtoLE(stat.Cycle);
 		s.P1 := stat.P1;
 		s.P2 := stat.P2;
 		s.P3 := stat.P3;
-		s.Follower := stat.Follower;
-		s.Leader := stat.Leader;
+		s.Follower := NtoLE(stat.Follower);
+		s.Leader := NtoLE(stat.Leader);
 		s.Under := stat.Under;
 		s.UnusedData := 0;
-		s.DataPos := stat.DataPos;
-		s.DataLen := stat.DataLen;
+		s.DataPos := NtoLE(stat.DataPos);
+		s.DataLen := NtoLE(stat.DataLen);
 		s.Unused1 := 0;
 		s.Unused2 := 0;
 
@@ -214,20 +214,20 @@ procedure CopyStatToLocal(var ptr: pointer; var stat: TStat);
 		Move(ptr^, s, SizeOf(s));
 		AdvancePointer(ptr, SizeOf(s));
 
-		stat.X := s.X;
-		stat.Y := s.Y;
-		stat.StepX := s.StepX;
-		stat.StepY := s.StepY;
-		stat.Cycle := s.Cycle;
+		stat.X := LEtoN(s.X);
+		stat.Y := LEtoN(s.Y);
+		stat.StepX := LEtoN(s.StepX);
+		stat.StepY := LEtoN(s.StepY);
+		stat.Cycle := LEtoN(s.Cycle);
 		stat.P1 := s.P1;
 		stat.P2 := s.P2;
 		stat.P3 := s.P3;
-		stat.Follower := s.Follower;
-		stat.Leader := s.Leader;
+		stat.Follower := LEtoN(s.Follower);
+		stat.Leader := LEtoN(s.Leader);
 		stat.Under := s.Under;
 		{$IFDEF FPC} stat.Data := Nil; {$ENDIF}
-		stat.DataPos := s.DataPos;
-		stat.DataLen := s.DataLen;
+		stat.DataPos := LEtoN(s.DataPos);
+		stat.DataLen := LEtoN(s.DataLen);
 	end;
 
 end.
