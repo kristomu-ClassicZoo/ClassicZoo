@@ -1082,8 +1082,8 @@ function GameWorldLoad(extension: TString50): boolean;
 			else begin
 				WorldCreate;
 				PauseOnError;
+				TransitionDrawToFill(#219, $44);
 			end;
-			TransitionDrawToFill(#219, $44);
 		end;
 	end;
 
