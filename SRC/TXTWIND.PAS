@@ -25,8 +25,11 @@
 
 {$I-}
 {$V-}
+
 {$IFDEF FPC}
+{$IFDEF RAWSTRUCTS}
 {$PACKRECORDS 1}
+{$ENDIF}
 {$ENDIF}
 
 unit TxtWind;
@@ -935,10 +938,21 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 				AssignFSys(f, ResourceDataFileName);
 				Reset(f, 1);
 				if IOResult = 0 then begin
+{$IFDEF RAWSTRUCTS}
 					BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
+{$ELSE}
+					BlockRead(f, ResourceDataHeader.Version, SizeOf(ResourceDataHeader.Version));
+					BlockRead(f, ResourceDataHeader.EntryCount, SizeOf(ResourceDataHeader.EntryCount));
+					for i := 1 to MAX_RESOURCE_DATA_FILES do
+						BlockRead(f, ResourceDataHeader.Name[i], SizeOf(ResourceDataHeader.Name[i]));
+					for i := 1 to MAX_RESOURCE_DATA_FILES do
+						BlockRead(f, ResourceDataHeader.FileOffset[i], SizeOf(ResourceDataHeader.FileOffset[i]));
+{$ENDIF}
 {$IFDEF ENDIAN_BIG}
 					ResourceDataHeader.Version := LEtoN(ResourceDataHeader.Version);
 					ResourceDataHeader.EntryCount := LEtoN(ResourceDataHeader.EntryCount);
+					for i := 1 to MAX_RESOURCE_DATA_FILES do
+						ResourceDataHeader.FileOffset[i] := LEtoN(ResourceDataHeader.FileOffset[i]));
 {$ENDIF}
 				end;
 				if (IOResult <> 0) or (ResourceDataHeader.Version <> -2) then
