@@ -65,19 +65,23 @@ var
 
 procedure VideoLockScreenUpdate;
 	begin
+{$IFNDEF HASAMIGA}
 		if not VSULocked then begin
 			VSULocked := true;
 			LockScreenUpdate;
 		end;
+{$ENDIF}
 	end;
 
 procedure VideoUnlockScreenUpdate;
 	begin
+{$IFNDEF HASAMIGA}
 		if VSULocked then begin
 			UnlockScreenUpdate;
 			UpdateScreen(false);
 			VSULocked := false;
 		end;
+{$ENDIF}
 	end;
 
 function ColorToBW(color: byte): byte;
@@ -116,7 +120,7 @@ procedure VideoWriteTextBuf(x, y, color: byte; text: TVideoLine);
 			VideoBuf^[offset] := attr or Ord(text[i]);
 			Inc(offset);
 		end;
-		UpdateScreen(false);
+		UpdateScreenArea(x, y, x + Length(text) - 1, y, false);
 	end;
 
 procedure VideoWriteTextBufBW(x, y, color: byte; text: TVideoLine);
@@ -173,7 +177,7 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 		offset := (y * VideoColumns + x);
 		if toVideo then begin
 			Move(data^, VideoBuf^[offset], chars * 2);
-			UpdateScreen(false);
+			UpdateScreenArea(x, y, x + chars - 1, y, false);
 		end else begin
 			Move(VideoBuf^[offset], data^, chars * 2);
 		end;
@@ -200,7 +204,7 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 				Inc(offset, 1);
 			end;
 		end;
-		UpdateScreen(false);
+		UpdateScreenArea(x1, y1, x2, y2, false);
 	end;
 
 initialization

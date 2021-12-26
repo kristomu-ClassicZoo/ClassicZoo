@@ -25,7 +25,9 @@
 
 {$I-}
 {$V-}
+{$IFDEF RAWSTRUCTS}
 {$PACKRECORDS 1}
+{$ENDIF}
 
 unit TxtWind;
 
@@ -110,6 +112,10 @@ uses Sounds, TimerSys, ZDemo, FileSys, ZInput, Keys, FileSel, Game;
 {$ENDIF}
 type
 	TTextWindowLineBuffer = array[1 .. MAX_TEXT_WINDOW_LINES] of PTTextWindowLine;
+{$IFNDEF FASTVID}
+const
+	TransitionTextWindowDelay = 25;
+{$ENDIF}
 
 function UpCaseString(input: string): string;
 	var
@@ -167,7 +173,7 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
 				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
-				AccurateDelay(25);
+				AccurateDelay(TransitionTextWindowDelay);
 			end;
 
 			VideoWriteText(TextWindowX, TextWindowY + 2, $0F, TextWindowStrSep);
@@ -186,7 +192,7 @@ procedure TextWindowDrawClose(var state: TTextWindowState);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
 				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
-				AccurateDelay(18);
+				AccurateDelay(TransitionTextWindowDelay * 3 div 4);
 				{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 				VideoMove(TextWindowX, TextWindowY + iy, TextWindowWidth,
 					@ScreenCopy[iy + 1], true);
@@ -934,10 +940,21 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 				AssignFSys(f, ResourceDataFileName);
 				Reset(f, 1);
 				if IOResult = 0 then begin
+{$IFDEF RAWSTRUCTS}
 					BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
+{$ELSE}
+					BlockRead(f, ResourceDataHeader.Version, SizeOf(ResourceDataHeader.Version));
+					BlockRead(f, ResourceDataHeader.EntryCount, SizeOf(ResourceDataHeader.EntryCount));
+					for i := 1 to MAX_RESOURCE_DATA_FILES do
+						BlockRead(f, ResourceDataHeader.Name[i], SizeOf(ResourceDataHeader.Name[i]));
+					for i := 1 to MAX_RESOURCE_DATA_FILES do
+						BlockRead(f, ResourceDataHeader.FileOffset[i], SizeOf(ResourceDataHeader.FileOffset[i]));
+{$ENDIF}
 {$IFDEF ENDIAN_BIG}
 					ResourceDataHeader.Version := LEtoN(ResourceDataHeader.Version);
 					ResourceDataHeader.EntryCount := LEtoN(ResourceDataHeader.EntryCount);
+					for i := 1 to MAX_RESOURCE_DATA_FILES do
+						ResourceDataHeader.FileOffset[i] := LEtoN(ResourceDataHeader.FileOffset[i]);
 {$ENDIF}
 				end;
 				if (IOResult <> 0) or (ResourceDataHeader.Version <> -2) then

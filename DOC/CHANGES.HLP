@@ -27,6 +27,8 @@ $< ClassicZoo 4.20 >
     becoming invisible after creating
     a new world.
 / Fixed a crash in text window code.
+/ Fixed unnecessary fade to red on
+  successful world load.
 
 $< ClassicZoo 4.17 >
 

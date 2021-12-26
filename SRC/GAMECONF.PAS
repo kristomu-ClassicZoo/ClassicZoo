@@ -52,7 +52,7 @@ type
 	TConfigEntry = record
 		Category: TConfigCategory;
 		Key: string[8];
-		Name: string[20];
+		Name: string[24];
 		GetValue: TConfigGetValueProc;
 		SetValue: TConfigSetValueProc;
 		ShowValue: TConfigShowValueProc;
@@ -186,6 +186,77 @@ function ConfigSoundShowValue: string;
 	end;
 {$ENDIF}
 
+{$IFDEF FASTVID}
+function ConfigTransitionBlocksPerFrameGetValue: integer;
+	begin
+		ConfigTransitionBlocksPerFrameGetValue := TransitionBlocksPerFrame;
+	end;
+
+procedure ConfigTransitionBlocksPerFrameSetValue(value: integer);
+	begin
+		if (value < 1) or (value >= (BOARD_WIDTH * BOARD_HEIGHT)) then value := 32767;
+		TransitionBlocksPerFrame := value;
+	end;
+
+function ConfigTransitionBlocksPerFrameShowValue: string;
+	begin
+		if TransitionBlocksPerFrame >= (BOARD_WIDTH * BOARD_HEIGHT) then
+			ConfigTransitionBlocksPerFrameShowValue := 'Instant'
+		else if TransitionBlocksPerFrame >= ((BOARD_WIDTH * BOARD_HEIGHT) div 10) then
+			ConfigTransitionBlocksPerFrameShowValue := 'Fast'
+		else if TransitionBlocksPerFrame >= ((BOARD_WIDTH * BOARD_HEIGHT) div 30) then
+			ConfigTransitionBlocksPerFrameShowValue := 'Medium'
+		else
+			ConfigTransitionBlocksPerFrameShowValue := 'Slow';
+	end;
+
+function ConfigTransitionBlocksPerFrameCustomAction: boolean;
+	begin
+		{ Instant -> Fast -> Medium -> Slow }
+		if TransitionBlocksPerFrame >= (BOARD_WIDTH * BOARD_HEIGHT) then
+			TransitionBlocksPerFrame := ((BOARD_WIDTH * BOARD_HEIGHT) div 10)
+		else if TransitionBlocksPerFrame >= ((BOARD_WIDTH * BOARD_HEIGHT) div 10) then
+			TransitionBlocksPerFrame := ((BOARD_WIDTH * BOARD_HEIGHT) div 30)
+		else if TransitionBlocksPerFrame >= ((BOARD_WIDTH * BOARD_HEIGHT) div 30) then
+			TransitionBlocksPerFrame := ((BOARD_WIDTH * BOARD_HEIGHT) div 90)
+		else
+			TransitionBlocksPerFrame := ((BOARD_WIDTH * BOARD_HEIGHT));
+		ConfigTransitionBlocksPerFrameCustomAction := true;
+	end;
+
+function ConfigTransitionTextWindowDelayGetValue: integer;
+	begin
+		ConfigTransitionTextWindowDelayGetValue := TransitionTextWindowDelay;
+	end;
+
+procedure ConfigTransitionTextWindowDelaySetValue(value: integer);
+	begin
+		TransitionTextWindowDelay := value;
+	end;
+
+function ConfigTransitionTextWindowDelayShowValue: string;
+	begin
+		if TransitionTextWindowDelay >= 25 then
+			ConfigTransitionTextWindowDelayShowValue := 'Classic'
+		else if TransitionTextWindowDelay >= 12 then
+			ConfigTransitionTextWindowDelayShowValue := 'Faster'
+		else
+			ConfigTransitionTextWindowDelayShowValue := 'Instant';
+	end;
+
+function ConfigTransitionTextWindowDelayCustomAction: boolean;
+	begin
+		{ Classic -> Faster -> Instant }
+		if TransitionTextWindowDelay >= 25 then
+			TransitionTextWindowDelay := 12
+		else if TransitionTextWindowDelay >= 12 then
+			TransitionTextWindowDelay := 0
+		else
+			TransitionTextWindowDelay := 25;
+		ConfigTransitionTextWindowDelayCustomAction := true;
+	end;
+{$ENDIF}
+
 {$IFDEF SDL2}
 function ConfigVideoScalingGetValue: integer;
 	begin
@@ -251,33 +322,44 @@ function ConfigFullscreenShowValue: string;
 
 function ConfigSoundVolumeGetValue: integer;
 	begin
-		ConfigSoundVolumeGetValue := Byte(AudioGetVolume shr 4);
+		ConfigSoundVolumeGetValue := AudioGetVolume;
 	end;
 
 procedure ConfigSoundVolumeSetValue(value: integer);
 	begin
-		if value > 4 then value := 0;
-		AudioSetVolume(Byte(value shl 4));
+		if value > 64 then value := 0;
+		AudioSetVolume(value);
 	end;
 
 function ConfigSoundVolumeShowValue: string;
+	var
+		i: integer;
+		s: string[10];
 	begin
-		if AudioGetVolume > 48 then
-			ConfigSoundVolumeShowValue := '100%'
-		else if AudioGetVolume > 32 then
-			ConfigSoundVolumeShowValue := '75%'
-		else if AudioGetVolume > 16 then
-			ConfigSoundVolumeShowValue := '50%'
-		else if AudioGetVolume > 0 then
-			ConfigSoundVolumeShowValue := '25%'
+		i := (AudioGetVolume + 5) div 6;
+		if i > 10 then i := 10;
+		Str(i, s);
+
+		if AudioGetVolume > 0 then
+			ConfigSoundVolumeShowValue := s + '0%'
 		else
 			ConfigSoundVolumeShowValue := 'Off';
+	end;
+
+function ConfigSoundVolumeCustomAction: boolean;
+	begin
+		if AudioGetVolume >= 60 then
+			AudioSetVolume(0)
+		else
+			AudioSetVolume(AudioGetVolume + 6);
+		ConfigSoundVolumeCustomAction := true;
 	end;
 {$ENDIF}
 
 const
 	ConfigEntryCount = 3
 	{$IFDEF MSDOS} + 2 {$ENDIF}
+	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF SDL2} + 4 {$ENDIF}
 	;
 	ConfigHiddenEntryCount = 0
@@ -350,6 +432,28 @@ procedure GameConfigInit;
 		ConfigEntryInputPos := i;
 		Inc(i);
 {$ENDIF}
+{$IFDEF FASTVID}
+		with ConfigEntries[i] do begin
+			Category := CCEngine;
+			Key := 'ETrBlkFr';
+			Name := 'Board transition speed';
+			GetValue := ConfigTransitionBlocksPerFrameGetValue;
+			SetValue := ConfigTransitionBlocksPerFrameSetValue;
+			ShowValue := ConfigTransitionBlocksPerFrameShowValue;
+			CustomAction := ConfigTransitionBlocksPerFrameCustomAction;
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCEngine;
+			Key := 'ETrTxtWd';
+			Name := 'Text window draw speed';
+			GetValue := ConfigTransitionTextWindowDelayGetValue;
+			SetValue := ConfigTransitionTextWindowDelaySetValue;
+			ShowValue := ConfigTransitionTextWindowDelayShowValue;
+			CustomAction := ConfigTransitionTextWindowDelayCustomAction;
+		end;
+		Inc(i);
+{$ENDIF}
 {$IFDEF SDL2}
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;
@@ -380,7 +484,7 @@ procedure GameConfigInit;
 			GetValue := ConfigSoundVolumeGetValue;
 			SetValue := ConfigSoundVolumeSetValue;
 			ShowValue := ConfigSoundVolumeShowValue;
-			CustomAction := ConfigCustomActionNone;
+			CustomAction := ConfigSoundVolumeCustomAction;
 		end;
 		Inc(i);
 
@@ -482,7 +586,7 @@ function GameConfigSave: boolean;
 		s: string[20];
 	begin
 		GameConfigSave := false;
-		AssignFSysText(f, 'ZZT.INI');
+		AssignFSysText(f, ConfigFileName);
 		Rewrite(f);
 		WriteLn(f, '; Generated by %NAME% %VERSION%');
 		WriteLn(f, '[Config]');

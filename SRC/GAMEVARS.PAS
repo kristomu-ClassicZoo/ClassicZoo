@@ -23,7 +23,9 @@
 	SOFTWARE.
 }
 
+{$IFDEF RAWSTRUCTS}
 {$PACKRECORDS 1}
+{$ENDIF}
 
 unit GameVars;
 
@@ -105,6 +107,7 @@ interface
 {$ENDIF}
 			ScoreValue: integer;
 		end;
+{$IFDEF RAWSTRUCTS}
 		TStat = record
 			X, Y: byte;
 			StepX, StepY: integer;
@@ -126,10 +129,29 @@ interface
 			Data: ^char;
 			{$ENDIF}
 		end;
+{$ELSE}
+		TStat = record
+			X, Y: byte;
+			StepX, StepY: integer;
+			Cycle: integer;
+			P1, P2, P3: byte;
+			Follower: integer;
+			Leader: integer;
+			Under: TTile;
+			{$IFNDEF FPC}
+			Data: ^string;
+			{$ELSE}
+			Data: ^char;
+			{$ENDIF}
+			DataPos: integer;
+			DataLen: integer;
+		end;
+{$ENDIF}
 		TRleTile = record
 			Count: byte;
 			Tile: TTile;
 		end;
+{$IFDEF RAWSTRUCTS}
 		TBoardInfo = record
 			MaxShots: byte;
 			IsDark: boolean;
@@ -159,6 +181,34 @@ interface
 			IsSave: boolean;
 			unkPad: array[0 .. 13] of byte;
 		end;
+{$ELSE}
+		TBoardInfo = record
+			MaxShots: byte;
+			IsDark: boolean;
+			NeighborBoards: array[0 .. 3] of byte;
+			ReenterWhenZapped: boolean;
+			Message: string[58];
+			StartPlayerX: byte;
+			StartPlayerY: byte;
+			TimeLimitSec: integer;
+		end;
+		TWorldInfo = record
+			Ammo: integer;
+			Gems: integer;
+			Keys: array [1..7] of boolean;
+			Health: integer;
+			CurrentBoard: integer;
+			Torches: integer;
+			TorchTicks: integer;
+			EnergizerTicks: integer;
+			Score: integer;
+			Name: string[20];
+			Flags: array[1 .. MAX_FLAG] of string[20];
+			BoardTimeSec: integer;
+			BoardTimeHsec: integer;
+			IsSave: boolean;
+		end;
+{$ENDIF}
 		TEditorStatSetting = record
 			P1, P2, P3: byte;
 			StepX, StepY: integer;
@@ -177,7 +227,7 @@ interface
 		end;
 		TWorld = record
 			BoardCount: integer;
-{$IFNDEF RUNTINY}
+{$IFDEF RAWSTRUCTS}
 			BoardDataOld: array[0 .. 100] of pointer;
 			BoardLenOld: array[0 .. 100] of word;
 {$ENDIF}
@@ -198,7 +248,7 @@ interface
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
-{$IFNDEF RUNTINY}
+{$IFDEF RAWSTRUCTS}
 		unkVar_0476: integer;
 		unkVar_0478: integer;
 {$ENDIF}
@@ -224,7 +274,7 @@ interface
 		IoTmpBufSize: word; { Borrowed: unkVar_4ABA[0..1] }
 		FileWorldCachedLinePos: integer; { Borrowed: unkVar_4ABA[2..3] }
 		FileSaveCachedLinePos: integer; { Borrowed: unkVar_4ABA[4..5] }
-{$IFNDEF RUNTINY}
+{$IFDEF RAWSTRUCTS}
 		unkVar_4ABA: array[6 .. 14] of byte;
 {$ENDIF}
 
@@ -285,6 +335,10 @@ interface
 {$IFDEF EDITOR}
 		FileBoardCachedLinePos: integer;
 		FileTextCachedLinePos: integer;
+{$ENDIF}
+{$IFDEF FASTVID}
+		TransitionBlocksPerFrame: integer;
+		TransitionTextWindowDelay: integer;
 {$ENDIF}
 	const
 		E_EMPTY = 0;
@@ -357,8 +411,8 @@ interface
 
 implementation
 
-begin
 {$IFDEF MEMBOUND}
+begin
 	with Board.Stats[-1] do begin
 		X := 0;
 		Y := 1;
