@@ -330,7 +330,7 @@ procedure InputUpdate;
 			case event.type_ of
 				SDL_WINDOWEVENT: begin
 					if event.window.event = SDL_WINDOWEVENT_SIZE_CHANGED then
-						VideoForcePlayfieldRedraw;
+						VideoOnResize;
 				end;
 				SDL_TEXTINPUT: begin
 					k := event.text.text[0];

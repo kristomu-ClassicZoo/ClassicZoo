@@ -26,6 +26,8 @@
 {$I-}
 unit ZVideo;
 
+{$DEFINE SDL2_TTF}
+
 interface
 	type
 		TSDLScalingMode = (SMNone, SM2x, SM3x, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
@@ -41,7 +43,7 @@ interface
 		VideoEGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
 		VideoForceNoSnow: boolean;
-	procedure VideoForcePlayfieldRedraw;
+	procedure VideoOnResize;
 	function VideoGetSDLScalingMode: TSDLScalingMode;
 	procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
 	function VideoGetSDLWindowed: boolean;
@@ -54,12 +56,14 @@ interface
 	procedure VideoShowCursor;
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
+	function VideoGetBlink: boolean;
 	procedure VideoSetBlink(value: boolean);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
 
 implementation
-uses F_ASCII, FileSys, SysUtils, Sounds, TimerSys, SDL2;
+uses F_ASCII, FileSys, SysUtils, Sounds, TimerSys,
+{$IFDEF SDL2_TTF} SDL2_TTF, {$ENDIF} SDL2;
 type
 	TByteArray = array of byte;
 	TCharsetTexture = record
@@ -70,6 +74,7 @@ type
 		texture: PSDL_Texture;
 	end;
 const
+	{$I CP437_UNICODE.INC}
 	EGA_PALETTE: array[0 .. 15] of Uint32 = (
 		$000000,
 		$0000AA,
@@ -103,11 +108,9 @@ var
 	scalingMode: TSDLScalingMode;
 	windowed: boolean;
 	windowedLastWidth, windowedLastHeight: Int32;
-
-procedure VideoForcePlayfieldRedraw;
-	begin
-		FillChar(screenBufferChange, 4000, true);
-	end;
+{$IFDEF SDL2_TTF}
+	ttfFont: PTTF_Font;
+{$ENDIF}
 
 { Window handling }
 
@@ -161,14 +164,61 @@ procedure CalcRenderArea(rect: PSDL_Rect; w, h: Int32);
 				end;
 				SMIgnoreAspect: begin
 					{ Leave w/h as-is. }
-				end;
-			end;
+				end;			end;
 
 			rect^.w := w;
 			rect^.h := h;
 			rect^.x := (origw - w) div 2;
 			rect^.y := (origh - h) div 2;
 		end;
+	end;
+
+{$IFDEF SDL2_TTF}
+procedure GetCharDims(var cw, ch: integer);
+	var
+		w, h: Int32;
+		destRect: TSDL_Rect;
+	begin
+		SDL_GetWindowSize(window, @w, @h);
+		CalcRenderArea(@destRect, w, h);
+
+		cw := (destRect.w div VideoColumns);
+		ch := (destRect.h div 25);
+		WriteLn(cw, ' ', ch);
+	end;
+{$ELSE}
+procedure GetCharDims(var cw, ch: integer);
+	begin
+		cw := charsetTexture.charWidth;
+		ch := charsetTexture.charHeight;
+	end;
+{$ENDIF}
+
+procedure RecreatePlayfieldTexture;
+	var
+		w, h: integer;
+	begin
+		if playfieldTexture <> nil then
+			SDL_DestroyTexture(playfieldTexture);
+		GetCharDims(w, h);
+		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+			VideoColumns * w, 25 * h);
+{$IFDEF SDL2_TTF}
+		{ TODO: Move me }
+		if ttfFont <> nil then TTF_CloseFont(ttfFont);
+		ttfFont := TTF_OpenFont('iosevka.ttf', h * 2);
+{$ENDIF}
+	end;
+
+procedure VideoForcePlayfieldRedraw;
+	begin
+		FillChar(screenBufferChange, 4000, true);
+	end;
+
+procedure VideoOnResize;
+	begin
+		VideoForcePlayfieldRedraw;
+		RecreatePlayfieldTexture;
 	end;
 
 { TODO: Re-implement delta? }
@@ -214,6 +264,7 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 		end;
 
 		VideoForcePlayfieldRedraw;
+		RecreatePlayfieldTexture;
 
 		SDL_UnlockMutex(eventMutex);
 	end;
@@ -394,7 +445,7 @@ function ColorToBW(color: byte): byte;
 		ColorToBW := color;
 	end;
 
-procedure VideoDrawCharBg(x, y: integer);
+procedure VideoDrawCharBg(x, y, cw, ch: integer);
 	var
 		offset: integer;
 		chr, col: byte;
@@ -413,16 +464,16 @@ procedure VideoDrawCharBg(x, y: integer);
 
 		bgCol := EGA_PALETTE[col shr 4];
 
-		outRect.x := x * charsetTexture.charWidth;
-		outRect.y := y * charsetTexture.charHeight;
-		outRect.w := charsetTexture.charWidth;
-		outRect.h := charsetTexture.charHeight;
+		outRect.x := x * cw;
+		outRect.y := y * ch;
+		outRect.w := cw;
+		outRect.h := ch;
 
 		SDL_SetRenderDrawColor(renderer, (bgCol shr 16), (bgCol shr 8), (bgCol shr 0), SDL_ALPHA_OPAQUE);
 		SDL_RenderFillRect(renderer, @outRect);
 	end;
 
-procedure VideoDrawCharFg(x, y: integer; blink: boolean);
+procedure VideoDrawCharFg(x, y, cw, ch: integer; blink: boolean);
 	var
 		offset: integer;
 		chr, col: byte;
@@ -452,18 +503,76 @@ procedure VideoDrawCharFg(x, y: integer; blink: boolean);
 		inRect.w := charsetTexture.charWidth;
 		inRect.h := charsetTexture.charHeight;
 
-		outRect.x := x * charsetTexture.charWidth;
-		outRect.y := y * charsetTexture.charHeight;
-		outRect.w := charsetTexture.charWidth;
-		outRect.h := charsetTexture.charHeight;
+		outRect.x := x * cw;
+		outRect.y := y * ch;
+		outRect.w := cw;
+		outRect.h := ch;
 
 		SDL_SetTextureColorMod(charsetTexture.texture, (fgCol shr 16), (fgCol shr 8), (fgCol shr 0));
 		SDL_RenderCopy(renderer, charsetTexture.texture, @inRect, @outRect);
 	end;
 
+function ToSDLColor(v: Uint32): TSDL_Color;
+	begin
+		ToSDLColor := TSDL_Color((v and $00FF00) or ((v and $FF0000) shr 16) or ((v and $FF) shl 16));
+	end;
+
+{$IFDEF SDL2_TTF}
+procedure VideoDrawCharTtf(x, y, cw, ch: integer; blink: boolean);
+	var
+		offset: integer;
+		chr, col: byte;
+		code: Uint16;
+		bgCol, fgCol: TSDL_Color;
+		outRect: TSDL_Rect;
+		fontSurface: PSDL_Surface;
+		fontTexture: PSDL_Texture;
+	label TtfFailsafeRender;
+	begin
+		offset := (y * VideoColumns + x) shl 1;
+		chr := screenBuffer[offset];
+		col := screenBuffer[offset + 1];
+
+		if (col < $80) and (not screenBufferChange[offset]) then exit;
+
+		code := CP437_UNICODE_MAP[chr];
+		if (ttfFont = nil) or (chr in [32, 219, 220, 221, 222, 223, 176, 177, 178]) or (TTF_GlyphIsProvided(ttfFont, code) = 0) then begin
+	TtfFailsafeRender:
+			VideoDrawCharBg(x, y, cw, ch);
+			VideoDrawCharFg(x, y, cw, ch, blink);
+			exit;
+		end;
+
+		if blinkActive then begin
+			blink := blink and (col >= $80);
+			col := col and $7F;
+			if blink or ((col shr 4) = (col and $0F)) then exit;
+		end;
+
+		if VideoMonochrome then
+			col := ColorToBW(col);
+
+		bgCol := ToSDLColor(EGA_PALETTE[col shr 4]);
+		fgCol := ToSDLColor(EGA_PALETTE[col and 15]);
+
+		outRect.x := x * cw;
+		outRect.y := y * ch;
+		outRect.w := cw;
+		outRect.h := ch;
+
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, '1');
+		fontSurface := TTF_RenderGlyph_Shaded(ttfFont, code, fgCol, bgCol);
+		fontTexture := SDL_CreateTextureFromSurface(renderer, fontSurface);
+		SDL_FreeSurface(fontSurface);
+		SDL_RenderCopy(renderer, fontTexture, nil, @outRect);
+		SDL_DestroyTexture(fontTexture);
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, '0');
+	end;
+{$ENDIF}
+
 function VideoRenderThread(data: pointer): LongInt; cdecl;
 	var
-		ix, iy: integer;
+		cw, ch, ix, iy: integer;
 		w, h: Int32;
 		blink: boolean;
 		destRect: TSDL_Rect;
@@ -483,13 +592,20 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 
 			blink := (SDL_GetTicks mod TEXT_BLINK_RATE) >= (TEXT_BLINK_RATE div 2);
 
+			GetCharDims(cw, ch);
+{$IFDEF SDL2_TTF}
 			for iy := 0 to 24 do
 				for ix := 0 to (VideoColumns - 1) do
-					VideoDrawCharBg(ix, iy);
+					VideoDrawCharTtf(ix, iy, cw, ch, blink);
+{$ELSE}
+			for iy := 0 to 24 do
+				for ix := 0 to (VideoColumns - 1) do
+					VideoDrawCharBg(ix, iy, cw, ch);
 
 			for iy := 0 to 24 do
 				for ix := 0 to (VideoColumns - 1) do
-					VideoDrawCharFg(ix, iy, blink);
+					VideoDrawCharFg(ix, iy, cw, ch, blink);
+{$ENDIF}
 
 			FillChar(screenBufferChange, 4000, false);
 			SDL_UnlockMutex(playfieldMutex);
@@ -573,8 +689,12 @@ procedure VideoInstall(borderColor: integer);
 		if not charsetTexture.valid then
 			RunError(217);
 
-		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-			VideoColumns * charsetTexture.charWidth, 25 * charsetTexture.charHeight);
+{$IFDEF SDL2_TTF}
+		TTF_Init();
+		ttfFont := nil;
+{$ENDIF}
+		playfieldTexture := nil;
+		RecreatePlayfieldTexture;
 
 		playfieldMutex := SDL_CreateMutex;
 
@@ -593,6 +713,12 @@ procedure VideoUninstall;
 	begin
 		renderThreadRunning := false;
 		SDL_WaitThread(renderThread, nil);
+
+{$IFDEF SDL2_TTF}
+		if ttfFont <> nil then TTF_CloseFont(ttfFont);
+		ttfFont := nil;
+		TTF_Quit();
+{$ENDIF}
 
 		SDL_DestroyMutex(playfieldMutex);
 		SDL_DestroyTexture(playfieldTexture);
@@ -621,6 +747,11 @@ procedure VideoHideCursor;
 procedure VideoSetBorderColor(value: integer);
 	begin
 		{ stub }
+	end;
+
+function VideoGetBlink: boolean;
+	begin
+		VideoGetBlink := blinkActive;
 	end;
 
 procedure VideoSetBlink(value: boolean);

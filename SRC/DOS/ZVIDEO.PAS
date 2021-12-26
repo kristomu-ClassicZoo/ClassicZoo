@@ -52,6 +52,7 @@ interface
 	procedure VideoShowCursor;
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
+	function VideoGetBlink: boolean;
 	procedure VideoSetBlink(value: boolean);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
@@ -60,6 +61,7 @@ implementation
 uses Crt, Dos, TimerSys;
 var
 	InitialTextAttr: byte;
+	VideoBlinkActive: boolean;
 
 {$F+}
 
@@ -357,6 +359,7 @@ procedure VideoInstall(borderColor: integer);
 
 		ClrScr;
 		VideoHideCursor;
+		VideoSetBlink(VideoBlinkActive);
 	end;
 
 procedure VideoUninstall;
@@ -403,6 +406,11 @@ procedure VideoSetBorderColor(value: integer);
 		if not VideoForceSafe then begin
 			Port[PORT_CGA_PALETTE] := value;
 		end;
+	end;
+
+function VideoGetBlink: boolean;
+	begin
+		VideoGetBlink := VideoBlinkActive;
 	end;
 
 procedure VideoSetBlink(value: boolean);
@@ -504,6 +512,7 @@ begin
 	end;
 	VideoForceNoSnow := false;
 	VideoForceSafe := false;
+	VideoBlinkActive := true;
 
 	VideoPreInstall;
 end.
