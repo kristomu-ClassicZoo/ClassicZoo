@@ -30,7 +30,90 @@ interface
 	procedure DebugShowSizeTooLarge(expected, actual: word; id: integer; name, desc: TString50);
 
 implementation
-uses Game, Sounds, TxtWind;
+uses Game, Sounds, ZInput, TxtWind;
+
+const
+	PARTIAL_STAT_LINES_AROUND = 2;
+
+procedure CopyPartialStatDataToTextWindow(statId: integer; var state: TTextWindowState);
+	var
+		prevLinePos: array[1 .. PARTIAL_STAT_LINES_AROUND] of integer;
+		curLinePos: integer;
+		firstLine: integer;
+		{}
+		dataStr: string;
+		dataNum: string[8];
+		dataChr: char;
+		i, j, k: integer;
+		dataStrLen: byte;
+	procedure PrepLine;
+		begin
+			if k = PARTIAL_STAT_LINES_AROUND then dataStr := '>> '
+			else dataStr := '';
+			Str(k + firstLine - 1, dataNum);
+			dataStr := dataStr + dataNum + '. ';
+			dataStrLen := Length(dataStr);
+		end; 
+	label LineFound;
+	begin
+		with Board.Stats[statId] do begin
+			for j := 1 to PARTIAL_STAT_LINES_AROUND do
+				prevLinePos[j] := 0;
+			curLinePos := 0;
+			firstLine := 1 - PARTIAL_STAT_LINES_AROUND;
+
+			for i := 0 to (DataLen - 1) do begin
+				{$IFNDEF FPC}
+				dataChr := Data^[i];
+				{$ELSE}
+				dataChr := Data[i];
+				{$ENDIF}
+				if dataChr = KEY_ENTER then begin
+					if (i >= DataPos) and (curLinePos <= DataPos) then
+						goto LineFound;
+					for j := 2 to PARTIAL_STAT_LINES_AROUND do
+						prevLinePos[j - 1] := prevLinePos[j];
+					prevLinePos[PARTIAL_STAT_LINES_AROUND] := curLinePos;
+					Inc(firstLine);
+				end;
+			end;
+
+		LineFound:
+			if firstLine < 1 then firstLine := 1;
+
+			k := 0;
+			PrepLine;
+
+			if prevLinePos[1] > 0 then
+				TextWindowAppend(state, '...');
+
+			for i := prevLinePos[1] to (DataLen - 1) do begin 
+				{$IFNDEF FPC}
+				dataChr := Data^[i];
+				{$ELSE}
+				dataChr := Data[i];
+				{$ENDIF}
+				if dataChr = KEY_ENTER then begin
+					dataStr[0] := Chr(dataStrLen);
+					TextWindowAppend(state, dataStr);
+					dataStrLen := 0;
+					Inc(k);
+					if k >= (2 * PARTIAL_STAT_LINES_AROUND + 1) then begin
+						TextWindowAppend(state, '...');
+						exit;
+					end else PrepLine;
+				end else begin
+					Inc(dataStrLen);
+					dataStr[dataStrLen] := dataChr;
+				end;
+			end;
+
+			if dataStrLen > 0 then begin
+				dataStr[0] := Chr(dataStrLen);
+				TextWindowAppend(state, dataStr);
+			end;
+		end;
+	end;
 
 procedure DebugShowElementMessage(msg: string; x, y: integer);
 var
@@ -67,13 +150,19 @@ begin
 			Str(P2, yStr);
 			Str(P3, zStr);
 			TextWindowAppend(textWindow, '- Param: ' + xStr + ', ' + yStr + ', ' + zStr);
-			Str(Follower, xStr);
-			Str(Leader, yStr);
-			TextWindowAppend(textWindow, '- Follower: ' + xStr + ', Leader: ' + yStr);
+			if (Follower <> -1) or (Leader <> -1) then begin
+				Str(Follower, xStr);
+				Str(Leader, yStr);
+				TextWindowAppend(textWindow, '- Follower: ' + xStr + ', Leader: ' + yStr);
+			end;
 			if DataLen <> 0 then begin
 				Str(DataPos, xStr);
 				Str(DataLen, yStr);
 				TextWindowAppend(textWindow, '- DataPos: ' + xStr + '/' + yStr);
+				if DataPos >= 0 then begin
+					TextWindowAppend(textWindow, '');
+					CopyPartialStatDataToTextWindow(statId, textWindow);
+				end;
 			end;
 		end;
 	end;

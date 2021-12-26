@@ -1210,7 +1210,7 @@ procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState)
 
 			if dataStrLen > 0 then begin
 				dataStr[0] := Chr(dataStrLen);
-				TextWindowAppend(state, dataStr);
+				TextWindowAppendEdit(state, dataStr);
 			end;
 		end;
 	end;
