@@ -952,7 +952,7 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 					ResourceDataHeader.Version := LEtoN(ResourceDataHeader.Version);
 					ResourceDataHeader.EntryCount := LEtoN(ResourceDataHeader.EntryCount);
 					for i := 1 to MAX_RESOURCE_DATA_FILES do
-						ResourceDataHeader.FileOffset[i] := LEtoN(ResourceDataHeader.FileOffset[i]));
+						ResourceDataHeader.FileOffset[i] := LEtoN(ResourceDataHeader.FileOffset[i]);
 {$ENDIF}
 				end;
 				if (IOResult <> 0) or (ResourceDataHeader.Version <> -2) then
