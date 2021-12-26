@@ -293,8 +293,8 @@ procedure BoardClose;
 		end;
 
 {$IFDEF DEBUGWND}
-		if DebugCompatEnabled and (iy > IO_BUFFER_DEFAULT_SIZE) then
-			DebugShowSizeTooLarge(IO_BUFFER_DEFAULT_SIZE, iy, World.Info.CurrentBoard,
+		if DebugCompatEnabled and (iy > ZZT_32_BOARD_MAX_SIZE) then
+			DebugShowSizeTooLarge(ZZT_32_BOARD_MAX_SIZE, iy, World.Info.CurrentBoard,
 				'Board', 'is above the ZZT 3.2 limit!');
 {$ENDIF}
 
