@@ -2131,7 +2131,9 @@ procedure GamePlayLoop(boardChanged: boolean);
 		end;
 
 		if boardChanged then
-			TransitionDrawBoardChange;
+			TransitionDrawBoardChange
+		else
+			BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
 
 		TickTimeDuration := TickSpeed * 2;
 		GamePlayExitRequested := false;
