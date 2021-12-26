@@ -71,7 +71,7 @@ var
 function AudioGetVolume: byte;
 	begin
 {$IFDEF AUD16BIT}
-		AudioGetVolume := (AudioSampleMax shr 8) - 128;
+		AudioGetVolume := (AudioSampleMax - 32768) div 256;
 {$ELSE}
 		AudioGetVolume := AudioSampleMax - 128;
 {$ENDIF}
