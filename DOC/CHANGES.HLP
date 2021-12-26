@@ -12,7 +12,12 @@ $< ClassicZoo 4.20 >
   "modern" machines - in particular,
   Linux and Windows have been tested.
   This port unlocks many improvements,
-  such as vastly improved input code.
+  such as vastly improved input code,
+  gamepad support, configuring animation
+  speed, and more!
++ Experimental Amiga port! No sound yet,
+  but... you can play ZZT on Amiga now,
+  I guess?
 + Configuration system! ClassicZoo will
   now remember your config options and
   allow you to change them from an in-
@@ -23,6 +28,8 @@ $< ClassicZoo 4.20 >
 + Editor improvements.
   + Added option to configure KevEdit-
     style "auto-append" of patterns.
+  + Added reporting object code to
+    ?DEBUG/?DCOMPAT/?DUNDEF messages.
   / Fixed invisible/board edge tiles
     becoming invisible after creating
     a new world.
