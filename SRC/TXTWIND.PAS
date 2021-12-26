@@ -113,6 +113,10 @@ uses Sounds, TimerSys, FileSys, ZInput, Keys, FileSel, Game;
 {$ENDIF}
 type
 	TTextWindowLineBuffer = array[1 .. MAX_TEXT_WINDOW_LINES] of PTTextWindowLine;
+{$IFNDEF FASTVID}
+const
+	TransitionTextWindowDelay = 25;
+{$ENDIF}
 
 function UpCaseString(input: string): string;
 	var
@@ -170,7 +174,7 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
 				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
-				AccurateDelay(25);
+				AccurateDelay(TransitionTextWindowDelay);
 			end;
 
 			VideoWriteText(TextWindowX, TextWindowY + 2, $0F, TextWindowStrSep);
@@ -189,7 +193,7 @@ procedure TextWindowDrawClose(var state: TTextWindowState);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
 				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
-				AccurateDelay(18);
+				AccurateDelay(TransitionTextWindowDelay * 3 div 4);
 				{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 				VideoMove(TextWindowX, TextWindowY + iy, TextWindowWidth,
 					@ScreenCopy[iy + 1], true);

@@ -345,6 +345,7 @@ interface
 {$ENDIF}
 {$IFDEF FASTVID}
 		TransitionBlocksPerFrame: integer;
+		TransitionTextWindowDelay: integer;
 {$ENDIF}
 	const
 		E_EMPTY = 0;

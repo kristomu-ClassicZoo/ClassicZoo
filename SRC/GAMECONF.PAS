@@ -241,6 +241,38 @@ function ConfigTransitionBlocksPerFrameCustomAction: boolean;
 			TransitionBlocksPerFrame := ((BOARD_WIDTH * BOARD_HEIGHT));
 		ConfigTransitionBlocksPerFrameCustomAction := true;
 	end;
+
+function ConfigTransitionTextWindowDelayGetValue: integer;
+	begin
+		ConfigTransitionTextWindowDelayGetValue := TransitionTextWindowDelay;
+	end;
+
+procedure ConfigTransitionTextWindowDelaySetValue(value: integer);
+	begin
+		TransitionTextWindowDelay := value;
+	end;
+
+function ConfigTransitionTextWindowDelayShowValue: string;
+	begin
+		if TransitionTextWindowDelay >= 25 then
+			ConfigTransitionTextWindowDelayShowValue := 'Classic'
+		else if TransitionTextWindowDelay >= 12 then
+			ConfigTransitionTextWindowDelayShowValue := 'Faster'
+		else
+			ConfigTransitionTextWindowDelayShowValue := 'Instant';
+	end;
+
+function ConfigTransitionTextWindowDelayCustomAction: boolean;
+	begin
+		{ Classic -> Faster -> Instant }
+		if TransitionTextWindowDelay >= 25 then
+			TransitionTextWindowDelay := 12
+		else if TransitionTextWindowDelay >= 12 then
+			TransitionTextWindowDelay := 0
+		else
+			TransitionTextWindowDelay := 25;
+		ConfigTransitionTextWindowDelayCustomAction := true;
+	end;
 {$ENDIF}
 
 {$IFDEF SDL2}
@@ -345,7 +377,7 @@ function ConfigSoundVolumeCustomAction: boolean;
 const
 	ConfigEntryCount = 3
 	{$IFDEF MSDOS} + 2 {$ENDIF}
-	{$IFDEF FASTVID} + 1 {$ENDIF}
+	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF SDL2} + 4 {$ENDIF}
 	;
 	ConfigHiddenEntryCount = 0
@@ -427,6 +459,16 @@ procedure GameConfigInit;
 			SetValue := ConfigTransitionBlocksPerFrameSetValue;
 			ShowValue := ConfigTransitionBlocksPerFrameShowValue;
 			CustomAction := ConfigTransitionBlocksPerFrameCustomAction;
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCEngine;
+			Key := 'ETrTxtWd';
+			Name := 'Text window draw speed';
+			GetValue := ConfigTransitionTextWindowDelayGetValue;
+			SetValue := ConfigTransitionTextWindowDelaySetValue;
+			ShowValue := ConfigTransitionTextWindowDelayShowValue;
+			CustomAction := ConfigTransitionTextWindowDelayCustomAction;
 		end;
 		Inc(i);
 {$ENDIF}

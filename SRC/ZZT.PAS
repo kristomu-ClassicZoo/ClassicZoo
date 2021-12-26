@@ -111,6 +111,7 @@ begin
 
 {$IFDEF FASTVID}
 	TransitionBlocksPerFrame := 32767;
+	TransitionTextWindowDelay := 25;
 {$ENDIF}
 	TickSpeed := 4;
 	DebugEnabled := false;
