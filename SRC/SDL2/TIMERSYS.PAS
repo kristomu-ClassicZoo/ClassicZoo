@@ -25,6 +25,8 @@
 
 unit TimerSys;
 
+{$DEFINE NO_CONST_FREQS}
+
 interface
 	uses SDL2;
 	type
@@ -34,7 +36,9 @@ interface
 			Data: array[1 .. 15] of word;
 		end;
 {$I SNDFREQ.INC}
+		SOUND_FREQ_PRECISION = 8; { TODO: Depends on magic values in AudioSim }
 	var
+		SoundFreqTable: array[0 .. 255] of longint;
 		EventMutex: PSDL_Mutex;
 		TimerTicks: word;
 	procedure AccurateDelay(ms: word);
@@ -47,6 +51,7 @@ interface
 	function TimerSysGetHsecs: word;
 	procedure TimerSysInstall;
 	procedure TimerSysUninstall;
+	procedure SoundInitFreqTable(highQuality: boolean);
 
 implementation
 uses AudioSim, Sounds;
@@ -209,6 +214,26 @@ procedure TimerSysUninstall;
 		SDL_RemoveTimer(PitTimerId);
 		SDL_StopTextInput;
 		SDL_Quit;
+	end;
+
+procedure SoundInitFreqTable(highQuality: boolean);
+	var
+		octave, note: integer;
+		freqC1, noteStep, noteBase, ln2: real;
+	begin
+		freqC1 := 32.0;
+		ln2 := Ln(2.0);
+		noteStep := Exp(ln2 / 12.0);
+		for octave := 1 to 15 do begin
+			noteBase := Exp(octave * ln2) * freqC1;
+			for note := 0 to 11 do begin
+				if highQuality then
+					SoundFreqTable[octave * 16 + note] := Round(noteBase * (1 shl SOUND_FREQ_PRECISION))
+				else
+					SoundFreqTable[octave * 16 + note] := Trunc(noteBase) * (1 shl SOUND_FREQ_PRECISION);
+				noteBase := noteBase * noteStep;
+			end;
+		end;
 	end;
 
 begin

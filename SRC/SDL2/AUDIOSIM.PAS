@@ -214,6 +214,7 @@ procedure AudioSetHighQuality(value: boolean);
 			AudioSimNoteTo := AudioSimNoteToNearest;
 			AudioSimRoundSamples := true;
 		end;
+		SoundInitFreqTable(value);
 	end;
 
 procedure AudioSimSilenceTo(targetNotePos: Uint32; stream: TAudioSampleArray; var streamPos: Int32; streamLen: Int32);
@@ -261,13 +262,13 @@ procedure AudioSimulate(stream: TAudioSampleArray; len: Int32);
 					end;
 				end;
 			
-				if (CurrentNote >= 16) and (CurrentNote < 112) then begin
+				if (CurrentNote >= 0) and (CurrentNote < 240) then begin
 					{ note }
 					if CurrentNotePos < SAMPLES_NOTE_DELAY then
 						AudioSimSilenceTo(SAMPLES_NOTE_DELAY, stream, pos, len)
 					else begin
-						if SoundFreqTable[CurrentNote] > 0 then
-							AudioSimNoteTo(CurrentNoteMax, SoundFreqTable[CurrentNote] shl 8, false, stream, pos, len)
+						if SoundFreqTable[CurrentNote] >= 256 then
+							AudioSimNoteTo(CurrentNoteMax, SoundFreqTable[CurrentNote], false, stream, pos, len)
 						else
 							AudioSimSilenceTo(CurrentNoteMax, stream, pos, len);
 					end;
