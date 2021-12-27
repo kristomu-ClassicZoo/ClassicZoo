@@ -973,7 +973,7 @@ procedure ElementObjectTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 	begin
 		statId := GetStatIdAt(x, y);
 		if InspectNext then begin
-			InspectObjectCode(statid, Board.Stats[statId].DataPos, '');
+			InspectObjectCode(statId, Board.Stats[statId].DataPos, '');
 			InspectNext := false;
 		end else
 			retVal := OopSend(-statId, 'TOUCH', false);

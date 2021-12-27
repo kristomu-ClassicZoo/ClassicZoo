@@ -48,7 +48,7 @@ procedure OopError(statId, position: integer; message: string);
 	begin
 		if DebugEnabled then begin
 			SoundQueue(5, SoundParse(ConfigList[58])); {Error sound}
-			InspectObjectCode(statid, position, ConfigList[57] + message);
+			InspectObjectCode(statId, position, ConfigList[57] + message);
 			Board.Stats[statId].DataPos := -1;
 		end else if ConfigList[57] <> '' then begin
 			DisplayMessage(200, ConfigList[57] + message); {"ERR: "}
@@ -932,10 +932,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								else
 									counterPtr^ := 1;
 								GameUpdateSidebar;
-							end else if textLine = '' then
+							end else if OopNextWord(statId, position) = '' then
 								WorldSetFlag(OopWord)
 							else
-								OopError(statId,position, 'Unknown counter ' + OopWord);								
+								OopError(statId,position, 'Unknown counter ' + OopWord);
 							if textLine = OopStringToWord(OOPList[19]) then
 								TransitionDrawToBoard;
 							if textLine = OopStringToWord(OOPList[18]) then
