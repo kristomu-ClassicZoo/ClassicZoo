@@ -1918,8 +1918,13 @@ procedure BoardPassageTeleport(x, y: integer);
 		with Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y] do begin
 			if (not ExtensionEnabled[ExtFixPassageDestroy])
 			or (Element = E_PLAYER) then begin
-				Element := E_EMPTY;
-				Color := 0;
+				if ExtensionEnabled[ExtFixPlayerUnpauseDamage] then begin
+					Element := Board.Stats[0].Under.Element;
+					Color := Board.Stats[0].Under.Color;
+				end else begin
+					Element := E_EMPTY;
+					Color := 0;
+				end;
 			end;
 		end;
 		if newX <> 0 then begin
