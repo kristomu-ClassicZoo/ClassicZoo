@@ -2362,6 +2362,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 						Inc(Board.Stats[0].X, InputDeltaX);
 						Inc(Board.Stats[0].Y, InputDeltaY);
 						with Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y] do begin
+							if ExtensionEnabled[ExtFixPlayerUnpauseDamage] then begin
+								Board.Stats[0].Under.Element := Element;
+								Board.Stats[0].Under.Color := Color;
+							end;
 							Element := E_PLAYER;
 							Color := ElementDefs[E_PLAYER].Color;
 						end;

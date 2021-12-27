@@ -13,6 +13,7 @@ TExtensionType = (
 	ExtFixBoardEdgeTouch,
 	ExtFixPassageDestroy,
 	ExtFixPassageColorDamage,
+	ExtFixPlayerUnpauseDamage,
 	ExtSuperzEnter,
 	ExtDieItem,
 	ExtDieUnderTile,

@@ -163,6 +163,7 @@ begin
 		ZxtRegisterExtensionSimple(ExtFixBoardEdgeTouch, $00000001, $0009);
 		ZxtRegisterExtensionSimple(ExtFixPassageDestroy, $00000001, $000b);
 		ZxtRegisterExtensionSimple(ExtFixPassageColorDamage, $00000001, $000c);
+		ZxtRegisterExtensionSimple(ExtFixPlayerUnpauseDamage, $00000001, $000d);
 		ZxtRegisterExtensionSimple(ExtSuperzEnter, $00000002, $0001);
 		ZxtRegisterExtensionSimple(ExtDieItem, $0000A51E, $0001);
 		ZxtRegisterExtensionSimple(ExtDieUnderTile, $0000A51E, $0002);
