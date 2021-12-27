@@ -1,5 +1,5 @@
 #Extended OOP file
-# Version 2.0-firm-b
+# Version 2.1-firm
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -257,6 +257,13 @@ PLAYER
 # be selected.
 # You can rename the COLOR condition below:
 COLOR
+# ---- PALETTE command
+# Usage:
+#        #palette <color> <r> <g> <b>
+# Sets the palette for the given <color>. The
+# <r>, <g>, <b> values must be ranged from 0-63.
+# You can rename the PALETTE command below:
+PALETTE
 # ---- INTERPOLATION
 # Usage:
 #        #set <counter> <#>
@@ -266,5 +273,5 @@ COLOR
 #        #if <counter> IS <#>
 #        #if not <counter>
 #Allows counters to be used for much more than
-#just GIVE and TAKE. Cannot be disabled in v2.0.
+#just GIVE and TAKE. Cannot be disabled in v2
 ON

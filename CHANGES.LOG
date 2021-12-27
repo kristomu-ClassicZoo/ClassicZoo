@@ -1,3 +1,38 @@
+= 12/27/2021: 2.1
+ New version - Weave features are frozen, apart from the addition of more ?cheats, and restoring the accessibility modes from ACCZZT.
+
+Improved:
+ * ?+DEBUG mode now provides significantly more feedback on object errors than previously, including showing the specific line where the error occurred.
+ * Many more errors are surfaced by the engine when data is out of bounds or when OOP can't be interpreted.
+
+Bugs Fixed:
+ * Conveyor destruction bug.
+ * Passages next to one another destruction bug.
+ * Passages create holes in fakes on enter and exit bug.
+ * Passages change color inappropriately bug.
+ * Removed the discrepancy between TTextWindow's line length (58) and the strings it's supposed to hold (50).
+ * Fixed memory leak in AddStat.
+ * Adjusted file loading so that zedit2 can effectively load FirmWeave for testing, and running zeta with -t does not produce visual errors in the sidebar for games whose theme has changed.
+
+Added:
+ * Palette loading in .PAR file.
+ * Palette modification through #palette OOP command.
+ * Unnamed Object and Scroll header modificaiton now available in .CFG file. (also in SoftWeave)
+
+Other:
+ * Removed /R and /T flags from ZZT.EXE argument parsing. Now only the name of a ZZT file may be passed.
+ * Removed all references to registration, including reading the .CFG file 'REGISTERED' line.
+
+= 12/24/2021: 2.0h
+Improved:
+ * Quicksave and Quickload now have entries in the Demo.
+ * Quicksave and Quickload can now specify a filename, allowing games to carry multiple save slots.
+ * Keyboard inputs are now channeled through the Input Terminal, a named object that recieves incoming messages from the keyboard.
+ * A demo entry for the Keyboard Terminal has been created.
+
+Added:
+ * A blank centered line ('$') by itself will clear the message buffer.
+
 = 12/23/2021: 2.0g
 Added:
 * #LOCK <dir> allows you to #LOCK objects remotely in the direction of <dir>.
