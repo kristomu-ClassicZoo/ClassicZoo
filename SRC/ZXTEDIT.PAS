@@ -44,9 +44,9 @@ uses Dos, FileSel, ZVideo, ZInput;
 const
 	FZxtEditorCustomAdd = $8000;
 {$IFDEF NEC98}
-	EDITOR_ZXT_INFOS_COUNT = 17;
+	EDITOR_ZXT_INFOS_COUNT = 19;
 {$ELSE}
-	EDITOR_ZXT_INFOS_COUNT = 18;
+	EDITOR_ZXT_INFOS_COUNT = 20;
 {$ENDIF}
 	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
 		(
@@ -74,6 +74,12 @@ const
 			(ExtType: ExtFixBindDoubleFree;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
 			Name: 'FIX: Nested #BIND calls'),
+			(ExtType: ExtFixPassageColorDamage;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Passage color on damage'),
+			(ExtType: ExtFixPassageDestroy;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			Name: 'FIX: Passage adjacent destroy'),
 			(ExtType: ExtFixRecursiveElementPush;
 			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
 			Name: 'FIX: Recursive element push'),

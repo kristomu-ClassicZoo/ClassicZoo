@@ -11,6 +11,8 @@ TExtensionType = (
 	ExtFixConveyorStatSwapping, { on by default }
 	ExtFixBlinkWallShift,
 	ExtFixBoardEdgeTouch,
+	ExtFixPassageDestroy,
+	ExtFixPassageColorDamage,
 	ExtSuperzEnter,
 	ExtDieItem,
 	ExtDieUnderTile,
