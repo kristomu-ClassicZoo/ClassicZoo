@@ -33,8 +33,22 @@ Pc98,
 Crt,
 {$ENDIF}
 {$ENDIF}
+{$IFDEF SDL2}
+SysUtils, FileSel,
+{$ENDIF}
 Dos, ExtMem, FileSys, ZxtMgr, ZxtZoo, ZVideo, Keys, Sounds, ZInput, TxtWind,
 ZDemo, GameConf, GameVars, Elements, Editor, Oop, Game;
+
+{$IFDEF SDL2}
+function FileNameFromProgramName(const ext: string; checkExists: boolean): string;
+	var
+		s: string;
+	begin
+		s := FExpand(ChangeFileExt(ExtractFileName(ParamStr(0)), ext));
+		if checkExists and not FileExists(s) then s := FExpand('ZZT' + ext);
+		FileNameFromProgramName := s;
+	end;
+{$ENDIF}
 
 procedure ParseArguments;
 	var
@@ -81,20 +95,18 @@ procedure ParseArguments;
 begin
 	Randomize;
 
-{$IFNDEF SDL2}
-{ TODO
-	Writeln('%NAME% %VERSION%');
-	Writeln('%COPYRIGHT%');
-}
-{$ENDIF}
-
 	StartupWorldFileName := '';
+{$IFDEF SDL2}
+	ResourceDataFileName := FileNameFromProgramName('.DAT', true);
+	ConfigFileName := FileNameFromProgramName('.INI', false);
+{$ELSE}
 {$IFDEF SUBDIRS}
 	ResourceDataFileName := FExpand('ZZT.DAT');
 	ConfigFileName := FExpand('ZZT.INI');
 {$ELSE}
 	ResourceDataFileName := 'ZZT.DAT';
 	ConfigFileName := 'ZZT.INI';
+{$ENDIF}
 {$ENDIF}
 	DemoEngineName := '%NAME% %VERSION%';
 	GameTitleExitRequested := false;

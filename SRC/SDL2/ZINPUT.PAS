@@ -74,17 +74,23 @@ interface
 	procedure InputUpdate;
 	procedure InputInitDevices;
 	procedure InputReadWaitKey;
+	function InputGetControllerID: string;
+	function InputGetControllerName: string;
+	procedure InputSetControllerID(value: string);
+	procedure InputSwitchToNextController;
 
 {DEFINE DEBUG_INPUT_FLAGS}
 
 implementation
-uses Keys, Sounds, TimerSys, ZVideo, SDL2;
+uses Classes, SysUtils, Keys, Sounds, TimerSys, ZVideo, SDL2;
 
 type
+	TKeyPressSource = (KPSKeyboard, KPSGamepad);
 	TKeyPress = record
-		Value: char;
 		Hsecs: word;
+		Value: char;
 		Flags: byte;
+		Source: TKeyPressSource;
 	end;
 
 const
@@ -113,8 +119,105 @@ const
 var
 	KeysPressed: array[1 .. MAX_KEYS_PRESSED] of TKeyPress;
 	KeysPressedPos: integer;
+	InputControllerIndex: Sint32;
+	InputGameController: PSDL_GameController;
+	InputJoystick: PSDL_Joystick;
 
-procedure InputSetKeyPressed(key: char; oneTime: boolean; isRepeat: boolean);
+procedure InputCloseController;
+	begin
+		if InputGameController <> nil then begin
+			SDL_GameControllerClose(InputGameController);
+			InputGameController := nil;
+			InputJoystick := nil; { belongs to GameController }
+			InputControllerIndex := -1;
+		end;
+	end;
+
+procedure InputOpenController(id: Sint32);
+	begin
+		InputCloseController;
+
+		InputGameController := SDL_GameControllerOpen(id);
+		if InputGameController <> nil then begin
+			InputJoystick := SDL_GameControllerGetJoystick(InputGameController);
+			InputControllerIndex := id;
+		end;
+	end;
+
+function InputGUIDToString(guid: TSDL_JoystickGUID): string;
+	var
+		i: integer;
+		s: string;
+	begin
+		s := '';
+		for i := 0 to 15 do begin
+			s := s + IntToHex(guid.data[i]);
+		end;
+		InputGUIDToString := s;
+	end;
+
+function InputGetControllerID: string;
+	begin
+		if InputJoystick <> nil then begin
+			InputGetControllerID := 'j' + InputGUIDToString(SDL_JoystickGetGUID(InputJoystick)); 
+		end else begin
+			InputGetControllerID := 'k';
+		end;
+	end;
+
+function InputGetControllerName: string;
+	begin
+		if InputGameController <> nil then begin
+			InputGetControllerName := StrPas(SDL_GameControllerName(InputGameController));
+		end else begin
+			InputGetControllerName := 'Keyboard';
+		end;
+	end;
+
+procedure InputSetControllerID(value: string);
+	var
+		i: integer;
+		jid: string;
+	begin
+		InputCloseController;
+
+		if (Length(value) >= 1) and (value[1] = 'j') then begin
+			for i := 0 to (SDL_NumJoysticks() - 1) do begin
+				if SDL_IsGameController(i) = SDL_TRUE then begin
+					jid := 'j' + InputGUIDToString(SDL_JoystickGetDeviceGUID(i));
+					if jid = value then begin
+						InputOpenController(i);
+						exit;
+					end;
+				end;
+			end;
+		end;
+	end;
+
+procedure InputSwitchToNextController;
+	var
+		ids: TStringList;
+		currId, newId: string;
+		i: integer;
+	begin
+		ids := TStringList.Create;
+		ids.Add('k');
+		for i := 0 to (SDL_NumJoysticks() - 1) do begin
+			if SDL_IsGameController(i) = SDL_TRUE then begin
+				ids.Add('j' + InputGUIDToString(SDL_JoystickGetDeviceGUID(i)));
+			end;
+		end;
+		currId := InputGetControllerID;
+		newId := ids[0];
+		for i := 0 to (ids.Count - 2) do begin
+			if ids[i] = currId then
+				newId := ids[i + 1];
+		end;
+		InputSetControllerID(newId);
+		ids.Free;
+	end;
+
+procedure InputSetKeyPressed(kpSource: TKeyPressSource; key: char; oneTime: boolean; isRepeat: boolean);
 	var
 		i, kid, kid2: integer;
 		anyPressed: boolean;
@@ -132,7 +235,7 @@ procedure InputSetKeyPressed(key: char; oneTime: boolean; isRepeat: boolean);
 		kid := 0;
 		for i := 1 to MAX_KEYS_PRESSED do with KeysPressed[i] do begin
 			anyPressed := anyPressed or ((Flags and (KP_PRESSED or KP_HELD)) <> 0);
-			if (Value = key) and ((Flags and (KP_PRESSED or KP_HELD)) <> 0) then begin
+			if (Source = kpSource) and (Value = key) and ((Flags and (KP_PRESSED or KP_HELD)) <> 0) then begin
 				if (isRepeat or ((Flags and KP_HELD) <> 0)) then begin
 					kid := i;
 					break;
@@ -156,6 +259,7 @@ procedure InputSetKeyPressed(key: char; oneTime: boolean; isRepeat: boolean);
 		if kid > 0 then begin
 			with KeysPressed[kid] do begin
 				if isRepeat and ((Flags and KP_HELD) <> 0) then exit;
+				Source := kpSource;
 				Value := key;
 				Hsecs := TimerSysGetHsecs + JOY_REPEAT_HSECS_DELAY;
 				Flags := KP_PRESSED;
@@ -177,13 +281,13 @@ procedure InputSetKeyPressed(key: char; oneTime: boolean; isRepeat: boolean);
 		end;
 	end;
 
-procedure InputClearKeyPressed(key: char; forceClear: boolean);
+procedure InputClearKeyPressed(kpSource: TKeyPressSource; key: char; forceClear: boolean);
 	var
 		i: integer;
 	begin
 		for i := 1 to MAX_KEYS_PRESSED do begin
 			with KeysPressed[i] do begin
-				if Value = key then begin
+				if (Source = kpSource) and (Value = key) then begin
 					Flags := Flags and (not KP_HELD);
 					if forceClear or ((Flags and KP_REPEATED) <> 0) then begin
 						Flags := Flags and (not KP_PRESSED) and (not KP_REPEATED);
@@ -231,7 +335,7 @@ procedure InputUpdate;
 				SDL_TEXTINPUT: begin
 					k := event.text.text[0];
 					if (Byte(k) >= 32) and (Byte(k) < 127) then
-						InputSetKeyPressed(k, true, false);
+						InputSetKeyPressed(KPSKeyboard, k, true, false);
 				end;
 				SDL_KEYDOWN, SDL_KEYUP: begin
 					InputUpdateKeymod(event.key.keysym._mod);
@@ -258,9 +362,34 @@ procedure InputUpdate;
 					end else k := #0;
 					if ((Byte(k) and $7F) <> 0) and not ((Byte(k) >= 32) and (Byte(k) < 127)) then
 						if event.type_ = SDL_KEYDOWN then
-							InputSetKeyPressed(k, false, event.key._repeat <> 0)
+							InputSetKeyPressed(KPSKeyboard, k, false, event.key._repeat <> 0)
 						else
-							InputClearKeyPressed(k, false);
+							InputClearKeyPressed(KPSKeyboard, k, false);
+				end;
+				SDL_CONTROLLERDEVICEREMOVED: begin
+					if event.cdevice.which = InputControllerIndex then
+						InputCloseController;
+				end;
+				SDL_CONTROLLERBUTTONDOWN, SDL_CONTROLLERBUTTONUP: begin
+					if event.cbutton.which = InputControllerIndex then begin
+						case event.cbutton.button of
+						SDL_CONTROLLER_BUTTON_DPAD_UP: k := KEY_UP;
+						SDL_CONTROLLER_BUTTON_DPAD_LEFT: k := KEY_LEFT;
+						SDL_CONTROLLER_BUTTON_DPAD_RIGHT: k := KEY_RIGHT;
+						SDL_CONTROLLER_BUTTON_DPAD_DOWN: k := KEY_DOWN;
+						SDL_CONTROLLER_BUTTON_X: k := ' ';
+						SDL_CONTROLLER_BUTTON_Y: k := 'T';
+						SDL_CONTROLLER_BUTTON_LEFTSHOULDER: k := KEY_PAGE_UP;
+						SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: k := KEY_PAGE_DOWN;
+						SDL_CONTROLLER_BUTTON_START: k := 'P';
+						else k := #0 end;
+						if (k <> #0) then begin
+							if event.cbutton.state = SDL_PRESSED then
+								InputSetKeyPressed(KPSGamepad, k, false, false)
+							else
+								InputClearKeyPressed(KPSGamepad, k, false);
+						end;
+					end;
 				end;
 			end;
 		end;
@@ -315,8 +444,13 @@ procedure InputUpdate;
 		end;
 
 		if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+			if InputControllerIndex >= 0 then begin
+				InputShiftPressed := InputShiftPressed or
+					(SDL_GameControllerGetButton(InputGameController, SDL_CONTROLLER_BUTTON_A) <> 0)
+					or (SDL_GameControllerGetButton(InputGameController, SDL_CONTROLLER_BUTTON_B) <> 0);
+			end;
 			{ keyboard movement }
-			InputShiftPressed := KeysShiftHeld;
+			InputShiftPressed := InputShiftPressed or KeysShiftHeld;
 		end;
 	end;
 
@@ -347,6 +481,10 @@ begin
 	InputMouseActivationY := 60;
 	InputMouseButtonX := 0;
 	InputMouseButtonY := 0;
+
+	InputGameController := nil;
+	InputJoystick := nil;
+	InputControllerIndex := -1;
 
 	KeysPressedPos := 0;
 end.

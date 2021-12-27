@@ -43,10 +43,6 @@ Name        | Functionality
 ------------+----------------------------
 DEBUG       | Enable debug mode.
 (NODEBUG)   |
-DCOMPAT     | Enable ZZT 3.2 compat-
-            | related errors.
-DUNDEF      | Enable undefined behaviour-
-            | related errors.
 SHOW [el]   | Make all tiles of type
 (NOSHOW)    | [el] blink.
 NOSHOW ALL  | Undo all SHOW commands.

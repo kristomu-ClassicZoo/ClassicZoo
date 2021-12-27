@@ -273,8 +273,8 @@ procedure BoardClose;
 		end;
 
 {$IFDEF DEBUGWND}
-		if DebugCompatEnabled and (iy > IO_BUFFER_DEFAULT_SIZE) then
-			DebugShowSizeTooLarge(IO_BUFFER_DEFAULT_SIZE, iy, World.Info.CurrentBoard,
+		if DebugCompatEnabled and (iy > ZZT_32_BOARD_MAX_SIZE) then
+			DebugShowSizeTooLarge(ZZT_32_BOARD_MAX_SIZE, iy, World.Info.CurrentBoard,
 				'Board', 'is above the ZZT 3.2 limit!');
 {$ENDIF}
 
@@ -1347,7 +1347,7 @@ procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState)
 
 			if dataStrLen > 0 then begin
 				dataStr[0] := Chr(dataStrLen);
-				TextWindowAppend(state, dataStr);
+				TextWindowAppendEdit(state, dataStr);
 			end;
 		end;
 	end;
@@ -1556,7 +1556,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 {$ENDIF}
 
 {$IFDEF DEBUGWND}
-			if DebugUndefEnabled and ((X > 61) or (Y > 26)) then begin
+			if DebugUndefEnabled and ((X > (BOARD_WIDTH+1)) or (Y > (BOARD_HEIGHT+1))) then begin
 				DebugShowElementMessage('Move out of bounds!', X, Y);
 			end;
 {$ENDIF}
@@ -2077,12 +2077,6 @@ procedure GameDebugPrompt;
 					SidebarClearLine(3);
 					SidebarClearLine(4);
 				end;
-{$IFDEF DEBUGWND}
-			end else if input = 'DCOMPAT' then begin
-				DebugCompatEnabled := isYes;
-			end else if input = 'DUNDEF' then begin
-				DebugUndefEnabled := isYes;
-{$ENDIF}
 {$IFDEF EXTCHEAT}
 			end else if DebugPromptStarts(input, 'SHOW') then begin
 				i := DebugPromptParseElem(input, 4);
