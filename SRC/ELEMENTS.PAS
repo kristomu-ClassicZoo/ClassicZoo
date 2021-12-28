@@ -1520,11 +1520,9 @@ procedure ElementPlayerTick(statId: integer);
 					end;
 				end;
 				#27, 'Q': begin
-					{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 					GamePromptEndPlay;
 				end;
 				'S': begin
-					{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 					GameWorldSave('Save game:', SavedGameFileName, '.SAV');
 				end;
 				'P': begin
@@ -1538,16 +1536,13 @@ procedure ElementPlayerTick(statId: integer);
 					InputKeyPressed := ' ';
 				end;
 				'H': begin
-					{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 					TextWindowDisplayFile('GAME.HLP', 'Playing ZZT');
 				end;
 				'?': begin
-					{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 					GameDebugPrompt;
 					InputKeyPressed := #0;
 				end;
 			end;
-			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 
 			if World.Info.TorchTicks > 0 then begin
 				Dec(World.Info.TorchTicks);

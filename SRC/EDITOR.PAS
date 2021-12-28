@@ -409,7 +409,7 @@ procedure EditorLoop;
 			EditorUpdateCursorPattern;
 
 			EditorUpdateDrawMode;
-			{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
+			{$IFDEF BASICSYS} VideoUnlockScreenUpdate(60, 0, 79, 24); {$ENDIF}
 		end;
 
 	procedure EditorDrawTileAndNeighborsAt(x, y: integer);
@@ -1571,8 +1571,8 @@ procedure EditorLoop;
 						EditorUpdateDrawMode;
 					end;
 					KEY_F5: begin
-						{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 						VideoWriteText(cursorX - 1, cursorY - 1, $0F, #197);
+						{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 						for i := 3 to 20 do
 							SidebarClearLine(i);
 						VideoWriteText(65, 4, $1E, 'Advanced:');
@@ -1606,7 +1606,7 @@ procedure EditorLoop;
 						VideoWriteText(61, 13, $70, ' A ');
 						VideoWriteText(65, 13, $1F, 'Star');
 						VideoWriteText(78, 13, cursorColor, '/');
-						{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
+						{$IFDEF BASICSYS} VideoUnlockScreenUpdate(60, 3, 79, 20); {$ENDIF}
 
 						InputReadWaitKey;
 						case UpCase(InputKeyPressed) of
@@ -1635,8 +1635,8 @@ procedure EditorLoop;
 						EditorDrawSidebar;
 					end;
 					KEY_F1, KEY_F2, KEY_F3: begin
-						{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 						VideoWriteText(cursorX - 1, cursorY - 1, $0F, #197);
+						{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 						for i := 3 to 20 do
 							SidebarClearLine(i);
 						case InputKeyPressed of
@@ -1660,7 +1660,7 @@ procedure EditorLoop;
 								Inc(i);
 							end;
 						end;
-						{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
+						{$IFDEF BASICSYS} VideoUnlockScreenUpdate(60, 3, 79, 20); {$ENDIF}
 						InputReadWaitKey;
 						for iElem := 1 to MAX_ELEMENT do begin
 							if (ElementDefs[iElem].EditorCategory = selectedCategory)

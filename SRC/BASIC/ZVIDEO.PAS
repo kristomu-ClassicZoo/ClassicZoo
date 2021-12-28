@@ -46,7 +46,7 @@ interface
 		VideoMDAInstalled: boolean;
 		VideoLastMode: word;
 	procedure VideoLockScreenUpdate;
-	procedure VideoUnlockScreenUpdate;
+	procedure VideoUnlockScreenUpdate(x1, y1, x2, y2: integer);
 	function VideoSetCharset(data: pointer; height: integer): boolean;
 	procedure VideoInstall(borderColor: integer);
 	procedure VideoUninstall;
@@ -71,11 +71,11 @@ procedure VideoLockScreenUpdate;
 		end;
 	end;
 
-procedure VideoUnlockScreenUpdate;
+procedure VideoUnlockScreenUpdate(x1, y1, x2, y2: integer);
 	begin
 		if VSULocked then begin
 			UnlockScreenUpdate;
-			UpdateScreen(false);
+			UpdateScreenArea(x1, y1, x2, y2, false);
 			VSULocked := false;
 		end;
 	end;
