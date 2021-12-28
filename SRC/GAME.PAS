@@ -1746,6 +1746,12 @@ procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 
 procedure TransitionDrawBoardChange;
 	begin
+{$IFDEF FASTVID}
+		if TransitionBlocksPerFrame = 32767 then begin
+			TransitionDrawToBoard;
+			exit;
+		end;
+{$ENDIF}
 		TransitionDrawToFill(#219, $05);
 		TransitionDrawToBoard;
 	end;

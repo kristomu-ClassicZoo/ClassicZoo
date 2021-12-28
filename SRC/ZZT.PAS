@@ -123,7 +123,7 @@ begin
 
 {$IFDEF FASTVID}
 	TransitionBlocksPerFrame := 32767;
-	TransitionTextWindowDelay := 25;
+	TransitionTextWindowDelay := {$IFDEF HASAMIGA} 0 {$ELSE} 25 {$ENDIF};
 {$ENDIF}
 	TickSpeed := 4;
 	DebugEnabled := false;

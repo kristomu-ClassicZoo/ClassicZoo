@@ -65,23 +65,19 @@ var
 
 procedure VideoLockScreenUpdate;
 	begin
-{$IFNDEF HASAMIGA}
 		if not VSULocked then begin
 			VSULocked := true;
 			LockScreenUpdate;
 		end;
-{$ENDIF}
 	end;
 
 procedure VideoUnlockScreenUpdate;
 	begin
-{$IFNDEF HASAMIGA}
 		if VSULocked then begin
 			UnlockScreenUpdate;
 			UpdateScreen(false);
 			VSULocked := false;
 		end;
-{$ENDIF}
 	end;
 
 function ColorToBW(color: byte): byte;
