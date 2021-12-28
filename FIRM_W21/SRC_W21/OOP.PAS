@@ -40,6 +40,7 @@ interface
 	function ShortWord(s: string): boolean;
 	procedure OopGetShort(s: string; var cPtr: cShort);
 	function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
+	procedure GetBoardStats;
 
 implementation
 uses Sounds, TxtWind, Game, Elements;
@@ -724,11 +725,60 @@ function OopReadLineToEnd(statId: integer; var position: integer) : string;
 		OopReadLineToEnd := s;
 	end;
 
+procedure GetBoardStats;
+	var
+		i: integer;
+		s, t: string;
+		textWindow: TTextWindowState;
+	begin
+		with Board.Info do begin
+			TextWindowInitState(textWindow);
+			textWindow.Selectable := false;
+			TextWindowAppend(textWindow, '$** Board Stats: **');
+			s := 'Board is: ';
+			if IsDark > 0 then
+				s := s + 'Dark, '
+			else
+				s := s + 'Not Dark, ';
+			if ReenterWhenZapped then
+				s := s + 'Zappy'
+			else
+				s := s + 'Not Zappy';
+			TextWindowAppend(textWindow, s);
+			Str(StartPlayerX,t);
+			Str(StartPlayerY,s);
+			TextWindowAppend(textWindow, 'Re-enter at: ' + t + ', ' + s);
+			Str(MaxShots,s);
+			TextWindowAppend(textWindow, 'Max Shots: ' + s);
+			if (TimeLimitSec > 0) and (World.Info.BoardTimeSec >= 0) then begin
+				Str(TimeLimitSec,s);
+				Str(TimeLimitSec - World.Info.BoardTimeSec,t);
+				TextWindowAppend(textWindow, 'Time: ' + t + 's remains of ' + s + 's limit');
+			end else
+				TextWindowAppend(textWindow, 'Time: No time limit');
+			Str(Board.StatCount, s);
+			TextWindowAppend(textWindow, 'Stat Count: ' + s);
+			Str(Local,s);
+			TextWindowAppend(textWindow, CustomFlagList[1] + ': ' + s);
+			TextWindowAppend(textWindow, '$** Board connections: **');
+			for i := 0 to 3 do
+				if NeighborBoards[i] <> 0 then
+					TextWindowAppend(textWindow, '  ' + NeighborArrowList[i] + '  ' +  BoardNames[NeighborBoards[i]])
+				else
+					TextWindowAppend(textWindow, '  ' + NeighborArrowList[i] + '  None');
+			textWindow.Title := 'Inspecting Board';
+			TextWindowDrawOpen(textWindow);
+			TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
+			TextWindowDrawClose(textWindow);
+			TextWindowFree(textWindow);
+		end;
+	end;
+
 procedure InspectObjectCode(statId, PointPos: integer; ErrMsg: string);
 	var
-		s: string;
+		s, t: string;
 		ch: char;
-		pos: integer;
+		i, pos: integer;
 		textWindow: TTextWindowState;
 		isCurLine: boolean;
 	begin
@@ -740,8 +790,27 @@ procedure InspectObjectCode(statId, PointPos: integer; ErrMsg: string);
 			textWindow.Selectable := false;
 			if ErrMsg <> '' then
 				TextWindowAppend(textWindow, #255#32 + ErrMsg)
-			else
-				TextWindowAppend(textWindow, '  Object Data:');
+			else begin
+				TextWindowAppend(textWindow, '$** Object Stats: **');
+				Str(P1,s);
+				t := s + ', ';
+				Str(P2,s);
+				t := t + s + ', ';
+				Str(P3,s);
+				TextWindowAppend(textWindow, 'Params: ' + t + s);
+				Str(StepX,s);
+				t := s + ', ';
+				Str(StepY,s);
+				TextWindowAppend(textWindow, 'Step: ' + t + s);
+				Str(Cycle,s);
+				TextWindowAppend(textWindow, 'Cycle: ' + s);
+				for i := 1 to 4 do begin
+					Str(ObjLocal[i],s);
+					TextWindowAppend(textWindow, CustomFlagList[i + 1] + ': ' + s);
+				end;
+				s := '';
+				TextWindowAppend(textWindow, '$** Object Data: **');
+			end;
 			while pos <= DataLen do begin
 				Move(Ptr(Seg(Data^), Ofs(Data^) + pos)^, ch, 1);
 				if ch = #13 then begin

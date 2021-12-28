@@ -45,6 +45,7 @@ interface
 	procedure WorldCreate;
 	procedure TransitionDrawToFill(chr: char; color: integer);
 	procedure BoardDrawTile(x, y: integer);
+	procedure BoardDrawRow(row: integer);
 	procedure BoardDrawBorder;
 	procedure TransitionDrawToBoard;
 	procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
@@ -565,6 +566,7 @@ procedure BoardCreate;
 		Board.Info.IsDark := false;
 		Board.Info.ReenterWhenZapped := false;
 		Board.Info.TimeLimitSec := 0;
+		Board.Info.BoardTicks := 0;
 		for i := 0 to 3 do
 			Board.Info.NeighborBoards[i] := 0;
 
@@ -678,14 +680,20 @@ procedure BoardDrawTile(x, y: integer);
 		end;
 	end;
 
+procedure BoardDrawRow(row: integer);
+	var
+		ix: integer;
+	begin
+		for ix := 1 to BOARD_WIDTH do
+			BoardDrawTile(ix, row);
+	end;
+
 procedure BoardDrawBorder;
 	var
-		ix, iy: integer;
+		iy: integer;
 	begin
-		for ix := 1 to BOARD_WIDTH do begin
-			BoardDrawTile(ix, 1);
-			BoardDrawTile(ix, BOARD_HEIGHT);
-		end;
+		BoardDrawRow(1);
+		BoardDrawRow(BOARD_HEIGHT);
 
 		for iy := 1 to BOARD_HEIGHT do begin
 			BoardDrawTile(1, iy);
@@ -1287,6 +1295,7 @@ function Difference(a, b: integer): integer;
 
 procedure GameUpdateSidebar;
 	var
+		keyChar: char;
 		numStr: string[8];
 		i: integer;
 	begin
@@ -1330,12 +1339,16 @@ procedure GameUpdateSidebar;
 			end;
 
 			if ConfigList[68] <> '' then
-				for i := 1 to 7 do
+				if Diffkeys then
+					keyChar := Chr(139 + i)
+				else
+					keyChar := Chr(ParamList[17]);
+				for i := 1 to 7 do begin
 					if World.Info.Keys[i] then
-						VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), ElementDefs[E_KEY].Character)
+						VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), keyChar)
 					else
 						VideoWriteText(71 + i, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ');
-
+				end;
 
 			if ConfigList[72] <> '' then begin
 				if SoundEnabled then
@@ -1360,17 +1373,18 @@ procedure GameUpdateSidebar;
 	end;
 
 procedure DisplayMessage(time: integer; message: string);
+	var
+		statId: integer;
 	begin
 		if Length(message) <> 0 then begin
-			if GetStatIdAt(0, 0) <> -1 then begin
-				RemoveStat(GetStatIdAt(0, 0));
-				BoardDrawBorder;
-			end;
-			AddStat(0, 0, E_MESSAGE_TIMER, 0, 1, StatTemplateDefault);
-			Board.Stats[Board.StatCount].P2 := Time div (TickTimeDuration + 1);
+			if Length(Board.Info.Message) > Length(message) then
+				BoardDrawRow(BOARD_HEIGHT);
+			Board.Stats[0].P3 := time div (TickTimeDuration + 1);
 			Board.Info.Message := message;
+			VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, 9 + (Board.Stats[0].P3 mod 7), ' '+Board.Info.Message+' ');
 		end;
 	end;
+
 
 procedure DamageStat(attackerStatId: integer);
 	var
@@ -1653,7 +1667,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				if ConfigList[66] <> '' then
 					VideoWriteText(62, 10, AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), ElementDefs[E_GEM].Character);
 				if ConfigList[68] <> '' then
-				VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ElementDefs[E_KEY].Character);
+				VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), Chr(ParamList[17]));
 				if ConfigList[70] <> '' then begin
 					VideoWriteText(62, 14, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' ' + ConfigList[70] + ' ');
 					VideoWriteText(65, 14, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[71]);
@@ -1672,7 +1686,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 					VideoWriteText(62, 21, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' ' + ConfigList[77] + ' ');
 					VideoWriteText(65, 21, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[78]);
 				end;
-				if ConfigList[79] <> '' then begin
+				if NeuromotorAssist then begin
+					VideoWriteText(62, 22, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' P ');
+					VideoWriteText(65, 22, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Proceed')
+				end else if ConfigList[79] <> '' then begin
 					VideoWriteText(62, 22, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[79] + ' ');
 					VideoWriteText(65, 22, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[80]);
 				end;
@@ -1742,7 +1759,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 		GamePlayExitRequested := false;
 		exitLoop := false;
 
-		CurrentTick := Random(100);
+		CurrentTick := Board.Info.BoardTicks;
 		CurrentStatTicked := Board.StatCount + 1;
 
 		repeat
@@ -1791,7 +1808,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 					{ Unpause }
 					GamePaused := false;
 					SidebarClearLine(5);
-					CurrentTick := Random(100);
+					CurrentTick := Board.Info.BoardTicks;
 					CurrentStatTicked := Board.StatCount + 1;
 					World.Info.IsSave := true;
 				end;
@@ -1811,7 +1828,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				{ all stats ticked }
 				if SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
 					{ next cycle }
-					CurrentTick := CurrentTick + 1;
+					CurrentTick := Board.Info.BoardTicks;
 					if CurrentTick > 420 then
 						CurrentTick := 1;
 					CurrentStatTicked := 0;

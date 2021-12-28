@@ -101,7 +101,8 @@ interface
 			StartPlayerX: byte;
 			StartPlayerY: byte;
 			TimeLimitSec: integer;
-			unk1: array[70 .. 85] of byte;
+			BoardTicks: integer;
+			unk1: array[72 .. 85] of byte;
 		end;
 		TWorldInfo = record
 			Ammo: integer;
@@ -126,7 +127,7 @@ interface
 			Tiles: array[0 .. BOARD_WIDTH + 1] of array[0 .. BOARD_HEIGHT + 1] of TTile;
 			StatCount: integer;
 			Stats: array[0 .. MAX_STAT + 1] of TStat;
-			Info: TBoardInfo;      
+			Info: TBoardInfo;
 		end;
 		TWorld = record
 			BoardCount: integer;
@@ -163,6 +164,10 @@ interface
 		MessageFakeNotShown: boolean;
 		MessageGemNotShown: boolean;
 		MessageEnergizerNotShown: boolean;
+		NeuromotorAssist: boolean;
+		HearingImpaired: boolean;
+		Diffkeys: boolean;
+		GameMove: boolean;
 		IoTmpBufSize: word;
 		FileWorldCachedLinePos: integer; 
 		FileSaveCachedLinePos: integer;
@@ -197,8 +202,9 @@ interface
 		ConfigList: TConfigList;
 		ParamList: TParamList;
 		HighScoreList: THighScoreList;
-		ConfigWorldFile: TString50;
 		JustStarted: boolean;
+		ConfigWorldFile: TString50;
+		Accessibility: array[1..4] of TString50;
 
 		WorldFileDescCount: integer;
 		WorldFileDescKeys: array[1 .. 10] of TString50;

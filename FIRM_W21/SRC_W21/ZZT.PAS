@@ -30,12 +30,14 @@ uses Crt, Dos, ExtMem, Video, Keys, Sounds, Input, TxtWind, GameVars, Elements, 
 
 procedure ParseArguments;
 	begin
-		StartupWorldFileName := ParamStr(1);
+		if ParamStr(1) <> '' then
+			StartupWorldFileName := ParamStr(1);
 		ExtMemInstall(true, true);
 	end;
 
 procedure GameConfigure;
 	var
+		i: integer;
 		joystickEnabled, mouseEnabled: boolean;
 		cfgFile: text;
 	begin
@@ -44,6 +46,8 @@ procedure GameConfigure;
         Reset(cfgFile);
         if IOResult = 0 then begin
             ReadLn(cfgFile, ConfigWorldFile);
+			for i := 1 to 4 do
+				ReadLn(cfgFile, Accessibility[i]);
 		end;
         if Length(ConfigWorldFile) <> 0 then begin
             StartupWorldFileName := ConfigWorldFile;
@@ -61,7 +65,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                                <=-  Weave  -=>');
 		TextColor(Yellow);
-		Writeln('                                 Version   2.1');
+		Writeln('                                 Version  2.1a');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -82,6 +86,25 @@ procedure GameConfigure;
 		TextBackground(Black);
 		ClrScr;
 		TextColor(Yellow);
+		NeuromotorAssist := false;
+		HearingImpaired := false;
+		Diffkeys := false;
+		if Accessibility[1] = 'ACCESSIBLE' then begin
+			if Accessibility[2] = '' then begin
+				NeuromotorAssist :=	NeuromotorConfigure;
+				HearingImpaired :=	HearingConfigure;
+				Diffkeys := KeydiffConfigure;
+			end else begin
+				for i := 2 to 4 do begin
+					if Accessibility[i] = 'NEUROMOTORASSIST' then
+						NeuromotorAssist :=	true;
+					if Accessibility[i] = 'VISUALSOUND' then
+						HearingImpaired :=	true;
+					if Accessibility[i] = 'KEYSHAPES' then
+						Diffkeys :=	true;
+				end;
+			end;
+		end;
 		if not InputConfigure then
 			GameTitleExitRequested := true
 		else begin
@@ -99,7 +122,6 @@ begin
 	InitialTextAttr := TextAttr;
 
 	StartupWorldFileName := '';
-	ResourceDataFileName := 'ZZT.DAT';
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
 	GameTitleExitRequested := false;
 	GameConfigure;
@@ -121,6 +143,8 @@ begin
 		SavedBoardFileName := 'TEMP';
 		GenerateTransitionTable;
 		WorldCreate;
+		if Diffkeys then
+			SetAccKeys;
 
 		GameTitleLoop;
 

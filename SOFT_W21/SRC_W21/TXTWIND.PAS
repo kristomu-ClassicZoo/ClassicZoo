@@ -101,6 +101,11 @@ procedure TextWindowDrawTitle(color: integer; title: TTextWindowLine);
 		VideoWriteText(TextWindowX + ((TextWindowWidth - Length(title)) div 2), TextWindowY + 1, color, title);
 	end;
 
+function AsColor(fg, bg: integer): byte;
+	begin
+		AsColor := ((bg * 16) + fg) + $00;
+	end;
+
 procedure TextWindowDrawOpen(var state: TTextWindowState);
 	var
 		ix, iy: integer;
@@ -110,15 +115,19 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 				VideoMove(TextWindowX, iy + TextWindowY - 1, TextWindowWidth, @ScreenCopy[iy], false);
 
 			for iy := (TextWindowHeight div 2) downto 0 do begin
-				VideoWriteText(TextWindowX, TextWindowY + iy + 1, $0F, TextWindowStrText);
-				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1, $0F, TextWindowStrText);
-				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
-				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
+				VideoWriteText(TextWindowX, TextWindowY + iy + 1,
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrText);
+				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1,
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrText);
+				VideoWriteText(TextWindowX, TextWindowY + iy,
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrTop);
+				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy,
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrBottom);
 				Delay(25);
 			end;
 
-			VideoWriteText(TextWindowX, TextWindowY + 2, $0F, TextWindowStrSep);
-			TextWindowDrawTitle($1E, Title);
+			VideoWriteText(TextWindowX, TextWindowY + 2, AsColor(ParamList[THEME_START + 1],0), TextWindowStrSep);
+			TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), Title);
 		end;
 	end;
 
@@ -128,8 +137,10 @@ procedure TextWindowDrawClose(var state: TTextWindowState);
 	begin
 		with state do begin
 			for iy := 0 to (TextWindowHeight div 2) do begin
-				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
-				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
+				VideoWriteText(TextWindowX, TextWindowY + iy,	
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrTop);
+				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy,
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrBottom);
 				Delay(18);
 				VideoMove(TextWindowX, TextWindowY + iy, TextWindowWidth,
 					@ScreenCopy[iy + 1], true);
@@ -147,32 +158,46 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 		with state do begin
 			lineY := ((TextWindowY + lpos) - LinePos) + (TextWindowHeight div 2) + 1;
 			if lpos = LinePos then
-				VideoWriteText(TextWindowX + 2, lineY, $1C, TextWindowStrInnerArrows)
+				VideoWriteText(TextWindowX + 2, lineY,
+					AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), TextWindowStrInnerArrows)
 			else
-				VideoWriteText(TextWindowX + 2, lineY, $1E, TextWindowStrInnerEmpty);
+				VideoWriteText(TextWindowX + 2, lineY,
+					AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), TextWindowStrInnerEmpty);
 			if (lpos > 0) and (lpos <= LineCount) then begin
 				if withoutFormatting then begin
-					VideoWriteText(TextWindowX + 4, lineY, $1E, Lines[lpos]^);
+					VideoWriteText(TextWindowX + 4, lineY,
+						AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), Lines[lpos]^);
 				end else begin
 					textOffset := 1;
-					textColor := $1E;
+					textColor := AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]);
 					textX := TextWindowX + 4;
 					if Length(state.Lines[lpos]^) > 0 then begin
 						case state.Lines[lpos]^[1] of
 							'!': begin
 								textOffset := Pos(';', Lines[lpos]^) + 1;
-								VideoWriteText(textX + 2, lineY, $1D, #16);
+								VideoWriteText(textX + 2, lineY,
+									AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), #16);
 								textX := textX + 5;
-								textColor := $1F;
+								textColor := AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]);
 							end;
 							':': begin
 								textOffset := Pos(';', Lines[lpos]^) + 1;
-								textColor := $1F;
+								textColor := AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]);
 							end;
 							'$': begin
 								textOffset := 2;
-								textColor := $1F;
+								textColor := AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]);
 								textX := (textX - 4) + ((TextWindowWidth - Length(Lines[lpos]^)) div 2);
+							end;
+							'@': begin
+								textColor := AsColor(ParamList[THEME_START + 4],ParamList[THEME_START]);
+							end;
+							#255: begin
+								textOffset := 3;
+								VideoWriteText(textX - 1, lineY,
+									AsColor(ParamList[THEME_START + 3],
+									ParamList[THEME_START]), state.Lines[lpos]^[2]);
+								textColor := AsColor(ParamList[THEME_START + 6], ParamList[THEME_START]);
 							end;
 						end;
 					end;
@@ -182,10 +207,12 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 					end;
 				end;
 			end else if (lpos = 0) or (lpos = (state.LineCount + 1)) then begin
-				VideoWriteText(TextWindowX + 2, lineY, $1E, TextWindowStrInnerSep);
+				VideoWriteText(TextWindowX + 2, lineY, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), TextWindowStrInnerSep);
 			end else if (lpos = -4) and viewingFile then begin
-				VideoWriteText(TextWindowX + 2, lineY, $1A, '   Use            to view text,');
-				VideoWriteText(TextWindowX + 2 + 7, lineY, $1F, #24' '#25', Enter');
+				VideoWriteText(TextWindowX + 2, lineY,
+					AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), '   Use            to view text,');
+				VideoWriteText(TextWindowX + 2 + 7, lineY,
+					AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), #24' '#25', Enter');
 			end;
 		end;
 	end;
@@ -197,7 +224,7 @@ procedure TextWindowDraw(var state: TTextWindowState; withoutFormatting, viewing
 		for i := 0 to (TextWindowHeight - 4) do
 			TextWindowDrawLine(state, state.LinePos - (TextWindowHeight div 2) + i + 2,
 				withoutFormatting, viewingFile);
-		TextWindowDrawTitle($1E, state.Title);
+		TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), state.Title);
 	end;
 
 procedure TextWindowAppend(var state: TTextWindowState; line: TTextWindowLine);
@@ -303,9 +330,9 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 					TextWindowDraw(state, false, viewingFile);
 					if (Lines[LinePos]^[1]) = '!' then
 						if (flags and TWS_HYPERLINK_AS_SELECT) <> 0 then
-							TextWindowDrawTitle($1E, #174'Press ENTER to select this'#175)
+							TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), #174'Press ENTER to select this'#175)
 						else
-							TextWindowDrawTitle($1E, #174'Press ENTER for more info'#175);
+							TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), #174'Press ENTER for more info'#175);
 				end;
 				if InputJoystickMoved then begin
 					Delay(35);

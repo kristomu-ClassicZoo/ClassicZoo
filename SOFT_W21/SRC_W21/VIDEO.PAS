@@ -48,11 +48,26 @@ interface
 	procedure VideoSetBorderColor(value: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure SetBlink(blinkState: boolean);
+	procedure SetAccKeys;
 
 implementation
-uses Crt, Dos;
+uses Crt, Dos, AccKeys;
 
 {$F+}
+
+procedure SetAccKeys;
+	var
+		regs: Registers;
+	begin
+		regs.ax := $1110;
+		regs.bh := $0E;                           (* bytes per character *)
+		regs.bl := 0;                             (* load to block 0 *)
+		regs.cx := 14;                            (* 14 characters *)
+		regs.dx := 133;                           (* start with character 0 *)
+		regs.es := Seg(acc);  				      (* segment of table *)
+		regs.bp := Ofs(acc);     				  (* offset of the table *)
+		intr($10, regs);
+	end;
 
 procedure SetBlink(blinkState: boolean);
 	var

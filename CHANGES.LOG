@@ -1,3 +1,20 @@
+= 12/28/2021: 2.1a
+Added:
+ * ?stats cheat to read board stats
+ * ?nozap cheat to disable 're-enter when zapped'
+ * ?flags cheat to list all flags and custom parameters
+ * 'ACCESSIBLE' can be added to ZZT.CFG (where 'REGISTERED' was previously) to enable ACCZZT options on startup.
+ * Underneath the word ACCESSIBLE in ZZT.CFG, the accessibility options can be pre-set: 'NEUROMOTORASSIST' for neuromotor assistance, 'VISUALSOUND' for visualized sound information, and/or 'KEYSHAPES' for distinct key shapes. If pre-set, accessibility options will not be asked for each startup. 'NONE' can also be used to skip the dialog entirely.
+
+Improved:
+ * ?inspect cheat now reads local object counters, P values, Step values, and Cycle.
+ * Text windows now match the sidebar theme. (Also in SoftWeave)
+
+Other:
+ * ZZT.DAT is not longer built, loaded, or included with FirmWeave; instead the ABOUT.HLP is baked into the executable.
+ * The ABOUT.HLP screen will not initially appear if a ZZT filename is passed as a command line argument.
+ * The ABOUT.HLP screen will not initially appear if run from Zeta with the Zeta .EXE renamed to the same name as the ZZT file.
+
 = 12/27/2021: 2.1
  New version - Weave features are frozen, apart from the addition of more ?cheats, and restoring the accessibility modes from ACCZZT.
 

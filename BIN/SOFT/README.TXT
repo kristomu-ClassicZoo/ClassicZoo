@@ -1,4 +1,4 @@
-Soft Weave 2.1
+Soft Weave 2.1a
 Part of the Weave 2 Project
 
 - - - - -

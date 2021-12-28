@@ -11,19 +11,6 @@ del FIRMDEMO\*.*
 cd..
 
 echo.
-echo [ Building DATPACK.EXE ]
-echo.
-TPC /B /EBIN TOOLS\DATPACK.PAS
-if errorlevel 1 goto error
-echo.
-echo [ Building ZZT.DAT ]
-echo.
-cd DOC
-..\BIN\DATPACK.EXE /C ..\BIN\ZZT.DAT *.*
-if errorlevel 1 goto error
-cd ..
-
-echo.
 echo [ Building ZZT.EXE ]
 echo.
 TPC /B /EBIN /GD /ISRC_W21 /USRC_W21 SRC_W21\ZZT.PAS

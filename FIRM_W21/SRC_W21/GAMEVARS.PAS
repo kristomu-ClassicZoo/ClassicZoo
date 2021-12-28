@@ -123,7 +123,8 @@ interface
 			StartPlayerY: byte;
 			TimeLimitSec: integer;
 			Local: integer;
-			unk1: array[72 .. 85] of byte;
+			BoardTicks: integer;
+			unk1: array[74 .. 85] of byte;
 		end;
 		TWorldInfo = record
 			Ammo: integer;
@@ -141,7 +142,7 @@ interface
 			BoardTimeSec: integer;
 			BoardTimeHsec: integer;
 			IsSave: boolean;
-			CustomFlags: array[0 .. CUSTOM_FLAG_COUNT] of integer;
+			CustomFlags: array[1 .. CUSTOM_FLAG_COUNT] of integer;
 			PlayerColor: byte;
 			PlayerChar: char;
 			CustomPalette: TPalette;
@@ -191,6 +192,10 @@ interface
 		MessageFakeNotShown: boolean;
 		MessageGemNotShown: boolean;
 		MessageEnergizerNotShown: boolean;
+		NeuromotorAssist: boolean;
+		HearingImpaired: boolean;
+		Diffkeys: boolean;
+		GameMove: boolean;
 		IoTmpBufSize: word;
 		FileWorldCachedLinePos: integer; 
 		FileSaveCachedLinePos: integer;
@@ -237,6 +242,7 @@ interface
 		HighScoreList: THighScoreList;
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
+		Accessibility: array[1..4] of TString50;
 
 		BoardNames: array[0 .. MAX_BOARD] of TString50;
 	const

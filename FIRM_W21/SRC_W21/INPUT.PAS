@@ -70,6 +70,9 @@ interface
 	procedure InputUpdate;
 	procedure InputInitDevices;
 	procedure InputReadWaitKey;
+	function NeuromotorConfigure: boolean;
+	function HearingConfigure: boolean;
+	function KeydiffConfigure: boolean;
 	function InputConfigure: boolean;
 
 implementation
@@ -350,6 +353,60 @@ procedure InputInitDevices;
 	begin
 		InputJoystickEnabled := InputInitJoystick;
 		InputMouseEnabled := InputInitMouse;
+	end;
+
+function NeuromotorConfigure: boolean;
+	var
+		charTyped: char;
+	begin
+		charTyped := ' ';
+		Writeln;
+		Write('  Neuromotor Assist:  Y)es N)o ?');
+
+		repeat
+			repeat until KeyPressed;
+			charTyped := UpCase(ReadKey);
+		until (charTyped = 'Y')
+			or (charTyped = 'N')
+			or (charTyped = #27);
+		Writeln;
+		NeuromotorConfigure := (charTyped = 'Y');
+	end;
+
+function HearingConfigure: boolean;
+	var
+		charTyped: char;
+	begin
+		charTyped := ' ';
+		Writeln;
+		Write('  Sound Style:  S)ounds V)isual+Sounds ?');
+
+		repeat
+			repeat until KeyPressed;
+			charTyped := UpCase(ReadKey);
+		until (charTyped = 'V')
+			or (charTyped = 'S')
+			or (charTyped = #27);
+		Writeln;
+		HearingConfigure := (charTyped = 'V');
+	end;
+
+function KeydiffConfigure: boolean;
+	var
+		charTyped: char;
+	begin
+		charTyped := ' ';
+		Writeln;
+		Write('  Keys and Doors:  D)istinct  G)eneric ?');
+
+		repeat
+			repeat until KeyPressed;
+			charTyped := UpCase(ReadKey);
+		until (charTyped = 'D')
+			or (charTyped = 'G')
+			or (charTyped = #27);
+		Writeln;
+		KeydiffConfigure := (charTyped = 'D');
 	end;
 
 function InputConfigure: boolean;

@@ -31,7 +31,6 @@ interface
 	uses Gamevars,Video;
 	const
 		MAX_TEXT_WINDOW_LINES = 1024;
-		MAX_RESOURCE_DATA_FILES = 24;
 		TextWindowX = 5;
 		TextWindowY = 3;
 		TextWindowWidth = 50;
@@ -50,14 +49,7 @@ interface
 			Lines: array[1 .. MAX_TEXT_WINDOW_LINES] of ^TTextWindowLine;
 			Hyperlink: string[20];
 			Title: TTextWindowLine;
-			LoadedFilename: string[50];
 			ScreenCopy: array[1 .. 25] of string[160];
-		end;
-		TResourceDataHeader = record
-			Version: integer;
-			EntryCount: integer;
-			Name: array[1 .. MAX_RESOURCE_DATA_FILES] of string[12];
-			FileOffset: array[1 .. MAX_RESOURCE_DATA_FILES] of longint;
 		end;
 	var
 		TextWindowStrInnerEmpty: TVideoLine;
@@ -69,8 +61,6 @@ interface
 		TextWindowStrInnerSep: TVideoLine;
 		TextWindowStrInnerArrows: TVideoLine;
 		TextWindowRejected: boolean;
-		ResourceDataFileName: TFilenameString;
-		ResourceDataHeader: TResourceDataHeader;
 	procedure TextWindowInitState(var state: TTextWindowState);
 	procedure TextWindowDrawOpen(var state: TTextWindowState);
 	procedure TextWindowDrawClose(var state: TTextWindowState);
@@ -81,16 +71,68 @@ interface
 	procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowState; editing, showError: boolean);
 	procedure TextWindowDisplayFile(filename: TFilenameString; title: TTextWindowLine);
 	procedure TextWindowInit;
+	procedure GameAboutScreen;
 
 implementation
 uses Crt, Sounds, Input, Keys, FileSel, Game;
+
+procedure GameAboutScreen;
+	var
+		textWindow: TTextWindowState;
+		i: integer;
+	begin
+		TextWindowInitState(textWindow);
+		textWindow.Selectable := false;
+		textWindow.Title := 'License Info';
+		TextWindowAppend(textWindow,'The Reconstruction of ZZT');
+		TextWindowAppend(textWindow,'');
+		TextWindowAppend(textWindow,'Copyright (c) 2020 Adrian Siekierka');
+		TextWindowAppend(textWindow,'Based on a reconstruction of code');
+		TextWindowAppend(textWindow,'from ZZT, Copyright 1991 Epic MegaGames,');
+		TextWindowAppend(textWindow,'used with permission.');
+		TextWindowAppend(textWindow,'');
+		TextWindowAppend(textWindow,'Permission is hereby granted, free of');
+		TextWindowAppend(textWindow,'charge, to any person obtaining a copy');
+		TextWindowAppend(textWindow,'of this software and associated');
+		TextWindowAppend(textWindow,'documentation files (the "Software"), to');
+		TextWindowAppend(textWindow,'deal in the Software without restriction,');
+		TextWindowAppend(textWindow,'including without limitation the rights');
+		TextWindowAppend(textWindow,'to use, copy, modify, merge, publish,');
+		TextWindowAppend(textWindow,'distribute, sublicense, and/or sell');
+		TextWindowAppend(textWindow,'copies of the Software, and to permit');
+		TextWindowAppend(textWindow,'persons to whom the Software is');
+		TextWindowAppend(textWindow,'furnished to do so, subject to the');
+		TextWindowAppend(textWindow,'following conditions:');
+		TextWindowAppend(textWindow,'');
+		TextWindowAppend(textWindow,'The above copyright notice and this');
+		TextWindowAppend(textWindow,'permission notice shall be included in');
+		TextWindowAppend(textWindow,'all copies or substantial portions of');
+		TextWindowAppend(textWindow,'the Software.');
+		TextWindowAppend(textWindow,'');
+		TextWindowAppend(textWindow,'THE SOFTWARE IS PROVIDED "AS IS",');
+		TextWindowAppend(textWindow,'WITHOUT WARRANTY OF ANY KIND, EXPRESS');
+		TextWindowAppend(textWindow,'OR IMPLIED, INCLUDING BUT NOT LIMITED');
+		TextWindowAppend(textWindow,'TO THE WARRANTIES OF MERCHANTABILITY,');
+		TextWindowAppend(textWindow,'FITNESS FOR A PARTICULAR PURPOSE AND');
+		TextWindowAppend(textWindow,'NONINFRINGEMENT. IN NO EVENT SHALL THE');
+		TextWindowAppend(textWindow,'AUTHORS OR COPYRIGHT HOLDERS BE LIABLE');
+		TextWindowAppend(textWindow,'FOR ANY CLAIM, DAMAGES OR OTHER');
+		TextWindowAppend(textWindow,'LIABILITY, WHETHER IN AN ACTION OF');
+		TextWindowAppend(textWindow,'CONTRACT, TORT OR OTHERWISE, ARISING');
+		TextWindowAppend(textWindow,'FROM, OUT OF OR IN CONNECTION WITH THE');
+		TextWindowAppend(textWindow,'SOFTWARE OR THE USE OR OTHER DEALINGS IN');
+		TextWindowAppend(textWindow,'THE SOFTWARE.');
+		TextWindowDrawOpen(textWindow);
+		TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
+		TextWindowDrawClose(textWindow);
+		TextWindowFree(textWindow);
+	end;
 
 procedure TextWindowInitState(var state: TTextWindowState);
 	begin
 		with state do begin
 			LineCount := 0;
 			LinePos := 1;
-			LoadedFilename := '';
 		end;
 	end;
 
@@ -98,6 +140,11 @@ procedure TextWindowDrawTitle(color: integer; title: TTextWindowLine);
 	begin
 		VideoWriteText(TextWindowX + 2, TextWindowY + 1, color, TextWindowStrInnerEmpty);
 		VideoWriteText(TextWindowX + ((TextWindowWidth - Length(title)) div 2), TextWindowY + 1, color, title);
+	end;
+
+function AsColor(fg, bg: integer): byte;
+	begin
+		AsColor := ((bg * 16) + fg) + $00;
 	end;
 
 procedure TextWindowDrawOpen(var state: TTextWindowState);
@@ -109,15 +156,19 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 				VideoMove(TextWindowX, iy + TextWindowY - 1, TextWindowWidth, @ScreenCopy[iy], false);
 
 			for iy := (TextWindowHeight div 2) downto 0 do begin
-				VideoWriteText(TextWindowX, TextWindowY + iy + 1, $0F, TextWindowStrText);
-				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1, $0F, TextWindowStrText);
-				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
-				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
+				VideoWriteText(TextWindowX, TextWindowY + iy + 1,
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrText);
+				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1,
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrText);
+				VideoWriteText(TextWindowX, TextWindowY + iy,
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrTop);
+				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy,
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrBottom);
 				Delay(25);
 			end;
 
-			VideoWriteText(TextWindowX, TextWindowY + 2, $0F, TextWindowStrSep);
-			TextWindowDrawTitle($1E, Title);
+			VideoWriteText(TextWindowX, TextWindowY + 2, AsColor(ParamList[THEME_START + 1],0), TextWindowStrSep);
+			TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), Title);
 		end;
 	end;
 
@@ -127,8 +178,10 @@ procedure TextWindowDrawClose(var state: TTextWindowState);
 	begin
 		with state do begin
 			for iy := 0 to (TextWindowHeight div 2) do begin
-				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
-				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
+				VideoWriteText(TextWindowX, TextWindowY + iy,	
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrTop);
+				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy,
+					AsColor(ParamList[THEME_START + 1],0), TextWindowStrBottom);
 				Delay(18);
 				VideoMove(TextWindowX, TextWindowY + iy, TextWindowWidth,
 					@ScreenCopy[iy + 1], true);
@@ -146,40 +199,46 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 		with state do begin
 			lineY := ((TextWindowY + lpos) - LinePos) + (TextWindowHeight div 2) + 1;
 			if lpos = LinePos then
-				VideoWriteText(TextWindowX + 2, lineY, $1C, TextWindowStrInnerArrows)
+				VideoWriteText(TextWindowX + 2, lineY,
+					AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), TextWindowStrInnerArrows)
 			else
-				VideoWriteText(TextWindowX + 2, lineY, $1E, TextWindowStrInnerEmpty);
+				VideoWriteText(TextWindowX + 2, lineY,
+					AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), TextWindowStrInnerEmpty);
 			if (lpos > 0) and (lpos <= LineCount) then begin
 				if withoutFormatting then begin
-					VideoWriteText(TextWindowX + 4, lineY, $1E, Lines[lpos]^);
+					VideoWriteText(TextWindowX + 4, lineY,
+						AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), Lines[lpos]^);
 				end else begin
 					textOffset := 1;
-					textColor := $1E;
+					textColor := AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]);
 					textX := TextWindowX + 4;
 					if Length(state.Lines[lpos]^) > 0 then begin
 						case state.Lines[lpos]^[1] of
 							'!': begin
 								textOffset := Pos(';', Lines[lpos]^) + 1;
-								VideoWriteText(textX + 2, lineY, $1D, #16);
+								VideoWriteText(textX + 2, lineY,
+									AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), #16);
 								textX := textX + 5;
-								textColor := $1F;
+								textColor := AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]);
 							end;
 							':': begin
 								textOffset := Pos(';', Lines[lpos]^) + 1;
-								textColor := $1F;
+								textColor := AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]);
 							end;
 							'$': begin
 								textOffset := 2;
-								textColor := $1F;
+								textColor := AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]);
 								textX := (textX - 4) + ((TextWindowWidth - Length(Lines[lpos]^)) div 2);
 							end;
 							'@': begin
-								textColor := $1B;
+								textColor := AsColor(ParamList[THEME_START + 4],ParamList[THEME_START]);
 							end;
 							#255: begin
 								textOffset := 3;
-								VideoWriteText(textX - 1, lineY, $14, state.Lines[lpos]^[2]);
-								textColor := $1C;
+								VideoWriteText(textX - 1, lineY,
+									AsColor(ParamList[THEME_START + 3],
+									ParamList[THEME_START]), state.Lines[lpos]^[2]);
+								textColor := AsColor(ParamList[THEME_START + 6], ParamList[THEME_START]);
 							end;
 						end;
 					end;
@@ -189,10 +248,12 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 					end;
 				end;
 			end else if (lpos = 0) or (lpos = (state.LineCount + 1)) then begin
-				VideoWriteText(TextWindowX + 2, lineY, $1E, TextWindowStrInnerSep);
+				VideoWriteText(TextWindowX + 2, lineY, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), TextWindowStrInnerSep);
 			end else if (lpos = -4) and viewingFile then begin
-				VideoWriteText(TextWindowX + 2, lineY, $1A, '   Use            to view text,');
-				VideoWriteText(TextWindowX + 2 + 7, lineY, $1F, #24' '#25', Enter');
+				VideoWriteText(TextWindowX + 2, lineY,
+					AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), '   Use            to view text,');
+				VideoWriteText(TextWindowX + 2 + 7, lineY,
+					AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), #24' '#25', Enter');
 			end;
 		end;
 	end;
@@ -204,7 +265,7 @@ procedure TextWindowDraw(var state: TTextWindowState; withoutFormatting, viewing
 		for i := 0 to (TextWindowHeight - 4) do
 			TextWindowDrawLine(state, state.LinePos - (TextWindowHeight div 2) + i + 2,
 				withoutFormatting, viewingFile);
-		TextWindowDrawTitle($1E, state.Title);
+		TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), state.Title);
 	end;
 
 procedure TextWindowAppend(var state: TTextWindowState; line: TTextWindowLine);
@@ -223,7 +284,6 @@ procedure TextWindowFree(var state: TTextWindowState);
 				Dispose(Lines[LineCount]);
 				LineCount := LineCount - 1;
 			end;
-			LoadedFilename := '';
 		end;
 	end;
 
@@ -310,9 +370,9 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 					TextWindowDraw(state, false, viewingFile);
 					if (Lines[LinePos]^[1]) = '!' then
 						if (flags and TWS_HYPERLINK_AS_SELECT) <> 0 then
-							TextWindowDrawTitle($1E, #174'Press ENTER to select this'#175)
+							TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), #174'Press ENTER to select this'#175)
 						else
-							TextWindowDrawTitle($1E, #174'Press ENTER for more info'#175);
+							TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), #174'Press ENTER for more info'#175);
 				end;
 				if InputJoystickMoved then begin
 					Delay(35);
@@ -327,14 +387,9 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 
 procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowState; editing, showError: boolean);
 	var
-		f: file;
 		tf: text;
 		i: integer;
-		entryPos: integer;
 		retVal: boolean;
-		line: ^string;
-		lineLen: byte;
-	label EntryPosFoundResData;
 	begin
 		with state do begin
 			retVal := true;
@@ -343,75 +398,19 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 			if retVal then
 				filename := filename + '.HLP';
 
-			if filename[1] = '*' then begin
+			if filename[1] = '*' then
 				filename := Copy(filename, 2, Length(filename) - 1);
-				entryPos := -1;
-			end else begin
-				entryPos := 0;
-			end;
 
 			TextWindowInitState(state);
-			LoadedFilename := UpCaseString(filename);
-			if ResourceDataHeader.EntryCount = 0 then begin
-				Assign(f, ResourceDataFileName);
-				Reset(f, 1);
-				if IOResult = 0 then
-					BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
-				if (IOResult <> 0) or (ResourceDataHeader.Version <> -2) then
-					ResourceDataHeader.EntryCount := -1;
-				Close(f);
+
+			Assign(tf, filename);
+			Reset(tf);
+			while (IOResult = 0) and (not Eof(tf)) do begin
+				Inc(LineCount);
+				New(Lines[LineCount]);
+				ReadLn(tf, Lines[LineCount]^);
 			end;
-
-			if entryPos = 0 then begin
-				for i := 1 to ResourceDataHeader.EntryCount do begin
-					{ assumption: LoadedFilename is UpCaseString(filename) }
-					if UpCaseString(ResourceDataHeader.Name[i]) = LoadedFilename then begin
-						entryPos := i;
-						goto EntryPosFoundResData;
-					end;
-				end;
-			end;
-			EntryPosFoundResData:
-
-			if entryPos <= 0 then begin
-				Assign(tf, filename);
-				Reset(tf);
-				while (IOResult = 0) and (not Eof(tf)) do begin
-					Inc(LineCount);
-					New(Lines[LineCount]);
-					ReadLn(tf, Lines[LineCount]^);
-				end;
-				Close(tf);
-			end else begin
-				Assign(f, ResourceDataFilename);
-				Reset(f, 1);
-				Seek(f, ResourceDataHeader.FileOffset[entryPos]);
-				if IOResult = 0 then begin
-					retVal := true;
-					while (IOResult = 0) and retVal do begin
-						Inc(LineCount);
-
-						BlockRead(f, lineLen, 1);
-						if editing then
-							New(Lines[LineCount])
-						else
-							GetMem(Lines[LineCount], lineLen + 1);
-						Lines[LineCount]^[0] := Chr(lineLen);
-						line := Ptr(Seg(Lines[LineCount]^), Ofs(Lines[LineCount]^) + 1);
-
-						if lineLen = 0 then begin
-							Lines[LineCount]^ := '';
-						end else begin
-							BlockRead(f, line^, lineLen);
-							if Lines[LineCount]^ = '@' then begin
-								retVal := false;
-								Lines[LineCount]^ := '';
-							end;
-						end;
-					end;
-				end;
-				Close(f);
-			end;
+			Close(tf);
 		end;
 	end;
 
@@ -453,6 +452,4 @@ procedure TextWindowInit;
 	end;
 
 begin
-	ResourceDataFileName := '';
-	ResourceDataHeader.EntryCount := 0;
 end.

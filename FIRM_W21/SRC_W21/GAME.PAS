@@ -46,6 +46,7 @@ interface
 	procedure WorldCreate;
 	procedure TransitionDrawToFill(chr: char; color: integer);
 	procedure BoardDrawTile(x, y: integer);
+	procedure BoardDrawRow(row: integer);
 	procedure BoardDrawBorder;
 	procedure TransitionDrawToBoard;
 	procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
@@ -80,7 +81,6 @@ interface
 	procedure CalcDirectionToward(x, y: integer; var deltaX, deltaY: integer);
 	procedure TransitionDrawBoardChange;
 	procedure GameUpdateSidebar;
-	procedure GameAboutScreen;
 	procedure GameDrawCustomSidebar;
 	procedure GamePlayLoop(boardChanged: boolean);
 	procedure DisplayMessage(time: integer; message: string);
@@ -94,37 +94,37 @@ const
 	ColorNames: array[0 .. 7] of TString8 =
 		('Black', 'Blue', 'Green', 'Cyan', 'Red', 'Purple', 'Yellow', 'White');
 	DefaultConfigList: array[1 .. CONFIG_FILE_COUNT] of string[50] = (
-				'Bomb activated!', 'tcf+cf+c', 't5', 't8', 't+++c-c-c-c-c-c',
-				'Energizer - You are invincible', 's.-cd#e',
-				's.-f+f-fd#c+c-d#ef+f-fd#c+c-d#e', 's.-f+f-fd#c+c-d#ef+f-fd#c+c-d#e',
-				's.-f+f-fd#c+c-d#e', 's.-c-a#gf#fd#c',
-				'You now have the ', ' key.', 't+cegcegceg+sc',
-				'You already have a ', ' key!', 'sc-c',
-				'The ', ' door is now open.', 'tcgbcgb+ic',
-				'The ', ' door is locked!', 't--gc',
-				'Ammunition - 5 shots per container.', 'tcc#d',
-				'Gems give you Health!', 't+c-gec',
-				'Torch - used for lighting in the underground.', 'tcase', 'tc-c-c',
-				'You are blocked by an invisible wall.', 't--dc',
-				'A path is cleared through the forest.', 'ta',
-				'A fake wall - secret passage!',
-				'Your way is blocked by water.', 't+c+c',
-				' Game over  -  Press ESCAPE', 's.-cd#g+c-ga#+dgfg#+cf---w3c',
-				'Can'#39't shoot in this place!', 'You don'#39't have any ammo!',
-				't+c-c-c', 'tc-f#',
-				'Don'#39't need torch - room is not dark!',
-				'You don'#39't have any torches!',
-				'Room is dark - you need to light a torch!',
-				't+c---c++++c--c', 'Ouch!', 't--c+c---c+d#',
-				'scdefg', 't--g#f#', 't--f', 't9',
-				'Running out of time!', 'i.+cfc-f+cfq.c',
-				't-c', 'ERR: ', '++w3c', 'i-g',
-				'tc-c+d-d+e-e+f-f+g-g', 'tcegc#fg#df#ad#ga#eg#+c', 'tc+d-e+f#-g#+a#c+d',
-				' Health:','   Ammo:','Torches:','   Gems:','  Score:','   Keys:',
-				'   Time:', 'T', 'Torch', 'B', 'Be quiet', 'Be noisy', 'H', 'Help',
-				'S', 'Save game', 'P', 'Pause', 'Pausing...', 'Pick a command:', '?',
-				'Interaction','Scroll'
-			);
+		'Bomb activated!', 'tcf+cf+c', 't5', 't8', 't+++c-c-c-c-c-c',
+		'Energizer - You are invincible', 's.-cd#e',
+		's.-f+f-fd#c+c-d#ef+f-fd#c+c-d#e', 's.-f+f-fd#c+c-d#ef+f-fd#c+c-d#e',
+		's.-f+f-fd#c+c-d#e', 's.-c-a#gf#fd#c',
+		'You now have the ', ' key.', 't+cegcegceg+sc',
+		'You already have a ', ' key!', 'sc-c',
+		'The ', ' door is now open.', 'tcgbcgb+ic',
+		'The ', ' door is locked!', 't--gc',
+		'Ammunition - 5 shots per container.', 'tcc#d',
+		'Gems give you Health!', 't+c-gec',
+		'Torch - used for lighting in the underground.', 'tcase', 'tc-c-c',
+		'You are blocked by an invisible wall.', 't--dc',
+		'A path is cleared through the forest.', 'ta',
+		'A fake wall - secret passage!',
+		'Your way is blocked by water.', 't+c+c',
+		' Game over  -  Press ESCAPE', 's.-cd#g+c-ga#+dgfg#+cf---w3c',
+		'Can'#39't shoot in this place!', 'You don'#39't have any ammo!',
+		't+c-c-c', 'tc-f#',
+		'Don'#39't need torch - room is not dark!',
+		'You don'#39't have any torches!',
+		'Room is dark - you need to light a torch!',
+		't+c---c++++c--c', 'Ouch!', 't--c+c---c+d#',
+		'scdefg', 't--g#f#', 't--f', 't9',
+		'Running out of time!', 'i.+cfc-f+cfq.c',
+		't-c', 'ERR: ', '++w3c', 'i-g',
+		'tc-c+d-d+e-e+f-f+g-g', 'tcegc#fg#df#ad#ga#eg#+c', 'tc+d-e+f#-g#+a#c+d',
+		' Health:','   Ammo:','Torches:','   Gems:','  Score:','   Keys:',
+		'   Time:', 'T', 'Torch', 'B', 'Be quiet', 'Be noisy', 'H', 'Help',
+		'S', 'Save game', 'P', 'Pause', 'Pausing...', 'Pick a command:', '?',
+		'Interaction','Scroll'
+	);
 	DefaultParamList: array[1 .. PARAM_FILE_COUNT] of integer = (
 		15,1,2,  3,0,132,5,  6,0,157,1,200,  4,1,10,1,  12,  10,  240,  11,6,
 		5,0,127,75,  1,  15,0,248,1,  176,  0,2,176,  219,  178,  177,  254,  18,  29,
@@ -140,8 +140,11 @@ const
 		21,21,21, 21,21,63, 21,63,21, 21,63,63,
 		63,21,21, 63,21,63, 63,63,21, 63,63,63
 	);
-	 ColorList: array[0..15] of byte = (
+	ColorList: array[0..15] of byte = (
 		0,1,2,3,4,5,20,7,56,57,58,59,60,61,62,63
+	);
+	NeighborArrowList: array[0..3] of char = (
+		#30, #31, #17, #16
 	);
 
 	{}
@@ -225,7 +228,7 @@ procedure CustomFlagsLoad;
 				Inc(i);
 			end;
 		end else
-			for i := 1 to CUSTOM_FLAG_COUNT do begin
+			for i := 1 to (CUSTOM_FLAG_COUNT + 5) do begin
 				Str(i,s);
 				CustomFlagList[i] := 'FLAG' + s;
 			end;
@@ -742,6 +745,7 @@ procedure BoardCreate;
 		Board.Info.IsDark := 0;
 		Board.Info.ReenterWhenZapped := false;
 		Board.Info.TimeLimitSec := 0;
+		Board.Info.BoardTicks := 0;
 		for i := 0 to 3 do
 			Board.Info.NeighborBoards[i] := 0;
 
@@ -853,14 +857,20 @@ procedure BoardDrawTile(x, y: integer);
 		end;
 	end;
 
+procedure BoardDrawRow(row: integer);
+	var
+		ix: integer;
+	begin
+		for ix := 1 to BOARD_WIDTH do
+			BoardDrawTile(ix, row);
+	end;
+
 procedure BoardDrawBorder;
 	var
-		ix, iy: integer;
+		iy: integer;
 	begin
-		for ix := 1 to BOARD_WIDTH do begin
-			BoardDrawTile(ix, 1);
-			BoardDrawTile(ix, BOARD_HEIGHT);
-		end;
+		BoardDrawRow(1);
+		BoardDrawRow(BOARD_HEIGHT);
 
 		for iy := 1 to BOARD_HEIGHT do begin
 			BoardDrawTile(1, iy);
@@ -1492,6 +1502,7 @@ function Difference(a, b: integer): integer;
 
 procedure GameUpdateSidebar;
 	var
+		keyChar: char;
 		numStr: TString8;
 		i: integer;
 	begin
@@ -1535,17 +1546,21 @@ procedure GameUpdateSidebar;
 			end;
 
 			if ConfigList[68] <> '' then {Keys Sidebar}
-				for i := 1 to 7 do
+				for i := 1 to 7 do begin
+					if Diffkeys then
+						keyChar := Chr(139 + i)
+					else
+						keyChar := Chr(ParamList[17]);
 					if World.Info.Keys[i] > 0 then begin
 						if World.Info.Keys[i] = 1 then
-							VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), ElementDefs[E_KEY].Character)
+							VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), keyChar)
 						else if World.Info.Keys[i] < 10 then
 							VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), Chr(World.Info.Keys[i] + 48))
 						else 
 							VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), '*')
 					end else
 						VideoWriteText(71 + i, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ');
-
+				end;
 
 			if ConfigList[72] <> '' then begin {Sound toggle sidebar}
 				if SoundEnabled then
@@ -1556,14 +1571,14 @@ procedure GameUpdateSidebar;
 
 			if DebugEnabled then begin
 				Str(MemAvail, numStr);
-				VideoWriteText(0, 0, $1E, 'm' + numStr + ' ');
+				VideoWriteText(62, 0, $1E, 'm' + numStr + ' ');
 				if ExtMemEmsActive then begin
 					Str(ExtMemEmsAvailPages, numstr);
-					VideoWriteText(0, 1, $1E, 'e' + numStr + 'p ');
+					VideoWriteText(62, 1, $1E, 'e' + numStr + 'p ');
 				end;
 				if ExtMemXmsActive then begin
 					Str(ExtMemXmsAvail, numStr);
-					VideoWriteText(0, 2, $1E, 'x' + numStr + ' ');
+					VideoWriteText(62, 2, $1E, 'x' + numStr + ' ');
 				end;
 			end;
 		end;
@@ -1576,10 +1591,10 @@ procedure DisplayMessage(time: integer; message: string);
 		if Length(message) <> 0 then begin
 			if message = '$' then begin
 				Board.Stats[0].P3 := 0;
-				BoardDrawBorder;
+				BoardDrawRow(BOARD_HEIGHT);
 			end else begin
 				if Length(Board.Info.Message) > Length(message) then
-					BoardDrawBorder;
+					BoardDrawRow(BOARD_HEIGHT);
 				Board.Stats[0].P3 := time div (TickTimeDuration + 1);
 				Board.Info.Message := message;
 				VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, 9 + (Board.Stats[0].P3 mod 7), ' '+Board.Info.Message+' ');
@@ -1878,6 +1893,7 @@ procedure GameDebugPrompt;
 		i: integer;
 		toggle: boolean;
 		textWindow: TTextWindowState;
+		s: string;
 	begin
 		input := '';
 		SidebarClearLine(4);
@@ -1918,8 +1934,12 @@ procedure GameDebugPrompt;
 			ParamList[101] := 0
 		else if input = 'INSPECT' then
 			InspectNext := true
+		else if input = 'STATS' then
+			GetBoardStats
 		else if input = 'FREE' then
 			Board.Stats[0].P2 := 0
+		else if input = 'NOZAP' then
+			Board.Info.ReenterWhenZapped := false
 		else if (input = 'NOCLIP') or (input = 'CLIP') then begin
 			GamePaused := true;
 			NoClip := not NoClip;
@@ -1927,6 +1947,37 @@ procedure GameDebugPrompt;
 			SidebarPromptSlider(true, 64, 4, 'Game speed:;FS', TickSpeed);
 			TickTimeDuration := TickSpeed * 2;
 			SidebarClearLine(6);
+		end else if input = 'FLAGS' then begin
+			TextWindowInitState(textWindow);
+			textWindow.Selectable := false;
+			textWindow.Title := 'List of Flags';
+			TextWindowAppend(textWindow, '$** Flags **');
+			for i := 1 to MAX_FLAG do
+				if World.Info.Flags[i] <> '' then
+					TextWindowAppend(textWindow, World.Info.Flags[i]);
+			TextWindowAppend(textWindow, '$** Keys **');
+			for i := 1 to 7 do
+				if World.Info.Keys[i] > 0 then begin
+					if World.Info.Keys[i] > 1 then begin
+						Str(World.Info.Keys[i],s);
+						TextWindowAppend(textWindow, OOPList[i + 19] + ': ' + s);
+					end else
+						TextWindowAppend(textWindow, OOPList[i + 19]);
+				end;
+			TextWindowAppend(textWindow, '$** Custom World Parameters **');
+			for i := 1 to CUSTOM_FLAG_COUNT do
+				if World.Info.CustomFlags[i] <> 0 then begin
+					if World.Info.CustomFlags[i] = 1 then
+						TextWindowAppend(textWindow, CustomFlagList[i + 5])
+					else begin
+						Str(World.Info.CustomFlags[i],s);
+						TextWindowAppend(textWindow, CustomFlagList[i + 5] + ': ' + s);
+					end;
+				end;
+			TextWindowDrawOpen(textWindow);
+			TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
+			TextWindowDrawClose(textWindow);
+			TextWindowFree(textWindow);
 		end else if input = 'BOARD' then begin
 			TextWindowInitState(textWindow);
 			textWindow.Selectable := true;
@@ -1962,11 +2013,6 @@ procedure GameDebugPrompt;
 		SidebarClearLine(5);
 		GameUpdateSidebar;
 		GameDrawCustomSidebar;
-	end;
-
-procedure GameAboutScreen;
-	begin
-		TextWindowDisplayFile('ABOUT.HLP', 'About ZZT...');
 	end;
 
 procedure GameDrawCustomSidebar;
@@ -2026,7 +2072,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				if ConfigList[66] <> '' then  {Sidebar Gem}
 					VideoWriteText(62, 10, AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), ElementDefs[E_GEM].Character);
 				if ConfigList[68] <> '' then  {Sidebar key}
-				VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ElementDefs[E_KEY].Character);
+				VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), Chr(ParamList[17]));
 				if ConfigList[70] <> '' then begin  {'T' Torch hotkey}
 					VideoWriteText(62, 14, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[70] + ' ');
 					VideoWriteText(65, 14, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[71]);
@@ -2045,7 +2091,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 					VideoWriteText(62, 21, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' ' + ConfigList[77] + ' ');
 					VideoWriteText(65, 21, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[78]);
 				end;
-				if ConfigList[79] <> '' then begin {'P' Pause game hotkey}
+				if NeuromotorAssist then begin
+					VideoWriteText(62, 22, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' P ');
+					VideoWriteText(65, 22, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Proceed')
+				end else if ConfigList[79] <> '' then begin {'P' Pause game hotkey}
 					VideoWriteText(62, 22, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[79] + ' ');
 					VideoWriteText(65, 22, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[80]);
 				end;
@@ -2070,7 +2119,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(62, 13, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' Q ');
 				VideoWriteText(65, 13, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' Quit');
 				VideoWriteText(62, 16, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' A ');
-				VideoWriteText(65, 16, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' About ZZT!');
+				VideoWriteText(65, 16, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' License Info');
 				VideoWriteText(62, 17, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' H ');
 				VideoWriteText(65, 17, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' High Scores');
 
@@ -2089,12 +2138,13 @@ procedure GamePlayLoop(boardChanged: boolean);
 				then begin
 					GameDrawSidebar;
 					GameUpdateSidebar;
-					GameAboutScreen;
 					VideoWriteText(69, 8, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), World.Info.Name);
 				end else begin
 					WorldCreate;
 				end;
 			end;
+			if ParamStr(1) = '' then
+				GameAboutScreen;
 			ReturnBoardId := World.Info.CurrentBoard;
 			BoardChange(0);
 			JustStarted := false;
@@ -2115,7 +2165,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 		GamePlayExitRequested := false;
 		exitLoop := false;
 
-		CurrentTick := Random(100);
+		CurrentTick := Board.Info.BoardTicks;
 		CurrentStatTicked := Board.StatCount + 1;
 
 		repeat
@@ -2196,7 +2246,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 						GamePaused := false;
 						SidebarClearLine(5);
 						GameDrawCustomSidebar;
-						CurrentTick := Random(100);
+						CurrentTick := Board.Info.BoardTicks;
 						CurrentStatTicked := Board.StatCount + 1;
 						World.Info.IsSave := true;
 					end;
@@ -2217,7 +2267,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				{ all stats ticked }
 				if SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
 					{ next cycle }
-					CurrentTick := CurrentTick + 1;
+					CurrentTick := Board.Info.BoardTicks;
 					if CurrentTick > 420 then
 						CurrentTick := 1;
 					CurrentStatTicked := 0;

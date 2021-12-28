@@ -64,24 +64,6 @@ procedure ElementDefaultDraw(x, y: integer; var ch: byte);
 		ch := Ord('?');
 	end;
 
-procedure ElementMessageTimerTick(statId: integer);
-	begin
-		with Board.Stats[statId] do begin
-			case X of
-				0: begin
-					VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, 9 + (P2 mod 7), ' '+Board.Info.Message+' ');
-					P2 := P2 - 1;
-					if P2 <= 0 then begin
-						RemoveStat(statId);
-						CurrentStatTicked := CurrentStatTicked - 1;
-						BoardDrawBorder;
-						Board.Info.Message := '';
-					end;
-				end;
-			end;
-		end;
-	end;
-
 procedure ElementDamagingTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
 		BoardAttack(sourceStatId, x, y);
@@ -419,6 +401,28 @@ procedure ElementLineDraw(x, y: integer; var ch: byte);
 			shift := shift shl 1;
 		end;
 		ch := Ord(LineChars[v]);
+	end;
+
+procedure ElementDoorDraw(x, y: integer; var ch: byte);
+	var
+		key: integer;
+	begin
+		key := (Board.Tiles[x][y].Color div 16) mod 8;
+		if Diffkeys then
+			ch := 132 + key
+		else
+			ch := ParamList[18];
+	end;
+
+procedure ElementKeyDraw(x, y: integer; var ch: byte);
+	var
+		key: integer;
+	begin
+		key := Board.Tiles[x][y].Color mod 8;
+		if Diffkeys then
+			ch := 139 + key
+		else
+			ch := ParamList[17];
 	end;
 
 procedure ElementSpinningGunTick(statId: integer);
@@ -1339,6 +1343,7 @@ procedure ElementPlayerTick(statId: integer);
 		bulletCount: integer;
 		inputC: char;
 	begin
+		if NeuromotorAssist then GameMove := false;
 		with Board.Stats[statId] do begin
 			if World.Info.EnergizerTicks > 0 then begin
 				if ElementDefs[E_PLAYER].Character = Chr(ParamList[3]) then
@@ -1371,6 +1376,8 @@ procedure ElementPlayerTick(statId: integer);
 				SoundBlockQueueing := true;
 			end;
 			if InputShiftPressed or (InputKeyPressed = ' ') then begin
+				GameMove := true;
+
 				if InputShiftPressed and ((InputDeltaX <> 0) or (InputDeltaY <> 0)) then begin
 					PlayerDirX := InputDeltaX;
 					PlayerDirY := InputDeltaY;
@@ -1407,6 +1414,8 @@ procedure ElementPlayerTick(statId: integer);
 					end;
 				end;
 			end else if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+				GameMove := true;
+
 				PlayerDirX := InputDeltaX;
 				PlayerDirY := InputDeltaY;
 
@@ -1428,6 +1437,7 @@ procedure ElementPlayerTick(statId: integer);
 
 			inputC := UpCase(InputKeyPressed);
 			if inputC =	UpCase(ConfigList[70][1]) then begin
+				GameMove := true;
 				if World.Info.TorchTicks = 0 then begin
 					if World.Info.Torches > 0 then begin
 						if Board.Info.IsDark then begin
@@ -1453,9 +1463,6 @@ procedure ElementPlayerTick(statId: integer);
 				GamePromptEndPlay;
 			end else if inputC = UpCase(ConfigList[77][1]) then begin
 				GameWorldSave(ConfigList[78] + ':', SavedGameFileName, '.SAV');
-			end else if inputC = UpCase(ConfigList[79][1]) then begin
-				if World.Info.Health > 0 then
-					GamePaused := true;
 			end else if inputC = UpCase(ConfigList[72][1]) then begin
 				SoundEnabled := not SoundEnabled;
 				SoundClearQueue;
@@ -1466,10 +1473,17 @@ procedure ElementPlayerTick(statId: integer);
 			end else if inputC = UpCase(ConfigList[83][1]) then begin
 				GameDebugPrompt;
 				InputKeyPressed := #0;
+			end else if (NeuromotorAssist = true) and (inputC = 'P') then begin
+				GameMove := true;
+			end else if (NeuromotorAssist = false)
+				and ((inputC = UpCase(ConfigList[79][1]))
+				and (World.Info.Health > 0)) then begin
+					GamePaused := true;
 			end;
 
 			if World.Info.TorchTicks > 0 then begin
-				Dec(World.Info.TorchTicks);
+				if GameMove then
+					Dec(World.Info.TorchTicks);
 				if World.Info.TorchTicks = 0 then begin
 					DrawPlayerSurroundings(X, Y);
 					SoundQueue(3, SoundParse(ConfigList[30]));
@@ -1480,7 +1494,8 @@ procedure ElementPlayerTick(statId: integer);
 			end;
 
 			if World.Info.EnergizerTicks > 0 then begin
-				World.Info.EnergizerTicks := World.Info.EnergizerTicks - 1;
+				if GameMove then
+					Dec(World.Info.EnergizerTicks);
 
 				if World.Info.EnergizerTicks = 10 then
 					SoundQueue(9, SoundParse(ConfigList[11]))
@@ -1491,7 +1506,7 @@ procedure ElementPlayerTick(statId: integer);
 			end;
 
 			if (Board.Info.TimeLimitSec > 0) and (World.Info.Health > 0) then
-				if SoundHasTimeElapsed(World.Info.BoardTimeHsec, 100) then begin
+				if (GameMove) and (Board.Info.BoardTicks mod 10 = 0) then begin
 					World.Info.BoardTimeSec := World.Info.BoardTimeSec + 1;
 
 					if (Board.Info.TimeLimitSec - 10) = World.Info.BoardTimeSec then begin
@@ -1503,12 +1518,46 @@ procedure ElementPlayerTick(statId: integer);
 
 					GameUpdateSidebar;
 				end;
+
+			if P3 > 0 then begin
+				VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, 9 + ((P3 - 1) mod 7), ' '+Board.Info.Message+' ');
+				if GameMove then
+					Dec(P3);
+			end else if Board.Info.Message <> '' then begin
+				BoardDrawRow(BOARD_HEIGHT);
+				Board.Info.Message := ''
+			end;
+
+			if HearingImpaired then begin
+				if TopTimer > 0 then begin
+					if TopTimer = 16 then
+						BoardDrawRow(1);
+					VideoWriteText((60 - Length(TopMsg)) div 2, 0, 9 + (TopTimer mod 7),TopMsg + ' ');
+					if GameMove then
+						Dec(TopTimer);
+				end else if TopMsg <> '' then begin
+					BoardDrawRow(1);
+					TopMsg := '';
+				end;
+			end;
+
+			if GameMove then begin
+				Board.Info.BoardTicks := Board.Info.BoardTicks + 1;
+				if (Board.Info.BoardTicks > 420) then
+					Board.Info.BoardTicks := 1;
+			end else begin
+				CurrentStatTicked := Board.StatCount + 1;
+			end;
+
 		end;
 	end;
 
 procedure ElementMonitorTick(statId: integer);
 	begin
-		if UpCase(InputKeyPressed) in [#27, 'A', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|'] then
+		Inc(Board.Info.BoardTicks);
+		if (Board.Info.BoardTicks > 420) then
+			Board.Info.BoardTicks := 1;
+		if UpCase(InputKeyPressed) in [#27, 'A', 'E', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|'] then
 			GamePlayExitRequested := true;
 	end;
 
@@ -1642,9 +1691,10 @@ procedure InitElementDefs;
 		ElementDefs[15].DrawProc := ElementStarDraw;
 		ElementDefs[15].Name := 'Star';
 
-		ElementDefs[8].Character := Chr(ParamList[17]);
 		ElementDefs[8].Pushable := true;
 		ElementDefs[8].TouchProc := ElementKeyTouch;
+		ElementDefs[8].HasDrawProc := true;
+		ElementDefs[8].DrawProc := ElementKeyDraw;
 		ElementDefs[8].Name := 'Key';
 
 		ElementDefs[5].Character := Chr(ParamList[6]);
@@ -1670,6 +1720,8 @@ procedure InitElementDefs;
 		ElementDefs[9].Character := Chr(ParamList[18]);
 		ElementDefs[9].Color := COLOR_WHITE_ON_CHOICE;
 		ElementDefs[9].TouchProc := ElementDoorTouch;
+		ElementDefs[9].HasDrawProc := true;
+		ElementDefs[9].DrawProc := ElementDoorDraw;
 		ElementDefs[9].Name := 'Door';
 
 		ElementDefs[10].Character := Chr(ParamList[99]);
@@ -1852,8 +1904,6 @@ procedure InitElementDefs;
 		ElementDefs[36].TickProc := ElementObjectTick;
 		ElementDefs[36].TouchProc := ElementObjectTouch;
 		ElementDefs[36].Name := 'Object';
-
-		ElementDefs[2].TickProc := ElementMessageTimerTick;
 
 		ElementDefs[1].Character := Chr(ParamList[106]);
 		ElementDefs[1].TouchProc := ElementBoardEdgeTouch;

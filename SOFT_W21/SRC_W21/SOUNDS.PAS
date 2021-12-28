@@ -48,6 +48,8 @@ interface
 		TimerTicks: word;
 		SoundTimeCheckHsec: integer;
 		SoundDrumTable: array[0 .. 9] of TDrumData;
+		TopMsg: string[50];
+		TopTimer: integer;
 	procedure SoundQueue(priority: integer; pattern: string);
 	procedure SoundClearQueue;
 	function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
@@ -234,6 +236,8 @@ function SoundParse(input: string): string;
 		output := '';
 		noteOctave := 3;
 		noteDuration := 1;
+		TopTimer := 16;
+		TopMsg := input;
 
 		while Length(input) <> 0 do begin
 			noteTone := -1;
