@@ -74,6 +74,7 @@ type
 		charWidth: Uint32;
 		charHeight: Uint32;
 		charsetPitch: Uint32;
+		surface: PSDL_Surface;
 		texture: PSDL_Texture;
 	end;
 const
@@ -121,6 +122,17 @@ procedure VideoForcePlayfieldRedraw;
 		FillChar(screenBufferChange, 4000, true);
 		SDL_UnlockMutex(playfieldMutex);
 	end;
+
+procedure AfterSetWindowSize;
+	begin
+		InputUpdate;
+		if charsetTexture.valid then begin
+			if charsetTexture.texture <> nil then begin
+				SDL_DestroyTexture(charsetTexture.texture);
+				charsetTexture.texture := nil;
+			end;
+		end;
+	end;		
 
 { Window handling }
 
@@ -222,12 +234,14 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 		ih := destRect.h;
 
 		if windowed then begin
-			if (not onlyIfTooSmall) or ((iw > w) or (ih > h)) then
+			if (not onlyIfTooSmall) or ((iw > w) or (ih > h)) then begin
 				SDL_SetWindowSize(window, iw, ih);
+			end;
 		end;
 
 		SDL_UnlockMutex(eventMutex);
 
+		AfterSetWindowSize;
 		VideoForcePlayfieldRedraw;
 	end;
 
@@ -241,9 +255,7 @@ procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
 		SDL_LockMutex(mainThreadSdlChangesMutex);
 		scalingMode := value;
 		SDLResizeWindow(-10000, false, true);
-		InputUpdate;
 		SDLResizeWindow(0, true, false);
-		InputUpdate;
 		SDL_UnlockMutex(mainThreadSdlChangesMutex);
 	end;
 
@@ -262,17 +274,17 @@ procedure VideoSetSDLWindowed(value: boolean);
 				SDL_GetWindowSize(window, @windowedLastWidth, @windowedLastHeight);
 				SDL_GetDesktopDisplayMode(SDL_GetWindowDisplayIndex(window), @mode);
 				SDL_SetWindowSize(window, mode.w, mode.h);
-				InputUpdate;
+				AfterSetWindowSize;
 				SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
-				InputUpdate;
+				AfterSetWindowSize;
 				windowed := false;
 			end else begin
 				SDL_SetWindowFullscreen(window, 0);
-				InputUpdate;
+				AfterSetWindowSize;
 				SDL_SetWindowSize(window, windowedLastWidth, windowedLastHeight);
-				InputUpdate;
+				AfterSetWindowSize;
 				SDLResizeWindow(0, true, false);
-				InputUpdate;
+				AfterSetWindowSize;
 				windowed := true;
 			end;
 		end;
@@ -284,7 +296,11 @@ procedure VideoSetSDLWindowed(value: boolean);
 procedure FreeCharsetTexture(var tex: TCharsetTexture);
 	begin
 		if tex.valid then begin
-			SDL_DestroyTexture(tex.texture);
+			if tex.texture <> nil then begin
+				SDL_DestroyTexture(tex.texture);
+				tex.texture := nil;
+			end;
+			SDL_FreeSurface(tex.surface);
 			tex.valid := false;
 		end;
 	end;
@@ -311,9 +327,8 @@ procedure LoadCharsetFromBMP(var tex: TCharsetTexture; path: string);
 		texWidth := surface^.w;
 		texHeight := surface^.h;
 
-		tex.texture := SDL_CreateTextureFromSurface(renderer, surface);
-		SDL_FreeSurface(surface);
-		if tex.texture = nil then exit;
+		tex.surface := surface;
+		tex.texture := nil;
 
 		if (texWidth * texHeight) < 256 then begin
 			FreeCharsetTexture(tex);
@@ -346,7 +361,7 @@ procedure LoadCharsetFromBMP(var tex: TCharsetTexture; path: string);
 
 procedure LoadCharsetFromByteArray(var tex: TCharsetTexture; chByteArray: array of byte; chSizeBytes: longint);
 	var
-		surface: PSDL_Surface;
+		surfaceOld, surface: PSDL_Surface;
 		palette: array[0 .. 1] of TSDL_Color;
 		colors: array[0 .. 256*128-1] of byte;
 		i, ix, iy: Int32;
@@ -386,10 +401,14 @@ procedure LoadCharsetFromByteArray(var tex: TCharsetTexture; chByteArray: array 
 		SDL_SetPaletteColors(surface^.format^.palette, @palette, 0, 2);
 		SDL_SetColorKey(surface, 1, 0);
 
-		tex.texture := SDL_CreateTextureFromSurface(renderer, surface);
-		SDL_FreeSurface(surface);
-		if tex.texture = nil then exit;
+		{ Make copy because colors is stack-allocated }
+		surfaceOld := surface;
+		surface := SDL_ConvertSurfaceFormat(surfaceOld, SDL_PIXELFORMAT_ARGB8888, 0);
+		SDL_FreeSurface(surfaceOld);
+		if surface = nil then exit;
 
+		tex.surface := surface;
+		tex.texture := nil;
 		tex.valid := true;
 	end;
 
@@ -605,6 +624,24 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 		srcRect: TSDL_Rect;
 		destRect: TSDL_Rect;
 	begin
+		SDL_LockMutex(mainThreadSdlChangesMutex);
+		SDL_LockMutex(eventMutex);
+
+		renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED or SDL_RENDERER_PRESENTVSYNC);
+		if renderer = nil then
+			renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, '0');
+
+		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+			VideoColumns * 8, 25 * 16); { TODO: Allocates 640x400 texture to allow up to 8x16 fonts. }
+
+		SDL_RenderClear(renderer);
+		SDL_RenderPresent(renderer);
+
+		SDL_UnlockMutex(eventMutex);
+		SDL_UnlockMutex(mainThreadSdlChangesMutex);
+
 		while renderThreadRunning do begin
 			SDL_LockMutex(mainThreadSdlChangesMutex);
 			SDL_LockMutex(eventMutex);
@@ -623,6 +660,12 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 			SDL_SetRenderTarget(renderer, playfieldTexture);
 
 			SDL_LockMutex(playfieldMutex);
+
+			if charsetTexture.valid then begin
+				if charsetTexture.texture = nil then begin
+					charsetTexture.texture := SDL_CreateTextureFromSurface(renderer, charsetTexture.surface);
+				end;
+			end;
 
 			blink := (SDL_GetTicks mod TEXT_BLINK_RATE) >= (TEXT_BLINK_RATE div 2);
 
@@ -725,12 +768,6 @@ procedure VideoInstall(borderColor: integer);
 
 		resPath := IncludeTrailingPathDelimiter(ExtractFileDir(ExpandFileName(ParamStr(0))));
 
-		renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED or SDL_RENDERER_PRESENTVSYNC);
-		if renderer = nil then
-			renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
-
-		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, '0');
-
 		LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);
 		usingCustomCharset := false;
 		if not charsetTexture.valid then
@@ -740,16 +777,10 @@ procedure VideoInstall(borderColor: integer);
 			palette[i] := EGA_PALETTE[i];
 		usingCustomPalette := false;
 
-		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-			VideoColumns * 8, 25 * 16); { TODO: Allocates 640x400 texture to allow up to 8x16 fonts. }
-
 		mainThreadSdlChangesMutex := SDL_CreateMutex;
 		playfieldMutex := SDL_CreateMutex;
 
 		SDLResizeWindow(0, false, false);
-
-		SDL_RenderClear(renderer);
-		SDL_RenderPresent(renderer);
 
 		renderThreadRunning := true;
 		renderThread := SDL_CreateThread(VideoRenderThread, 'Render thread', nil);
