@@ -699,9 +699,13 @@ procedure VideoInstall(borderColor: integer);
 		window := SDL_CreateWindow('%NAME% %VERSION%',
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			640, 350, SDL_WINDOW_RESIZABLE or SDL_WINDOW_ALLOW_HIGHDPI);
+
 		resPath := IncludeTrailingPathDelimiter(ExtractFileDir(ExpandFileName(ParamStr(0))));
 
 		renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED or SDL_RENDERER_PRESENTVSYNC);
+		if renderer = nil then
+			renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, '0');
 
 		LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);

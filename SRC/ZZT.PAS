@@ -43,7 +43,7 @@ Crt,
 {$IFDEF SDL2}
 SysUtils, FileSel,
 {$ENDIF}
-Dos, ExtMem, FileSys, ZVideo, Keys, Sounds, ZInput, TxtWind,
+Dos, ExtMem, FileSys, ZVideo, Keys, Sounds, TimerSys, ZInput, TxtWind,
 GameConf, GameVars, Elements, Editor, Oop, Game;
 
 {$IFDEF SDL2}
@@ -101,6 +101,7 @@ procedure ParseArguments;
 
 begin
 	Randomize;
+	TimerSysInstall;
 
 	StartupWorldFileName := '';
 {$IFDEF SDL2}

@@ -240,11 +240,9 @@ procedure SoundUninstall;
 	end;
 
 begin
-	TimerSysInstall;
-
 	SoundEnabled := true;
 	SoundBlockQueueing := false;
-	SoundClearQueue;
 	SoundDurationMultiplier := 1;
+	SoundBuffer := '';
 	SoundIsPlaying := false;
 end.

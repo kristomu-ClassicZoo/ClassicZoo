@@ -222,4 +222,5 @@ begin
 {$IFDEF ZETAEMU}
 	ZetaDetected := ZetaDetect;
 {$ENDIF}
+	NoSound;
 end.
