@@ -81,6 +81,7 @@ procedure VideoInstall(borderColor: integer);
 	begin
 		{ TODO }
 		ClrScr;
+		VideoHideCursor;
 	end;
 
 procedure VideoUninstall;
@@ -89,6 +90,7 @@ procedure VideoUninstall;
 	begin
 		{ TODO }
 		ClrScr;
+		VideoShowCursor;
 	end;
 
 procedure VideoShowCursor;
