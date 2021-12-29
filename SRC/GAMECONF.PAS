@@ -484,7 +484,7 @@ const
 	{$IFDEF MSDOS} + 2 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF DEBUGWND} + 3 {$ENDIF}
-	{$IFDEF SDL2} + 7 {$ENDIF}
+	{$IFDEF SDL2} + 6 {$IFNDEF WINDOWS} + 1 {$ENDIF} {$ENDIF}
 	;
 	ConfigHiddenEntryCount = 0
 {$IFDEF MSDOS}
@@ -611,6 +611,7 @@ procedure GameConfigInit;
 		Inc(i);
 {$ENDIF}
 {$IFDEF SDL2}
+{$IFNDEF WINDOWS}
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;
 			Key := 'FVidWin';
@@ -621,6 +622,7 @@ procedure GameConfigInit;
 			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
+{$ENDIF}
 
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;

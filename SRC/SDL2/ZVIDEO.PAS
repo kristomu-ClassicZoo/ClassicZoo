@@ -65,7 +65,7 @@ interface
 	procedure VideoInvert(x1, y1, x2, y2: integer);
 
 implementation
-uses F_ASCII, FileSel, FileSys, SysUtils, Sounds, TimerSys, SDL2;
+uses F_ASCII, FileSel, FileSys, SysUtils, Sounds, TimerSys, ZInput, SDL2;
 type
 	TByteArray = array[0 .. 65535] of byte;
 	PByteArray = ^TByteArray;
@@ -100,6 +100,7 @@ var
 	window: PSDL_Window;
 	renderer: PSDL_Renderer;
 	palette: array[0 .. 15] of Uint32;
+	mainThreadSdlChangesMutex: PSDL_Mutex;
 	playfieldMutex: PSDL_Mutex;
 	playfieldTexture: PSDL_Texture;
 	charsetTexture: TCharsetTexture;
@@ -225,9 +226,9 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 				SDL_SetWindowSize(window, iw, ih);
 		end;
 
-		VideoForcePlayfieldRedraw;
-
 		SDL_UnlockMutex(eventMutex);
+
+		VideoForcePlayfieldRedraw;
 	end;
 
 function VideoGetSDLScalingMode: TSDLScalingMode;
@@ -237,9 +238,13 @@ function VideoGetSDLScalingMode: TSDLScalingMode;
 
 procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
 	begin
+		SDL_LockMutex(mainThreadSdlChangesMutex);
 		scalingMode := value;
 		SDLResizeWindow(-10000, false, true);
+		InputUpdate;
 		SDLResizeWindow(0, true, false);
+		InputUpdate;
+		SDL_UnlockMutex(mainThreadSdlChangesMutex);
 	end;
 
 function VideoGetSDLWindowed: boolean;
@@ -251,20 +256,27 @@ procedure VideoSetSDLWindowed(value: boolean);
 	var
 		mode: TSDL_DisplayMode;
 	begin
+		SDL_LockMutex(mainThreadSdlChangesMutex);
 		if windowed <> value then begin
 			if windowed then begin
 				SDL_GetWindowSize(window, @windowedLastWidth, @windowedLastHeight);
 				SDL_GetDesktopDisplayMode(SDL_GetWindowDisplayIndex(window), @mode);
 				SDL_SetWindowSize(window, mode.w, mode.h);
+				InputUpdate;
 				SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+				InputUpdate;
 				windowed := false;
 			end else begin
 				SDL_SetWindowFullscreen(window, 0);
+				InputUpdate;
 				SDL_SetWindowSize(window, windowedLastWidth, windowedLastHeight);
+				InputUpdate;
 				SDLResizeWindow(0, true, false);
+				InputUpdate;
 				windowed := true;
 			end;
 		end;
+		SDL_UnlockMutex(mainThreadSdlChangesMutex);
 	end;
 
 { Charset management }
@@ -594,6 +606,7 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 		destRect: TSDL_Rect;
 	begin
 		while renderThreadRunning do begin
+			SDL_LockMutex(mainThreadSdlChangesMutex);
 			SDL_LockMutex(eventMutex);
 
 			SDL_GetRendererOutputSize(renderer, @w, @h);
@@ -627,9 +640,11 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 			SDL_SetRenderTarget(renderer, nil);
 			SDL_RenderCopy(renderer, playfieldTexture, @srcRect, @destRect);
 
+			SDL_UnlockMutex(eventMutex);
+
 			SDL_RenderPresent(renderer);
 
-			SDL_UnlockMutex(eventMutex);
+			SDL_UnlockMutex(mainThreadSdlChangesMutex);
 
 			TimerSysWake(IMUntilFrame);
 			SDL_Delay(1);
@@ -728,6 +743,7 @@ procedure VideoInstall(borderColor: integer);
 		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
 			VideoColumns * 8, 25 * 16); { TODO: Allocates 640x400 texture to allow up to 8x16 fonts. }
 
+		mainThreadSdlChangesMutex := SDL_CreateMutex;
 		playfieldMutex := SDL_CreateMutex;
 
 		SDLResizeWindow(0, false, false);
@@ -747,6 +763,7 @@ procedure VideoUninstall;
 		SDL_WaitThread(renderThread, nil);
 
 		SDL_DestroyMutex(playfieldMutex);
+		SDL_DestroyMutex(mainThreadSdlChangesMutex);
 		SDL_DestroyTexture(playfieldTexture);
 		FreeCharsetTexture(charsetTexture);
 		SDL_DestroyRenderer(renderer);
@@ -824,7 +841,7 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 
 begin
 	FillChar(screenBuffer, 4000, 0);
-	VideoForcePlayfieldRedraw;
+	FillChar(screenBufferChange, 4000, true);
 	VideoBorderColor := 0;
 	VideoColumns := 80;
 	VideoCursorVisible := true;
