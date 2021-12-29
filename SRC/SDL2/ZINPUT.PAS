@@ -144,6 +144,9 @@ procedure InputOpenController(id: Sint32);
 		end;
 	end;
 
+const
+	NIBBLE_TO_HEX: array[0 .. 15] of char = ('0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f');
+
 function InputGUIDToString(guid: TSDL_JoystickGUID): string;
 	var
 		i: integer;
@@ -151,7 +154,7 @@ function InputGUIDToString(guid: TSDL_JoystickGUID): string;
 	begin
 		s := '';
 		for i := 0 to 15 do begin
-			s := s + IntToHex(guid.data[i]);
+			s := s + NIBBLE_TO_HEX[guid.data[i] shr 4] + NIBBLE_TO_HEX[guid.data[i] and 15];
 		end;
 		InputGUIDToString := s;
 	end;

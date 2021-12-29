@@ -172,7 +172,7 @@ procedure TimerSysInstall;
 		mode: TIdleMode;
 		requestedAudioSpec: TSDL_AudioSpec;
 	begin
-		SDL_Init(SDL_INIT_VIDEO or SDL_INIT_AUDIO or SDL_INIT_JOYSTICK or SDL_INIT_GAMECONTROLLER or SDL_INIT_TIMER);
+		SDL_Init(SDL_INIT_EVERYTHING);
 		SDL_GameControllerAddMappingsFromFile('gamecontrollerdb.txt');
 		SDL_StartTextInput;
 		PitTimerId := SDL_AddTimer(PIT_SPEED_MS, PitTimerCallback, nil);

@@ -138,6 +138,8 @@ begin
 	DebugUndefEnabled := false;
 {$ENDIF}
 
+	VideoInstall(1);
+
 	GameConfigInit;
 	if not GameConfigLoad then begin
 		if not GameConfigSave then begin end;
@@ -148,7 +150,6 @@ begin
 	ParseArguments;
 
 	if not GameTitleExitRequested then begin
-		VideoInstall(1);
 		TextWindowInit; { (5, 3, 50, 18) }
 		GetMem(IoTmpBuf, IoTmpBufSize);
 

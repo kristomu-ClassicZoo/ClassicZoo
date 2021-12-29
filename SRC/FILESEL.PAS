@@ -112,7 +112,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 	begin
 		searching := true;
 {$IFDEF ADVFILES}
-		multiExtension := ContainsText(extension, ';');
+		multiExtension := ANSIContainsText(extension, ';');
 {$ENDIF}
 {$IFDEF SUBDIRS}
 		GetDir(0, startPath);
