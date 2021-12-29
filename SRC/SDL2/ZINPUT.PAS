@@ -119,7 +119,7 @@ const
 var
 	KeysPressed: array[1 .. MAX_KEYS_PRESSED] of TKeyPress;
 	KeysPressedPos: integer;
-	InputControllerIndex: Sint32;
+	InputControllerIndex: LongInt;
 	InputGameController: PSDL_GameController;
 	InputJoystick: PSDL_Joystick;
 
@@ -133,7 +133,7 @@ procedure InputCloseController;
 		end;
 	end;
 
-procedure InputOpenController(id: Sint32);
+procedure InputOpenController(id: LongInt);
 	begin
 		InputCloseController;
 
