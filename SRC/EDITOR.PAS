@@ -1753,7 +1753,7 @@ procedure HighScoresLoad;
 		f: file of THighScoreList;
 		i: integer;
 	begin
-{$IFDEF SDL2}
+{$IFNDEF MSDOS}
 		AssignFSys(f, World.Info.Name + '.HI');
 {$ELSE}
 		Assign(f, World.Info.Name + '.HI');
@@ -1775,7 +1775,7 @@ procedure HighScoresSave;
 	var
 		f: file of THighScoreList;
 	begin
-{$IFDEF SDL2}
+{$IFNDEF MSDOS}
 		AssignFSys(f, World.Info.Name + '.HI');
 {$ELSE}
 		Assign(f, World.Info.Name + '.HI');

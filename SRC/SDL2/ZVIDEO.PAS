@@ -48,7 +48,13 @@ interface
 	procedure VideoSetSDLWindowed(value: boolean);
 	{ }
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
+	function VideoIsCharsetCustom: boolean;
+	function VideoIsPaletteCustom: boolean;
 	function VideoSetCharset(data: pointer; height: integer): boolean;
+	procedure VideoLoadCharsetDialog;
+	procedure VideoLoadCharsetFromFile(filename: string);
+	procedure VideoLoadPaletteDialog;
+	procedure VideoLoadPaletteFromFile(filename: string);
 	procedure VideoInstall(borderColor: integer);
 	procedure VideoUninstall;
 	procedure VideoShowCursor;
@@ -59,9 +65,10 @@ interface
 	procedure VideoInvert(x1, y1, x2, y2: integer);
 
 implementation
-uses F_ASCII, FileSys, SysUtils, Sounds, TimerSys, SDL2;
+uses F_ASCII, FileSel, FileSys, SysUtils, Sounds, TimerSys, SDL2;
 type
-	TByteArray = array of byte;
+	TByteArray = array[0 .. 65535] of byte;
+	PByteArray = ^TByteArray;
 	TCharsetTexture = record
 		valid: boolean;
 		charWidth: Uint32;
@@ -92,6 +99,7 @@ const
 var
 	window: PSDL_Window;
 	renderer: PSDL_Renderer;
+	palette: array[0 .. 15] of Uint32;
 	playfieldMutex: PSDL_Mutex;
 	playfieldTexture: PSDL_Texture;
 	charsetTexture: TCharsetTexture;
@@ -102,6 +110,8 @@ var
 	blinkActive: boolean;
 	scalingMode: TSDLScalingMode;
 	windowed: boolean;
+	usingCustomCharset: boolean;
+	usingCustomPalette: boolean;
 	windowedLastWidth, windowedLastHeight: Int32;
 
 procedure VideoForcePlayfieldRedraw;
@@ -369,6 +379,118 @@ procedure LoadCharsetFromByteArray(var tex: TCharsetTexture; chByteArray: array 
 		tex.valid := true;
 	end;
 
+const
+	FONT_MANIA_ID_STRING = 'FONT MANIA';
+
+procedure VideoLoadCharsetDialog;
+	var
+		i: integer;
+		filename: string;
+	begin
+		i := 0;
+		filename := FileSelect('Character Sets', '.CHR;.COM', i);
+		VideoLoadCharsetFromFile(filename);
+	end;
+
+procedure VideoLoadCharsetFromFile(filename: string);
+	var
+		charsetData: pointer;
+		charsetLen: word;
+	label FinishLoadCharset;
+	begin
+		if filename = '' then begin
+			VideoSetCharset(nil, 14);
+			exit;
+		end;
+
+		charsetLen := FileReadAll(filename, charsetData, 8192);
+		if charsetLen >= 5027 then begin
+			if CompareMem(charsetData + 8, @FONT_MANIA_ID_STRING[1], Length(FONT_MANIA_ID_STRING)) then begin
+				VideoSetCharset(charsetData + 1442, 14);
+				goto FinishLoadCharset;
+			end;
+		end else if ((charsetLen and $FF) = 0) and (charsetLen > 0) then begin
+			VideoSetCharset(charsetData, charsetLen shr 8);
+			goto FinishLoadCharset;
+		end;
+
+		{ Fallback }
+		VideoSetCharset(nil, 14);
+FinishLoadCharset:
+		if charsetLen > 0 then
+			FreeMem(charsetData, charsetLen);
+	end;
+
+const
+	PLD_EGA_PALETTE_LUT: array[0 .. 15] of byte = (
+		0, 1, 2, 3, 4, 5, 20, 7,
+		56, 57, 58, 59, 60, 61, 62, 63
+	);
+
+procedure VideoSetPalette(data: array of Uint32; custom: boolean);
+	var
+		i: integer;
+	begin
+		SDL_LockMutex(eventMutex);
+
+		for i := 0 to 15 do
+			palette[i] := data[i];
+		usingCustomPalette := custom;
+
+		SDL_UnlockMutex(eventMutex);
+	end;
+
+procedure VideoLoadPaletteDialog;
+	var
+		i: integer;
+		filename: string;
+	begin
+		i := 0;
+		filename := FileSelect('Palettes', '.PAL;.PLD', i);
+		VideoLoadPaletteFromFile(filename);
+	end;
+
+procedure VideoLoadPaletteFromFile(filename: string);
+	var
+		i: integer;
+		palette: array[0 .. 15] of Uint32;
+		paletteData: pointer;
+		paletteDataArr: PByteArray;
+		paletteLen: word;
+	label FinishLoadPalette;
+	begin
+		if filename = '' then begin
+			VideoSetPalette(EGA_PALETTE, false);
+			exit;
+		end;
+
+		paletteLen := FileReadAll(filename, paletteData, 8192);
+		paletteDataArr := PByteArray(paletteData);
+		if paletteLen = 192 then begin
+			{ .PLD file }
+			for i := 0 to 15 do
+				palette[i] :=
+					(((paletteDataArr^[(PLD_EGA_PALETTE_LUT[i] * 3)] and $3F) * 255 div 63) shl 16)
+					or (((paletteDataArr^[(PLD_EGA_PALETTE_LUT[i] * 3) + 1] and $3F) * 255 div 63) shl 8)
+					or (((paletteDataArr^[(PLD_EGA_PALETTE_LUT[i] * 3) + 2] and $3F) * 255 div 63));
+			VideoSetPalette(palette, true);
+		end else if paletteLen = 48 then begin
+			{ .PAL file }
+			for i := 0 to 15 do
+				palette[i] :=
+					(((paletteDataArr^[(i * 3)] and $3F) * 255 div 63) shl 16)
+					or (((paletteDataArr^[(i * 3) + 1] and $3F) * 255 div 63) shl 8)
+					or (((paletteDataArr^[(i * 3) + 2] and $3F) * 255 div 63));
+			VideoSetPalette(palette, true);
+		end else begin
+			{ Fallback }
+			VideoSetPalette(EGA_PALETTE, false);
+		end;
+
+		if paletteLen > 0 then
+			FreeMem(paletteData, paletteLen);
+	end;
+
 { Video drawing }
 
 function ColorToBW(color: byte): byte;
@@ -411,7 +533,7 @@ procedure VideoDrawCharBg(x, y: integer);
 		if VideoMonochrome then
 			col := ColorToBW(col);
 
-		bgCol := EGA_PALETTE[col shr 4];
+		bgCol := palette[col shr 4];
 
 		outRect.x := x * charsetTexture.charWidth;
 		outRect.y := y * charsetTexture.charHeight;
@@ -445,7 +567,7 @@ procedure VideoDrawCharFg(x, y: integer; blink: boolean);
 		if VideoMonochrome then
 			col := ColorToBW(col);
 
-		fgCol := EGA_PALETTE[col and 15];
+		fgCol := palette[col and 15];
 
 		inRect.x := (chr mod charsetTexture.charsetPitch) * charsetTexture.charWidth;
 		inRect.y := (chr div charsetTexture.charsetPitch) * charsetTexture.charHeight;
@@ -523,6 +645,16 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 		SDL_UnlockMutex(playfieldMutex);
 	end;
 
+function VideoIsCharsetCustom: boolean;
+	begin
+		VideoIsCharsetCustom := usingCustomCharset;
+	end;
+
+function VideoIsPaletteCustom: boolean;
+	begin
+		VideoIsPaletteCustom := usingCustomPalette;
+	end;
+
 function VideoSetCharset(data: pointer; height: integer): boolean;
 	label FinishSetCharset;
 	begin
@@ -532,15 +664,17 @@ function VideoSetCharset(data: pointer; height: integer): boolean;
 
 		FreeCharsetTexture(charsetTexture);
 
-		if data <> Nil then begin
-			LoadCharsetFromByteArray(charsetTexture, TByteArray(data), height shl 8);
+		if data <> nil then begin
+			LoadCharsetFromByteArray(charsetTexture, PByteArray(data)^, height shl 8);
 			if charsetTexture.valid then begin
 				VideoSetCharset := true;
+				usingCustomCharset := true;
 				goto FinishSetCharset;
 			end;
 		end;
 
 		LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);
+		usingCustomCharset := false;
 		if not charsetTexture.valid then
 			RunError(217);
 
@@ -556,6 +690,7 @@ procedure VideoInstall(borderColor: integer);
 		resPath: string;
 		asciiBmpPath: string;
 		f: file;
+		i: integer;
 	begin
 		VideoColumns := 80;
 		scalingMode := SMInteger;
@@ -570,8 +705,13 @@ procedure VideoInstall(borderColor: integer);
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, '0');
 
 		LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);
+		usingCustomCharset := false;
 		if not charsetTexture.valid then
 			RunError(217);
+	
+		for i := 0 to 15 do
+			palette[i] := EGA_PALETTE[i];
+		usingCustomPalette := false;
 
 		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
 			VideoColumns * charsetTexture.charWidth, 25 * charsetTexture.charHeight);

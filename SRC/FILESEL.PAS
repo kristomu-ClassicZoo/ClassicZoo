@@ -33,12 +33,21 @@ interface
 	function FileReadAll(name: TFilenameString; var fdata: pointer; maxSize: word): word;
 	function FileSelect(title, extension: TString50; var cachedLinePos: integer): TFilenameString;
 
-implementation
-{$IFDEF SDL2}
-uses SysUtils, Game, ZInput, TxtWind, FileSys;
-{$ELSE}
-uses Dos, Game, ZInput, TxtWind, FileSys;
+{$IFDEF FPC}
+{$IFNDEF MSDOS}
+{$DEFINE ADVFILES}
 {$ENDIF}
+{$ENDIF}
+
+implementation
+uses
+{$IFDEF ADVFILES}
+StrUtils, SysUtils,
+{$ELSE}
+Dos,
+{$ENDIF}
+Game, ZInput, TxtWind, FileSys;
+
 const
 	PATH_PREVIEW_LENGTH = 24;
 	MAX_FILENAME_LENGTH = 20; { TODO: Increase. }
@@ -71,8 +80,10 @@ function FileReadAll(name: TFilenameString; var fdata: pointer; maxSize: word): 
 			fsize := FileSize(f);
 			bsize := maxSize;
 			if (fsize < bsize) then bsize := fsize;
-			GetMem(fdata, bsize);
-			BlockRead(f, fdata^, bsize);
+			if bsize > 0 then begin
+				GetMem(fdata, bsize);
+				BlockRead(f, fdata^, bsize);
+			end;
 			Close(f);
 		end;
 
@@ -82,8 +93,10 @@ function FileReadAll(name: TFilenameString; var fdata: pointer; maxSize: word): 
 function FileSelect(title, extension: TString50; var cachedLinePos: integer): TFilenameString;
 	var
 		textWindow: TTextWindowState;
-{$IFDEF SDL2}
+{$IFDEF ADVFILES}
 		fileSearchRec: TRawbyteSearchRec;
+		multiExtension: boolean;
+		extensionTemp: TString50;
 {$ELSE}
 		fileSearchRec: SearchRec;
 {$ENDIF}
@@ -98,6 +111,9 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 		previewPath: string[PATH_PREVIEW_LENGTH + 4];
 	begin
 		searching := true;
+{$IFDEF ADVFILES}
+		multiExtension := ContainsText(extension, ';');
+{$ENDIF}
 {$IFDEF SUBDIRS}
 		GetDir(0, startPath);
 {$ENDIF}
@@ -122,7 +138,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 			textWIndow.Hyperlink := '';
 
 
-{$IFDEF SDL2}
+{$IFDEF ADVFILES}
 {$IFDEF SUBDIRS}
 			{ .. }
 			if ExpandFileName(curPath) <> ExpandFileName(IncludeTrailingPathDelimiter(curPath) + '..') then
@@ -148,14 +164,30 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 			FindFirst('*', faAnyFile, fileSearchRec);
 			repeat
 				if ((fileSearchRec.Attr and faDirectory) = 0) then begin
-					if UpCase(Copy(fileSearchRec.Name,
-						Length(fileSearchRec.name) - Length(extension) + 1,
-						Length(extension))) = extension then begin
-						entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
-
-						if Length(entryName) <= MAX_FILENAME_LENGTH then
-							TextWindowAppend(textWindow, entryName);
+					entryName := '';
+					if multiExtension then begin
+						i := 1;
+						repeat
+							extensionTemp := ExtractDelimited(i, extension, [';']);
+							if extensionTemp = '' then break;
+							if UpCase(Copy(fileSearchRec.Name,
+								Length(fileSearchRec.name) - Length(extensionTemp) + 1,
+								Length(extensionTemp))) = extensionTemp then begin
+								entryName := fileSearchRec.name;
+								break;
+							end;
+							Inc(i);
+						until 1 <> 1;
+					end else begin
+						if UpCase(Copy(fileSearchRec.Name,
+							Length(fileSearchRec.name) - Length(extension) + 1,
+							Length(extension))) = extension then begin
+							entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
+						end;
 					end;
+
+					if (Length(entryName) > 0) and (Length(entryName) <= MAX_FILENAME_LENGTH) then
+						TextWindowAppend(textWindow, entryName);
 				end;
 			until FindNext(fileSearchRec) <> 0;
 			FindClose(fileSearchRec);

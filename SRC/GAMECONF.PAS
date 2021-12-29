@@ -384,6 +384,34 @@ function ConfigFullscreenShowValue: string;
 			ConfigFullscreenShowValue := 'Fullscreen';
 	end;
 
+function ConfigCharsetShowValue: string;
+	begin
+		if VideoIsCharsetCustom then
+			ConfigCharsetShowValue := 'Custom'
+		else
+			ConfigCharsetShowValue := 'Default';
+	end;
+
+function ConfigCharsetCustomAction: boolean;
+	begin
+		VideoLoadCharsetDialog;
+		ConfigCharsetCustomAction := true;
+	end;
+
+function ConfigPaletteShowValue: string;
+	begin
+		if VideoIsPaletteCustom then
+			ConfigPaletteShowValue := 'Custom'
+		else
+			ConfigPaletteShowValue := 'Default';
+	end;
+
+function ConfigPaletteCustomAction: boolean;
+	begin
+		VideoLoadPaletteDialog;
+		ConfigPaletteCustomAction := true;
+	end;
+
 const
 	SoundVolumeTable: array[0 .. 10] of byte =
 		(0, 4, 8, 13, 18, 24, 31, 38, 46, 54, 64);
@@ -456,7 +484,7 @@ const
 	{$IFDEF MSDOS} + 2 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF DEBUGWND} + 3 {$ENDIF}
-	{$IFDEF SDL2} + 5 {$ENDIF}
+	{$IFDEF SDL2} + 7 {$ENDIF}
 	;
 	ConfigHiddenEntryCount = 0
 {$IFDEF MSDOS}
@@ -634,6 +662,22 @@ procedure GameConfigInit;
 			SetValue := ConfigHQSoundSetValue;
 			ShowValue := ConfigHQSoundShowValue;
 			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Name := 'Charset';
+			ShowValue := ConfigCharsetShowValue;
+			CustomAction := ConfigCharsetCustomAction;
+		end;
+		Inc(i);
+
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Name := 'Palette';
+			ShowValue := ConfigPaletteShowValue;
+			CustomAction := ConfigPaletteCustomAction;
 		end;
 		Inc(i);
 {$ENDIF}
