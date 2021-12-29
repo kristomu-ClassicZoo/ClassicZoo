@@ -116,7 +116,9 @@ var
 
 procedure VideoForcePlayfieldRedraw;
 	begin
+		SDL_LockMutex(playfieldMutex);
 		FillChar(screenBufferChange, 4000, true);
+		SDL_UnlockMutex(playfieldMutex);
 	end;
 
 { Window handling }
@@ -588,6 +590,7 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 		ix, iy: integer;
 		w, h: Int32;
 		blink: boolean;
+		srcRect: TSDL_Rect;
 		destRect: TSDL_Rect;
 	begin
 		while renderThreadRunning do begin
@@ -595,6 +598,11 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 
 			SDL_GetRendererOutputSize(renderer, @w, @h);
 			CalcRenderArea(@destRect, w, h);
+
+			srcRect.x := 0;
+			srcRect.y := 0;
+			srcRect.w := VideoColumns * charsetTexture.charWidth;
+			srcRect.h := 25 * charsetTexture.charHeight;
 
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 			SDL_RenderClear(renderer);
@@ -617,7 +625,7 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 			SDL_UnlockMutex(playfieldMutex);
 
 			SDL_SetRenderTarget(renderer, nil);
-			SDL_RenderCopy(renderer, playfieldTexture, nil, @destRect);
+			SDL_RenderCopy(renderer, playfieldTexture, @srcRect, @destRect);
 
 			SDL_RenderPresent(renderer);
 
@@ -718,7 +726,7 @@ procedure VideoInstall(borderColor: integer);
 		usingCustomPalette := false;
 
 		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-			VideoColumns * charsetTexture.charWidth, 25 * charsetTexture.charHeight);
+			VideoColumns * 8, 25 * 16); { TODO: Allocates 640x400 texture to allow up to 8x16 fonts. }
 
 		playfieldMutex := SDL_CreateMutex;
 
