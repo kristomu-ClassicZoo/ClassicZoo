@@ -1,5 +1,5 @@
 #Extended OOP file
-# Version 2.1-firm
+# Version 2.2-firm
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -264,6 +264,22 @@ COLOR
 # <r>, <g>, <b> values must be ranged from 0-63.
 # You can rename the PALETTE command below:
 PALETTE
+# ---- TO direction
+# Usage:
+#        /to <dir1> <dir2>
+# Targets a destination that is in the <dir2>
+# direction from <dir1>; for example,
+# "/to player n" would relocate the object
+# to the player's north.
+# You can rename the TO direction below:
+TO
+# ---- KEYSPEED counter
+# Usage:
+#        #set keyspeed <speed>
+# Sets the key repeat speed. Range of -2 to 1,
+# with 1 being fastest and 0 being normal.
+# You can rename the KEYSPEED counter below:
+KEYSPEED
 # ---- INTERPOLATION
 # Usage:
 #        #set <counter> <#>

@@ -1,5 +1,5 @@
 #Template PAR file
-# Version 2.0-soft-g
+# Version 2.2-soft
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -283,3 +283,8 @@ DkCyan
 Red
 # Blinking (0 = Blink, 1 = No Blink)
 0
+#  -----------
+#  STARTING BOARD
+#  -----------
+# Starting Board (Set to -1 to use default)
+-1

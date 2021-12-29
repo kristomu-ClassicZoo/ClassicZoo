@@ -135,6 +135,8 @@ function ShortWord(s: string): boolean;
 		else if s = OopStringToWord(OOPList[26]) then
 			ShortWord := true
 		else if s = OopStringToWord(OOPList[19]) then
+			ShortWord := true
+		else if s = OopStringToWord(OOPList[38]) then
 			ShortWord := true;
 	end;
 
@@ -155,7 +157,9 @@ procedure OopGetShort(s: string; var cPtr: cShort);
 		else if s = OopStringToWord(OOPList[26]) then
 			cPtr := @World.Info.Keys[7]
 		else if s = OopStringToWord(OOPList[19]) then
-			cPtr := @Board.Info.IsDark;
+			cPtr := @Board.Info.IsDark
+		else if s = OopStringToWord(OOPList[38]) then
+			cPtr := @World.Info.KeySpeed;
 	end;
 
 function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
@@ -264,6 +268,8 @@ procedure OopSkipLine(statId: integer; var position: integer);
 	end;
 
 function OopParseDirection(statId: integer; var position: integer; var dx, dy: integer): boolean;
+	var
+		ix, iy: integer;
 	begin
 		with Board.Stats[statId] do begin
 			OopParseDirection := true;
@@ -337,6 +343,15 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 				OopParseDirection := OopParseDirection(statId, position, dx, dy);
 				dx := -dx;
 				dy := -dy;
+			end else if (OopWord = OopStringToWord(OOPList[37])) then begin {'TO'}
+				OopReadWord(statId, position);
+				OopParseDirection := OopParseDirection(statId, position, dx, dy);
+				ix := dx;
+				iy := dy;
+				OopReadWord(statId, position);
+				OopParseDirection := OopParseDirection(statId, position, dx, dy);
+				Inc(dx,ix);
+				Inc(dy,iy);
 			end else begin
 				dx := 0;
 				dy := 0;
@@ -1005,8 +1020,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								WorldSetFlag(OopWord)
 							else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
-							if textLine = OopStringToWord(OOPList[19]) then
-								TransitionDrawToBoard;
+							if textLine = OopStringToWord(OOPList[38]) then	KeyRepeat;
+							if textLine = OopStringToWord(OOPList[19]) then	TransitionDrawToBoard;
 							if textLine = OopStringToWord(OOPList[18]) then
 								DrawPlayerSurroundings(Board.Stats[0].X,Board.Stats[0].Y);
 						end else if OopWord = 'CLEAR' then begin
@@ -1021,8 +1036,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								GameUpdateSidebar;
 							end else
 								WorldClearFlag(OopWord);
-							if textLine = OopStringToWord(OOPList[19]) then
-								TransitionDrawToBoard;
+							if textLine = OopStringToWord(OOPList[38]) then	KeyRepeat;
+							if textLine = OopStringToWord(OOPList[19]) then	TransitionDrawToBoard;
 							if textLine = OopStringToWord(OOPList[18]) then
 								DrawPlayerSurroundings(Board.Stats[0].X,Board.Stats[0].Y);
 						end else if OopWord = 'IF' then begin
@@ -1185,8 +1200,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								end;
 							end else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
-							if textLine = OopStringToWord(OOPList[19]) then
-								TransitionDrawToBoard;
+							if textLine = OopStringToWord(OOPList[38]) then	KeyRepeat;
+							if textLine = OopStringToWord(OOPList[19]) then	TransitionDrawToBoard;
 							if textLine = OopStringToWord(OOPList[18]) then
 								DrawPlayerSurroundings(Board.Stats[0].X,Board.Stats[0].Y);
 							GameUpdateSidebar;

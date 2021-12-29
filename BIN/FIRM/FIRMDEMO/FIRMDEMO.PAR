@@ -1,5 +1,5 @@
 #Template PAR file (Extended for FirmWeave)
-# Version 2.1-firm
+# Version 2.2-firm
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -357,6 +357,11 @@ DkCyan
 #Special Text (fg)
 Red
 # Blinking (0 = Blinking, 1 = No Blink)
+1
+#  -----------
+#  STARTING BOARD
+#  -----------
+# Starting Board (Set to -1 to use default)
 1
 #  -----------
 #  PALETTE

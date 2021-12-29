@@ -40,25 +40,13 @@ interface
 		IO_BUFFER_DEFAULT_SIZE = 20000;
 		IO_BUFFER_MAXIMUM_SIZE = 65500;
 		IO_BUFFER_SIZE_INCREMENT = 500;
-		{.OBJ FILES}
-		LOAD_OBJ_LENGTH = 40960;
-		{.CFG FILE}
+		{ .CFG File }
 		CONFIG_FILE_COUNT = 85;
-		{.PAR FILE}
-		TEXT_DEF_START = 122;
-		THEME_START = 158;
-		PALETTE_START = 166;
-		PARAM_FILE_COUNT = 213;
-		{.FLG FILE}
-		CUSTOM_FLAG_COUNT = 64;
-		{.OOP FILE}
-		CUSTOM_OOP_COUNT = 36;
-		{.KB FILE}
-		CUSTOM_KEY_COUNT = 24;
+		{ .PAR File }
+		THEME_START = 120;
+		PARAM_FILE_COUNT = 128;
 	type
 		TString50 = string[50];
-		TString20 = string[20];
-		TString8 = string[8];
 		TFilenameString = string[128];
 		TCoord = record
 			X: integer;
@@ -68,13 +56,6 @@ interface
 			Element: byte;
 			Color: byte;
 		end;
-		TMatchTile = record
-			Element: byte;
-			Color: byte;
-			SetFG: boolean;
-			SetBG: boolean;
-		end;
-		TPalette = array[0..47] of byte;
 		TElementDrawProc = procedure(x, y: integer; var ch: byte);
 		TElementTickProc = procedure(statId: integer);
 		TElementTouchProc = procedure(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -107,7 +88,7 @@ interface
 			Data: ^string;
 			DataPos: integer;
 			DataLen: integer;
-			ObjLocal: array[1 .. 4] of integer;
+			unk1, unk2: pointer;
 		end;
 		TRleTile = record
 			Count: byte;
@@ -115,44 +96,40 @@ interface
 		end;
 		TBoardInfo = record
 			MaxShots: byte;
-			IsDark: shortint;
+			IsDark: boolean;
 			NeighborBoards: array[0 .. 3] of byte;
 			ReenterWhenZapped: boolean;
 			Message: string[58];
 			StartPlayerX: byte;
 			StartPlayerY: byte;
 			TimeLimitSec: integer;
-			Local: integer;
 			BoardTicks: integer;
-			unk1: array[74 .. 85] of byte;
+			unk1: array[72 .. 85] of byte;
 		end;
 		TWorldInfo = record
 			Ammo: integer;
 			Gems: integer;
-			Keys: array [1..7] of shortint;
+			Keys: array [1..7] of boolean;
 			Health: integer;
 			CurrentBoard: integer;
 			Torches: integer;
 			TorchTicks: integer;
 			EnergizerTicks: integer;
-			GracePeriod: integer;
+			unk1: integer;
 			Score: integer;
 			Name: string[20];
 			Flags: array[1 .. MAX_FLAG] of string[20];
 			BoardTimeSec: integer;
 			BoardTimeHsec: integer;
 			IsSave: boolean;
-			CustomFlags: array[1 .. CUSTOM_FLAG_COUNT] of integer;
-			PlayerColor: byte;
-			PlayerChar: char;
-			CustomPalette: TPalette;
+			unkPad: array[0 .. 13] of byte;
 		end;
 		TBoard = record
 			Name: TString50;
 			Tiles: array[0 .. BOARD_WIDTH + 1] of array[0 .. BOARD_HEIGHT + 1] of TTile;
 			StatCount: integer;
 			Stats: array[0 .. MAX_STAT + 1] of TStat;
-			Info: TBoardInfo;      
+			Info: TBoardInfo;
 		end;
 		TWorld = record
 			BoardCount: integer;
@@ -165,11 +142,8 @@ interface
 			Score: integer;
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
-		TConfigList = array[1 .. CONFIG_FILE_COUNT] of string[80];
-		TCustomFlagList = array[1 .. CUSTOM_FLAG_COUNT + 5] of TString20;
+		TConfigList = array[1 .. CONFIG_FILE_COUNT] of TString50;
 		TParamList = array[1 .. PARAM_FILE_COUNT] of integer;
-		TCustomOOPList = array[1 .. CUSTOM_OOP_COUNT] of TString20;
-		TCustomKeyList = array[0 .. CUSTOM_KEY_COUNT - 1] of TString20;
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
@@ -200,9 +174,6 @@ interface
 		FileWorldCachedLinePos: integer; 
 		FileSaveCachedLinePos: integer;
 
-		InspectNext: boolean;
-		NoClip: boolean;
-
 		GameTitleExitRequested: boolean;
 		GamePlayExitRequested: boolean;
 		GameStateElement: integer;
@@ -212,7 +183,6 @@ interface
 		TickSpeed: byte;
 
 		IoTmpBuf: pointer;
-		ObjTmpBuf: pointer;
 
 		ElementDefs: array[0 .. MAX_ELEMENT] of TElementDef;
 
@@ -221,7 +191,6 @@ interface
 		CurrentStatTicked: integer;
 		GamePaused: boolean;
 		TickTimeCounter: integer;
-		KeyLimit: integer;
 
 		ForceDarknessOff: boolean;
 		InitialTextAttr: byte;
@@ -229,25 +198,23 @@ interface
 		OopChar: char;
 		OopWord: string[20];
 		OopValue: integer;
-		CurrentSave: string[8];
-		InputTerminal: string[20];
 
 		DebugEnabled: boolean;
 
-		CustomFlagList: TCustomFlagList;
 		ConfigList: TConfigList;
 		ParamList: TParamList;
-		OOPList: TCustomOOPList;
-		KeyList: TCustomKeyList;
 		HighScoreList: THighScoreList;
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
 		Accessibility: array[1..4] of TString50;
 
-		BoardNames: array[0 .. MAX_BOARD] of TString50;
+		WorldFileDescCount: integer;
+		WorldFileDescKeys: array[1 .. 10] of TString50;
+		WorldFileDescValues: array[1 .. 10] of TString50;
 	const
 		E_EMPTY = 0;
 		E_BOARD_EDGE = 1;
+		E_MESSAGE_TIMER = 2;
 		E_MONITOR = 3; { State - Title screen }
 		E_PLAYER = 4; { State - Playing }
 		E_AMMO = 5;
@@ -304,6 +271,11 @@ interface
 		CATEGORY_ITEM = 1;
 		CATEGORY_CREATURE = 2;
 		CATEGORY_TERRAIN = 3;
+		{}
+		COLOR_SPECIAL_MIN = $F0;
+		COLOR_CHOICE_ON_BLACK = $FF;
+		COLOR_WHITE_ON_CHOICE = $FE;
+		COLOR_CHOICE_ON_CHOICE = $FD;
 		{}
 		SHOT_SOURCE_PLAYER = 0;
 		SHOT_SOURCE_ENEMY = 1;

@@ -1,3 +1,9 @@
+= 12/29/2021: 2.2
+Added:
+ * You can now force the game to start on a specific board via an option in the .PAR file. (also in Softweave)
+ * New direction, /to <dir1> <dir2> which is the tile in the <dir2> direction from <dir1>. See the FIRMDEMO for details.
+ * Added new global parameter KEYSPEED that sets the delay before key repeat to faster or slower.
+
 = 12/28/2021: 2.1a
 Added:
  * ?stats cheat to read board stats

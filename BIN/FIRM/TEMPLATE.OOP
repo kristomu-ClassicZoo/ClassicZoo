@@ -1,5 +1,5 @@
 #Template OOP file
-# Version 2.1-firm
+# Version 2.2-firm
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -189,7 +189,7 @@ _nil
 #  OTHER
 #  -------------
 # Below are some other available settings.
-# ---- RANDOM
+# ---- RANDOM number
 # Usage:
 #        #give ammo random <#> <#>
 # wherever a number can be used in ZZT-OOP, you
@@ -197,27 +197,27 @@ _nil
 # will be a random value between the two numbers.
 # Set to RANDOM to add to OOP:
 _nil
-# ---- ENTER
+# ---- ENTER label
 # Usage:
 #        :enter
 # Sent to all objects when the player enters
 # the room. Similar to SuperZZT.
 # Set to ENTER to add to OOP:
 _nil
-# ---- LOAD
+# ---- LOAD command
 # Usage:
 #        #load <file>
 # Loads <file>.OBJ as OOP code and executes it.
 # Set to LOAD to add to OOP:
 _nil
-# ---- DUPLICATE
+# ---- DUPLICATE command
 # Usage:
 #        #duplicate <dir1> <dir2>
 # Duplicates from source <dir1> to
 # destination <dir2>.
 # Set to DUPLICATE to add to OOP:
 _nil
-# ---- BGPLAY
+# ---- BGPLAY command
 # Usage:
 #        #bgplay <sound>
 # Plays a sound on the sound effects channel
@@ -225,7 +225,7 @@ _nil
 # override it).
 # Set to BGPLAY to add to OOP:
 _nil
-# ---- QUICKLOAD
+# ---- QUICKLOAD command
 # Usage:
 #        #quickload
 # Loads the last available save game. If no
@@ -233,7 +233,7 @@ _nil
 # dialog.
 # Set to QUICKLOAD to add to OOP:
 _nil
-# ---- QUICKSAVE
+# ---- QUICKSAVE command
 # Usage:
 #        #quicksave
 # Saves over the current save game. If no game
@@ -241,7 +241,7 @@ _nil
 # instead.
 # Set to QUICKSAVE to add to OOP:
 _nil
-# ---- PLAYER
+# ---- PLAYER command
 # Usage:
 #        #player <color> <bgcolor> <char>
 # Modifies how the player is displayed in-game.
@@ -264,6 +264,22 @@ _nil
 # Sets the palette for the given <color>. The
 # <r>, <g>, <b> values must be ranged from 0-63.
 # set to PALETTE to add to OOP:
+_nil
+# ---- TO direction
+# Usage:
+#        /to <dir1> <dir2>
+# Targets a destination that is in the <dir2>
+# direction from <dir1>; for example,
+# "/to player n" would relocate the object
+# to the player's north.
+# set to TO to add to OOP:
+_nil
+# ---- KEYSPEED counter
+# Usage:
+#        #set keyspeed <speed>
+# Sets the key repeat speed. Range of -2 to 1,
+# with 1 being fastest and 0 being normal.
+# set to KEYSPEED to add to OOP:
 _nil
 # ---- INTERPOLATION
 # Usage:

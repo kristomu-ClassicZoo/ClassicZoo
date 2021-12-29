@@ -1,5 +1,5 @@
-#Template OOP file
-# Version 2.1-firm
+#Extended OOP file
+# Version 2.2-firm
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -8,18 +8,16 @@
 #          You have been warned.
 #  -------------
 #How to Use:
-#Copy TEMPLATE.OOP to <YOURZZT>.OOP and
-#follow the instructions below to add new
-#functions to ZZT.  If you want to add
-#all available functions, instead copy
-#EXTENDED.OOP to <YOURZZT>.OOP and follow
-#the instructions there to customize your
-#setup.
+#Copy EXTENDED.OOP to <YOURZZT>.OOP and
+#all functions demonstrated in FIRMDEMO will
+#be made available to your ZZT file. If you
+#want to change the names of any of the new
+#functions, you can do so below.
 #  -------------
 #  NEW COMMANDS
 #  -------------
-#By changing the values below you can add
-#new OOP commands to ZZT.
+#By changing the values below you can rename
+#the new OOP commands added to ZZT.
 # ---- BOARD command
 # Usage:
 #        #board <label> [X] [Y]
@@ -27,15 +25,15 @@
 # board list whose name begins with ':label;',
 # and optionally moves that player to location
 # X, Y on the new board.
-# Set to BOARD below to add to OOP:
-_nil
+# You can rename the BOARD command below:
+BOARD
 # ---- STEP command
 # Usage:
 #        #step <direction1> <direction2>
 # Looks for a stat at <direction1>. If found,
 # sets its step values to <direction2>.
-# Set to STEP below to add to OOP:
-_nil
+# You can rename the STEP command below:
+STEP
 # ---- COLOR command
 # Usage:
 #        #color <direction> <color> [bgcolor]
@@ -49,39 +47,39 @@ _nil
 # The following can be foreground colors only:
 #    DkGray, Blue, Green, Cyan,
 #    Red, Purple, Yellow, White
-# Set to COLOR below to add to OOP:
-_nil
+# You can rename the COLOR command below:
+COLOR
 # ---- SHOVE command
 # Usage:
 #        #shove <direction1> <direction2>
 # Takes whatever is found at <direction1> and
 # shoves it in <direction2>. This will push
 # anything pushable located there as well.
-# Set to SHOVE below to add to OOP:
-_nil
+# You can rename the SHOVE command below:
+SHOVE
 # ---- EDGE command
 # Usage:
 #        #edge <direction> <label>
 # Connects the board edge at <direction> with
 # the first board in the board list whose name
 # begins with ':label;'.
-# Set to EDGE below to add to OOP:
-_nil
+# You can rename the EDGE command below:
+EDGE
 # ---- DROP command
 # Usage:
 #        #drop <link>
 # Like ZAP, finds the first instance of !link;
 # and replaces the ! with a comment character.
-# Set to DROP below to add to OOP:
-_nil
+# You can rename the DROP command below:
+DROP
 # ---- LIFT command
 # Usage:
 #        #lift <link>
 # Finds the first dropped instance of
 # @link (see below) and changes it back
 # to !link.
-# Set to LIFT below to add to OOP:
-_nil
+# You can rename the LIFT command below:
+LIFT
 # ---- Pre-dropped link character
 # Like pre-zapped labels, use this character
 # to create pre-dropped links. Maximum length
@@ -90,8 +88,9 @@ _nil
 #  -------------
 #  NEW CONDITIONS
 #  -------------
-#By changing the values below you can add
-#new options for #IF <condition> in ZZT.
+#By changing the values below you can
+#changethe names given to all the new
+#options for #IF <condition> in ZZT.
 # ---- DETECT condition
 # Usage:
 #        #if detect <direction> <type>
@@ -99,35 +98,35 @@ _nil
 # if <direction> is 'i', then looks underneath
 # the object (for a certain color fake, for
 # example)
-# Set to DETECT below to add to OOP:
-_nil
+# You can rename the DETECT condition below:
+DETECT
 # ---- RND condition
 # Usage:
 #        #if rnd
 # True 50% of the time. Useful for random events
 # that don't depend on BLOCKED.
-# Set to RND below to add to OOP:
-_nil
+# You can rename the RND condition below:
+RND
 # ---- AT condition
 # Usage:
 #        #if at <X> <X>
 # True if the object is currently located at
 # X, Y on the board.
-# Set to AT below to add to OOP:
-_nil
+# You can rename the AT condition below:
+AT
 # ---- WITHIN condition
 # Usage:
 #        #if within <radius>
 # True if the object is within <radius> of the
 # player. Roughly circular detection.
-# Set to WITHIN below to add to OOP:
-_nil
+# You can rename the WITHIN condition below:
+WITHIN
 #  -------------
 #  NEW DIRECTIONS
 #  -------------
-#By changing the values below you can add
-#new directions for /, ?, and other movement
-#commands in ZZT.
+#By changing the values below you can rename
+#the new directions for /, ?, and other 
+#movement in ZZT.
 # ---- BY direction
 # Usage:
 #        /by <deltaX> <deltaY>
@@ -135,35 +134,35 @@ _nil
 # relative to itself. Negative values of <deltaX>
 # will move the object west, and negative values
 # of <deltaY> will move the object north.
-# Set to BY below to add to OOP:
-_nil
+# You can rename the BY direction below:
+BY
 # ---- AT direction
 # Usage:
 #        /at <X> <Y>
 # Moves the object to absolute position X, Y
 # on the board.
-# Set to AT below to add to OOP:
-_nil
+# You can rename the AT direction below:
+AT
 # ---- TOWARD direction
 # Usage:
 #       /toward <x> <y>
 # Similar to SEEK, moves the object toward
 # absolute position <x> <y> on the board.
-# Set to TOWARD below to add to OOP:
-_nil
+# You can rename the TOWARD direction below:
+TOWARD
 # ---- PLAYER direction
 # Usage:
 #        /player
 # Moves the object directly on top of the
 # player. Combine with #shoot to damage the
 # player from anywhere on the board.
-# set to PLAYER below to add to OOP:
-_nil
+# You can rename the PLAYER direction below:
+PLAYER
 #  -------------
 #  NEW COUNTERS
 #  -------------
-#Change the settings below to provide objects
-#with access to additional default counters.
+#Change the settings below to rename the new
+#default counters your objects can access.
 # ---- 
 # Represents energizer ticks.
 ENERGIZED
@@ -171,20 +170,20 @@ ENERGIZED
 WICK
 # Represents board darkness.
 ISDARK
-# Blue Key (set to BLUEKEY to add to OOP):
-_nil
-# Green key (set to GREENKEY to add to OOP):
-_nil
-# Cyan key (set to CYANKEY to add to OOP):
-_nil
-# Red key (set to REDKEY to add to OOP):
-_nil
-# Purple key (set to PURPLEKEY to add to OOP):
-_nil
-# Yellow key (set to YELLOWKEY to add to OOP):
-_nil
-# White key (set to WHITEKEY to add to OOP):
-_nil
+# Blue Key:
+BLUEKEY
+# Green key:
+GREENKEY
+# Cyan key:
+CYANKEY
+# Red key:
+REDKEY
+# Purple key:
+PURPLEKEY
+# Yellow key:
+YELLOWKEY
+# White key:
+WHITEKEY
 #  -------------
 #  OTHER
 #  -------------
@@ -195,52 +194,52 @@ _nil
 # wherever a number can be used in ZZT-OOP, you
 # can substitute 'RANDOM <#> <#>' and the result
 # will be a random value between the two numbers.
-# Set to RANDOM to add to OOP:
-_nil
+# You can rename RANDOM below:
+RANDOM
 # ---- ENTER
 # Usage:
 #        :enter
 # Sent to all objects when the player enters
 # the room. Similar to SuperZZT.
-# Set to ENTER to add to OOP:
-_nil
+# You can rename the ENTER label below:
+ENTER
 # ---- LOAD
 # Usage:
 #        #load <file>
 # Loads <file>.OBJ as OOP code and executes it.
-# Set to LOAD to add to OOP:
-_nil
+# You can rename the LOAD command below:
+LOAD
 # ---- DUPLICATE
 # Usage:
 #        #duplicate <dir1> <dir2>
 # Duplicates from source <dir1> to
 # destination <dir2>.
-# Set to DUPLICATE to add to OOP:
-_nil
+# You can rename the DUPLICATE command below:
+DUPLICATE
 # ---- BGPLAY
 # Usage:
 #        #bgplay <sound>
 # Plays a sound on the sound effects channel
 # (does not queue like #play, other sounds will
 # override it).
-# Set to BGPLAY to add to OOP:
-_nil
+# You can rename the BGPLAY command below:
+BGPLAY
 # ---- QUICKLOAD
 # Usage:
 #        #quickload
 # Loads the last available save game. If no
 # game has been saved, opens the game restore
 # dialog.
-# Set to QUICKLOAD to add to OOP:
-_nil
+# You can rename the QUICKLOAD command below:
+QUICKLOAD
 # ---- QUICKSAVE
 # Usage:
 #        #quicksave
 # Saves over the current save game. If no game
 # has been saved yet, saves <FILENAME>.SAV
 # instead.
-# Set to QUICKSAVE to add to OOP:
-_nil
+# You can rename the QUICKSAVE command below:
+QUICKSAVE
 # ---- PLAYER
 # Usage:
 #        #player <color> <bgcolor> <char>
@@ -248,23 +247,39 @@ _nil
 # Must specify all three. Use #player 0 0 0
 # to revert the player to the settings in the
 # .PAR file.
-# Set to PLAYER to add to OOP:
-_nil
+# You can rename the PLAYER command below:
+PLAYER
 # ---- COLOR condition
 # Usage:
 #        #if color <dir> <color> [background color]
 # True if the location at <dir> is a match for
 # <color>. Alternately a <background color> can also
 # be selected.
-# set to COLOR to add to OOP:
-_nil
+# You can rename the COLOR condition below:
+COLOR
 # ---- PALETTE command
 # Usage:
 #        #palette <color> <r> <g> <b>
 # Sets the palette for the given <color>. The
 # <r>, <g>, <b> values must be ranged from 0-63.
-# set to PALETTE to add to OOP:
-_nil
+# You can rename the PALETTE command below:
+PALETTE
+# ---- TO direction
+# Usage:
+#        /to <dir1> <dir2>
+# Targets a destination that is in the <dir2>
+# direction from <dir1>; for example,
+# "/to player n" would relocate the object
+# to the player's north.
+# You can rename the TO direction below:
+TO
+# ---- KEYSPEED counter
+# Usage:
+#        #set keyspeed <speed>
+# Sets the key repeat speed. Range of -2 to 1,
+# with 1 being fastest and 0 being normal.
+# You can rename the KEYSPEED counter below:
+KEYSPEED
 # ---- INTERPOLATION
 # Usage:
 #        #set <counter> <#>
@@ -274,5 +289,5 @@ _nil
 #        #if <counter> IS <#>
 #        #if not <counter>
 #Allows counters to be used for much more than
-#just GIVE and TAKE. Cannot be disabled in v2.
+#just GIVE and TAKE. Cannot be disabled in v2
 ON

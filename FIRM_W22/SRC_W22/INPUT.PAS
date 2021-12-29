@@ -74,6 +74,7 @@ interface
 	function HearingConfigure: boolean;
 	function KeydiffConfigure: boolean;
 	function InputConfigure: boolean;
+	procedure RepeatSpeed(speed: shortint);
 
 implementation
 uses Dos, Crt, Keys, Sounds;
@@ -84,6 +85,19 @@ var
 	JoystickXMin, JoystickXCenter, JoystickXMax: integer;
 	JoystickYMin, JoystickYCenter, JoystickYMax: integer;
 	InputKeyBuffer: string;
+
+procedure RepeatSpeed(speed: shortint);
+	var
+		regs: Registers;
+	begin
+		if (speed <= 1) and (speed >= -2) then begin
+			regs.ah := $03;
+			regs.al := $05;
+			regs.bh := (1 - speed);
+			regs.bl := $06;
+			Intr($16, regs);
+		end;
+	end;
 
 function UpCaseString(input: string): string;
 	var

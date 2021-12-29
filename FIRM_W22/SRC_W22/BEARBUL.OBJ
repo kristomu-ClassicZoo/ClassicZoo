@@ -1,0 +1,12 @@
+@BearBullet
+#char 153
+:z
+#unlock
+#if blocked flow thud
+/i#z
+:thud
+#lock
+#if not blocked flow z
+#bgplay -b-b
+#if detect flow breakable put flow empty
+#die
