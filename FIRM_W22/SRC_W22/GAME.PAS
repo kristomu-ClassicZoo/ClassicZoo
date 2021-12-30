@@ -1346,8 +1346,8 @@ procedure RemoveStat(statId: integer);
 		with Board.Stats[statId] do begin
 			FreeStatDataMem(statId);
 
-			if statId < CurrentStatTicked then
-				CurrentStatTicked := CurrentStatTicked - 1;
+			if statId <= CurrentStatTicked then
+				Dec(CurrentStatTicked);
 
 			Board.Tiles[X][Y] := Under;
 			if Y > 0 then
@@ -1680,7 +1680,7 @@ procedure BoardAttack(attackerStatId: integer; x, y: integer);
 		end;
 
 		if (attackerStatId > 0) and (attackerStatId <= CurrentStatTicked) then
-			CurrentStatTicked := CurrentStatTicked - 1;
+			Dec(CurrentStatTicked);
 
 		if (Board.Tiles[x][y].Element = E_PLAYER) and (World.Info.EnergizerTicks > 0) then begin
 			World.Info.Score := ElementDefs[Board.Tiles[Board.Stats[attackerStatId].X][Board.Stats[attackerStatId].Y].Element]
@@ -2267,18 +2267,18 @@ procedure GamePlayLoop(boardChanged: boolean);
 						if (Cycle <> 0) and ((CurrentTick mod Cycle) = (CurrentStatTicked mod Cycle)) then
 							ElementDefs[Board.Tiles[X][Y].Element].TickProc(CurrentStatTicked);
 
-						CurrentStatTicked := CurrentStatTicked + 1;
+						Inc(CurrentStatTicked);
 					end;
 				end;
 			end;
 
 			if (CurrentStatTicked > Board.StatCount) and not GamePlayExitRequested then begin
-				{ all stats ticked }
 				if SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
-					{ next cycle }
 					CurrentTick := Board.Info.BoardTicks;
-					if CurrentTick > 420 then
+					if CurrentTick > 420 then begin
 						CurrentTick := 1;
+						Board.Info.BoardTicks := 1;
+					end;
 					CurrentStatTicked := 0;
 
 					InputUpdate;
