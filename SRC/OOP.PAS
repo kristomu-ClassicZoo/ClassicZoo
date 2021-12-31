@@ -741,7 +741,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 									if counterSubtract then
 										OopValue := -OopValue;
 
-									if (counterPtr^ + OopValue) >= 0 then begin
+									if Integer(counterPtr^ + OopValue) >= 0 then begin
 										Inc(counterPtr^, OopValue);
 									end else begin
 										goto ReadCommand;
