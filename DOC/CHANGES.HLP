@@ -5,6 +5,13 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
+$< ClassicZoo 4.21 >
+
++ [SDL2] Added config option to change
+  blinking behaviour.
+/ [SDL2] Very minor engine accuracy
+  and stability improvements.
+
 $< ClassicZoo 4.20 >
 
 + Experimental SDL2 port! This allows

@@ -331,7 +331,7 @@ procedure DebugBoardIllegalElements;
 		for iy := 1 to BOARD_HEIGHT do
 			for ix := 1 to BOARD_WIDTH do
 				with Board.Tiles[ix][iy] do
-					if (Element > MAX_ELEMENT) and (not
+					if (Element > ZZT32_MAX_ELEMENT) and (not
 					(Element in [238, 239, 240, 241, 244, 246, 248, 250, 252, 254])) then begin
 						if count = 0 then begin
 							textWindow.Title := '[Debug] Illegal Elements';
