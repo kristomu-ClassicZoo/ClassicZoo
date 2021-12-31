@@ -28,6 +28,7 @@ unit ZVideo;
 
 interface
 	type
+		TSDLBlinkMode = (BlinkModeHigh, BlinkModeOn, BlinkModeOff);
 		TSDLScalingMode = (SMNone, SM2x, SM3x, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
 		TVideoLine = string[80];
 		TScreenCopyLine = string[160];
@@ -42,6 +43,9 @@ interface
 		VideoMDAInstalled: boolean;
 		VideoForceNoSnow: boolean;
 	procedure VideoForcePlayfieldRedraw;
+	procedure VideoOnSizeChanged;
+	function VideoGetSDLBlinkMode: TSDLBlinkMode;
+	procedure VideoSetSDLBlinkMode(value: TSDLBlinkMode);
 	function VideoGetSDLScalingMode: TSDLScalingMode;
 	procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
 	function VideoGetSDLWindowed: boolean;
@@ -109,7 +113,7 @@ var
 	renderThreadRunning: boolean;
 	screenBuffer: array[0 .. 3999] of byte;
 	screenBufferChange: array[0 .. 3999] of boolean; { we only use the even ones }
-	blinkActive: boolean;
+	blinkMode: TSDLBlinkMode;
 	scalingMode: TSDLScalingMode;
 	windowed: boolean;
 	usingCustomCharset: boolean;
@@ -199,13 +203,18 @@ procedure CalcRenderArea(rect: PSDL_Rect; w, h: Int32);
 { TODO: Re-implement delta? }
 procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSize: boolean);
 	var
-		iw, ih, w, h, scale: Int32;
+		iw, ih, ww, wh, w, h, scale: Int32;
 		destRect: TSDL_Rect;
 	begin
 		if window = Nil then exit;
 
 		iw := 80 * charsetTexture.charWidth;
 		ih := 25 * charsetTexture.charHeight;
+		case scalingMode of
+			SMNone, SM2x, SM3x: begin
+				onlyIfTooSmall := false;
+			end;
+		end;
 		case scalingMode of
 			SM43Aspect: ih := iw * 3 div 4;
 			SM2x: begin
@@ -221,11 +230,13 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 		SDL_LockMutex(eventMutex);
 
 		SDL_SetWindowMinimumSize(window, iw, ih);
+		SDL_GetWindowSize(window, @ww, @wh);
 		if forceMinimumSize then begin
 			w := iw;
 			h := ih;
 		end else begin
-			SDL_GetWindowSize(window, @w, @h);
+			w := ww;
+			h := wh;
 		end;
 
 		CalcRenderArea(@destRect, w, h);
@@ -235,7 +246,9 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 
 		if windowed then begin
 			if (not onlyIfTooSmall) or ((iw > w) or (ih > h)) then begin
-				SDL_SetWindowSize(window, iw, ih);
+				if (iw <> ww) or (ih <> wh) then begin
+					SDL_SetWindowSize(window, iw, ih);
+				end;
 			end;
 		end;
 
@@ -243,6 +256,24 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 
 		AfterSetWindowSize;
 		VideoForcePlayfieldRedraw;
+	end;
+
+procedure VideoOnSizeChanged;
+	begin
+		VideoForcePlayfieldRedraw;
+	end;
+
+function VideoGetSDLBlinkMode: TSDLBlinkMode;
+	begin
+		VideoGetSDLBlinkMode := blinkMode;
+	end;
+
+procedure VideoSetSDLBlinkMode(value: TSDLBlinkMode);
+	begin
+		SDL_LockMutex(mainThreadSdlChangesMutex);
+		blinkMode := value;
+		VideoForcePlayfieldRedraw;
+		SDL_UnlockMutex(mainThreadSdlChangesMutex);
 	end;
 
 function VideoGetSDLScalingMode: TSDLScalingMode;
@@ -560,9 +591,9 @@ procedure VideoDrawCharBg(x, y: integer);
 		chr := screenBuffer[offset];
 		col := screenBuffer[offset + 1];
 
-		if (col < $80) and (not screenBufferChange[offset]) then exit;
+		if ((col < $80) or (blinkMode <> BlinkModeOn)) and (not screenBufferChange[offset]) then exit;
 
-		col := col and $7F;
+		if blinkMode <> BlinkModeHigh then col := col and $7F;
 		if VideoMonochrome then
 			col := ColorToBW(col);
 
@@ -589,9 +620,9 @@ procedure VideoDrawCharFg(x, y: integer; blink: boolean);
 		col := screenBuffer[offset + 1];
 
 		if (chr = 0) or (chr = 32) then exit;
-		if (col < $80) and (not screenBufferChange[offset]) then exit;
+		if ((col < $80) or (blinkMode <> BlinkModeOn)) and (not screenBufferChange[offset]) then exit;
 
-		if blinkActive then begin
+		if (blinkMode = BlinkModeOn) then begin
 			blink := blink and (col >= $80);
 			col := col and $7F;
 			if blink or ((col shr 4) = (col and $0F)) then exit;
@@ -759,6 +790,7 @@ procedure VideoInstall(borderColor: integer);
 		i: integer;
 	begin
 		VideoColumns := 80;
+		blinkMode := BlinkModeOn;
 		scalingMode := SMInteger;
 		windowed := true;
 
@@ -780,12 +812,11 @@ procedure VideoInstall(borderColor: integer);
 		mainThreadSdlChangesMutex := SDL_CreateMutex;
 		playfieldMutex := SDL_CreateMutex;
 
-		SDLResizeWindow(0, false, false);
-
 		renderThreadRunning := true;
 		renderThread := SDL_CreateThread(VideoRenderThread, 'Render thread', nil);
 
-		blinkActive := true;
+		SDL_Delay(50); { TODO: Really ugly hack! }
+		SDLResizeWindow(0, false, false);
 	end;
 
 procedure VideoUninstall;
@@ -825,7 +856,13 @@ procedure VideoSetBorderColor(value: integer);
 
 procedure VideoSetBlink(value: boolean);
 	begin
-		blinkActive := value;
+		if value then begin
+			if blinkMode <> BlinkModeOff then begin
+				VideoSetSDLBlinkMode(BlinkModeOn);
+			end;
+		end else begin
+			VideoSetSDLBlinkMode(BlinkModeHigh);
+		end;
 	end;
 
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);

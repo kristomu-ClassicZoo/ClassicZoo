@@ -321,6 +321,7 @@ procedure InputUpdate;
 		k: char;
 		i: integer;
 		localHsecs, hsecsDiff: word;
+		sizeChanged: boolean;
 	begin
 		InputDeltaX := 0;
 		InputDeltaY := 0;
@@ -332,8 +333,9 @@ procedure InputUpdate;
 		while SDL_PollEvent(@event) <> 0 do begin
 			case event.type_ of
 				SDL_WINDOWEVENT: begin
-					if event.window.event = SDL_WINDOWEVENT_SIZE_CHANGED then
-						VideoForcePlayfieldRedraw;
+					if event.window.event = SDL_WINDOWEVENT_SIZE_CHANGED then begin
+						sizeChanged := true;
+					end;
 				end;
 				SDL_TEXTINPUT: begin
 					k := event.text.text[0];
@@ -397,6 +399,10 @@ procedure InputUpdate;
 			end;
 		end;
 		SDL_UnlockMutex(eventMutex);
+
+		if sizeChanged then begin
+			VideoOnSizeChanged;
+		end;
 
 		InputKeyPressed := #0;
 		for i := 1 to MAX_KEYS_PRESSED do begin

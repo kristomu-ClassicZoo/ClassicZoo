@@ -2310,7 +2310,7 @@ procedure GameTitleLoop;
 						end;
 					end;
 					'A': begin
-						GameOptionsScreen;
+						GameOptionsScreen(false);
 						TransitionDrawToBoard;
 					end;
 {$IFDEF EDITOR}

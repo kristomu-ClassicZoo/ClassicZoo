@@ -43,7 +43,7 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, Game;
+ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, GameConf, Game;
 
 const
 	TransporterNSChars: string = '^~^-v_v-';
@@ -1541,6 +1541,10 @@ procedure ElementPlayerTick(statId: integer);
 				'?': begin
 					GameDebugPrompt;
 					InputKeyPressed := #0;
+				end;
+				'A': begin
+					GameOptionsScreen(true);
+					TransitionDrawToBoard;
 				end;
 			end;
 

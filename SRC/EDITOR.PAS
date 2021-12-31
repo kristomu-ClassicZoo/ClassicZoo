@@ -1724,7 +1724,7 @@ procedure EditorLoop;
 						EditorAskAndPasteCopyBuffer(cursorX, cursorY);
 					end;
 					'A': begin
-						GameOptionsScreen;
+						GameOptionsScreen(false);
 						TransitionDrawToBoard;
 						EditorDrawSidebar;
 					end;
