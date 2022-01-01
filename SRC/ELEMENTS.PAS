@@ -43,7 +43,7 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-ZxtMgr, ZVideo, Sounds, ZInput, ZDemo, TxtWind, Editor, Oop, Game, ZMath;
+ZxtMgr, ZVideo, Sounds, ZInput, ZDemo, TxtWind, Editor, Oop, GameConf, Game, ZMath;
 
 const
 	TransporterNSChars: string = '^~^-v_v-';
@@ -1531,13 +1531,11 @@ procedure ElementPlayerTick(statId: integer);
 					end;
 				end;
 				#27, 'Q': begin
-					{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 					if not DemoIsPlaying then begin
 						GamePromptEndPlay;
 					end;
 				end;
 				'S': begin
-					{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 					GameWorldSave('Save game:', SavedGameFileName, '.SAV');
 				end;
 				'P': begin
@@ -1551,16 +1549,17 @@ procedure ElementPlayerTick(statId: integer);
 					InputKeyPressed := ' ';
 				end;
 				'H': begin
-					{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 					TextWindowDisplayFile('GAME.HLP', 'Playing ZZT');
 				end;
 				'?': begin
-					{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 					GameDebugPrompt;
 					InputKeyPressed := #0;
 				end;
+				'A': begin
+					GameOptionsScreen(true);
+					TransitionDrawToBoard;
+				end;
 			end;
-			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 
 			if World.Info.TorchTicks > 0 then begin
 				Dec(World.Info.TorchTicks);

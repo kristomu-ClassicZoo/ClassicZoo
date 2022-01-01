@@ -36,7 +36,7 @@ interface
 	function GameConfigLoad: boolean;
 	function GameConfigSave: boolean;
 	procedure GameAboutScreen;
-	procedure GameOptionsScreen;
+	procedure GameOptionsScreen(playingGame: boolean);
 
 implementation
 uses
@@ -57,6 +57,7 @@ type
 		SetValue: TConfigSetValueProc;
 		ShowValue: TConfigShowValueProc;
 		CustomAction: TConfigCustomActionProc;
+		HideWhilePlaying: boolean;
 		Changed: boolean;
 	end;
 	TConfigHiddenEntry = record
@@ -307,6 +308,26 @@ function ConfigDUndefCustomAction: boolean;
 {$ENDIF}
 
 {$IFDEF SDL2}
+function ConfigVideoBlinkGetValue: integer;
+	begin
+		ConfigVideoBlinkGetValue := Byte(Ord(VideoGetSDLBlinkMode));
+	end;
+
+procedure ConfigVideoBlinkSetValue(value: integer);
+	begin
+		if value > Ord(High(TSDLBlinkMode)) then value := 0;
+		VideoSetSDLBlinkMode(TSDLBlinkMode(value));
+	end;
+
+function ConfigVideoBlinkShowValue: string;
+	begin
+		case VideoGetSDLBlinkMode of
+			BlinkModeOff: ConfigVideoBlinkShowValue := 'Disabled';
+			BlinkModeOn: ConfigVideoBlinkShowValue := 'Enabled';
+			BlinkModeHigh: ConfigVideoBlinkShowValue := 'Disabled (High Colors)';
+		end;
+	end;
+
 function ConfigVideoScalingGetValue: integer;
 	begin
 		ConfigVideoScalingGetValue := Byte(Ord(VideoGetSDLScalingMode));
@@ -364,6 +385,34 @@ function ConfigFullscreenShowValue: string;
 			ConfigFullscreenShowValue := 'Windowed'
 		else
 			ConfigFullscreenShowValue := 'Fullscreen';
+	end;
+
+function ConfigCharsetShowValue: string;
+	begin
+		if VideoIsCharsetCustom then
+			ConfigCharsetShowValue := 'Custom'
+		else
+			ConfigCharsetShowValue := 'Default';
+	end;
+
+function ConfigCharsetCustomAction: boolean;
+	begin
+		VideoLoadCharsetDialog;
+		ConfigCharsetCustomAction := true;
+	end;
+
+function ConfigPaletteShowValue: string;
+	begin
+		if VideoIsPaletteCustom then
+			ConfigPaletteShowValue := 'Custom'
+		else
+			ConfigPaletteShowValue := 'Default';
+	end;
+
+function ConfigPaletteCustomAction: boolean;
+	begin
+		VideoLoadPaletteDialog;
+		ConfigPaletteCustomAction := true;
 	end;
 
 const
@@ -438,7 +487,7 @@ const
 	{$IFDEF MSDOS} + 2 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF DEBUGWND} + 3 {$ENDIF}
-	{$IFDEF SDL2} + 5 {$ENDIF}
+	{$IFDEF SDL2} + 7 {$IFNDEF WINDOWS} + 1 {$ENDIF} {$ENDIF}
 	;
 	ConfigHiddenEntryCount = 0
 {$IFDEF MSDOS}
@@ -458,6 +507,7 @@ procedure GameConfigInit;
 		for i := 1 to ConfigEntryCount do
 			with ConfigEntries[i] do begin
 				Key := '';
+				HideWhilePlaying := false;
 				GetValue := nil;
 				SetValue := nil;
 			end;
@@ -563,6 +613,7 @@ procedure GameConfigInit;
 		Inc(i);
 {$ENDIF}
 {$IFDEF SDL2}
+{$IFNDEF WINDOWS}
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;
 			Key := 'FVidWin';
@@ -573,6 +624,7 @@ procedure GameConfigInit;
 			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
+{$ENDIF}
 
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;
@@ -613,6 +665,33 @@ procedure GameConfigInit;
 			GetValue := ConfigHQSoundGetValue;
 			SetValue := ConfigHQSoundSetValue;
 			ShowValue := ConfigHQSoundShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Name := 'Charset';
+			ShowValue := ConfigCharsetShowValue;
+			CustomAction := ConfigCharsetCustomAction;
+		end;
+		Inc(i);
+
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Name := 'Palette';
+			ShowValue := ConfigPaletteShowValue;
+			CustomAction := ConfigPaletteCustomAction;
+		end;
+		Inc(i);
+
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FVidBlnk';
+			Name := 'Blinking';
+			GetValue := ConfigVideoBlinkGetValue;
+			SetValue := ConfigVideoBlinkSetValue;
+			ShowValue := ConfigVideoBlinkShowValue;
 			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
@@ -739,7 +818,7 @@ procedure GameAboutScreen;
 		TextWindowDisplayFile('ABOUT.HLP', 'About %NAME%...');
 	end;
 
-procedure GameOptionsScreen;
+procedure GameOptionsScreen(playingGame: boolean);
 	var
 		state: TTextWindowState;
 		i: integer;
@@ -751,7 +830,7 @@ procedure GameOptionsScreen;
 			k: integer;
 		begin
 			for k := 1 to ConfigEntryCount do with ConfigEntries[k] do begin
-				if Category = subCategory then begin
+				if (Category = subCategory) and ((not playingGame) or (not HideWhilePlaying)) then begin
 					Inc(state.LineCount);
 					actionMap[state.LineCount] := k;
 					New(state.Lines[state.LineCount]);

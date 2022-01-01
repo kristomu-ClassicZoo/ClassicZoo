@@ -33,7 +33,12 @@ interface
 	uses ExtMem;
 	const
 		MAX_STAT = 150;
+		ZZT32_MAX_ELEMENT = 53;
+{$IFDEF SDL2}
+		MAX_ELEMENT = 255;
+{$ELSE}
 		MAX_ELEMENT = 53;
+{$ENDIF}
 		MAX_BOARD = 255;
 		MAX_FLAG = 10;
 		BOARD_WIDTH = 60;

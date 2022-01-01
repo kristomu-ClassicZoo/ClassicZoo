@@ -119,7 +119,7 @@ const
 var
 	KeysPressed: array[1 .. MAX_KEYS_PRESSED] of TKeyPress;
 	KeysPressedPos: integer;
-	InputControllerIndex: Sint32;
+	InputControllerIndex: LongInt;
 	InputGameController: PSDL_GameController;
 	InputJoystick: PSDL_Joystick;
 
@@ -133,7 +133,7 @@ procedure InputCloseController;
 		end;
 	end;
 
-procedure InputOpenController(id: Sint32);
+procedure InputOpenController(id: LongInt);
 	begin
 		InputCloseController;
 
@@ -144,6 +144,9 @@ procedure InputOpenController(id: Sint32);
 		end;
 	end;
 
+const
+	NIBBLE_TO_HEX: array[0 .. 15] of char = ('0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f');
+
 function InputGUIDToString(guid: TSDL_JoystickGUID): string;
 	var
 		i: integer;
@@ -151,7 +154,7 @@ function InputGUIDToString(guid: TSDL_JoystickGUID): string;
 	begin
 		s := '';
 		for i := 0 to 15 do begin
-			s := s + IntToHex(guid.data[i]);
+			s := s + NIBBLE_TO_HEX[guid.data[i] shr 4] + NIBBLE_TO_HEX[guid.data[i] and 15];
 		end;
 		InputGUIDToString := s;
 	end;
@@ -318,6 +321,7 @@ procedure InputUpdate;
 		k: char;
 		i: integer;
 		localHsecs, hsecsDiff: word;
+		sizeChanged: boolean;
 	begin
 		InputDeltaX := 0;
 		InputDeltaY := 0;
@@ -329,8 +333,9 @@ procedure InputUpdate;
 		while SDL_PollEvent(@event) <> 0 do begin
 			case event.type_ of
 				SDL_WINDOWEVENT: begin
-					if event.window.event = SDL_WINDOWEVENT_SIZE_CHANGED then
-						VideoForcePlayfieldRedraw;
+					if event.window.event = SDL_WINDOWEVENT_SIZE_CHANGED then begin
+						sizeChanged := true;
+					end;
 				end;
 				SDL_TEXTINPUT: begin
 					k := event.text.text[0];
@@ -394,6 +399,10 @@ procedure InputUpdate;
 			end;
 		end;
 		SDL_UnlockMutex(eventMutex);
+
+		if sizeChanged then begin
+			VideoOnSizeChanged;
+		end;
 
 		InputKeyPressed := #0;
 		for i := 1 to MAX_KEYS_PRESSED do begin

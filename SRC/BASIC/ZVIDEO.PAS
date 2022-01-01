@@ -46,7 +46,7 @@ interface
 		VideoMDAInstalled: boolean;
 		VideoLastMode: word;
 	procedure VideoLockScreenUpdate;
-	procedure VideoUnlockScreenUpdate;
+	procedure VideoUnlockScreenUpdate(x1, y1, x2, y2: integer);
 	function VideoSetCharset(data: pointer; height: integer): boolean;
 	procedure VideoInstall(borderColor: integer);
 	procedure VideoUninstall;
@@ -65,23 +65,19 @@ var
 
 procedure VideoLockScreenUpdate;
 	begin
-{$IFNDEF HASAMIGA}
 		if not VSULocked then begin
 			VSULocked := true;
 			LockScreenUpdate;
 		end;
-{$ENDIF}
 	end;
 
-procedure VideoUnlockScreenUpdate;
+procedure VideoUnlockScreenUpdate(x1, y1, x2, y2: integer);
 	begin
-{$IFNDEF HASAMIGA}
 		if VSULocked then begin
 			UnlockScreenUpdate;
-			UpdateScreen(false);
+			UpdateScreenArea(x1, y1, x2, y2, false);
 			VSULocked := false;
 		end;
-{$ENDIF}
 	end;
 
 function ColorToBW(color: byte): byte;

@@ -36,7 +36,7 @@ Crt,
 {$IFDEF SDL2}
 SysUtils, FileSel,
 {$ENDIF}
-Dos, ExtMem, FileSys, ZxtMgr, ZxtZoo, ZVideo, Keys, Sounds, ZInput, TxtWind,
+Dos, ExtMem, FileSys, ZxtMgr, ZxtZoo, ZVideo, Keys, Sounds, TimerSys, ZInput, TxtWind,
 ZDemo, GameConf, GameVars, Elements, Editor, Oop, Game;
 
 {$IFDEF SDL2}
@@ -94,6 +94,7 @@ procedure ParseArguments;
 
 begin
 	Randomize;
+	TimerSysInstall;
 
 	StartupWorldFileName := '';
 {$IFDEF SDL2}
@@ -117,7 +118,7 @@ begin
 
 {$IFDEF FASTVID}
 	TransitionBlocksPerFrame := 32767;
-	TransitionTextWindowDelay := 25;
+	TransitionTextWindowDelay := {$IFDEF HASAMIGA} 0 {$ELSE} 25 {$ENDIF};
 {$ENDIF}
 	TickSpeed := 4;
 	DebugEnabled := false;
@@ -132,6 +133,8 @@ begin
 	DebugUndefEnabled := false;
 {$ENDIF}
 
+	VideoInstall(1);
+
 	GameConfigInit;
 	if not GameConfigLoad then begin
 		if not GameConfigSave then begin end;
@@ -142,7 +145,6 @@ begin
 	ParseArguments;
 
 	if not GameTitleExitRequested then begin
-		VideoInstall(1);
 		TextWindowInit; { (5, 3, 50, 18) }
 		GetMem(IoTmpBuf, IoTmpBufSize);
 

@@ -311,7 +311,7 @@ procedure DebugBoardIllegalElements;
 		for iy := 1 to BOARD_HEIGHT do
 			for ix := 1 to BOARD_WIDTH do
 				with Board.Tiles[ix][iy] do
-					if (Element > MAX_ELEMENT) and (not
+					if (Element > ZZT32_MAX_ELEMENT) and (not
 					(Element in [238, 239, 240, 241, 244, 246, 248, 250, 252, 254])) then begin
 						if count = 0 then begin
 							textWindow.Title := '[Debug] Illegal Elements';
@@ -525,7 +525,7 @@ procedure TransitionDrawToFill(chr: char; color: integer);
 
 		if (tx < 60) and (ty < 25) then
 			VideoWriteText(tx, ty, color, chr);
-		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate(0, 0, 59, 24); {$ENDIF}
 	end;
 
 procedure BoardDrawTile(x, y: integer);
@@ -616,7 +616,7 @@ procedure TransitionDrawToBoard;
 
 		if (tx < 60) and (ty < 25) then
 			BoardDrawTile(tx+1, ty+1);
-		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate(0, 0, 59, 24); {$ENDIF}
 	end;
 
 procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TString50; var value: byte);
@@ -1869,6 +1869,12 @@ procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 
 procedure TransitionDrawBoardChange;
 	begin
+{$IFDEF FASTVID}
+		if TransitionBlocksPerFrame = 32767 then begin
+			TransitionDrawToBoard;
+			exit;
+		end;
+{$ENDIF}
 		TransitionDrawToFill(#219, $05);
 		TransitionDrawToBoard;
 	end;
@@ -2287,6 +2293,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		GameDrawSidebar;
 		GameUpdateSidebar;
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate(60, 0, 79, 24); {$ENDIF}
 
 {$IFNDEF ZDEMOVAL}
 		if JustStarted then begin
@@ -2294,9 +2301,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 			JustStarted := false;
 		end;
 {$ENDIF}
-
-		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
-		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := GameStateElement;
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[GameStateElement].Color;
@@ -2316,11 +2320,9 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 		DemoReseedCurrentTick;
 		CurrentStatTicked := Board.StatCount + 1;
-		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 
 		repeat
 			if GamePaused then begin
-				{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 				if SoundHasTimeElapsed(TickTimeCounter, 25) then
 					pauseBlink := not pauseBlink;
 
@@ -2386,8 +2388,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 					CurrentStatTicked := Board.StatCount + 1;
 					World.Info.IsSave := true;
 				end;
-
-				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 			end else begin { not GamePaused }
 				if CurrentStatTicked <= Board.StatCount then begin
 					with Board.Stats[CurrentStatTicked] do begin
@@ -2405,7 +2405,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end;
 
 			if ((CurrentStatTicked > Board.StatCount)) and not GamePlayExitRequested then begin
-				{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 				{ all stats ticked }
 				{ TODO: Having DemoFastForward here is a bit of a hack. }
 				if DemoFastForward or DemoSoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
@@ -2414,7 +2413,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 					if CurrentTick > 420 then
 						CurrentTick := 1;
 					CurrentStatTicked := 0;
-					{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 
 					DemoInputUpdate(((TickTimeDuration shl 1) + 10) div 11, true);
 					if DemoIsPlaying then GameDemoUpdateSidebar;
@@ -2445,7 +2443,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end;
 		until GamePlayExitRequested;
 
-		{$IFDEF BASICSYS} VideoUnlockScreenUpdate; {$ENDIF}
 		DemoStop(false);
 		SoundClearQueue;
 
@@ -2573,7 +2570,7 @@ procedure GameTitleLoop;
 						end;
 					end;
 					'A': begin
-						GameOptionsScreen;
+						GameOptionsScreen(false);
 						TransitionDrawToBoard;
 					end;
 {$IFDEF EDITOR}
