@@ -488,27 +488,34 @@ function OopFindLabel(statId: integer; sendLabel: string; var iStat, iDataPos: i
 		OopFindLabel := foundStat;
 	end;
 
-function WorldGetBoardPosition(s: TString20): integer;
+function WorldGetBoardPosition(statId: integer; var position: integer): integer;
 	var
-		bpos, ix, iy: integer;
+		zpos, bpos, ix, iy: integer;
 	begin
-		bpos := -1;
 		ix := 0;
+		zpos := position;
+		bpos := -1;
+		OopReadWord(statId, position);
 		while ((ix <= World.BoardCount) and (bpos = -1)) do begin
 			if BoardNames[ix][1] = ':' then begin
 				bpos := ix;
-				for iy := 1 to Length(s) do
-					if UpCase(BoardNames[ix][iy + 1]) <> UpCase(s[iy]) then
+				for iy := 1 to Length(OopWord) do
+					if UpCase(BoardNames[ix][iy + 1]) <> OopWord[iy] then
 						bpos := -1;
-					if (((BoardNames[ix][Length(s) + 2] >= 'A') and
-						(BoardNames[ix][Length(s) + 2] <= 'Z')) or
-						((BoardNames[ix][Length(s) + 2] >= '0') and
-						(BoardNames[ix][Length(s) + 2] <= '9'))) then
+					if (((BoardNames[ix][Length(OopWord) + 2] >= 'A') and
+						(BoardNames[ix][Length(OopWord) + 2] <= 'Z')) or
+						((BoardNames[ix][Length(OopWord) + 2] >= '0') and
+						(BoardNames[ix][Length(OopWord) + 2] <= '9'))) then
 						bpos := -1;
 			end;
 			Inc(ix);
 		end;
-		WorldGetBoardPosition := bpos;
+		if bpos = -1 then begin
+			position := zpos;
+			OopReadValue(statId, position);
+			WorldGetBoardPosition := OopValue;
+		end else
+			WorldGetBoardPosition := bpos;
 	end;
 
 function WorldGetFlagPosition(name: TString50): integer;
@@ -1208,21 +1215,22 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = OopStringToWord(OOPList[5]) then begin {'EDGE'}
 							OopReadDirection(statId, position, deltaX, deltaY);
 							if (Sqr(deltaX) + Sqr(deltaY)) = 1 then begin
-								OopReadWord(statId, position);
-								ix := WorldGetBoardPosition(OopWord);
-								if ix > -1 then
+								ix := WorldGetBoardPosition(statId, position);
+								if (ix > -1) and (ix <= World.BoardCount) then begin
 									if deltaY = -1 then
 										Board.Info.NeighborBoards[0] := ix
 									else if deltaY = 1 then
 										Board.Info.NeighborBoards[1] := ix
 									else if deltaX = -1 then
 										Board.Info.NeighborBoards[2] := ix
-								else Board.Info.NeighborBoards[3] := ix;
-							end;
+									else Board.Info.NeighborBoards[3] := ix;
+								end else
+									OopError(statId,position, 'No board label :' + OopWord);
+							end else
+								OopError(statId,position, 'Bad board direction');
 						end else if OopWord = OopStringToWord(OOPList[1]) then begin {'BOARD'}
-							OopReadWord(statId, position);
-							deltaX := WorldGetBoardPosition(OopWord);
-							if deltaX > -1 then begin
+							deltaX := WorldGetBoardPosition(statId, position);
+							if (deltaX > -1) and (deltaX <= World.BoardCount) then begin
 								OopReadValue(statId, position);
 								ix := OopValue;
 								OopReadValue(statId, position);

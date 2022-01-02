@@ -1,4 +1,4 @@
-Soft Weave 2.2
+Soft Weave 2.2a
 Part of the Weave 2 Project
 
 - - - - -
@@ -31,6 +31,6 @@ What isn't it?
 
   Everyone's Weaver status will be revoked on January 1, 2022. You'll have to earn it back; it's my hope that Soft Weaving is a pathway to doing that.
 
-  As always, hit me up in the ZZT Discord if you've got feedback or there's something to add. I'm not married to anything here so if there's a better way to do something, or you REALLY have to have like, breakable linewalls or walkable ricochets or something, SoftWeave 2.1 could open that up.
+  As always, hit me up in the ZZT Discord if you've got feedback or there's something to add. I'm not married to anything here so if there's a better way to do something, or you REALLY have to have like, breakable linewalls or walkable ricochets or something, later versions of SoftWeave could open that up.
 
   Discord of ZZT Link: https://discord.com/invite/Nar4Upf

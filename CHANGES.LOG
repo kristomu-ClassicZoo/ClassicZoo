@@ -1,3 +1,11 @@
+= 1/1/2022: 2.2a
+Bugs Fixed:
+ * Using #EDGE to set a board edge, if set to a board whose label doesn't exist, would set the eastern neighbor to board -1, with unexpected consequences.
+
+Improved:
+ * #EDGE and #BOARD now accept counters as board names.  The board linked or sent to will be the value of the counter.
+ * #EDGE will now throw an error if a nonexistent board is chosen or a direction without a neighbor such as <BY 1 3>
+
 = 12/29/2021: 2.2
 Added:
  * You can now force the game to start on a specific board via an option in the .PAR file. (also in Softweave)

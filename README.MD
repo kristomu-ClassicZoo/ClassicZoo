@@ -1,4 +1,4 @@
-# Weave ZZT 2.1a
+# Weave ZZT 2.2a
 
 Unlike previous versions of Weave, this version really is meant to be the forever version.
 
@@ -132,6 +132,6 @@ The completed releases as compiled by the above are provided here in the SOFT an
 
 ## Questions
 
-Hit me up in the ZZT Discord if you've got feedback or there's something to add. I'm not married to anything here so if there's a better way to do something, or you REALLY have to have like, breakable linewalls or walkable ricochets or something like that, Weave 2.1 could open that up. If you want to be able to create your own custom elements from accessory files, you're not alone. HardWeave will be packaged with 2.1 and give you the extensible element platform of your dreams.
+Hit me up in the ZZT Discord if you've got feedback or there's something to add. I'm not married to anything here so if there's a better way to do something, or you REALLY have to have like, breakable linewalls or walkable ricochets or something like that, Later versions of Weave could open that up. If you want to be able to create your own custom elements from accessory files, you're not alone. HardWeave and FixWeave both have specs and are in development, providing the more hardcore modders with the extensible element platform of their dreams.
 
 Discord of ZZT Link: discord dot com slash invite slash Nar4Upf
