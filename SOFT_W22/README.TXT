@@ -1,4 +1,4 @@
-Soft Weave 2.2a
+Soft Weave 2.2b
 Part of the Weave 2 Project
 
 - - - - -
