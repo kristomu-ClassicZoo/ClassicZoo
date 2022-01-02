@@ -579,7 +579,7 @@ procedure ElementBombDraw(x, y: integer; var ch: byte);
 	begin
 		with Board.Stats[GetStatIdAt(x, y)] do
 			if P1 <= 1 then
-				ch := 11
+				ch := ParamList[20]
 			else
 				ch := 48 + P1;
 	end;
