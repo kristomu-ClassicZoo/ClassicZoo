@@ -1,3 +1,8 @@
+= 1/2/2022: 2.2b
+Bugs Fixed:
+ * ElementBombDraw wasn't pulling the correct char from the .PAR file.  It is now.
+
+
 = 1/1/2022: 2.2a
 Bugs Fixed:
  * Using #EDGE to set a board edge, if set to a board whose label doesn't exist, would set the eastern neighbor to board -1, with unexpected consequences.
