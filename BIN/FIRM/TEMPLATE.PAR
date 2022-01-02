@@ -1,5 +1,5 @@
 #Template PAR file (Extended for FirmWeave)
-# Version 2.2-firm
+# Version 2.2-firm-b
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -432,3 +432,9 @@ Red
 63
 63
 63
+#  -----------
+#  VISIBLE IN DARK
+#  -----------
+# This element is visible in the dark.
+# Defaults to 6 (Torch)
+6

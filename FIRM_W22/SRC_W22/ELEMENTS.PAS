@@ -1846,7 +1846,6 @@ procedure InitElementDefs;
 
 		ElementDefs[6].Character := Chr(ParamList[10]);
 		ElementDefs[6].Color := AsColor(ParamList[8],ParamList[9]);
-		ElementDefs[6].VisibleInDark := true;
 		ElementDefs[6].TouchProc := ElementTorchTouch;
 		ElementDefs[6].Name := 'Torch';
 
@@ -2057,6 +2056,9 @@ procedure InitElementDefs;
 		ElementDefs[53].PlaceableOnTop := ParamList[TEXT_DEF_START + 34] <> 0;
 		ElementDefs[53].Walkable := ParamList[TEXT_DEF_START + 35] <> 0;
 		ElementDefs[53].Name := 'Whitetext'; {White text}
+
+		if (ParamList[PARAM_FILE_COUNT] <= 53) and (ParamList[PARAM_FILE_COUNT] >= 0) then
+			ElementDefs[ParamList[PARAM_FILE_COUNT]].VisibleInDark := true;
 
 	end;
 

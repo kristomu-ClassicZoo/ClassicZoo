@@ -715,13 +715,20 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				OopReadValue(statId, position);
 				OopCheckCondition := ((Sqr(Board.Stats[0].X - x) + Sqr(Board.Stats[0].Y - y) * 7 / 4) <= (Sqr(OopValue)));
 			end else if OopWord = OopStringToWord(OOPList[9]) then begin {'DETECT'}
-				OopReadDirection(statId, position, deltaX, deltaY);
-				if not OopParseTile(statId, position, tile) then
-					OopError(statId,position, 'Bad object kind');
-				if (deltaX = 0) and (deltaY = 0) then
-					OopCheckCondition := MatchTiles(Under, tile)
-				else
-					OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile);
+				if OopNextWord(statId, position) = 'PLAYER' then begin
+					OopReadWord(statId, position);
+					if not OopParseTile(statId, position, tile) then
+						OopError(statId,position, 'Bad object kind');
+					OopCheckCondition := MatchTiles(Board.Stats[0].Under, tile);
+				end else begin
+					OopReadDirection(statId, position, deltaX, deltaY);
+					if not OopParseTile(statId, position, tile) then
+						OopError(statId,position, 'Bad object kind');
+					if (deltaX = 0) and (deltaY = 0) then
+						OopCheckCondition := MatchTiles(Under, tile)
+					else
+						OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile);
+				end;					
 			end else if OopWord = 'ANY' then begin
 				if not OopParseTile(statId, position, tile) then
 					OopError(statId,position, 'Bad object kind');

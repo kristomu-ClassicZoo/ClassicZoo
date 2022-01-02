@@ -2,6 +2,11 @@
 Bugs Fixed:
  * ElementBombDraw wasn't pulling the correct char from the .PAR file.  It is now.
 
+Added:
+ * Added the ability to configure which element is visible in dark. Defauts to torch.
+
+Improved:
+ * Expanded the capacity of '#if detect player' to check under the player, similar to '#if detect i' checking under the object.
 
 = 1/1/2022: 2.2a
 Bugs Fixed:
