@@ -1,5 +1,5 @@
 #Template PAR file (Extended for FirmWeave)
-# Version 2.2-firm-b
+# Version 2.2-firm-c
 #  -------------
 #           !!! IMPORTANT !!!
 # Any line starting with a '#' is a comment.
@@ -230,17 +230,18 @@ Black
 0
 0
 #Torch and Bomb Radii
-#Note: If your drawX and drawY values are small,
-#the edges of your circle will be cut off.
+#Note: "ratioX" and "ratioY" are the amount the
+#      circle's radius is divided by. "size" is
+#      the circle's radius squared.
 #Torch light
-#drawX, drawY, circle size
-8
-5
+#ratioX, ratioY, size
+1
+2
 50
 #Bomb explosion
-#drawX, drawY, circle size
-8
-5
+#ratioX, ratioY, size
+1
+2
 50
 #  ----------------
 #  GAME LIMITS

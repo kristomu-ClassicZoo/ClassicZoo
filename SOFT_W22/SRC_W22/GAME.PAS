@@ -652,13 +652,16 @@ procedure BoardDrawTile(x, y: integer);
 		ch: byte;
 	begin
 		with Board.Tiles[x][y] do begin
-			if not Board.Info.IsDark
-				or (ElementDefs[Board.Tiles[x][y].Element].VisibleInDark)
+			if ((Board.Info.IsDark = false) or (ElementDefs[Board.Tiles[x][y].Element].VisibleInDark = true))
 				or (
 					(World.Info.TorchTicks <> 0)
-					and ((Sqr(Board.Stats[0].X - x) + Sqr(Board.Stats[0].Y - y) * 2) < ParamList[111])
-				) or ForceDarknessOff then
-			begin
+					and (
+						(Sqr(Board.Stats[0].X-x)*ParamList[109])
+						+ (Sqr(Board.Stats[0].Y-y)*ParamList[110])
+						< ParamList[111]
+					)
+				) {Torch Radius}
+			then begin
 				if Element = E_EMPTY then
 					VideoWriteText(x - 1, y - 1, $0F, ' ')
 				else if ElementDefs[Element].HasDrawProc then begin
@@ -1241,20 +1244,11 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			BoardDrawTile(X, Y);
 			BoardDrawTile(oldX, oldY);
 
-			if (statId = 0) and Board.Info.IsDark and (World.Info.TorchTicks <> 0) then begin
-				if (Sqr(oldX-X) + Sqr(oldY-Y)) = 1 then begin
-					for ix := (X - ParamList[109] - 3) to (X + ParamList[109] + 3) do
-						if (ix >= 1) and (ix <= BOARD_WIDTH) then
-							for iy := (Y - ParamList[110] - 3) to (Y + ParamList[110] + 3) do
-								if (iy >= 1) and (iy <= BOARD_HEIGHT) then
-									if (((Sqr(ix-oldX))+(Sqr(iy-oldY)*2)) < ParamList[111]) xor
-										(((Sqr(ix-newX))+(Sqr(iy-newY)*2)) < ParamList[111]) then
-										BoardDrawTile(ix, iy);
-				end else begin
-					DrawPlayerSurroundings(oldX, oldY);
-					DrawPlayerSurroundings(X, Y);
-				end;
-			end;
+			if (statId = 0)
+				and (Board.Info.IsDark = true)
+				and (World.Info.TorchTicks <> 0)
+			then
+				TransitionDrawToBoard;
 
 		end;
 	end;
@@ -1413,8 +1407,7 @@ procedure DamageStat(attackerStatId: integer);
 							oldY := Y;
 							X := Board.Info.StartPlayerX;
 							Y := Board.Info.StartPlayerY;
-							DrawPlayerSurroundings(oldX, oldY);
-							DrawPlayerSurroundings(X, Y);
+							TransitionDrawToBoard;
 
 							GamePaused := true;
 						end;
@@ -1797,14 +1790,11 @@ procedure GamePlayLoop(boardChanged: boolean);
 					if Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER then
 						MoveStat(0, Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY)
 					else begin
-						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
-						Board.Stats[0].X := Board.Stats[0].X + InputDeltaX;
-						Board.Stats[0].Y := Board.Stats[0].Y + InputDeltaY;
+						Inc(Board.Stats[0].X, InputDeltaX);
+						Inc(Board.Stats[0].Y, InputDeltaY);
 						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
 						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
-						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
-						DrawPlayerSurroundings(Board.Stats[0].X, Board.Stats[0].Y);
-						DrawPlayerSurroundings(Board.Stats[0].X - InputDeltaX, Board.Stats[0].Y - InputDeltaY);
+						TransitionDrawToBoard;
 					end;
 
 					{ Unpause }

@@ -33,7 +33,6 @@ interface
 	procedure ElementMove(oldX, oldY, newX, newY: integer);
 	procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 	function ElementDuplicate(srcX, srcY, dstX, dstY, statId: integer): boolean;
-	procedure DrawPlayerSurroundings(x, y: integer);
 	procedure DrawBombSurroundings(x, y: integer; bombPhase: integer);
 	procedure GamePromptEndPlay;
 	procedure ResetMessageNotShownFlags;
@@ -909,8 +908,8 @@ procedure ElementMove(oldX, oldY, newX, newY: integer);
 	var
 		statId: integer;
 	begin
-		if (newX < 0) or (newX > (BOARD_WIDTH + 1)) then exit;
-		if (newY < 0) or (newY > (BOARD_HEIGHT + 1)) then exit;
+		if (newX < 1) or (newX > BOARD_WIDTH) then exit;
+		if (newY < 1) or (newY > BOARD_HEIGHT) then exit;
 
 		statId := GetStatIdAt(oldX, oldY);
 
@@ -926,8 +925,8 @@ procedure ElementMove(oldX, oldY, newX, newY: integer);
 
 procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 	begin
-		if ((x + deltaX) < 0) or ((x + deltaX) > (BOARD_WIDTH + 1)) then exit;
-		if ((y + deltaY) < 0) or ((y + deltaY) > (BOARD_HEIGHT + 1)) then exit;
+		if ((x + deltaX) < 1) or ((x + deltaX) > BOARD_WIDTH) then exit;
+		if ((y + deltaY) < 1) or ((y + deltaY) > BOARD_HEIGHT) then exit;
 		if (deltaX <> 0) or (deltaY <> 0) then begin
 			with Board.Tiles[x][y] do begin
 				if ((Element = E_SLIDER_NS) and (deltaX = 0)) or ((Element = E_SLIDER_EW) and (deltaY = 0))
@@ -1314,53 +1313,35 @@ procedure ElementWaterTouch(x, y: integer; sourceStatId: integer; var deltaX, de
 		DisplayMessage(100, ConfigList[36]); {"Your way is blocked by water."}
 	end;
 
-procedure DrawPlayerSurroundings(x, y: integer);
-	var
-		ix, iy: integer;
-	begin
-		for ix := ((x - ParamList[109]) - 1) to ((x + ParamList[109]) + 1) do {Torch Radius}
-			if (ix >= 1) and (ix <= BOARD_WIDTH) then
-				for iy := ((y - ParamList[110]) - 1) to ((y + ParamList[110]) + 1) do
-					if (iy >= 1) and (iy <= BOARD_HEIGHT) then
-						with Board.Tiles[ix][iy] do begin
-							BoardDrawTile(ix, iy);
-						end;
-	end;
-
 procedure DrawBombSurroundings(x, y: integer; bombPhase: integer);
 	var
 		ix, iy: integer;
 		istat: integer;
 		result: boolean;
 	begin
-		for ix := ((x - ParamList[112]) - 1) to ((x + ParamList[112]) + 1) do {Bomb Radius}
-			if (ix >= 1) and (ix <= BOARD_WIDTH) then
-				for iy := ((y - ParamList[113]) - 1) to ((y + ParamList[113]) + 1) do
-					if (iy >= 1) and (iy <= BOARD_HEIGHT) then
-						with Board.Tiles[ix][iy] do begin
-							if (Sqr(ix-x) + Sqr(iy-y)*2) < ParamList[114] then begin
-								if bombPhase = 1 then begin
-									if Element = E_OBJECT then begin
-										istat := GetStatIdAt(ix, iy);
-										if istat > 0 then
-											result := OopSend(-istat, 'BOMBED', false);
-									end;
-
-									if ElementDefs[Element].Destructible or (Element = E_STAR) then
-										BoardDamageTile(ix, iy);
-
-									if (Element = E_EMPTY) or (Element = E_BREAKABLE) then begin
-										Element := E_BREAKABLE;
-										Color := $09 + Random(7);
-										BoardDrawTile(ix, iy);
-									end;
-								end else begin
-									if Element = E_BREAKABLE then
-										Element := E_EMPTY;
-								end;
+		for ix := 1 to BOARD_WIDTH do {Bomb Radius}
+			for iy := 1 to BOARD_HEIGHT do
+				with Board.Tiles[ix][iy] do begin
+					if ((Sqr(ix-x)*ParamList[112]) + (Sqr(iy-y)*ParamList[113])) < ParamList[114] then begin
+						if bombPhase = 1 then begin
+							if Element = E_OBJECT then begin
+								istat := GetStatIdAt(ix, iy);
+								if istat > 0 then
+									result := OopSend(-istat, 'BOMBED', false);
 							end;
-							BoardDrawTile(ix, iy);
+							if ElementDefs[Element].Destructible or (Element = E_STAR) then
+								BoardDamageTile(ix, iy);
+							if (Element = E_EMPTY) or (Element = E_BREAKABLE) then begin
+								Element := E_BREAKABLE;
+								Color := $09 + Random(7);
+							end;
+						end else begin
+							if Element = E_BREAKABLE then
+								Element := E_EMPTY;
 						end;
+						BoardDrawTile(ix, iy);
+					end;
+				end;
 	end;
 
 procedure GamePromptEndPlay;
@@ -1533,7 +1514,7 @@ procedure ElementPlayerTick(statId: integer);
 							World.Info.Torches := World.Info.Torches - 1;
 							World.Info.TorchTicks := ParamList[12];
 
-							DrawPlayerSurroundings(X, Y);
+							TransitionDrawToBoard;
 							GameUpdateSidebar;
 						end else begin
 							if MessageRoomNotDarkNotShown then begin
@@ -1584,7 +1565,7 @@ procedure ElementPlayerTick(statId: integer);
 				if GameMove then
 					Dec(World.Info.TorchTicks);
 				if World.Info.TorchTicks = 0 then begin
-					DrawPlayerSurroundings(X, Y);
+					TransitionDrawToBoard;
 					SoundQueue(3, SoundParse(ConfigList[30])); {Torch extinguish sound}
 				end;
 				if ParamList[12] > 10 then {Torch duration}
@@ -1702,7 +1683,6 @@ procedure InitElementDefs;
 
 		ElementDefs[0].Character := ' ';
 		ElementDefs[0].Color := AsColor(ParamList[95],ParamList[96]);
-		ElementDefs[0].Pushable := true;
 		ElementDefs[0].Walkable := true;
 		ElementDefs[0].PlaceableOnTop := true;
 		ElementDefs[0].Name := 'Empty';
@@ -2065,7 +2045,6 @@ procedure InitElementDefs;
 procedure InitElementsGame;
 	begin
 		InitElementDefs;
-		ForceDarknessOff := false;
 	end;
 
 begin

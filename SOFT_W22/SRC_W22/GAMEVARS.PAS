@@ -192,7 +192,6 @@ interface
 		GamePaused: boolean;
 		TickTimeCounter: integer;
 
-		ForceDarknessOff: boolean;
 		InitialTextAttr: byte;
 
 		OopChar: char;

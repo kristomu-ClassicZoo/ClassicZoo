@@ -1,3 +1,11 @@
+= 1/3/2022: 2.2c
+Bug Fixed:
+ * SHOVE allowed you to shove objects past the southern border.
+ * SHOVE destroyed tiles being shoved on top of the player if the player was otherwise blocked and couldn't be pushed.
+
+Improved:
+ * .PAR files updated to 2.2-firm-c and 2.2-soft-c, with altered X and Y values for torches and bombs (drawX and drawY have been replaced with ratioX and ratioY for elliptical control)
+
 = 1/2/2022: 2.2b
 Bugs Fixed:
  * ElementBombDraw wasn't pulling the correct char from the .PAR file.  It is now.

@@ -224,7 +224,6 @@ interface
 		TickTimeCounter: integer;
 		KeyLimit: integer;
 
-		ForceDarknessOff: boolean;
 		InitialTextAttr: byte;
 
 		OopChar: char;

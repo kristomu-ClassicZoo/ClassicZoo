@@ -1035,9 +1035,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
 							if textLine = OopStringToWord(OOPList[38]) then	KeyRepeat;
-							if textLine = OopStringToWord(OOPList[19]) then	TransitionDrawToBoard;
-							if textLine = OopStringToWord(OOPList[18]) then
-								DrawPlayerSurroundings(Board.Stats[0].X,Board.Stats[0].Y);
+							if (textLine = OopStringToWord(OOPList[19])) or
+								(textLine = OopStringToWord(OOPList[18]))
+							then TransitionDrawToBoard;
 						end else if OopWord = 'CLEAR' then begin
 							OopReadWord(statId, position);
 							textLine := OopWord;
@@ -1051,9 +1051,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							end else
 								WorldClearFlag(OopWord);
 							if textLine = OopStringToWord(OOPList[38]) then	KeyRepeat;
-							if textLine = OopStringToWord(OOPList[19]) then	TransitionDrawToBoard;
-							if textLine = OopStringToWord(OOPList[18]) then
-								DrawPlayerSurroundings(Board.Stats[0].X,Board.Stats[0].Y);
+							if (textLine = OopStringToWord(OOPList[19])) or
+								(textLine = OopStringToWord(OOPList[18]))
+							then TransitionDrawToBoard;
 						end else if OopWord = 'IF' then begin
 							OopReadWord(statId, position);
 							if OopCheckCondition(statId, position) then
@@ -1215,9 +1215,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							end else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
 							if textLine = OopStringToWord(OOPList[38]) then	KeyRepeat;
-							if textLine = OopStringToWord(OOPList[19]) then	TransitionDrawToBoard;
-							if textLine = OopStringToWord(OOPList[18]) then
-								DrawPlayerSurroundings(Board.Stats[0].X,Board.Stats[0].Y);
+							if (textLine = OopStringToWord(OOPList[19])) or
+								(textLine = OopStringToWord(OOPList[18]))
+							then TransitionDrawToBoard;
 							GameUpdateSidebar;
 						end else if OopWord = OopStringToWord(OOPList[5]) then begin {'EDGE'}
 							OopReadDirection(statId, position, deltaX, deltaY);
@@ -1343,27 +1343,28 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								deltaX := deltaX - ix;
 								deltaY := deltaY - iy;
 							end;
-							if ((deltaX <> 0) or (deltaY <> 0))
-								and (Board.Tiles[X + ix][Y + iy].Element <> E_EMPTY)
+							Inc(ix,X);
+							Inc(iy,Y);
+							argTile.Element := Board.Tiles[ix][iy].Element;
+							if (((deltaX <> 0) or (deltaY <> 0)) and (argTile.Element <> E_EMPTY))
+								and (((ix + deltaX > 0) and (ix + deltaX <= BOARD_WIDTH))
+								and ((iy + deltaY > 0) and (iy + deltaY <= BOARD_HEIGHT)))
 							then begin
-								if (((X + ix + deltaX) > 0) and ((X + ix + deltaX) <= BOARD_WIDTH))
-									and (((Y + iy + deltaY) > 0) and ((Y + iy + deltaY) <= BOARD_HEIGHT + 1))
+								ElementPushablePush(ix, iy, deltaX, deltaY);
+								if (argTile.Element = Board.Tiles[ix][iy].Element)
+									and (Board.Tiles[ix + deltaX][iy + deltaY].Element <> E_PLAYER)
 								then begin
-									ElementPushablePush(X + ix, Y + iy, deltaX, deltaY);
-									if not ElementDefs[Board.Tiles[X + ix][Y + iy].Element].Walkable then begin
-										if not ElementDefs[Board.Tiles[X + ix + deltaX][Y + iy + deltaY].Element].Walkable then
-											ElementPushablePush(X + ix + deltaX, Y + iy + deltaY, deltaX, deltaY);
-										bindStatId := GetStatIdAt(X + ix, Y + iy);
-										if bindStatId > -1 then begin
-											if GetStatIdAt(X + ix + deltaX, Y + iy + deltaY) < 0 then
-												MoveStat(bindStatId, X + ix + deltaX, Y + iy + deltaY);
-										end else begin
-											OopPlaceTile(X + ix + deltaX, Y + iy + deltaY, Board.Tiles[X + ix][Y + iy]);
-											Board.Tiles[X + ix][Y + iy].Element := E_EMPTY;
-										end;
+									ElementPushablePush(ix + deltaX, iy + deltaY, deltaX, deltaY);
+									bindStatId := GetStatIdAt(ix,iy);
+									if (bindStatId > -1) then begin
+										if GetStatIdAt(ix + deltaX, iy + deltaY) < 0 then
+											MoveStat(bindStatId, ix + deltaX, iy + deltaY);
+									end else begin
+										Board.Tiles[ix + deltaX][iy + deltaY] := Board.Tiles[ix][iy];
+										Board.Tiles[ix][iy].Element := E_EMPTY;
 									end;
-									BoardDrawTile(X + ix, Y + iy);
-									BoardDrawTile(X + ix + deltaX, Y + iy + deltaY);
+									BoardDrawTile(ix, iy);
+									BoardDrawTile(ix + deltaX, iy + deltaY);
 								end;
 							end;
 						end else if OopWord = 'PUT' then begin

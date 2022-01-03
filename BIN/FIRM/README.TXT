@@ -1,4 +1,4 @@
-Firm Weave 2.2b
+Firm Weave 2.2c
 Part of the Weave 2 Project
 
 - - - - -
