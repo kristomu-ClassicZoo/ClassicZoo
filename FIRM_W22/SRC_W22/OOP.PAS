@@ -1249,11 +1249,14 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									((Board.Stats[0].X <> ix) or
 										(Board.Stats[0].Y <> iy)) then
 									MoveStat(0, ix, iy);
-								if Board.Stats[statId].Datalen > 0 then begin
-									position := Board.Stats[statId].DataPos;
-									if position <> -1 then
-										lineFinished := false;
-								end;
+								if statId <= Board.StatCount then begin
+									if Board.Stats[statId].Datalen > 0 then begin
+										position := Board.Stats[statId].DataPos;
+										if position <> -1 then
+											lineFinished := false;
+									end;
+								end else
+									stopRunning := true;
 								if OopSend(0, 'ALL:' + OOPList[28], false) then begin end;								
 							end else
 								OopError(statId,position, 'No board label :' + OopWord);
@@ -1492,11 +1495,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 				end;
 			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > ParamList[116]);
 
-			if ((OopWord = OopStringToWord(OOPList[1]))
-				and (Board.Stats[statId].DataLen < 1))
-				or (OopWord = 'SAVEDGAMES')
-			then
-				goto StopExecution;
+			if OopWord = 'SAVEDGAMES' then goto StopExecution;
 
 			if repeatInsNextTick then
 				position := lastPosition;
