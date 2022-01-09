@@ -4,6 +4,8 @@ Bug Fixed:
 an object with the same stat # as the object calling BOARD to
 #END prematurely.
 
+Improved:
+ * Spaces and non-alphanumeric characters in Keybinds will still show up in the sidebar but will be excluded from the label  sent, e.g. a keybind labeled "Foo-bar Gun" will send the label ":foobargun" when triggered.
 
 = 1/3/2022: 2.2c
 Bug Fixed:

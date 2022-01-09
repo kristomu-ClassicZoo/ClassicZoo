@@ -101,11 +101,19 @@ procedure RepeatSpeed(speed: shortint);
 
 function UpCaseString(input: string): string;
 	var
+		s: string;
 		i: integer;
+		c: char;
 	begin
-		for i := 1 to Length(input) do
-			input[i] := UpCase(input[i]);
-		UpCaseString := input;
+		s := '';
+		for i := 1 to Length(input) do begin
+			c := UpCase(input[i]);
+			if ((c >= 'A') and (c <= 'Z'))
+				or ((c >= '0') and (c <= '9'))
+			then
+				s := s + c;
+		end;
+		UpCaseString := s;
 	end;
 
 function InputIsJoystickButtonPressed: boolean;
