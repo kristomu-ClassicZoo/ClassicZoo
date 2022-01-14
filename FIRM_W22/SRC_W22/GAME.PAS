@@ -177,7 +177,8 @@ function ColorNumber(s: string; statId: integer): integer;
 		counterPtr: cInt;
 		shortPtr: cShort;
 	begin
-        if (s = 'BLACK') or (s = '0') then ColorNumber := 0
+		if s[1] = '-' then ColorNumber := -128
+        else if (s = 'BLACK') or (s = '0') then ColorNumber := 0
 		else if (s = 'DKBLUE') or (s = '1') then ColorNumber := 1
 		else if (s = 'DKGREEN') or (s = '2') then ColorNumber := 2
 		else if (s = 'DKCYAN') or (s = '3') then ColorNumber := 3
