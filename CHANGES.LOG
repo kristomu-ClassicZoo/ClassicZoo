@@ -1,3 +1,9 @@
+= 1/14/2022: 2.2e
+Bugs Fixed:
+* Negative PAR numbers less than 16 were mistakenly being treated as colors.
+* Bullets were decreasing currentStatTicked twice on death, leading to time warps for preceding stats.
+
+
 = 1/6/2022: 2.2d
 Bug Fixed:
  * BOARD would sometimes cause
