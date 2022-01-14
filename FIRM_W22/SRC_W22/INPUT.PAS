@@ -66,7 +66,7 @@ interface
 		InputJoystickMoved: boolean;
 		JoystickXInitial, JoystickYInitial: integer;
 		InputLastDeltaX, InputLastDeltaY: integer;
-	function UpCaseString(input: string): string;
+	function UpCaseString(input: string; nostrip: boolean): string;
 	procedure InputUpdate;
 	procedure InputInitDevices;
 	procedure InputReadWaitKey;
@@ -99,7 +99,7 @@ procedure RepeatSpeed(speed: shortint);
 		end;
 	end;
 
-function UpCaseString(input: string): string;
+function UpCaseString(input: string; nostrip: boolean): string;
 	var
 		s: string;
 		i: integer;
@@ -110,6 +110,7 @@ function UpCaseString(input: string): string;
 			c := UpCase(input[i]);
 			if ((c >= 'A') and (c <= 'Z'))
 				or ((c >= '0') and (c <= '9'))
+				or nostrip
 			then
 				s := s + c;
 		end;

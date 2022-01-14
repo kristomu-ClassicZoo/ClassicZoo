@@ -1555,7 +1555,7 @@ procedure ElementPlayerTick(statId: integer);
 				while i < KeyLimit do begin
 					if inputC = UpCase(KeyList[i * 3][1]) then begin
 						GameMove := true;
-						if OopSend(0, InputTerminal + ':' + UpCaseString(KeyList[(i * 3) + 1]), false) then begin end; {.KB file inputs}
+						if OopSend(0, InputTerminal + ':' + UpCaseString(KeyList[(i * 3) + 1], false), false) then begin end; {.KB file inputs}
 					end;
 					Inc(i);
 				end;

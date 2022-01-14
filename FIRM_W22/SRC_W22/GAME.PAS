@@ -177,8 +177,7 @@ function ColorNumber(s: string; statId: integer): integer;
 		counterPtr: cInt;
 		shortPtr: cShort;
 	begin
-		if s[1] = '-' then ColorNumber := -128
-        else if (s = 'BLACK') or (s = '0') then ColorNumber := 0
+        if (s = 'BLACK') or (s = '0') then ColorNumber := 0
 		else if (s = 'DKBLUE') or (s = '1') then ColorNumber := 1
 		else if (s = 'DKGREEN') or (s = '2') then ColorNumber := 2
 		else if (s = 'DKCYAN') or (s = '3') then ColorNumber := 3
@@ -228,7 +227,7 @@ procedure CustomFlagsLoad;
 					if s[1] = '#' then
 						Dec(i)
 					else
-						CustomFlagList[i] := UpCaseString(s);
+						CustomFlagList[i] := UpCaseString(s, false);
 				end else begin
 					Str(i,s);
 					CustomFlagList[i] := 'FLAG' + s;
@@ -300,9 +299,10 @@ procedure ParamsLoad;
 				ReadLn(f, s);
 				if s <> '' then begin
 					if s[1] <> '#' then begin
-						ParamList[i] := ColorNumber(UpCaseString(s), -1);
-						if (ParamList[i] = -128) then
+						ParamList[i] := ColorNumber(UpCaseString(s, true), -1);
+						if (ParamList[i] = -128) then begin
 							Val(s, ParamList[i], code);
+						end;
 					end else
 						Dec(i);
 				end else
