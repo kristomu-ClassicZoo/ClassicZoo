@@ -1,3 +1,14 @@
+= 1/15/2022: 2.5 rc1
+Improved:
+* .CFG files now share all functionality and formatting between soft and firm, including text properties, grace period, key limit.
+* .CFG and .PAR files have been consolidated into one file. (.CFG)
+* .OOP, .KB and .FLG files have been consolidated into one file. (.INI)
+* Configs are now in a TOML-like format.
+* Configs no longer depend on file order and need only include the items being changed.
+* OOB checking is done on some ElementTick operations in SoftWeave. (those that don't rely on MoveStat)
+* .CFG files can modify ALL element definitions. (element.property addressing)
+* Objects have up to 6 internal flags and boards have 3 local flags.
+
 = 1/14/2022: 2.2e
 Bugs Fixed:
 * Negative PAR numbers less than 16 were mistakenly being treated as colors.
