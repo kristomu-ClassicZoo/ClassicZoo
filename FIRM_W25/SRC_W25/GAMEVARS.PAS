@@ -48,7 +48,7 @@ interface
 		PALETTE_START = 22;
 		PARAM_FILE_COUNT = 69;
 		{.INI FILE}
-		CUSTOM_OOP_COUNT = 38;
+		CUSTOM_OOP_COUNT = 39;
 		CUSTOM_KEY_COUNT = 24;
 		CUSTOM_FLAG_COUNT = 64;
 	type
@@ -171,6 +171,7 @@ interface
 		TParamList = array[1 .. PARAM_FILE_COUNT] of integer;
 		TCustomOOPList = array[1 .. CUSTOM_OOP_COUNT] of TString20;
 		TCustomKeyList = array[0 .. CUSTOM_KEY_COUNT - 1] of TString20;
+		TSearchArea = array[-7 .. 7] of array[-7 .. 7] of shortint;
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
@@ -239,6 +240,7 @@ interface
 		ParamList: TParamList;
 		OOPList: TCustomOOPList;
 		KeyList: TCustomKeyList;
+		SearchArea: TSearchArea;
 		HighScoreList: THighScoreList;
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;

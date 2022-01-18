@@ -469,8 +469,10 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 		ix, iy: integer;
 		canMove: boolean;
 		tiles: array[0..7] of TTile;
+		statIds: array[0..7] of integer;
 		iMin, iMax: integer;
 		tmpTile: TTile;
+		tx, ty: integer;
 	begin
 		if direction = 1 then begin
 			iMin := 0;
@@ -480,17 +482,26 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			iMax := -1;
 		end;
 
+		{ Moved from CWTick/CCWTick }
+		BoardDrawTile(X, Y);
+
 		canMove := true;
 		i := iMin;
 		repeat
-			tiles[i] := Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]];
+			tx := x + DiagonalDeltaX[i];
+			ty := y + DiagonalDeltaY[i];
+			tiles[i] := Board.Tiles[tx][ty];
 			with tiles[i] do begin
 				if Element = E_EMPTY then
 					canMove := true
 				else if not ElementDefs[Element].Pushable then
 					canMove := false;
+				{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
+				{ Pre-find stat IDs to prevent such a scenario from occuring. }
+				if ElementDefs[Element].Cycle > -1 then
+					statIds[i] := GetStatIdAt(tx, ty);
 			end;
-			i := i + direction;
+			Inc(i, direction);
 		until i = iMax;
 
 		i := iMin;
@@ -498,22 +509,26 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			with tiles[i] do begin
 				if canMove then begin
 					if ElementDefs[Element].Pushable then begin
-						ix := x + DiagonalDeltaX[(i - direction + 8) mod 8];
-						iy := y + DiagonalDeltaY[(i - direction + 8) mod 8];
+						ix := x + DiagonalDeltaX[(i - direction) and 7];
+						iy := y + DiagonalDeltaY[(i - direction) and 7];
+						tx := x + DiagonalDeltaX[i];
+						ty := y + DiagonalDeltaY[i];
+
 						if ElementDefs[Element].Cycle > -1 then begin
-							tmpTile := Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]];
-							iStat := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
-							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]] := tiles[i];
+							tmpTile := Board.Tiles[tx][ty];
+							Board.Tiles[tx][ty] := tiles[i];
 							Board.Tiles[ix][iy].Element := E_EMPTY;
-							MoveStat(iStat, ix, iy);
-							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]] := tmpTile;
+							MoveStat(statIds[i], ix, iy);
+
+							Board.Tiles[tx][ty] := tmpTile;
+							BoardDrawTile(tx, ty);
 						end else begin
 							Board.Tiles[ix][iy] := tiles[i];
 							BoardDrawTile(ix, iy);
 						end;
-						if not ElementDefs[tiles[(i + direction + 8) mod 8].Element].Pushable then begin
-							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]].Element := E_EMPTY;
-							BoardDrawTile(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
+						if not ElementDefs[tiles[(i + direction) and 7].Element].Pushable then begin
+							Board.Tiles[tx][ty].Element := E_EMPTY;
+							BoardDrawTile(tx, ty);
 						end;
 					end else begin
 						canMove := false;
@@ -523,7 +538,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 				else if not ElementDefs[Element].Pushable then
 					canMove := false;
 			end;
-			i := i + direction;
+			Inc(i, direction);
 		until i = iMax;
 	end;
 
@@ -539,7 +554,6 @@ procedure ElementConveyorCWDraw(x, y: integer; var ch: byte);
 procedure ElementConveyorCWTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			BoardDrawTile(X, Y);
 			ElementConveyorTick(X, Y, 1);
 		end;
 	end;
@@ -556,7 +570,6 @@ procedure ElementConveyorCCWDraw(x, y: integer; var ch: byte);
 procedure ElementConveyorCCWTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			BoardDrawTile(X, Y);
 			ElementConveyorTick(X, Y, -1);
 		end;
 	end;
@@ -1081,7 +1094,9 @@ procedure ElementScrollTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 			OopExecute(statId, DataPos, ConfigList[85]); {'Scroll'}
 		end;
 
-		RemoveStat(GetStatIdAt(x, y));
+		statId := GetStatIdAt(x, y);
+		if statId <> -1 then
+			RemoveStat(statId);
 	end;
 
 procedure ElementKeyTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);

@@ -285,20 +285,25 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 			if OopWord = OopStringToWord(OOPList[16]) then begin {'PLAYER'}
 				dx := Board.Stats[0].X - X;
 				dy := Board.Stats[0].Y - Y;
-			end else if (((OopWord = OopStringToWord(OOPList[13])) {'BY'}
-				or (OopWord = OopStringToWord(OOPList[14])))
-				or (OopWord = OopStringToWord(OOPList[15]))) then begin
+			end else if
+				(OopWord = OopStringToWord(OOPList[13])) {'BY'}
+				or (OopWord = OopStringToWord(OOPList[14])) {'AT'}
+				or (OopWord = OopStringToWord(OOPList[15])) {'TOWARD'}
+				or (OopWord = OopStringToWord(OOPList[39])) {'FIND'}
+			then begin
 				OopReadValue(statId, position);
 				dx := OopValue;
 				OopReadValue(statId, position);
 				dy := OopValue;
 				if ((dx <> -128) and (dy <> -128)) then begin
-					if (OopWord = OopStringToWord(OOPList[14])) then begin {'AT'}
+					if (OopWord = OopStringToWord(OOPList[14])) then begin 
 						dx := dx - X;
 						dy := dy - Y;
 					end;
-					if (OopWord = OopStringToWord(OOPList[15])) then {'TOWARD'}
+					if (OopWord = OopStringToWord(OOPList[15])) then 
 						CalcDirectionToward(X, Y, dx, dy);
+					if (OopWord = OopStringToWord(OOPList[39])) then 
+						CalcDirectionFind(X, Y, dx, dy);
 				end else begin
 					dx := 0;
 					dy := 0;

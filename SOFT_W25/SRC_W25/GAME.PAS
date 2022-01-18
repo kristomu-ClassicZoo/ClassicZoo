@@ -1107,20 +1107,12 @@ Procedure FreeStatDataMem(statId: integer);
 procedure RemoveStat(statId: integer);
 	var
 		i: integer;
-	label StatDataInUse;
 	begin
 		with Board.Stats[statId] do begin
-			if DataLen <> 0 then begin
-				for i := 1 to Board.StatCount do begin
-					if (Board.Stats[i].Data = Data) and (i <> statId) then
-						goto StatDataInUse;
-				end;
-				FreeStatDataMem(statId);
-			end;
+			FreeStatDataMem(statId);
 
-		StatDataInUse:
-			if statId < CurrentStatTicked then
-				CurrentStatTicked := CurrentStatTicked - 1;
+			if statId <= CurrentStatTicked then
+				Dec(CurrentStatTicked);
 
 			Board.Tiles[X][Y] := Under;
 			if Y > 0 then
@@ -1134,14 +1126,14 @@ procedure RemoveStat(statId: integer);
 						if Board.Stats[i].Follower = statId then
 							Board.Stats[i].Follower := -1
 						else
-							Board.Stats[i].Follower := Board.Stats[i].Follower - 1;
+							Dec(Board.Stats[i].Follower);
 					end;
 
 					if Board.Stats[i].Leader >= statId then begin
 						if Board.Stats[i].Leader = statId then
 							Board.Stats[i].Leader := -1
 						else
-							Board.Stats[i].Leader := Board.Stats[i].Leader - 1;
+							Dec(Board.Stats[i].Leader);
 					end;
 				end;
 			end;
@@ -1194,6 +1186,13 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 		oldX, oldY: integer;
 		oldBgColor: integer;
 	begin
+		if statId = 0 then begin
+			if (newX < 0) or (newX > (BOARD_WIDTH + 1)) then exit;
+			if (newY < 0) or (newY > (BOARD_HEIGHT + 1)) then exit;
+		end else begin
+			if (newX < 1) or (newX > BOARD_WIDTH) then exit;
+			if (newY < 1) or (newY > BOARD_HEIGHT) then exit;
+		end;
 		with Board.Stats[statId] do begin
 			oldBgColor := Board.Tiles[newX][newY].Color and $F0;
 

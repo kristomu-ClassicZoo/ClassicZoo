@@ -78,6 +78,7 @@ interface
 	procedure CalcDirectionRnd(var deltaX, deltaY: integer);
 	procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 	procedure CalcDirectionToward(x, y: integer; var deltaX, deltaY: integer);
+	procedure CalcDirectionFind(x, y: integer; var deltaX, deltaY: integer);
 	procedure TransitionDrawBoardChange;
 	procedure GameUpdateSidebar;
 	procedure GameDrawCustomSidebar;
@@ -279,42 +280,43 @@ function OopConfigs (i: integer): string;
 			36: OopConfigs := 'OOP.CMD.PALETTE';
 			37: OopConfigs := 'OOP.DIR.TO';
 			38: OopConfigs := 'COUNTER.KEYSPEED';
-			39: OopConfigs := 'INPUT.TERMINAL';
-			40: OopConfigs := 'INPUT.1.KEYBIND';
-			41: OopConfigs := 'INPUT.1.LABEL';
-			42: OopConfigs := 'INPUT.1.SIDEBAR.ROW';
-			43: OopConfigs := 'INPUT.2.KEYBIND';
-			44: OopConfigs := 'INPUT.2.LABEL';
-			45: OopConfigs := 'INPUT.2.SIDEBAR.ROW';
-			46: OopConfigs := 'INPUT.3.KEYBIND';
-			47: OopConfigs := 'INPUT.3.LABEL';
-			48: OopConfigs := 'INPUT.3.SIDEBAR.ROW';
-			49: OopConfigs := 'INPUT.4.KEYBIND';
-			50: OopConfigs := 'INPUT.4.LABEL';
-			51: OopConfigs := 'INPUT.4.SIDEBAR.ROW';
-			52: OopConfigs := 'INPUT.5.KEYBIND';
-			53: OopConfigs := 'INPUT.5.LABEL';
-			54: OopConfigs := 'INPUT.5.SIDEBAR.ROW';
-			55: OopConfigs := 'INPUT.6.KEYBIND';
-			56: OopConfigs := 'INPUT.6.LABEL';
-			57: OopConfigs := 'INPUT.6.SIDEBAR.ROW';
-			58: OopConfigs := 'INPUT.7.KEYBIND';
-			59: OopConfigs := 'INPUT.7.LABEL';
-			60: OopConfigs := 'INPUT.7.SIDEBAR.ROW';
-			61: OopConfigs := 'INPUT.8.KEYBIND';
-			62: OopConfigs := 'INPUT.8.LABEL';
-			63: OopConfigs := 'INPUT.8.SIDEBAR.ROW';
-			64: OopConfigs := 'FLAG.BOARD.1';
-			65: OopConfigs := 'FLAG.BOARD.2';
-			66: OopConfigs := 'FLAG.BOARD.3';
-			67: OopConfigs := 'FLAG.OBJ.1';
-			68: OopConfigs := 'FLAG.OBJ.2';
-			69: OopConfigs := 'FLAG.OBJ.3';
-			70: OopConfigs := 'FLAG.OBJ.4';
-			71: OopConfigs := 'FLAG.OBJ.5';
-			72: OopConfigs := 'FLAG.OBJ.6';
-			73: OopConfigs := 'WORLD.FLAG';
-			74: OopConfigs := 'WORLD.COUNTER';
+			39: OopConfigs := 'OOP.DIR.FIND';
+			40: OopConfigs := 'INPUT.TERMINAL';
+			41: OopConfigs := 'INPUT.1.KEYBIND';
+			42: OopConfigs := 'INPUT.1.LABEL';
+			43: OopConfigs := 'INPUT.1.SIDEBAR.ROW';
+			44: OopConfigs := 'INPUT.2.KEYBIND';
+			45: OopConfigs := 'INPUT.2.LABEL';
+			46: OopConfigs := 'INPUT.2.SIDEBAR.ROW';
+			47: OopConfigs := 'INPUT.3.KEYBIND';
+			48: OopConfigs := 'INPUT.3.LABEL';
+			49: OopConfigs := 'INPUT.3.SIDEBAR.ROW';
+			50: OopConfigs := 'INPUT.4.KEYBIND';
+			51: OopConfigs := 'INPUT.4.LABEL';
+			52: OopConfigs := 'INPUT.4.SIDEBAR.ROW';
+			53: OopConfigs := 'INPUT.5.KEYBIND';
+			54: OopConfigs := 'INPUT.5.LABEL';
+			55: OopConfigs := 'INPUT.5.SIDEBAR.ROW';
+			56: OopConfigs := 'INPUT.6.KEYBIND';
+			57: OopConfigs := 'INPUT.6.LABEL';
+			58: OopConfigs := 'INPUT.6.SIDEBAR.ROW';
+			59: OopConfigs := 'INPUT.7.KEYBIND';
+			60: OopConfigs := 'INPUT.7.LABEL';
+			61: OopConfigs := 'INPUT.7.SIDEBAR.ROW';
+			62: OopConfigs := 'INPUT.8.KEYBIND';
+			63: OopConfigs := 'INPUT.8.LABEL';
+			64: OopConfigs := 'INPUT.8.SIDEBAR.ROW';
+			65: OopConfigs := 'FLAG.BOARD.1';
+			66: OopConfigs := 'FLAG.BOARD.2';
+			67: OopConfigs := 'FLAG.BOARD.3';
+			68: OopConfigs := 'FLAG.OBJ.1';
+			69: OopConfigs := 'FLAG.OBJ.2';
+			70: OopConfigs := 'FLAG.OBJ.3';
+			71: OopConfigs := 'FLAG.OBJ.4';
+			72: OopConfigs := 'FLAG.OBJ.5';
+			73: OopConfigs := 'FLAG.OBJ.6';
+			74: OopConfigs := 'WORLD.FLAG';
+			75: OopConfigs := 'WORLD.COUNTER';
 		else OopConfigs := '_nil' end;
 	end;
 
@@ -359,6 +361,7 @@ function DefaultOopList (i: integer): string;
 			36: DefaultOopList := 'PALETTE';
 			37: DefaultOopList := 'TO';
 			38: DefaultOopList := 'KEYSPEED';
+			39: DefaultOopList := 'FIND';
 		else DefaultOopList := '_nil' end;
 	end;
 
@@ -431,13 +434,13 @@ procedure CustomOOPLoad;
 								if KeyLimit <= (i div 3) then
 									KeyLimit := (i div 3) + 1;
 							end;
-						for i := 64 to 66 do
+						for i := 65 to 67 do
 							if (OopConfigs(i) = k) and (l <> '') then
 								CustomBoardList[i - 63] := UpcaseString(l);
-						for i := 67 to 72 do
+						for i := 68 to 73 do
 							if (OopConfigs(i) = k) and (l <> '') then
 								CustomObjList[i - 66] := UpcaseString(l);
-						for i := 73 to 74 do
+						for i := 74 to 75 do
 							if (OopConfigs(i) = k) and (l <> '') then begin
 								CustomFlagList[v] := UpcaseString(l);
 								Inc(v);
@@ -1816,6 +1819,65 @@ procedure CalcDirectionRnd(var deltaX, deltaY: integer);
 			deltaY := Random(2) * 2 - 1
 		else
 			deltaY := 0;
+	end;
+
+procedure CalcDirectionSearch(x, y, srcx, srcy, destx, desty: shortint);
+	begin
+		SearchArea[x][y] := 98;
+		if ((srcx + x > 0) and (srcx + x <= BOARD_WIDTH)) and ((srcy + y > 0) and (srcy + y <= BOARD_HEIGHT)) then begin
+			if (ElementDefs[Board.Tiles[x + srcx][y + srcy].Element].Walkable = true) or ((x = 0) and (y = 0)) then begin
+				if (x <> 0) or (y <> 0) then begin
+					if x + srcx > destx then SearchArea[x][y] := (x + srcx) - destx
+						else SearchArea[x][y] := destx - (x + srcx);
+					if y + srcy > desty then Inc(SearchArea[x][y],(y + srcy) - desty)
+						else Inc(SearchArea[x][y],desty - (y + srcy));
+				end;
+				if (Sqr(x) + Sqr(y) < 49) and (SearchArea[0][0] > 0) then begin
+					if (x <= 0)	and (SearchArea[x - 1][y] = 99) then begin
+						CalcDirectionSearch(x - 1, y, srcx, srcy, destx, desty);
+						if SearchArea[x - 1][y] < SearchArea[x][y] then SearchArea[x][y] := SearchArea[x - 1][y];
+					end;
+					if (x >= 0)	and (SearchArea[x + 1][y] = 99)	then begin
+						CalcDirectionSearch(x + 1, y, srcx, srcy, destx, desty);
+						if SearchArea[x + 1][y] < SearchArea[x][y] then	SearchArea[x][y] := SearchArea[x + 1][y];
+					end;
+					if (y <= 0) and (SearchArea[x][y - 1] = 99) then begin
+						CalcDirectionSearch(x, y - 1, srcx, srcy, destx, desty);			
+						if SearchArea[x][y - 1] < SearchArea[x][y] then	SearchArea[x][y] := SearchArea[x][y - 1];
+					end;
+					if (y >= 0) and (SearchArea[x][y + 1] = 99)	then begin
+						CalcDirectionSearch(x, y + 1, srcx, srcy, destx, desty);
+						if SearchArea[x][y + 1] < SearchArea[x][y] then	SearchArea[x][y] := SearchArea[x][y + 1];
+					end;
+				end;
+			end;
+		end;
+	end;
+
+procedure CalcDirectionFind(x, y: integer; var deltaX, deltaY: integer);
+	var
+		ix, iy: shortint;
+	begin
+		if Random(6) < 1 then
+			CalcDirectionRnd(deltaX,deltaY)
+		else begin
+			for ix := -8 to 8 do
+				for iy := -8 to 8 do
+					SearchArea[ix][iy] := 99;
+			ix := deltaX;
+			iy := deltaY;
+			CalcDirectionSearch(0,0,x,y,ix,iy);
+			deltaX := 0;
+			deltaY := 0;
+			if SearchArea[-1][0] <= SearchArea[0][0] then
+				deltaX := -1
+			else if SearchArea[0][-1] <= SearchArea[0][0] then
+				deltaY := -1
+			else if SearchArea[1][0] <= SearchArea[0][0] then
+				deltaX := 1
+			else if SearchArea[0][1] <= SearchArea[0][0] then
+				deltaY := 1;
+		end;
 	end;
 
 procedure CalcDirectionToward(x, y: integer; var deltaX, deltaY: integer);

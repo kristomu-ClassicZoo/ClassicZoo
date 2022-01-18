@@ -1,3 +1,14 @@
+= 1/17/2022: 2.5 rc2
+Bugs Fixed:
+* Scroll movement bug (Firm and Soft)
+* Conveyor draw bug (Soft)
+* Conveyor destruction bug (Soft)
+* Binders Keepers (Soft)
+* Recursive movement push crash (Soft)
+
+Added:
+* /FIND direction with limited BFS pathfinding. Circular frontier of radius 7. Diagonal searching only. (Firm)
+
 = 1/15/2022: 2.5 rc1
 Improved:
 * .CFG files now share all functionality and formatting between soft and firm, including text properties, grace period, key limit.

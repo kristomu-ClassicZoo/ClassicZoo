@@ -1090,7 +1090,6 @@ procedure ElementScrollTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 	var
 		textWindow: TTextWindowState;
 		statId: integer;
-		unk1: integer;
 	begin
 		statId := GetStatIdAt(x, y);
 
@@ -1104,7 +1103,9 @@ procedure ElementScrollTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 			if OopExecute(statId, DataPos, ConfigList[85]) then begin end; {'Scroll'}
 		end;
 
-		RemoveStat(GetStatIdAt(x, y));
+		statId := GetStatIdAt(x, y);
+		if statId <> -1 then
+			RemoveStat(statId);
 	end;
 
 procedure ElementKeyTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
