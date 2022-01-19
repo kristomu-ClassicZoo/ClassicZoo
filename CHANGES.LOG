@@ -1,3 +1,7 @@
+= 1/18/2002: 2.5 rc3
+Bugs Fixed:
+* DUPLICATE was not correctly adjusting AT <x> <y> for the relative position of the duplicator and duplicatee. STEP and SHOVE were correct but needed cleaning up as well.
+
 = 1/17/2022: 2.5 rc2
 Bugs Fixed:
 * Scroll movement bug (Firm and Soft)

@@ -289,7 +289,6 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 				(OopWord = OopStringToWord(OOPList[13])) {'BY'}
 				or (OopWord = OopStringToWord(OOPList[14])) {'AT'}
 				or (OopWord = OopStringToWord(OOPList[15])) {'TOWARD'}
-				or (OopWord = OopStringToWord(OOPList[39])) {'FIND'}
 			then begin
 				OopReadValue(statId, position);
 				dx := OopValue;
@@ -302,8 +301,6 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 					end;
 					if (OopWord = OopStringToWord(OOPList[15])) then 
 						CalcDirectionToward(X, Y, dx, dy);
-					if (OopWord = OopStringToWord(OOPList[39])) then 
-						CalcDirectionFind(X, Y, dx, dy);
 				end else begin
 					dx := 0;
 					dy := 0;
@@ -357,6 +354,12 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 				OopParseDirection := OopParseDirection(statId, position, dx, dy);
 				dx := -dx;
 				dy := -dy;
+			end else if (OopWord = OopStringToWord(OOPList[39])) then begin {'FIND'}
+				OopReadWord(statId, position);
+				OopParseDirection := OopParseDirection(statId, position, dx, dy);
+				Inc(dx,X);
+				Inc(dy,Y);
+				CalcDirectionFind(X, Y, dx, dy);
 			end else if (OopWord = OopStringToWord(OOPList[37])) then begin {'TO'}
 				OopReadWord(statId, position);
 				OopParseDirection := OopParseDirection(statId, position, dx, dy);
@@ -625,6 +628,14 @@ function FindTileOnBoard(var x, y: integer; tile: TMatchTile): boolean;
 				FindTileOnBoard := true;
 				exit;
 			end;
+		end;
+	end;
+
+procedure SwapRelative(var dx, dy: integer; x, y: integer; line: string);
+	begin
+		if line = OopStringToWord(OOPList[14]) then begin
+			Dec(dx,x);
+			Dec(dy,y);
 		end;
 	end;
 
@@ -1343,10 +1354,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopReadDirection(statId, position, ix, iy);
 							textLine := OopNextWord(statId, position);
 							OopReadDirection(statId, position, deltaX, deltaY);
-							if textLine = OopStringToWord(OOPList[14]) then begin
-								deltaX := deltaX - ix;
-								deltaY := deltaY - iy;
-							end;
+							SwapRelative(deltaX,deltaY,ix,iy,textLine);
 							bindStatId := GetStatIdAt(X + ix, Y + iy);
 							if (bindStatId > -1) then begin
 								Board.Stats[bindStatId].StepX := deltaX;
@@ -1356,20 +1364,13 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopReadDirection(statId, position, ix, iy);
 							textLine := OopNextWord(statId, position);
 							OopReadDirection(statId, position, deltaX, deltaY);
-							if textLine = OopStringToWord(OOPList[14]) then begin
-								deltaX := deltaX - ix;
-								deltaY := deltaY - iy;
-							end;
 							if ElementDuplicate(ix, iy, deltaX, deltaY, statId) then
 								BoardDrawTile(X + deltaX, Y + deltaY);
 						end else if OopWord = OopStringToWord(OOPList[4]) then begin {'SHOVE'}
 							OopReadDirection(statId, position, ix, iy);
 							textLine := OopNextWord(statId, position);
 							OopReadDirection(statId, position, deltaX, deltaY);
-							if textLine = OopStringToWord(OOPList[14]) then begin
-								deltaX := deltaX - ix;
-								deltaY := deltaY - iy;
-							end;
+							SwapRelative(deltaX,deltaY,ix,iy,textLine);
 							Inc(ix,X);
 							Inc(iy,Y);
 							argTile.Element := Board.Tiles[ix][iy].Element;
