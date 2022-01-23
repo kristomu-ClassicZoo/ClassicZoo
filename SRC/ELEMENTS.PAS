@@ -1529,8 +1529,11 @@ procedure ElementPlayerTick(statId: integer);
 					GameWorldSave('Save game:', SavedGameFileName, '.SAV');
 				end;
 				'P': begin
-					if World.Info.Health > 0 then
-						GamePaused := true;
+					if not NeuromotorAssist then begin
+						if World.Info.Health > 0 then begin
+							GamePaused := true;
+						end;
+					end;
 				end;
 				'B': begin
 					SoundEnabled := not SoundEnabled;

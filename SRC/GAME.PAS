@@ -2095,7 +2095,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(62, 21, $70, ' S ');
 				VideoWriteText(65, 21, $1F, ' Save game');
 				VideoWriteText(62, 22, $30, ' P ');
-				VideoWriteText(65, 22, $1F, ' Pause');
+				if NeuromotorAssist then
+					VideoWriteText(65, 22, $1F, ' Proceed')
+				else
+					VideoWriteText(65, 22, $1F, ' Pause');
 				VideoWriteText(62, 23, $70, ' Q ');
 				VideoWriteText(65, 23, $1F, ' Quit');
 			end else if GameStateElement = E_MONITOR then begin
@@ -2238,13 +2241,18 @@ procedure GamePlayLoop(boardChanged: boolean);
 			if ((CurrentStatTicked > Board.StatCount)) and not GamePlayExitRequested then begin
 				{ all stats ticked }
 				if SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
-					{ next cycle }
-					Inc(CurrentTick);
-					if CurrentTick > 420 then
-						CurrentTick := 1;
-					CurrentStatTicked := 0;
-
 					InputUpdate;
+					if NeuromotorAssist and (InputKeyPressed = #0) then begin
+						SoundIdle(IMUntilFrame);
+					end else begin
+						{ next cycle }
+						Inc(CurrentTick);
+						if CurrentTick > 420 then
+							CurrentTick := 1;
+						CurrentStatTicked := 0;
+					end;
+
+					{ In ZZT 3.2, InputUpdate; is here. }
 {$IFDEF SDL2}
 				end else begin
 					SoundIdle(IMUntilPit);

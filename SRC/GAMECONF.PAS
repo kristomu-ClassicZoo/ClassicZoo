@@ -48,6 +48,9 @@ interface
 	function ConfigCleenModeGetValue: integer;
 	procedure ConfigCleenModeSetValue(value: integer);
 	function ConfigCleenModeShowValue: string;
+	function ConfigNeuromotorAssistGetValue: integer;
+	procedure ConfigNeuromotorAssistSetValue(value: integer);
+	function ConfigNeuromotorAssistShowValue: string;
 	function ConfigVidColorGetValue: integer;
 	procedure ConfigVidColorSetValue(value: integer);
 	function ConfigVidColorShowValue: string;
@@ -166,6 +169,25 @@ function ConfigCleenModeShowValue: string;
 			ConfigCleenModeShowValue := 'Yes'
 		else
 			ConfigCleenModeShowValue := 'No';
+	end;
+
+function ConfigNeuromotorAssistGetValue: integer;
+	begin
+		ConfigNeuromotorAssistGetValue := Byte(NeuromotorAssist);
+	end;
+
+procedure ConfigNeuromotorAssistSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		NeuromotorAssist := Boolean(value);
+	end;
+
+function ConfigNeuromotorAssistShowValue: string;
+	begin
+		if NeuromotorAssist then
+			ConfigNeuromotorAssistShowValue := 'Yes'
+		else
+			ConfigNeuromotorAssistShowValue := 'No';
 	end;
 
 function ConfigVidColorGetValue: integer;
@@ -523,7 +545,7 @@ function ConfigInputCustomAction: boolean;
 {$ENDIF}
 
 const
-	ConfigEntryCount = 3
+	ConfigEntryCount = 5
 	{$IFDEF MSDOS} + 2 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF DEBUGWND} + 3 {$ENDIF}
@@ -578,11 +600,21 @@ procedure GameConfigInit;
 		Inc(i);
 		with ConfigEntries[i] do begin
 			Category := CCEngine;
-			Key := 'ECleenM';
+			Key := 'ACleenM';
 			Name := 'Reduced messages';
 			GetValue := ConfigCleenModeGetValue;
 			SetValue := ConfigCleenModeSetValue;
 			ShowValue := ConfigCleenModeShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCEngine;
+			Key := 'ANeuroO';
+			Name := 'Neuromotor assist';
+			GetValue := ConfigNeuromotorAssistGetValue;
+			SetValue := ConfigNeuromotorAssistSetValue;
+			ShowValue := ConfigNeuromotorAssistShowValue;
 			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);

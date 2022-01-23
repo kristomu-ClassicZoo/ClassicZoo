@@ -335,6 +335,7 @@ interface
 		HighCompat: boolean;
 		HighCompatAuto: boolean;
 		CleenMode: boolean;
+		NeuromotorAssist: boolean;
 
 {$IFDEF EXTCHEAT}
 		CheatColorModifiers: array[0 .. MAX_ELEMENT] of byte;
