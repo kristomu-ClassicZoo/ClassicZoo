@@ -45,6 +45,9 @@ interface
 	function ConfigEdAutoAppendGetValue: integer;
 	procedure ConfigEdAutoAppendSetValue(value: integer);
 	function ConfigEdAutoAppendShowValue: string;
+	function ConfigCleenModeGetValue: integer;
+	procedure ConfigCleenModeSetValue(value: integer);
+	function ConfigCleenModeShowValue: string;
 	function ConfigVidColorGetValue: integer;
 	procedure ConfigVidColorSetValue(value: integer);
 	function ConfigVidColorShowValue: string;
@@ -144,6 +147,25 @@ function ConfigEdAutoAppendShowValue: string;
 			ConfigEdAutoAppendShowValue := 'Yes'
 		else
 			ConfigEdAutoAppendShowValue := 'No';
+	end;
+
+function ConfigCleenModeGetValue: integer;
+	begin
+		ConfigCleenModeGetValue := Byte(Cleenmode);
+	end;
+
+procedure ConfigCleenModeSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		Cleenmode := Boolean(value);
+	end;
+
+function ConfigCleenModeShowValue: string;
+	begin
+		if Cleenmode then
+			ConfigCleenModeShowValue := 'Yes'
+		else
+			ConfigCleenModeShowValue := 'No';
 	end;
 
 function ConfigVidColorGetValue: integer;
@@ -551,6 +573,16 @@ procedure GameConfigInit;
 			GetValue := ConfigEdAutoAppendGetValue;
 			SetValue := ConfigEdAutoAppendSetValue;
 			ShowValue := ConfigEdAutoAppendShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCEngine;
+			Key := 'ECleenM';
+			Name := 'Reduced messages';
+			GetValue := ConfigCleenModeGetValue;
+			SetValue := ConfigCleenModeSetValue;
+			ShowValue := ConfigCleenModeShowValue;
 			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);

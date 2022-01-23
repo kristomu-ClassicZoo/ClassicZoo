@@ -5,6 +5,11 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
+$< ClassicZoo dev >
+
++ Added "Reduced messages" confg option,
+  equivalent to CleanZZT/CleenZZT.
+
 $< ClassicZoo 4.21 >
 
 + [SDL2] Added config option to change

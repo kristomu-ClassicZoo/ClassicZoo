@@ -1266,6 +1266,7 @@ procedure ElementForestTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 
 		SoundQueue(3, #57#1);
 
+		if CleenMode then exit;
 		if MessageForestNotShown then begin
 			DisplayMessage(200, 'A path is cleared through the forest.');
 		end;
@@ -1274,6 +1275,7 @@ procedure ElementForestTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 
 procedure ElementFakeTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
+		if CleenMode then exit;
 		if MessageFakeNotShown then begin
 			DisplayMessage(150, 'A fake wall - secret passage!');
 		end;
@@ -1331,6 +1333,7 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 
 procedure ElementWaterTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
+		if CleenMode then exit;
 		SoundQueue(3, #64#1#80#1);
 		DisplayMessage(100, 'Your way is blocked by water.');
 	end;

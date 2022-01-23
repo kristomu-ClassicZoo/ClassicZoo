@@ -130,6 +130,7 @@ begin
 	DebugEnabled := false;
 	HighCompat := false;
 	HighCompatAuto := true;
+	CleenMode := false;
 {$IFDEF EXTCHEAT}
 	CheatNoClip := false;
 	CheatFreeze := false;
