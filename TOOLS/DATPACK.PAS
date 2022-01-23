@@ -30,13 +30,14 @@ const
 	MAX_FILES = 24;
 	MAX_HLP_LINE_LENGTH = 50;
 	MAX_HLP_LINES = 1024;
-	RES_DATA_VERSION = -2;
+	RESOURCE_DATA_VERSION = -3;
 type
 	TResourceDataHeader = record
 		Version: integer;
 		EntryCount: integer;
 		Name: array[1 .. MAX_FILES] of string[12];
 		FileOffset: array[1 .. MAX_FILES] of longint;
+		FileSize: array[1 .. MAX_FILES] of word;
 	end;
 
 var
@@ -73,17 +74,54 @@ procedure PackFile;
 		fAddedLine: string;
 		fAddedLineCount: integer;
 		fAdded: text;
+		fAddedBin: file;
 		searchResult: SearchRec;
-	procedure AddFile(filename: string);
-		var
-			isHelpFile: boolean;
+	procedure BeginAddFile(filename: string);
 		begin
 			Hdr.Name[io] := UpCaseString(GetFilename(filename));
 			Hdr.FileOffset[io] := FilePos(f);
+		end;
+	procedure FinishAddFile;
+		begin
+			Hdr.FileSize[io] := FilePos(f) - Hdr.FileOffset[io];
 
+			Inc(io);
+			if io > MAX_FILES then begin
+				Writeln('Error: Too many files! ', io,
+	                          ' > ', MAX_FILES);
+				exit;
+			end;
+		end;
+	procedure AddBinaryFile(filename: string);
+		var
+			buffer: array[0 .. 255] of byte;
+			buflen: integer;
+			remaining: longint;
+		begin
+			WriteLn(' <- [b] ', Hdr.Name[io]);
+
+			Assign(fAddedBin, filename);
+			Reset(fAddedBin);
+			remaining := FileSize(fAddedBin);
+			Hdr.FileSize[io] := remaining;
+
+			while remaining > 0 do begin
+				if remaining > 256 then
+					buflen := 256
+				else
+					buflen := Word(remaining);
+				BlockRead(fAddedBin, buffer, buflen);
+				BlockWrite(f, buffer, buflen);
+			end;
+
+			Close(fAddedBin);
+		end;
+	procedure AddTextFile(filename: string);
+		var
+			isHelpFile: boolean;
+		begin
 			isHelpFile := (Pos('.HLP', Hdr.Name[io]) >= 1);
-
-			WriteLn(' <- ', Hdr.Name[io]);
+			WriteLn(' <- [t] ', Hdr.Name[io]);
 
 			fAddedLineCount := 1;
 			Assign(fAdded, filename);
@@ -114,13 +152,15 @@ procedure PackFile;
 			Close(fAdded);
 			fAddedLine := '@';
 			BlockWrite(f, fAddedLine, Length(fAddedLine) + 1);
-
-			io := io + 1;
-			if io > MAX_FILES then begin
-				Writeln('Error: Too many files! ', io,
-	                          ' > ', MAX_FILES);
-				exit;
-			end;
+		end;
+	procedure AddFile(filename: string);
+		begin
+			BeginAddFile(filename);
+			if (Pos('.HLP', Hdr.Name[io]) >= 1) or (Pos('.TXT', Hdr.Name[io]) >= 1) then
+				AddTextFile(filename)
+			else
+				AddBinaryFile(filename);
+			FinishAddFile;
 		end;
 	begin
 		Assign(f, ParamStr(2));
@@ -141,7 +181,7 @@ procedure PackFile;
 			end else AddFile(fAddedFn);
 		end;
 		Hdr.EntryCount := io - 1;
-		Hdr.Version := RES_DATA_VERSION;
+		Hdr.Version := RESOURCE_DATA_VERSION;
 
 		Seek(f, 0);
 		BlockWrite(f, Hdr, SizeOf(Hdr));
@@ -162,7 +202,7 @@ procedure UnpackFile;
 		Reset(f, 1);
 		BlockRead(f, Hdr, SizeOf(Hdr));
 
-		if Hdr.Version <> RES_DATA_VERSION then begin
+		if Hdr.Version <> RESOURCE_DATA_VERSION then begin
 			Writeln('Error: Unsupported version! ', Hdr.Version);
 			Close(f);
 			exit;

@@ -43,6 +43,7 @@ interface
 		MAX_TEXT_WINDOW_LINES = 1024;
 {$ENDIF}
 		MAX_RESOURCE_DATA_FILES = 24;
+		RESOURCE_DATA_VERSION = -3;
 		TextWindowX = 5;
 		TextWindowY = 3;
 		TextWindowWidth = 50;
@@ -74,6 +75,7 @@ interface
 			EntryCount: integer;
 			Name: array[1 .. MAX_RESOURCE_DATA_FILES] of string[12];
 			FileOffset: array[1 .. MAX_RESOURCE_DATA_FILES] of longint;
+			FileSize: array[1 .. MAX_RESOURCE_DATA_FILES] of word;
 		end;
 	var
 		TextWindowStrInnerEmpty: TVideoLine;
@@ -103,6 +105,8 @@ interface
 {$IFDEF EDITOR}
 	procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionString; syntaxHighlighting: boolean);
 {$ENDIF}
+	function ResourceDataCheckPresent: boolean;
+	function ResourceDataReadBinaryFile(name: TFilenameString; var fdata: pointer; foffset: word; fmaxsize: word): word;
 	procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowState; editing, showError: boolean);
 	procedure TextWindowSaveFile(filename: TFilenameString; var state: TTextWindowState);
 	procedure TextWindowDisplayFile(filename: TFilenameString; title: TTextWindowLine);
@@ -932,6 +936,82 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 	end;
 {$ENDIF}
 
+function ResourceDataCheckPresent: boolean;
+	var
+		f: file;
+		i: integer;
+	begin
+		if ResourceDataHeader.EntryCount = 0 then begin
+			AssignFSys(f, ResourceDataFileName);
+			Reset(f, 1);
+			if IOResult = 0 then begin
+{$IFDEF RAWSTRUCTS}
+				BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
+{$ELSE}
+				BlockRead(f, ResourceDataHeader.Version, SizeOf(ResourceDataHeader.Version));
+				BlockRead(f, ResourceDataHeader.EntryCount, SizeOf(ResourceDataHeader.EntryCount));
+				for i := 1 to MAX_RESOURCE_DATA_FILES do
+					BlockRead(f, ResourceDataHeader.Name[i], SizeOf(ResourceDataHeader.Name[i]));
+				for i := 1 to MAX_RESOURCE_DATA_FILES do
+					BlockRead(f, ResourceDataHeader.FileOffset[i], SizeOf(ResourceDataHeader.FileOffset[i]));
+				for i := 1 to MAX_RESOURCE_DATA_FILES do
+					BlockRead(f, ResourceDataHeader.FileSize[i], SizeOf(ResourceDataHeader.FileSize[i]));
+{$ENDIF}
+{$IFDEF ENDIAN_BIG}
+				ResourceDataHeader.Version := LEtoN(ResourceDataHeader.Version);
+				ResourceDataHeader.EntryCount := LEtoN(ResourceDataHeader.EntryCount);
+				for i := 1 to MAX_RESOURCE_DATA_FILES do
+					ResourceDataHeader.FileOffset[i] := LEtoN(ResourceDataHeader.FileOffset[i]);
+				for i := 1 to MAX_RESOURCE_DATA_FILES do
+					ResourceDataHeader.FileSize[i] := LEtoN(ResourceDataHeader.FileSize[i]);
+{$ENDIF}
+			end;
+			if (IOResult <> 0) or (ResourceDataHeader.Version <> RESOURCE_DATA_VERSION) then
+				ResourceDataHeader.EntryCount := -1;
+			Close(f);
+		end;
+
+		ResourceDataCheckPresent := (ResourceDataHeader.EntryCount > 0);
+	end;
+
+function ResourceDataReadBinaryFile(name: TFilenameString; var fdata: pointer; foffset: word; fmaxsize: word): word;
+	var
+		f: file;
+		i: integer;
+		entryPos: integer;
+		fsize: longint;
+		bsize: word;
+	begin
+		bsize := 0;
+		entryPos := -1;
+
+		if ResourceDataCheckPresent then begin
+			for i := 1 to ResourceDataHeader.EntryCount do begin
+				if (entryPos < 0) and (UpCaseString(ResourceDataHeader.Name[i]) = name) then begin
+					entryPos := i;
+				end;
+			end;
+
+			if entryPos >= 1 then begin
+				AssignFSys(f, name);
+				Reset(f, 1);
+				Seek(f, ResourceDataHeader.FileOffset[entryPos] + foffset);
+				if IOResult = 0 then begin
+					fsize := ResourceDataHeader.FileSize[entryPos] - foffset;
+					bsize := fmaxsize;
+					if (fsize < bsize) then bsize := fsize;
+					if bsize > 0 then begin
+						GetMem(fdata, bsize);
+						BlockRead(f, fdata^, bsize);
+					end;
+					Close(f);
+				end;
+			end;
+		end;
+
+		ResourceDataReadBinaryFile := bsize;
+	end;
+
 procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowState; editing, showError: boolean);
 	var
 		f: file;
@@ -959,33 +1039,8 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 
 			TextWindowInitState(state);
 			LoadedFilename := UpCaseString(filename);
-			if ResourceDataHeader.EntryCount = 0 then begin
-				AssignFSys(f, ResourceDataFileName);
-				Reset(f, 1);
-				if IOResult = 0 then begin
-{$IFDEF RAWSTRUCTS}
-					BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
-{$ELSE}
-					BlockRead(f, ResourceDataHeader.Version, SizeOf(ResourceDataHeader.Version));
-					BlockRead(f, ResourceDataHeader.EntryCount, SizeOf(ResourceDataHeader.EntryCount));
-					for i := 1 to MAX_RESOURCE_DATA_FILES do
-						BlockRead(f, ResourceDataHeader.Name[i], SizeOf(ResourceDataHeader.Name[i]));
-					for i := 1 to MAX_RESOURCE_DATA_FILES do
-						BlockRead(f, ResourceDataHeader.FileOffset[i], SizeOf(ResourceDataHeader.FileOffset[i]));
-{$ENDIF}
-{$IFDEF ENDIAN_BIG}
-					ResourceDataHeader.Version := LEtoN(ResourceDataHeader.Version);
-					ResourceDataHeader.EntryCount := LEtoN(ResourceDataHeader.EntryCount);
-					for i := 1 to MAX_RESOURCE_DATA_FILES do
-						ResourceDataHeader.FileOffset[i] := LEtoN(ResourceDataHeader.FileOffset[i]);
-{$ENDIF}
-				end;
-				if (IOResult <> 0) or (ResourceDataHeader.Version <> -2) then
-					ResourceDataHeader.EntryCount := -1;
-				Close(f);
-			end;
 
-			if entryPos = 0 then begin
+			if ResourceDataCheckPresent and (entryPos = 0) then begin
 				for i := 1 to ResourceDataHeader.EntryCount do begin
 					{ assumption: LoadedFilename is UpCaseString(filename) }
 					if UpCaseString(ResourceDataHeader.Name[i]) = LoadedFilename then begin
