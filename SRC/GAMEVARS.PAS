@@ -335,6 +335,7 @@ interface
 		HighCompat: boolean;
 		HighCompatAuto: boolean;
 		CleenMode: boolean;
+		CleenModeAuto: boolean;
 		NeuromotorAssist: boolean;
 
 {$IFDEF EXTCHEAT}

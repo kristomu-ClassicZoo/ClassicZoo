@@ -120,7 +120,8 @@ procedure ConfigCompatibilitySetValue(value: integer);
 	begin
 		if value > 2 then value := 0;
 		HighCompatAuto := (value = 0);
-		HighCompat := (value = 2);
+		if not HighCompatAuto then
+			HighCompat := (value = 2);
 	end;
 
 function ConfigCompatibilityShowValue: string;
@@ -154,18 +155,27 @@ function ConfigEdAutoAppendShowValue: string;
 
 function ConfigCleenModeGetValue: integer;
 	begin
-		ConfigCleenModeGetValue := Byte(Cleenmode);
+		if CleenModeAuto then
+			ConfigCleenModeGetValue := 0
+		else if CleenMode then
+			ConfigCleenModeGetValue := 2
+		else
+			ConfigCleenModeGetValue := 1;
 	end;
 
 procedure ConfigCleenModeSetValue(value: integer);
 	begin
-		if value > 1 then value := 0;
-		Cleenmode := Boolean(value);
+		if value > 2 then value := 0;
+		CleenModeAuto := (value = 0);
+		if not CleenModeAuto then
+			CleenMode := (value = 2);
 	end;
 
 function ConfigCleenModeShowValue: string;
 	begin
-		if Cleenmode then
+		if CleenModeAuto then
+			ConfigCleenModeShowValue := 'Automatic'
+		else if CleenMode then
 			ConfigCleenModeShowValue := 'Yes'
 		else
 			ConfigCleenModeShowValue := 'No';
@@ -966,6 +976,9 @@ procedure GameOptionsScreen(playingGame: boolean);
 
 			Inc(state.LineCount);
 			New(state.Lines[state.LineCount]);
+			state.Lines[state.LineCount]^ := '!;Help';
+			Inc(state.LineCount);
+			New(state.Lines[state.LineCount]);
 			state.Lines[state.LineCount]^ := '!;About %NAME%...';
 			Inc(state.LineCount);
 			New(state.Lines[state.LineCount]);
@@ -975,6 +988,8 @@ procedure GameOptionsScreen(playingGame: boolean);
 			if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
 				if state.LinePos = (state.LineCount - 1) then begin
 					GameAboutScreen;
+				end else if state.LinePos = (state.LineCount - 2) then begin
+					TextWindowDisplayFile('OPTIONS.HLP', 'Help');
 				end else if actionMap[state.LinePos] <> 0 then begin
 					with ConfigEntries[actionMap[state.LinePos]] do begin
 						if not CustomAction then

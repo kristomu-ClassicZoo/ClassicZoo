@@ -5,12 +5,14 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
-$< ClassicZoo dev >
+$< ClassicZoo 4.22 >
 
 + Added "Reduced messages" config option,
   equivalent to CleanZZT/CleenZZT.
 + Added "Neuromotor assist" config
   option, inspired by WiL's AccZZT.
++ Added "Help" option to the options
+  menu.
 
 $< ClassicZoo 4.21 >
 

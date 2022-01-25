@@ -131,6 +131,7 @@ begin
 	HighCompat := false;
 	HighCompatAuto := true;
 	CleenMode := false;
+	CleenModeAuto := true;
 	NeuromotorAssist := false;
 {$IFDEF EXTCHEAT}
 	CheatNoClip := false;

@@ -1062,7 +1062,9 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 
 				if HighCompatAuto then
 					HighCompat := (World.Info.Name = 'PHOEBUS');
-
+				if CleenModeAuto then
+					CleenMode := (World.Info.Name = 'obelisk')
+						or (World.Info.Name = 'CYBERPRG');
 {$IFDEF DEBUGWND}
 				{ BoardEnter is only called for play-boards, not title-boards. }
 				if titleOnly and DebugCompatEnabled then

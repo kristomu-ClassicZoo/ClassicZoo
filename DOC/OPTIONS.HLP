@@ -1,0 +1,150 @@
+$Options
+
+ClassicZoo offers many options to fine-
+tune the experience of playing ZZT.
+
+Note that some of these may not be
+present on your version of ClassicZoo.
+Different options apply to different
+forks!
+
+Contents:
+
+!engine;Engine
+!frontend;Frontend
+!editor;Editor
+!debugmode;Debug mode
+
+
+:engine;=== Engine ===
+
+:ecompat;[ Compatibility ]
+
+This option controls whether or not
+certain bugfixes are applied to the
+engine's behaviour when playing ZZT
+worlds.
+
+The default option, "Automatic", tries
+to provide an optimal experience for
+most worlds. However, you can manually
+enable the "Normal" or "Strict" (more
+bug-accurate) modes instead.
+
+:acleenm;[ Reduced messages ]
+
+This option disables the water sound,
+as well as the water, forest and fake
+messages. This is preferred by some
+game worlds.
+
+The default option, "Automatic",
+only enables reduced messages on worlds
+known to recommend them. However, you
+can manually toggle it on and off.
+
+:aneuroo;[ Neuromotor assist ]
+
+This option, if enabled, changes the
+mode of control in ZZT. By default, ZZT
+will tick at a constant rate - when
+neuromotor assist is on, it will instead
+only tick when the player presses a key.
+In addition, the "P" key changes function
+from "Pause" to "Proceed", allowing the
+player to tick the board without moving.
+
+:etrblkfr;[ Board transition speed ]
+
+This option controls how quickly the
+animation of transferring between boards
+plays.
+
+:etrtxtwd;[ Text window draw speed ]
+
+This option controls how quickly the
+animation of text windows opening and
+closing plays.
+
+:frontend;=== Frontend ===
+
+:fvidmono;[ Video ]
+
+This option allows toggling between color
+and monochrome mode - the latter being
+intended for Hercules/MDA machines
+on DOS.
+
+The SDL2 port provides additional options
+for fine-tuning the display experience:
+
+- Display scaling - incl. aspect ratios,
+- Charset - loading charsets (CHR/COM),
+- Palette - loading palettes (PAL/PLD),
+- Blinking - disabling blinking and/or
+  enabling high colors.
+
+:fsound;[ Sound/Volume ]
+
+This option allows controlling the sound
+volume. On DOS, only the sound itself
+may be toggled on or off instead.
+
+The SDL2 port, in addition, features
+"HQ Sound", which improves the accuracy
+of played notes, providing a slightly
+better audio experience.
+
+;finput;[ Input ]
+
+This option allows changing the input
+device. The DOS version supports
+keyboards, joysticks and mice. The SDL2
+port supports keyboards and gamepads.
+
+:editor;=== Editor ===
+
+:edappats;[ Auto-Append ]
+
+This option controls auto-appending
+patterns upon picking them from the
+board with ENTER (like in KevEdit).
+
+:debugmode;=== Debug mode ===
+
+NOTE: The debugger's options are not
+saved in the configuration file. They
+only persist within a given playthrough.
+
+:debug;[ Enable ]
+
+Global toggle for enabling the debugger.
+This enables the following functions:
+
+- Opening saved and locked games.
+- Detailed OOP error reports.
+- (DOS) Displaying the amount of free
+  memory while playing. 
+
+:dcompat;[ ZZT 3.2 compat checks ]
+
+This toggle checks for (some) behaviours
+which are invalid or unstable on ZZT 3.2,
+but fixed in ClassicZoo:
+
+- Bugged pushable movements,
+- Scrolls deleting themselves with OOP,
+- Binders Keepers (unstable in ZZT 3.2),
+- Saving boards above 20000 bytes in
+  size,
+- Loading boards with out-of-bounds
+  element IDs.
+
+:dundef;[ Undefined behavior checks ]
+
+This toggle checks for (some) behaviours
+which are unlikely to be correctly
+emulated across ports:
+
+- Out-of-bounds stat movements.
+
