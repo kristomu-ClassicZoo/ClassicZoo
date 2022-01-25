@@ -2244,7 +2244,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				{ all stats ticked }
 				if SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
 					InputUpdate;
-					if NeuromotorAssist and (InputKeyPressed = #0) then begin
+					if (GameStateElement = E_PLAYER) and NeuromotorAssist and (InputKeyPressed = #0) then begin
 						SoundIdle(IMUntilFrame);
 					end else begin
 						{ next cycle }
