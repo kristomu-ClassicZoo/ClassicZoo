@@ -62,6 +62,7 @@ interface
 		KEY_END = #213;
 	var
 		InputDeltaX, InputDeltaY: integer;
+		InputLastDeltaX, InputLastDeltaY: integer;
 		InputShiftPressed: boolean;
 		InputShiftAccepted: boolean;
 		InputKeyPressed: char;
@@ -325,6 +326,11 @@ procedure InputUpdate;
 				InputMouseButtonY := 0;
 			end;
 		end;
+
+		if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+			InputLastDeltaX := InputDeltaX;
+			InputLastDeltaY := InputDeltaY;
+		end;
 	end;
 
 function InputInitMouse: boolean;
@@ -355,6 +361,8 @@ procedure InputReadWaitKey;
 	end;
 
 begin
+	InputLastDeltaX := 0;
+	InputLastDeltaY := 0;
 	InputDeltaX := 0;
 	InputDeltaY := 0;
 	InputShiftPressed := false;

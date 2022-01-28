@@ -101,7 +101,7 @@ procedure PackFile;
 			WriteLn(' <- [b] ', Hdr.Name[io]);
 
 			Assign(fAddedBin, filename);
-			Reset(fAddedBin);
+			Reset(fAddedBin, 1);
 			remaining := FileSize(fAddedBin);
 			Hdr.FileSize[io] := remaining;
 
@@ -112,6 +112,7 @@ procedure PackFile;
 					buflen := Word(remaining);
 				BlockRead(fAddedBin, buffer, buflen);
 				BlockWrite(f, buffer, buflen);
+				Dec(remaining, buflen);
 			end;
 
 			Close(fAddedBin);

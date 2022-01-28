@@ -31,10 +31,11 @@ interface
 		TSDLBlinkMode = (BlinkModeHigh, BlinkModeOn, BlinkModeOff);
 		TSDLScalingMode = (SMNone, SM2x, SM3x, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
 		TVideoLine = string[80];
-		TScreenCopyLine = string[160];
+		TScreenCopyLine = string[160];		
 	var
 		VideoMonochrome: boolean;
 		VideoColumns: integer;
+		VideoRows: integer;
 		VideoBorderColor: integer;
 		VideoTextSegment: word;
 		VideoTextPointer: pointer;
@@ -101,6 +102,8 @@ const
 		$FFFFFF
 	);
 	TEXT_BLINK_RATE = 534;
+	MAX_VIDEO_BUFFER_SIZE_CHARS = (80 * 50);
+	MAX_VIDEO_BUFFER_SIZE_BYTES = (MAX_VIDEO_BUFFER_SIZE_CHARS * 2);
 var
 	window: PSDL_Window;
 	renderer: PSDL_Renderer;
@@ -111,8 +114,8 @@ var
 	charsetTexture: TCharsetTexture;
 	renderThread: PSDL_Thread;
 	renderThreadRunning: boolean;
-	screenBuffer: array[0 .. 3999] of byte;
-	screenBufferChange: array[0 .. 3999] of boolean; { we only use the even ones }
+	screenBuffer: array[0 .. (MAX_VIDEO_BUFFER_SIZE_BYTES - 1)] of byte;
+	screenBufferChange: array[0 .. (MAX_VIDEO_BUFFER_SIZE_BYTES - 1)] of boolean; { we only use the even ones }
 	blinkMode: TSDLBlinkMode;
 	scalingMode: TSDLScalingMode;
 	windowed: boolean;
@@ -123,7 +126,7 @@ var
 procedure VideoForcePlayfieldRedraw;
 	begin
 		SDL_LockMutex(playfieldMutex);
-		FillChar(screenBufferChange, 4000, true);
+		FillChar(screenBufferChange, MAX_VIDEO_BUFFER_SIZE_BYTES, true);
 		SDL_UnlockMutex(playfieldMutex);
 	end;
 
@@ -144,8 +147,8 @@ procedure CalcRenderArea(rect: PSDL_Rect; w, h: Int32);
 	var
 		origw, origh, iw, ih, scale: Int32;
 	begin
-		iw := 80 * charsetTexture.charWidth;
-		ih := 25 * charsetTexture.charHeight;
+		iw := VideoColumns * charsetTexture.charWidth;
+		ih := VideoRows * charsetTexture.charHeight;
 		origw := w;
 		origh := h;
 
@@ -208,8 +211,8 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 	begin
 		if window = Nil then exit;
 
-		iw := 80 * charsetTexture.charWidth;
-		ih := 25 * charsetTexture.charHeight;
+		iw := VideoColumns * charsetTexture.charWidth;
+		ih := VideoRows * charsetTexture.charHeight;
 		case scalingMode of
 			SMNone, SM2x, SM3x: begin
 				onlyIfTooSmall := false;
@@ -665,7 +668,7 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, '0');
 
 		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-			VideoColumns * 8, 25 * 16); { TODO: Allocates 640x400 texture to allow up to 8x16 fonts. }
+			VideoColumns * 8, VideoRows * 16); { TODO: Allocates 640x400 texture to allow up to 8x16 fonts. }
 
 		SDL_RenderClear(renderer);
 		SDL_RenderPresent(renderer);
@@ -683,7 +686,7 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 			srcRect.x := 0;
 			srcRect.y := 0;
 			srcRect.w := VideoColumns * charsetTexture.charWidth;
-			srcRect.h := 25 * charsetTexture.charHeight;
+			srcRect.h := VideoRows * charsetTexture.charHeight;
 
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 			SDL_RenderClear(renderer);
@@ -700,15 +703,15 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 
 			blink := (SDL_GetTicks mod TEXT_BLINK_RATE) >= (TEXT_BLINK_RATE div 2);
 
-			for iy := 0 to 24 do
+			for iy := 0 to (VideoRows - 1) do
 				for ix := 0 to (VideoColumns - 1) do
 					VideoDrawCharBg(ix, iy);
 
-			for iy := 0 to 24 do
+			for iy := 0 to (VideoRows - 1) do
 				for ix := 0 to (VideoColumns - 1) do
 					VideoDrawCharFg(ix, iy, blink);
 
-			FillChar(screenBufferChange, 4000, false);
+			FillChar(screenBufferChange, MAX_VIDEO_BUFFER_SIZE_BYTES, false);
 			SDL_UnlockMutex(playfieldMutex);
 
 			SDL_SetRenderTarget(renderer, nil);
@@ -790,6 +793,7 @@ procedure VideoInstall(borderColor: integer);
 		i: integer;
 	begin
 		VideoColumns := 80;
+		VideoRows := 25;
 		blinkMode := BlinkModeOn;
 		scalingMode := SMInteger;
 		windowed := true;
@@ -908,9 +912,10 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 	end;
 
 begin
-	FillChar(screenBuffer, 4000, 0);
-	FillChar(screenBufferChange, 4000, true);
+	FillChar(screenBuffer, MAX_VIDEO_BUFFER_SIZE_BYTES, 0);
+	FillChar(screenBufferChange, MAX_VIDEO_BUFFER_SIZE_BYTES, true);
 	VideoBorderColor := 0;
 	VideoColumns := 80;
+	VideoRows := 25;
 	VideoCursorVisible := true;
 end.

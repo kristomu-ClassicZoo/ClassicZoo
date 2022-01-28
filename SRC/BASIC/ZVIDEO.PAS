@@ -34,6 +34,8 @@ interface
 		TScreenCopyLine = string[100];
 		TScreenCopyLine16 = array[0 .. 49] of word;
 		TVideoWriteTextProc = procedure(x, y, color: byte; text: TVideoLine);
+	const
+		VideoRows = 25;
 	var
 		VideoWriteText: TVideoWriteTextProc;
 		VideoForceSafe: boolean;

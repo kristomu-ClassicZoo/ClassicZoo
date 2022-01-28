@@ -44,16 +44,18 @@ interface
 {$ENDIF}
 		MAX_RESOURCE_DATA_FILES = 24;
 		RESOURCE_DATA_VERSION = -3;
-		TextWindowX = 5;
-		TextWindowY = 3;
-		TextWindowWidth = 50;
-		TextWindowHeight = 18;
 		MAX_LINE_LENGTH_EDIT = 58;
 		MAX_LINE_LENGTH = 50;
 		{ TextWindowSelect flags }
 		TWS_HYPERLINK_AS_SELECT = $01;
 		TWS_VIEWING_FILE = $02;
 		TWS_IGNORE_HYPERLINKS = $04;
+		MAX_TEXT_WINDOW_WIDTH = 50;
+{$IFDEF E_SUPERZ}
+		MAX_TEXT_WINDOW_HEIGHT = 43;
+{$ELSE}
+		MAX_TEXT_WINDOW_HEIGHT = 18;
+{$ENDIF}
 	type
 		TExtensionString = string[4];
 		TTextWindowLine = string[MAX_LINE_LENGTH_EDIT];
@@ -66,9 +68,7 @@ interface
 			Hyperlink: string[20];
 			Title: TTextWindowLine;
 			LoadedFilename: string[50];
-			{ This used to be 25. This messes with the stack layout, but hopefully
-			  nothing decides to exploit it. }
-			ScreenCopy: array[1 .. (TextWindowHeight + 1)] of TScreenCopyLine;
+			ScreenCopy: array[1 .. (MAX_TEXT_WINDOW_HEIGHT + 1)] of TScreenCopyLine;
 		end;
 		TResourceDataHeader = record
 			Version: integer;
@@ -78,6 +78,10 @@ interface
 			FileSize: array[1 .. MAX_RESOURCE_DATA_FILES] of word;
 		end;
 	var
+		TextWindowX: integer;
+		TextWindowY: integer;
+		TextWindowWidth: integer;
+		TextWindowHeight: integer;
 		TextWindowStrInnerEmpty: TVideoLine;
 		TextWindowStrText: TVideoLine;
 		TextWindowStrInnerLine: TVideoLine;
@@ -106,11 +110,11 @@ interface
 	procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionString; syntaxHighlighting: boolean);
 {$ENDIF}
 	function ResourceDataCheckPresent: boolean;
-	function ResourceDataReadBinaryFile(name: TFilenameString; var fdata: pointer; foffset: word; fmaxsize: word): word;
+	function ResourceDataReadBinaryFile(name: TFilenameString; var fdata: pointer; foffset, fmaxsize: word): word;
 	procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowState; editing, showError: boolean);
 	procedure TextWindowSaveFile(filename: TFilenameString; var state: TTextWindowState);
 	procedure TextWindowDisplayFile(filename: TFilenameString; title: TTextWindowLine);
-	procedure TextWindowInit;
+	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
 {$IFDEF PRINTTXT}
@@ -144,7 +148,10 @@ procedure TextWindowPromptFilename(title: TString50; var filename: TFilenameStri
 		VideoWriteText(63, 5, $0F, '            ');
 
 		filename := '';
+		{ TODO MERGE }
+{$IFDEF E_ZZT}
 		PromptString(63, 5, $1E, $0F, 12, 128, PROMPT_ANY, filename);
+{$ENDIF}
 
 		SidebarClearLine(3);
 		SidebarClearLine(4);
@@ -987,13 +994,13 @@ function ResourceDataReadBinaryFile(name: TFilenameString; var fdata: pointer; f
 
 		if ResourceDataCheckPresent then begin
 			for i := 1 to ResourceDataHeader.EntryCount do begin
-				if (entryPos < 0) and (UpCaseString(ResourceDataHeader.Name[i]) = name) then begin
+				if (entryPos < 0) and (ResourceDataHeader.Name[i] = name) then begin
 					entryPos := i;
 				end;
 			end;
 
 			if entryPos >= 1 then begin
-				AssignFSys(f, name);
+				AssignFSys(f, ResourceDataFilename);
 				Reset(f, 1);
 				Seek(f, ResourceDataHeader.FileOffset[entryPos] + foffset);
 				if IOResult = 0 then begin
@@ -1043,7 +1050,7 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 			if ResourceDataCheckPresent and (entryPos = 0) then begin
 				for i := 1 to ResourceDataHeader.EntryCount do begin
 					{ assumption: LoadedFilename is UpCaseString(filename) }
-					if UpCaseString(ResourceDataHeader.Name[i]) = LoadedFilename then begin
+					if ResourceDataHeader.Name[i] = LoadedFilename then begin
 						entryPos := i;
 						goto EntryPosFoundResData;
 					end;
@@ -1140,10 +1147,21 @@ procedure TextWindowDisplayFile(filename: TFilenameString; title: TTextWindowLin
 		TextWindowFree(state);
 	end;
 
-procedure TextWindowInit;
+procedure TextWindowInit(x, y, width, height: integer);
 	var
 		i: integer;
 	begin
+		TextWindowX := x;
+		TextWindowY := y;
+		if width > MAX_TEXT_WINDOW_WIDTH then
+			TextWindowWidth := MAX_TEXT_WINDOW_WIDTH
+		else
+			TextWindowWidth := width;
+		if height > MAX_TEXT_WINDOW_HEIGHT then
+			TextWindowHeight := MAX_TEXT_WINDOW_HEIGHT
+		else
+			TextWindowHeight := height;
+
 		TextWindowStrInnerEmpty[0] := Chr(TextWindowWidth - 5);
 		TextWindowStrInnerLine[0] := Chr(TextWindowWidth - 5);
 		for i := 1 to (TextWindowWidth - 5) do begin

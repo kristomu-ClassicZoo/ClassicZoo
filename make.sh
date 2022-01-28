@@ -10,6 +10,7 @@ CLEANUP=yes
 FREE_PASCAL=
 ARCH=i8086
 FPC_BINARY=ppcross8086
+ENGINE=ZZT
 PLATFORM=msdos
 PLATFORM_UNIT_LOWER=dos
 PLATFORM_UNIT=DOS
@@ -19,7 +20,7 @@ DEBUG_BUILD=
 # Parse arguments
 
 OPTIND=1
-while getopts "a:d:e:o:p:rg" opt; do
+while getopts "a:d:e:n:o:p:rg" opt; do
 	case "$opt" in
 	a)
 		IFS='-' read -ra OPTARGARCH <<< "$OPTARG"
@@ -84,6 +85,9 @@ while getopts "a:d:e:o:p:rg" opt; do
 	e)
 		EXECUTABLE_NAME=$OPTARG
 		;;
+	n)
+		ENGINE=$OPTARG
+		;;
 	o)
 		OUTPUT_ARCHIVE=$OPTARG
 		;;
@@ -109,6 +113,15 @@ if [ ! -n "$OUTPUT_ARCHIVE" ]; then
 	fi
 fi
 
+# Add E_$ENGINE define.
+FPC_DEFINES=$FPC_DEFINES" -dE_"$ENGINE
+if [ -n "$TPC_DEFINES" ]; then
+	TPC_DEFINES=$TPC_DEFINES",E_"$ENGINE
+else
+	TPC_DEFINES="E_"$ENGINE
+fi
+
+# Populate TPC_ARGS and FPC_ARGS.
 TPC_ARGS=""
 FPC_ARGS=""
 if [ -z "$DEBUG_BUILD" ]; then
@@ -142,6 +155,10 @@ if [ -f "$PROPERTIES_FILE" ]; then
 		done
 	done < "$PROPERTIES_FILE"
 fi
+# Replace %ENGINE% with configured engine name
+for i in `find "$TEMP_PATH"/SRC -type f`; do
+	sed -i -e 's#%'ENGINE'%#'"$ENGINE"'#g' "$i"
+done
 
 FPC_BINARY_PATH="$FPC_PATH"
 if [ -x "$(command -v $FPC_BINARY)" ]; then
@@ -149,6 +166,7 @@ if [ -x "$(command -v $FPC_BINARY)" ]; then
 fi
 
 sed -i -e 's#%COMPARGS%#'"$TPC_ARGS"'#g' "$TEMP_PATH"/BUILD.BAT
+sed -i -e 's#%ENGINE%#'"$ENGINE"'#g' "$TEMP_PATH"/BUILD.BAT
 sed -i -e 's#%FPC_PATH%#'"$FPC_PATH"'#g' "$TEMP_PATH"/SYSTEM/fpc.datpack.cfg
 for i in `ls "$TEMP_PATH"/SYSTEM/fpc.*.cfg`; do
 	sed -i -e 's#%FPC_PATH%#'"$FPC_BINARY_PATH"'#g' "$i"
@@ -157,6 +175,14 @@ echo "Compiling Pascal code..."
 
 RETURN_PATH=$(pwd)
 cd "$TEMP_PATH"
+
+cp DOC/BASIC/* DOC/
+if [ -d DOC/"$PLATFORM_UNIT" ]; then
+	cp DOC/"$PLATFORM_UNIT"/* DOC/
+fi
+if [ -d DOC/"$ENGINE" ]; then
+	cp DOC/"$ENGINE"/* DOC/
+fi
 
 if [ -n "$FREE_PASCAL" ]; then
 	if [ ! -d "$FPC_PATH" ]; then
@@ -174,6 +200,7 @@ if [ -n "$FREE_PASCAL" ]; then
 	cd SYSTEM
 	touch ../SRC/fpc.cfg
 	echo '-FuBASIC' >> ../SRC/fpc.cfg
+	echo '-Fu'$ENGINE >> ../SRC/fpc.cfg
 	if [ -f fpc."$ARCH"."$PLATFORM"."$PLATFORM_UNIT_LOWER".cfg ]; then
 		cat fpc."$ARCH"."$PLATFORM"."$PLATFORM_UNIT_LOWER".cfg >> ../SRC/fpc.cfg
 	elif [ -f fpc."$ARCH"."$PLATFORM".any.cfg ]; then
@@ -217,7 +244,6 @@ if [ -n "$FREE_PASCAL" ]; then
 
 	cd SRC
 	echo "[ Building ZZT.EXE ]"
-	echo "$FPC_BINARY_PATH"/bin/"$FPC_BINARY" $FPC_ARGS ZZT.PAS
 	"$FPC_BINARY_PATH"/bin/"$FPC_BINARY" $FPC_ARGS ZZT.PAS
 	if [ -f ZZT.exe ]; then
 		cp ZZT.exe ../BUILD/ZZT.EXE
@@ -238,6 +264,9 @@ else
 
 	cp SRC/"$PLATFORM_UNIT"/*.PAS SRC/ 2>/dev/null
 	cp SRC/"$PLATFORM_UNIT"/*.INC SRC/ 2>/dev/null
+
+	cp SRC/"$ENGINE"/*.PAS SRC/ 2>/dev/null
+	cp SRC/"$ENGINE"/*.INC SRC/ 2>/dev/null
 
 	if [ "$EXTMEM_STUB" = "true" ]; then
 		cp SRC/EXTMEM_S.PAS SRC/EXTMEM.PAS 2>/dev/null
@@ -272,13 +301,16 @@ if [ "$ARCH" = "i8086" ] && [ "$PLATFORM" = "msdos" ]; then
 	fi
 fi
 
-if [ -f BUILD/ZZT.DAT ]; then
-	cp BUILD/ZZT.DAT DIST/
+if [ -f BUILD/$ENGINE.DAT ]; then
+	cp BUILD/$ENGINE.DAT DIST/
 fi
 cp LICENSE.TXT DIST/
 cp RES/BASIC/* DIST/
 if [ -d RES/"$PLATFORM_UNIT" ]; then
 	cp RES/"$PLATFORM_UNIT"/* DIST/
+fi
+if [ -d RES/"$ENGINE" ]; then
+	cp RES/"$ENGINE"/* DIST/
 fi
 
 cd DIST

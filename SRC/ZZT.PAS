@@ -25,10 +25,18 @@
 
 {$I-}
 {$IFNDEF FPC}
+{$IFDEF E_SUPERZ}
 {$IFDEF NEC98}
-{$M 24576,163840,655360}
+{$M 32768,163840,655360}
 {$ELSE}
-{$M 20480,163840,655360}
+{$M 28672,163840,655360}
+{$ENDIF}
+{$ELSE}
+{$IFDEF NEC98}
+{$M 28672,163840,655360}
+{$ELSE}
+{$M 24576,163840,655360}
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 program ZZT;
@@ -52,7 +60,7 @@ function FileNameFromProgramName(const ext: string; checkExists: boolean): strin
 		s: string;
 	begin
 		s := FExpand(ChangeFileExt(ExtractFileName(ParamStr(0)), ext));
-		if checkExists and not FileExists(s) then s := FExpand('ZZT' + ext);
+		if checkExists and not FileExists(s) then s := FExpand('%ENGINE%' + ext);
 		FileNameFromProgramName := s;
 	end;
 {$ENDIF}
@@ -109,11 +117,11 @@ begin
 	ConfigFileName := FileNameFromProgramName('.INI', false);
 {$ELSE}
 {$IFDEF SUBDIRS}
-	ResourceDataFileName := FExpand('ZZT.DAT');
-	ConfigFileName := FExpand('ZZT.INI');
+	ResourceDataFileName := FExpand('%ENGINE%.DAT');
+	ConfigFileName := FExpand('%ENGINE%.INI');
 {$ELSE}
-	ResourceDataFileName := 'ZZT.DAT';
-	ConfigFileName := 'ZZT.INI';
+	ResourceDataFileName := '%ENGINE%.DAT';
+	ConfigFileName := '%ENGINE%.INI';
 {$ENDIF}
 {$ENDIF}
 	GameTitleExitRequested := false;
@@ -138,11 +146,18 @@ begin
 	CheatFreeze := false;
 {$ENDIF}
 {$IFDEF DEBUGWND}
+{$IFDEF E_ZZT}
 	DebugCompatEnabled := false;
 	DebugUndefEnabled := false;
 {$ENDIF}
+{$ENDIF}
 
-	VideoInstall(1);
+{$IFDEF E_ZZT}
+	if VideoInstall(VIDEO_MODE_80X25, 1) then begin end;
+{$ENDIF}
+{$IFDEF E_SUPERZ}
+	if GameVideoInstall(VIDEO_MODE_80X25, VIEW_TITLE) then begin end;
+{$ENDIF}
 
 	GameConfigInit;
 	if not GameConfigLoad then begin
@@ -154,7 +169,7 @@ begin
 	ParseArguments;
 
 	if not GameTitleExitRequested then begin
-		TextWindowInit; { (5, 3, 50, 18) }
+		TextWindowInit(5, 3, 50, 18);
 		GetMem(IoTmpBuf, IoTmpBufSize);
 
 {$IFDEF SDL2}

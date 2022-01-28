@@ -30,6 +30,9 @@ interface
 	type
 		TVideoLine = string[80];
 		TScreenCopyLine = string[200];
+	const
+		VideoColumns = 25;
+		VideoRows = 25;
 	var
 		VideoEightColor: boolean;
 		VideoForceSafe: boolean;
@@ -56,7 +59,7 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 		attr: word;
 		i, offset: integer;
 	begin
-		offset := (y * 80 + x) * 2;
+		offset := (y * VideoColumns + x) * 2;
 		if ((color and $70) shr 4) = (color and $0F) then begin
 			{ Same color. }
 			attr := ATTR_MAP[color and $70];
@@ -127,7 +130,7 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	var
 		offset: integer;
 	begin
-		offset := (y * 80 + x) * 2;
+		offset := (y * VideoColumns + x) * 2;
 		if toVideo then begin
 			Move(data^, Ptr($A000, offset)^, chars * 2);
 			Move(Ptr(Seg(data^), Ofs(data^) + (chars * 2))^, Ptr($A200, offset)^, chars * 2);
@@ -152,7 +155,7 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 			y2 := ix;
 		end;
 		for iy := y1 to y2 do begin
-			offset := ((iy * 80) + x1) shl 1;
+			offset := ((iy * VideoColumns) + x1) shl 1;
 				for ix := x1 to x2 do begin
 				MemW[$A200:offset] := MemW[$A200:offset] xor $04;
 				Inc(offset, 2);
