@@ -97,12 +97,9 @@ interface
 			Cycle: integer;
 			TickProc: TElementTickProc;
 			TouchProc: TElementTouchProc;
-{$IFNDEF RUNTINY}
 			EditorCategory: integer;
 			EditorShortcut: char;
-{$ENDIF}
 			Name: string[20];
-{$IFNDEF RUNTINY}
 			CategoryName: string[20];
 			Param1Name: string[20];
 			Param2Name: string[20];
@@ -110,9 +107,6 @@ interface
 			ParamBoardName: string[20];
 			ParamDirName: string[20];
 			ParamTextName: string[20];
-{$ELSE}
-			HasText: boolean;
-{$ENDIF}
 			ScoreValue: integer;
 		end;
 {$IFDEF RAWSTRUCTS}
@@ -245,9 +239,7 @@ interface
 			BoardLenOld: array[0 .. 100] of word;
 {$ENDIF}
 			Info: TWorldInfo;
-{$IFNDEF RUNTINY}
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
-{$ENDIF}
 		end;
 		TWorldExt = record
 			BoardData: array[0 .. MAX_BOARD] of TExtMemBlock;

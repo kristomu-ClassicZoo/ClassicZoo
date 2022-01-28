@@ -166,11 +166,7 @@ begin
 		ResetCachedLinePos;
 		WorldCreate;
 
-{$IFDEF EDITONLY}
-		EditorLoop;
-{$ELSE}
 		GameTitleLoop;
-{$ENDIF}
 
 		FreeMem(IoTmpBuf, IoTmpBufSize);
 		ExtMemUninstall;

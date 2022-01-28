@@ -2038,9 +2038,7 @@ procedure GameDebugPrompt;
 		SoundQueue(10, #39#4);
 		SidebarClearLine(4);
 		SidebarClearLine(5);
-{$IFNDEF EDITONLY}
 		GameUpdateSidebar;
-{$ENDIF}
 	end;
 
 procedure GameOnStart;
