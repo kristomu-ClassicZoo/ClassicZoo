@@ -30,24 +30,36 @@ interface
 	type
 		TVideoLine = string[80];
 		TScreenCopyLine = string[200];
+		TCharsetData = array[0 .. 31999] of byte;
+		PTCharsetData = ^TCharsetData;
 	const
-		VideoColumns = 25;
+		VideoColumns = 80;
 		VideoRows = 25;
+		VIDEO_MODE_40X25 = 0;
+		VIDEO_MODE_80X25 = 1;
+		VIDEO_MODE_80X43 = 2;
+		VIDEO_MODE_80X50 = 3;
+		VIDEO_CHARSET_UNCHANGED = -1;
 	var
 		VideoEightColor: boolean;
 		VideoForceSafe: boolean;
 		VideoForceNoSnow: boolean;
 		VideoMonochrome: boolean;
 		VideoBlinkMask: byte;
+		VideoCurrentMode: integer;
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
-	procedure VideoInstall(borderColor: integer);
+	function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
+		borderColor: integer): boolean;
 	procedure VideoUninstall;
 	procedure VideoShowCursor;
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
 	procedure VideoSetBlink(value: boolean);
+	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
+	procedure VideoClear(bgColor: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
+	procedure VideoScroll(x, y, width, height, dx, dy: integer);
 
 implementation
 uses Dos, PC98, TimerSys;
@@ -78,13 +90,18 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 		end;
 	end;
 
-procedure VideoInstall(borderColor: integer);
+function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
+	borderColor: integer): boolean;
 	var
 		regs: Registers;
 	begin
+		VideoInstall := false;
+		if mode <> VIDEO_MODE_80X25 then exit;
+
 		{ TODO }
 		ClrScr;
 		VideoHideCursor;
+		VideoInstall := true;
 	end;
 
 procedure VideoUninstall;
@@ -126,6 +143,17 @@ procedure VideoSetBlink(value: boolean);
 			VideoBlinkMask := $00;
 	end;
 
+function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
+	begin
+		VideoSetCharset := false;
+	end;
+
+procedure VideoClear(bgColor: integer);
+	begin
+		{ stub }
+		ClrScr;
+	end;
+
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	var
 		offset: integer;
@@ -162,11 +190,64 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 			end;
 		end;
 	end;
-		
+
+procedure VideoScroll(x, y, width, height, dx, dy: integer);
+	var
+		iy: integer;
+		srcOfs, destOfs: integer;
+	begin
+		if dy = 0 then begin
+			if dx >= 0 then begin
+				{ move right }
+				srcOfs := (y * VideoColumns + x) * 2;
+				destOfs := srcOfs + (dx * 2);
+				for iy := 1 to height do begin
+					Move(Ptr($A000, srcOfs)^, Ptr($A000, destOfs)^, (width - dx) * 2);
+					Move(Ptr($A200, srcOfs)^, Ptr($A200, destOfs)^, (width - dx) * 2);
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end else begin
+				{ move left }
+				destOfs := (y * VideoColumns + x) * 2;
+				srcOfs := destOfs - (dx * 2);
+				for iy := 1 to height do begin
+					Move(Ptr($A000, srcOfs)^, Ptr($A000, destOfs)^, (width + dx) * 2);
+					Move(Ptr($A200, srcOfs)^, Ptr($A200, destOfs)^, (width + dx) * 2);
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end;
+		end else begin
+			if dy > 0 then begin
+				{ move down }
+				srcOfs := ((y + height - 2) * VideoColumns + x) * 2;
+				destOfs := VideoColumns * 2 + srcOfs;
+				for iy := 1 to (height - 1) do begin
+					Move(Ptr($A000, srcOfs)^, Ptr($A000, destOfs)^, width * 2);
+					Move(Ptr($A200, srcOfs)^, Ptr($A200, destOfs)^, width * 2);
+					srcOfs := srcOfs - (VideoColumns * 2);
+					destOfs := destOfs - (VideoColumns * 2);
+				end;
+			end else begin
+				{ move up }
+				destOfs := (y * VideoColumns + x) * 2;
+				srcOfs := VideoColumns * 2 + destOfs;
+				for iy := 1 to (height - 1) do begin
+					Move(Ptr($A000, srcOfs)^, Ptr($A000, destOfs)^, width * 2);
+					Move(Ptr($A200, srcOfs)^, Ptr($A200, destOfs)^, width * 2);
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end;
+		end;
+	end;
+
 begin
 	VideoEightColor := true;
 	VideoMonochrome := false;
 	VideoBlinkMask := $FF;
+	VideoCurrentMode := VIDEO_MODE_80X25;
 
 	SetCBreak(false);
 end.

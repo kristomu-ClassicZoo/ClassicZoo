@@ -26,11 +26,7 @@
 {$I-}
 {$IFNDEF FPC}
 {$IFDEF E_SUPERZ}
-{$IFDEF NEC98}
-{$M 32768,163840,655360}
-{$ELSE}
 {$M 28672,163840,655360}
-{$ENDIF}
 {$ELSE}
 {$IFDEF NEC98}
 {$M 28672,163840,655360}
@@ -86,6 +82,10 @@ procedure ParseArguments;
 {$IFNDEF NEC98}
 				if pArg = '/NOSNOW' then
 					VideoForceNoSnow := true
+{$IFDEF E_SUPERZ}
+				else if pArg = '/NOFONT' then
+					UseCustomFont := false
+{$ENDIF}
 				else if pArg = '/SAFEV' then
 					VideoForceSafe := true;
 {$ENDIF}
@@ -153,10 +153,7 @@ begin
 {$ENDIF}
 
 {$IFDEF E_ZZT}
-	if VideoInstall(VIDEO_MODE_80X25, 1) then begin end;
-{$ENDIF}
-{$IFDEF E_SUPERZ}
-	if GameVideoInstall(VIDEO_MODE_80X25, VIEW_TITLE) then begin end;
+	if VideoInstall(VIDEO_MODE_80X25, Ptr(0, 0), 0, 1) then begin end;
 {$ENDIF}
 
 	GameConfigInit;
@@ -166,7 +163,13 @@ begin
 	end else begin
 		JustStarted := false;
 	end;
+{$IFDEF E_SUPERZ}
+	UseCustomFont := true;
+{$ENDIF}
 	ParseArguments;
+{$IFDEF E_SUPERZ}
+	if GameVideoInstall(VIDEO_MODE_80X25, VIEW_TITLE) then begin end;
+{$ENDIF}
 
 	if not GameTitleExitRequested then begin
 		TextWindowInit(5, 3, 50, 18);

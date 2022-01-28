@@ -23,13 +23,24 @@
 	SOFTWARE.
 }
 
+{$IFDEF FPC}
+{$IFDEF RAWSTRUCTS}
+{$PACKRECORDS 1}
+{$ENDIF}
+{$ENDIF}
+
 unit GameVars;
 
 interface
 	uses ExtMem;
 	const
 		MAX_STAT = 128;
+		SZZT20_MAX_ELEMENT = 79;
+{$IFDEF SDL2}
+		MAX_ELEMENT = 255;
+{$ELSE}
 		MAX_ELEMENT = 79;
+{$ENDIF}
 		MAX_FLAG = 16;
 		MAX_BOARD = 255;
 		BOARD_WIDTH = 96;
@@ -43,9 +54,15 @@ interface
 		TORCH_DY = 8;
 		TORCH_DIST_SQR = 64 { 8 * 8 };
 		OOP_TOKEN_LENGTH = 20;
+{$IFDEF SDL2}
+		IO_BUFFER_DEFAULT_SIZE = 65535;
+		IO_BUFFER_MAXIMUM_SIZE = 65535;
+{$ELSE}
 		IO_BUFFER_DEFAULT_SIZE = 20000;
 		IO_BUFFER_MAXIMUM_SIZE = 65500;
+{$ENDIF}
 		IO_BUFFER_SIZE_INCREMENT = 500;
+		STAT_SIZE_BYTES = 25;
 		{ UI-only }
 		MAX_BOARD_NAME_LENGTH = 42;
 		MAX_HIGH_SCORE_NAME_LENGTH = 15;
@@ -92,6 +109,33 @@ interface
 			ParamTextName: string[20];
 			ScoreValue: integer;
 		end;
+{$IFDEF RAWSTRUCTS}
+		TStat = record
+			X, Y: byte;
+			StepX, StepY: integer;
+			Cycle: integer;
+			P1, P2, P3: byte;
+			Follower: integer;
+			Leader: integer;
+			Under: TTile;
+			{$IFDEF CPU64}
+			{ Workaround for 64-bit CPUs, which have 8-byte pointers. }
+			UnusedData: longint;
+			{$ELSE}
+			{$IFNDEF FPC}
+			Data: ^string;
+			{$ELSE}
+			{ Free Pascal allows pointers to act as arrays. }
+			Data: ^char;
+			{$ENDIF}
+			{$ENDIF}
+			DataPos: integer;
+			DataLen: integer;
+			{$IFDEF CPU64}
+			Data: ^char;
+			{$ENDIF}
+		end;
+{$ELSE}
 		TStat = record
 			X, Y: byte;
 			StepX, StepY: integer;
@@ -103,16 +147,17 @@ interface
 			{$IFNDEF FPC}
 			Data: ^string;
 			{$ELSE}
-			{ Free Pascal allows pointers to act as arrays. }
 			Data: ^char;
 			{$ENDIF}
 			DataPos: integer;
 			DataLen: integer;
 		end;
+{$ENDIF}
 		TRleTile = record
 			Count: byte;
 			Tile: TTile;
 		end;
+{$IFDEF RAWSTRUCTS}
 		TBoardInfo = record
 			MaxShots: byte;
 			NeighborBoards: array[0 .. 3] of byte;
@@ -142,6 +187,33 @@ interface
 			StonesOfPower: integer;
 			unk3: array[387 .. 398] of byte;
 		end;
+{$ELSE}
+		TBoardInfo = record
+			MaxShots: byte;
+			NeighborBoards: array[0 .. 3] of byte;
+			ReenterWhenZapped: boolean;
+			StartPlayerX: byte;
+			StartPlayerY: byte;
+			DrawXOffset: integer;
+			DrawYOffset: integer;
+			TimeLimitSec: integer;
+		end;
+		TWorldInfo = record
+			Ammo: integer;
+			Gems: integer;
+			Keys: array [1..7] of boolean;
+			Health: integer;
+			CurrentBoard: integer;
+			EnergizerTicks: integer;
+			Score: integer;
+			Name: string[20];
+			Flags: array[1 .. MAX_FLAG] of string[20];
+			BoardTimeSec: integer;
+			BoardTimeHsec: integer;
+			IsSave: boolean;
+			StonesOfPower: integer;
+		end;
+{$ENDIF}
 		TEditorStatSetting = record
 			P1, P2, P3: byte;
 			StepX, StepY: integer;
@@ -246,6 +318,7 @@ interface
 		CleenMode: boolean;
 		CleenModeAuto: boolean;
 		NeuromotorAssist: boolean;
+		UseCustomFont: boolean;
 
 {$IFDEF EXTCHEAT}
 		CheatColorModifiers: array[0 .. MAX_ELEMENT] of byte;
@@ -257,6 +330,10 @@ interface
 		FileTextCachedLinePos: integer;
 		FileWorldCachedLinePos: integer;
 		FileSaveCachedLinePos: integer;
+{$IFDEF FASTVID}
+		TransitionBlocksPerFrame: integer;
+		TransitionTextWindowDelay: integer;
+{$ENDIF}
 	const
 		E_EMPTY = 0;
 		E_BOARD_EDGE = 1;

@@ -32,6 +32,14 @@ interface
 		TSDLScalingMode = (SMNone, SM2x, SM3x, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
 		TVideoLine = string[80];
 		TScreenCopyLine = string[160];		
+		TCharsetData = array[0 .. 31999] of byte;
+		PTCharsetData = ^TCharsetData;
+	const
+		VIDEO_MODE_40X25 = 0;
+		VIDEO_MODE_80X25 = 1;
+		VIDEO_MODE_80X43 = 2;
+		VIDEO_MODE_80X50 = 3;
+		VIDEO_CHARSET_UNCHANGED = -1;
 	var
 		VideoMonochrome: boolean;
 		VideoColumns: integer;
@@ -43,6 +51,7 @@ interface
 		VideoEGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
 		VideoForceNoSnow: boolean;
+		VideoCurrentMode: integer;
 	procedure VideoForcePlayfieldRedraw;
 	procedure VideoOnSizeChanged;
 	function VideoGetSDLBlinkMode: TSDLBlinkMode;
@@ -60,14 +69,17 @@ interface
 	procedure VideoLoadCharsetFromFile(filename: string);
 	procedure VideoLoadPaletteDialog;
 	procedure VideoLoadPaletteFromFile(filename: string);
-	procedure VideoInstall(borderColor: integer);
+	function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
+		borderColor: integer): boolean;
 	procedure VideoUninstall;
 	procedure VideoShowCursor;
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
 	procedure VideoSetBlink(value: boolean);
+	procedure VideoClear(bgColor: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
+	procedure VideoScroll(x, y, width, height, dx, dy: integer);
 
 implementation
 uses F_ASCII, FileSel, FileSys, SysUtils, Sounds, TimerSys, ZInput, SDL2;
@@ -119,6 +131,7 @@ var
 	blinkMode: TSDLBlinkMode;
 	scalingMode: TSDLScalingMode;
 	windowed: boolean;
+	installed: boolean;
 	usingCustomCharset: boolean;
 	usingCustomPalette: boolean;
 	windowedLastWidth, windowedLastHeight: Int32;
@@ -784,28 +797,50 @@ FinishSetCharset:
 		SDLResizeWindow(0, true, false);
 	end;
 
-procedure VideoInstall(borderColor: integer);
+function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
+	borderColor: integer): boolean;
 	var
 		charsetSurface: PSDL_Surface;
-		resPath: string;
 		asciiBmpPath: string;
 		f: file;
 		i: integer;
 	begin
+		VideoInstall := false;
+
+		if installed then begin
+			SDL_LockMutex(eventMutex);
+		end;
+
 		VideoColumns := 80;
 		VideoRows := 25;
-		blinkMode := BlinkModeOn;
-		scalingMode := SMInteger;
-		windowed := true;
+		if mode = VIDEO_MODE_40X25 then
+			VideoColumns := 40
+		else if mode = VIDEO_MODE_80X43 then
+			VideoRows := 43
+		else if mode = VIDEO_MODE_80X50 then
+			VideoRows := 50;
+		VideoCurrentMode := mode;
 
-		window := SDL_CreateWindow('%NAME% %VERSION%',
-			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-			640, 350, SDL_WINDOW_RESIZABLE or SDL_WINDOW_ALLOW_HIGHDPI);
+		if not installed then begin
+			windowed := true;
 
-		resPath := IncludeTrailingPathDelimiter(ExtractFileDir(ExpandFileName(ParamStr(0))));
+			window := SDL_CreateWindow('%NAME% %VERSION%',
+				SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+				VideoColumns * 8, VideoRows * 14, SDL_WINDOW_RESIZABLE or SDL_WINDOW_ALLOW_HIGHDPI);
+		end;
 
-		LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);
-		usingCustomCharset := false;
+		if installed then begin
+			FreeCharsetTexture(charsetTexture);
+		end;
+
+		if charsetHeight > 0 then begin
+			LoadCharsetFromByteArray(charsetTexture, PByteArray(charsetData)^, charsetHeight * 256);
+			usingCustomCharset := true;
+		end;
+		if not charsetTexture.valid then begin
+			LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);
+			usingCustomCharset := false;
+		end;
 		if not charsetTexture.valid then
 			RunError(217);
 	
@@ -813,14 +848,25 @@ procedure VideoInstall(borderColor: integer);
 			palette[i] := EGA_PALETTE[i];
 		usingCustomPalette := false;
 
-		mainThreadSdlChangesMutex := SDL_CreateMutex;
-		playfieldMutex := SDL_CreateMutex;
+		if not installed then begin
+			mainThreadSdlChangesMutex := SDL_CreateMutex;
+			playfieldMutex := SDL_CreateMutex;
 
-		renderThreadRunning := true;
-		renderThread := SDL_CreateThread(VideoRenderThread, 'Render thread', nil);
+			renderThreadRunning := true;
+			renderThread := SDL_CreateThread(VideoRenderThread, 'Render thread', nil);
 
-		SDL_Delay(50); { TODO: Really ugly hack! }
-		SDLResizeWindow(0, false, false);
+			SDL_Delay(50); { TODO: Really ugly hack! }
+			SDLResizeWindow(0, false, false);
+		end else begin
+			SDL_UnlockMutex(eventMutex);
+
+			SDLResizeWindow(0, true, false);
+		end;
+
+		VideoClear(borderColor);
+
+		installed := true;
+		VideoInstall := true;
 	end;
 
 procedure VideoUninstall;
@@ -834,6 +880,8 @@ procedure VideoUninstall;
 		FreeCharsetTexture(charsetTexture);
 		SDL_DestroyRenderer(renderer);
 		SDL_DestroyWindow(window);
+
+		installed := false;
 	end;
 
 procedure VideoSetCursorShape(value: integer);
@@ -867,6 +915,14 @@ procedure VideoSetBlink(value: boolean);
 		end else begin
 			VideoSetSDLBlinkMode(BlinkModeHigh);
 		end;
+	end;
+
+procedure VideoClear(bgColor: integer);
+	begin
+		SDL_LockMutex(playfieldMutex);
+		FillWord(screenBuffer, MAX_VIDEO_BUFFER_SIZE_BYTES shr 1, Word((bgColor * $11) shl 8));
+		FillChar(screenBufferChange, MAX_VIDEO_BUFFER_SIZE_BYTES, true);
+		SDL_UnlockMutex(playfieldMutex);
 	end;
 
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
@@ -911,11 +967,87 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 		SDL_UnlockMutex(playfieldMutex);
 	end;
 
+procedure VideoScroll(x, y, width, height, dx, dy: integer);
+	var
+		ix, iy: integer;
+		srcOfs, destOfs, xOfs: integer;
+	begin
+		SDL_LockMutex(playfieldMutex);
+		if dy = 0 then begin
+			if dx >= 0 then begin
+				{ move right }
+				srcOfs := (y * VideoColumns + x) * 2;
+				destOfs := srcOfs + (dx * 2);
+				for iy := 1 to height do begin
+					xOfs := ((width - dx) - 1) shl 1;
+					for ix := 1 to (width - dx) do begin
+						screenBuffer[destOfs + xOfs] := screenBuffer[srcOfs + xOfs];
+						screenBuffer[destOfs + xOfs + 1] := screenBuffer[srcOfs + xOfs + 1];
+						screenBufferChange[destOfs + xOfs] := true;
+						Dec(xOfs, 2);
+					end;
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end else begin
+				{ move left }
+				destOfs := (y * VideoColumns + x) * 2;
+				srcOfs := destOfs - (dx * 2);
+				for iy := 1 to height do begin					
+					xOfs := 0;
+					for ix := 1 to (width + dx) do begin
+						screenBuffer[destOfs + xOfs] := screenBuffer[srcOfs + xOfs];
+						screenBuffer[destOfs + xOfs + 1] := screenBuffer[srcOfs + xOfs + 1];
+						screenBufferChange[destOfs + xOfs] := true;
+						Inc(xOfs, 2);
+					end;
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end;
+		end else begin
+			if dy > 0 then begin
+				{ move down }
+				srcOfs := ((y + height - 2) * VideoColumns + x) * 2;
+				destOfs := VideoColumns * 2 + srcOfs;
+				for iy := 1 to (height - 1) do begin
+					xOfs := 0;
+					for ix := 1 to width do begin
+						screenBuffer[destOfs + xOfs] := screenBuffer[srcOfs + xOfs];
+						screenBuffer[destOfs + xOfs + 1] := screenBuffer[srcOfs + xOfs + 1];
+						screenBufferChange[destOfs + xOfs] := true;
+						Inc(xOfs, 2);
+					end;
+					srcOfs := srcOfs - (VideoColumns * 2);
+					destOfs := destOfs - (VideoColumns * 2);
+				end;
+			end else begin
+				{ move up }
+				destOfs := (y * VideoColumns + x) * 2;
+				srcOfs := VideoColumns * 2 + destOfs;
+				for iy := 1 to (height - 1) do begin
+					xOfs := 0;
+					for ix := 1 to width do begin
+						screenBuffer[destOfs + xOfs] := screenBuffer[srcOfs + xOfs];
+						screenBuffer[destOfs + xOfs + 1] := screenBuffer[srcOfs + xOfs + 1];
+						screenBufferChange[destOfs + xOfs] := true;
+						Inc(xOfs, 2);
+					end;
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end;
+		end;
+		SDL_UnlockMutex(playfieldMutex);
+	end;
+
 begin
-	FillChar(screenBuffer, MAX_VIDEO_BUFFER_SIZE_BYTES, 0);
-	FillChar(screenBufferChange, MAX_VIDEO_BUFFER_SIZE_BYTES, true);
+	VideoClear(0);
 	VideoBorderColor := 0;
 	VideoColumns := 80;
 	VideoRows := 25;
 	VideoCursorVisible := true;
+	installed := false;
+	blinkMode := BlinkModeOn;
+	scalingMode := SMInteger;
 end.

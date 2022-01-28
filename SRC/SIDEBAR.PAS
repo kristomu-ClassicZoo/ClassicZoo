@@ -45,7 +45,7 @@ interface
 	function DisplayIOError: boolean;
 
 implementation
-uses ZInput, TimerSys, ZVideo, TxtWind, Game;
+uses ZInput, TimerSys, Sounds, ZVideo, TxtWind, Game;
 
 const
 {$IFDEF E_SUPERZ}

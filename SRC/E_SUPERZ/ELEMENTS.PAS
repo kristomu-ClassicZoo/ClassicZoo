@@ -39,7 +39,7 @@ interface
 	procedure InitEditorStatSettings;
 
 implementation
-uses Crt, GameConf, ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, Game;
+uses GameConf, ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, Game;
 
 const
 	ForestSoundTable: array[0 .. 7] of byte = ($45, $40, $47, $50, $46, $41, $48, $51);

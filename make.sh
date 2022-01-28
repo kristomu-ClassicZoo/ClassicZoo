@@ -157,7 +157,7 @@ if [ -f "$PROPERTIES_FILE" ]; then
 fi
 # Replace %ENGINE% with configured engine name
 for i in `find "$TEMP_PATH"/SRC -type f`; do
-	sed -i -e 's#%'ENGINE'%#'"$ENGINE"'#g' "$i"
+	sed -i -e 's#%ENGINE%#'"$ENGINE"'#g' "$i"
 done
 # HACK: Replace WorldExt with World in non-ZZT engines
 if [ "$ENGINE" != "ZZT" ]; then
@@ -206,7 +206,7 @@ if [ -n "$FREE_PASCAL" ]; then
 	cd SYSTEM
 	touch ../SRC/fpc.cfg
 	echo '-FuBASIC' >> ../SRC/fpc.cfg
-	echo '-Fu'$ENGINE >> ../SRC/fpc.cfg
+	echo '-FuE_'$ENGINE >> ../SRC/fpc.cfg
 	if [ -f fpc."$ARCH"."$PLATFORM"."$PLATFORM_UNIT_LOWER".cfg ]; then
 		cat fpc."$ARCH"."$PLATFORM"."$PLATFORM_UNIT_LOWER".cfg >> ../SRC/fpc.cfg
 	elif [ -f fpc."$ARCH"."$PLATFORM".any.cfg ]; then
@@ -271,8 +271,8 @@ else
 	cp SRC/"$PLATFORM_UNIT"/*.PAS SRC/ 2>/dev/null
 	cp SRC/"$PLATFORM_UNIT"/*.INC SRC/ 2>/dev/null
 
-	cp SRC/"$ENGINE"/*.PAS SRC/ 2>/dev/null
-	cp SRC/"$ENGINE"/*.INC SRC/ 2>/dev/null
+	cp SRC/E_"$ENGINE"/*.PAS SRC/ 2>/dev/null
+	cp SRC/E_"$ENGINE"/*.INC SRC/ 2>/dev/null
 
 	if [ "$EXTMEM_STUB" = "true" ]; then
 		cp SRC/EXTMEM_S.PAS SRC/EXTMEM.PAS 2>/dev/null

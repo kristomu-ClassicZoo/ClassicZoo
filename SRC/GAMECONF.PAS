@@ -1006,7 +1006,7 @@ procedure GameOptionsScreen(playingGame: boolean);
 						if Key = 'FVidMono' then begin
 							i := VideoCurrentMode;
 							VideoUninstall;
-							if VideoInstall(i, 1) then begin end;
+							if VideoInstall(i, Ptr(0, 0), VIDEO_CHARSET_UNCHANGED, 1) then begin end;
 							HardEscapeHack := true;
 						end;
 {$ENDIF}
@@ -1031,7 +1031,7 @@ procedure GameOptionsScreen(playingGame: boolean);
 				VideoUninstall;
 				if not InputCalibrateJoystick then
 					InputMode := IMKeyboard;
-				if VideoInstall(i, 1) then begin end;
+				if VideoInstall(i, Ptr(0, 0), VIDEO_CHARSET_UNCHANGED, 1) then begin end;
 			end;
 		end;
 {$ENDIF}

@@ -743,11 +743,20 @@ procedure WorldSave(filename, extension: TString50);
 			ptr := IoTmpBuf;
 			FillChar(IoTmpBuf^, WORLD_FILE_HEADER_SIZE, 0);
 			version := -1;
+{$IFDEF ENDIAN_BIG}
+			version := NtoLE(version);
+{$ENDIF}
 			Move(version, ptr^, SizeOf(version));
 			AdvancePointer(ptr, SizeOf(version));
 
+{$IFDEF ENDIAN_BIG}
+			World.BoardCount := NtoLE(World.BoardCount);
+{$ENDIF}
 			Move(World.BoardCount, ptr^, SizeOf(World.BoardCount));
 			AdvancePointer(ptr, SizeOf(World.BoardCount));
+{$IFDEF ENDIAN_BIG}
+			World.BoardCount := LEtoN(World.BoardCount);
+{$ENDIF}
 
 {$IFDEF RAWSTRUCTS}
 			Move(World.Info, ptr^, SizeOf(World.Info));

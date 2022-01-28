@@ -99,6 +99,8 @@ interface
 	procedure GameDisplayResourceImage(name: TString50);
 	procedure ResetCachedLinePos;
 
+type
+	TScreenBinArray = array[0 .. 24] of array[0 .. 159] of byte;
 const
 	LFSR_START = 42;
 	LFSR10_TAP_CONST = $321;
@@ -121,32 +123,61 @@ const
 	StatTemplateDefault: TStat = (
 		X: 0; Y: 0; StepX: 0; StepY: 0;
 		Cycle: 0; P1: 0; P2: 0; P3: 0;
-		Follower: -1; Leader: -1
+		Follower: -1; Leader: -1;
+                Under: (Element: E_EMPTY; Color: $00);
+	{$IFDEF RAWSTRUCTS}
+        {$IFDEF CPU64}
+                UnusedData: 0; DataPos: 0; DataLen: 0; Data: nil
+        {$ELSE}
+                Data: nil; DataPos: 0; DataLen: 0
+        {$ENDIF}
+	{$ELSE}
+                Data: nil; DataPos: 0; DataLen: 0
+	{$ENDIF}
 	);
 	WebChars: TSmallString = #250#179#179#179#196#217#191#180#196#192#218#195#196#193#194#197;
 	LineChars: TSmallString = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, GameConf, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
-{ TODO MERGE }
-{	FONT; }
+uses
+{$IFNDEF RAWSTRUCTS}
+GameVSer,
+{$ENDIF}
+{$IFDEF ZETAEMU}
+ZetaSupp,
+{$ENDIF}
+Dos, GameConf, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
 
 function GameVideoInstall(videoMode, mode: integer): boolean;
 	var
 		borderColor: integer;
+		fileData: pointer;
+		fileDataLen: word;
+		viResult: boolean;
+	label GameVideoInstalled;
 	begin
 		GameVideoInstall := false;
 
-		borderColor := Blue;
+		borderColor := 1;
 		if mode = VIEW_TITLE then
-			borderColor := Black;
+			borderColor := 0;
 
-		if not VideoInstall(videoMode, borderColor) then exit;
-		{ TODO MERGE }
-		{ if VideoUseCustomFont then begin
-			if VideoSetCharset(@FONTBINData, FONTBINSize shr 8) then begin end;
-		end; }
+{$IFNDEF NEC98}
+		if UseCustomFont then
+			fileDataLen := ResourceDataReadBinaryFile('8X8.CHR', fileData, 0, 2048)
+		else
+			fileDataLen := 0;
 
+		if fileDataLen > 0 then begin
+			viResult := VideoInstall(videoMode, fileData, 8, borderColor);
+			FreeMem(fileData, fileDataLen); 
+			if viResult then goto GameVideoInstalled;
+		end;
+{$ENDIF}
+
+		if not VideoInstall(videoMode, Ptr(0, 0), -1, borderColor) then exit;
+
+GameVideoInstalled:
 		if mode = VIEW_TITLE then
 			TextWindowInit((VideoColumns - 50) shr 1, (VideoRows - 18) shr 1, 50, 18)
 {$IFDEF EDITOR}
@@ -285,11 +316,21 @@ procedure BoardClose;
 			end;
 		until iy > BOARD_HEIGHT;
 
+{$IFDEF RAWSTRUCTS}
 		Move(Board.Info, ptr^, SizeOf(Board.Info));
 		AdvancePointer(ptr, SizeOf(Board.Info));
+{$ELSE}
+		CopyBoardInfoFromLocal(ptr);
+{$ENDIF}
 
+{$IFDEF ENDIAN_BIG}
+		Board.StatCount := NtoLE(Board.StatCount);
+{$ENDIF}
 		Move(Board.StatCount, ptr^, SizeOf(Board.StatCount));
 		AdvancePointer(ptr, SizeOf(Board.StatCount));
+{$IFDEF ENDIAN_BIG}
+		Board.StatCount := LEtoN(Board.StatCount);
+{$ENDIF}
 
 		{ We will always have enough size to store the above in the default IoTmpBuf. }
 		{ From here, do size estimation. }
@@ -310,8 +351,12 @@ procedure BoardClose;
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
-				Move(Board.Stats[ix], ptr^, SizeOf(TStat));
-				AdvancePointer(ptr, SizeOf(TStat));
+{$IFDEF RAWSTRUCTS}
+				Move(Board.Stats[ix], ptr^, STAT_SIZE_BYTES);
+				AdvancePointer(ptr, STAT_SIZE_BYTES);
+{$ELSE}
+				CopyStatFromLocal(ptr, Board.Stats[ix]);
+{$ENDIF}
 				if DataLen > 0 then begin
 					Move(Data^, ptr^, DataLen);
 					FreeMem(Data, DataLen);
@@ -365,24 +410,38 @@ procedure BoardOpen(boardId: integer);
 			Dec(rle.Count);
 		until iy > BOARD_HEIGHT;
 
+{$IFDEF RAWSTRUCTS}
 		Move(ptr^, Board.Info, SizeOf(Board.Info));
 		AdvancePointer(ptr, SizeOf(Board.Info));
+{$ELSE}
+		CopyBoardInfoToLocal(ptr);
+{$ENDIF}
 
 		Move(ptr^, Board.StatCount, SizeOf(Board.StatCount));
 		AdvancePointer(ptr, SizeOf(Board.StatCount));
+{$IFDEF ENDIAN_BIG}
+		Board.StatCount := LEtoN(Board.StatCount);
+{$ENDIF}
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
-				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
-				AdvancePointer(ptr, SizeOf(TStat));
+{$IFDEF RAWSTRUCTS}
+				Move(ptr^, Board.Stats[ix], STAT_SIZE_BYTES);
+				AdvancePointer(ptr, STAT_SIZE_BYTES);
+				{$IFDEF FPC} Data := Nil; {$ENDIF}
+{$ELSE}
+				CopyStatToLocal(ptr, Board.Stats[ix]);
+{$ENDIF}
 				if DataLen > 0 then begin
+{$IFDEF MSDOS}
 					if MaxAvail < DataLen then begin
-						VideoClear(Black);
+						VideoClear(0);
 						Writeln('Out of Memory!');
 						Writeln('Mem ', MaxAvail, '..', DataLen);
 						Writeln('Obj ', ix, '..', Board.StatCount);
 						Writeln('Bd  ', boardId);
 					end;
+{$ENDIF}
 
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
@@ -486,13 +545,21 @@ procedure WorldCreate;
 
 procedure TransitionDrawToFill(chr: char; color: integer);
 	var
-		seed: word;
+		i, seed: word;
 		tx, ty: byte;
 	begin
 		seed := LFSR_START;
 		repeat
-			if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
+			if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then begin
 				VideoWriteText(tx + BOARD_DRAW_X, ty + BOARD_DRAW_Y, color, chr);
+{$IFDEF FASTVID}
+				Inc(i);
+				if i >= TransitionBlocksPerFrame then begin
+					SoundIdle(IMUntilFrame);
+					i := 0;
+				end;
+{$ENDIF}
+			end;
 		until LFSRUpdateSeed(seed, tx, ty);
 
 		if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
@@ -542,16 +609,24 @@ procedure BoardDrawTile(x, y: integer);
 
 procedure TransitionDrawToBoard;
 	var
-		seed: word;
+		i, seed: word;
 		tx, ty: byte;
 	begin
 		seed := LFSR_START;
 		repeat
-			if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
+			if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then begin
 				BoardDrawTile(
 					tx + Board.Info.DrawXOffset,
 					ty + Board.Info.DrawYOffset
 				);
+{$IFDEF FASTVID}
+				Inc(i);
+				if i >= TransitionBlocksPerFrame then begin
+					SoundIdle(IMUntilFrame);
+					i := 0;
+				end;
+{$ENDIF}
+			end;
 		until LFSRUpdateSeed(seed, tx, ty);
 
 		if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
@@ -725,6 +800,9 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 				ptr := IoTmpBuf;
 				Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
 				AdvancePointer(ptr, SizeOf(World.BoardCount));
+{$IFDEF ENDIAN_BIG}
+				World.BoardCount := LEtoN(World.BoardCount);
+{$ENDIF}
 
 				if World.BoardCount < 0 then begin
 					if World.BoardCount <> -2 then begin
@@ -735,15 +813,25 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 					end else begin
 						Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
 						AdvancePointer(ptr, SizeOf(World.BoardCount));
+{$IFDEF ENDIAN_BIG}
+						World.BoardCount := LEtoN(World.BoardCount);
+{$ENDIF}
 					end;
 				end;
 
+{$IFDEF RAWSTRUCTS}
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));
+{$ELSE}
+				CopyWorldInfoToLocal(ptr);
+{$ENDIF}
 
 				for i := 0 to World.BoardCount do begin
 					BottomAnimateLoading(loadProgress);
 					BlockRead(f, World.BoardLen[i], 2);
+{$IFDEF ENDIAN_BIG}
+					World.BoardLen[boardId] := LEtoN(World.BoardLen[boardId]);
+{$ENDIF}
 
 					if ExtMemGet(World.BoardData[i], World.BoardLen[i]) then begin
 						case EnsureIoTmpBufSize(World.BoardLen[i]) of
@@ -805,20 +893,37 @@ procedure WorldSave(filename, extension: TSmallString);
 			ptr := IoTmpBuf;
 			FillChar(IoTmpBuf^, WORLD_FILE_HEADER_SIZE, 0);
 			version := -2;
+{$IFDEF ENDIAN_BIG}
+			version := NtoLE(version);
+{$ENDIF}
 			Move(version, ptr^, SizeOf(version));
 			AdvancePointer(ptr, SizeOf(version));
 
+{$IFDEF ENDIAN_BIG}
+			World.BoardCount := NtoLE(World.BoardCount);
+{$ENDIF}
 			Move(World.BoardCount, ptr^, SizeOf(World.BoardCount));
 			AdvancePointer(ptr, SizeOf(World.BoardCount));
+{$IFDEF ENDIAN_BIG}
+			World.BoardCount := LEtoN(World.BoardCount);
+{$ENDIF}
 
+{$IFDEF RAWSTRUCTS}
 			Move(World.Info, ptr^, SizeOf(World.Info));
 			AdvancePointer(ptr, SizeOf(World.Info));
+{$ELSE}
+			CopyWorldInfoFromLocal(ptr);
+{$ENDIF}
 
 			BlockWrite(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE);
 			if DisplayIOError then goto OnError;
 
 			for i := 0 to World.BoardCount do begin
+{$IFDEF ENDIAN_BIG}
+				BlockWrite(f, SwapEndian(World.BoardLen[i]), 2);
+{$ELSE}
 				BlockWrite(f, World.BoardLen[i], 2);
+{$ENDIF}
 				if DisplayIOError then goto OnError;
 
 				ExtMemRead(World.BoardData[i], IoTmpBuf^, World.BoardLen[i]);
@@ -914,6 +1019,7 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 			end;
 
 			if (template.Data <> nil) and (template.DataLen > 0) then begin
+				{$IFDEF FPC} Board.Stats[Board.StatCount].Data := Nil; {$ENDIF}
 				GetMem(Board.Stats[Board.StatCount].Data, template.DataLen);
 				Move(template.Data^, Board.Stats[Board.StatCount].Data^, template.DataLen);
 			end;
@@ -1246,6 +1352,7 @@ procedure GameUpdateSidebar;
 			else
 				VideoWriteText(3, 10, $6E, 'Be Noisy ');
 
+{$IFDEF MSDOS}
 			if DebugEnabled then begin
 				Str(MemAvail, numStr);
 				VideoWriteText(0, 0, $1E, 'm' + numStr + ' ');
@@ -1258,6 +1365,7 @@ procedure GameUpdateSidebar;
 					VideoWriteText(0, 2, $1E, 'x' + numStr + ' ');
 				end;
 			end;
+{$ENDIF}
 		end;
 	end;
 
@@ -1414,6 +1522,12 @@ procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 
 procedure TransitionDrawBoardChange;
 	begin
+{$IFDEF FASTVID}
+		if TransitionBlocksPerFrame = 32767 then begin
+			TransitionDrawToBoard;
+			exit;
+		end;
+{$ENDIF}
 		TransitionDrawToFill(#219, $05);
 		TransitionDrawToBoard;
 	end;
@@ -1702,7 +1816,9 @@ procedure DrawPlayfieldBorder(inner: boolean);
 			if inner then
 				for j := BOARD_DRAW_X to (BOARD_DRAW_X + BOARD_DRAW_WIDTH - 1) do
 					VideoWriteText(j, i, $0F,' ');
+{$IFNDEF NEC98}
 			VideoWriteText(BOARD_DRAW_X + BOARD_DRAW_WIDTH + 1, i + 1, $17, #221);
+{$ENDIF}
 		end;
 	end;
 
@@ -1731,7 +1847,7 @@ procedure GamePlayLoop(isTitle: boolean);
 		var
 			i: integer;
 		begin
-			VideoClear(Blue);
+			VideoClear(1);
 
 			if GameStateElement = E_PLAYER then begin
 				VideoWriteText(0, 0, $1D, #220#220#220#220#220#220#220#220#220#220#220#220);
@@ -1829,6 +1945,9 @@ procedure GamePlayLoop(isTitle: boolean);
 					pausePlayerStr
 				);
 				VideoWriteText(21, VideoRows - 1, $1E, 'Pausing...');
+{$IFDEF SDL2}
+				SoundIdle(IMUntilFrame);
+{$ENDIF}
 				InputUpdate;
 
 				case UpCase(InputKeyPressed) of KEY_ESCAPE, 'Q': begin
@@ -1897,6 +2016,14 @@ procedure GamePlayLoop(isTitle: boolean);
 					end;
 
 					{ In ZZT 3.2, InputUpdate; is here. }
+{$IFDEF SDL2}
+				end else begin
+					SoundIdle(IMUntilPit);
+{$ENDIF}
+{$IFDEF ZETAEMU}
+				end else begin
+					ZetaSleepPit;
+{$ENDIF}
 				end;
 			end;
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
@@ -1941,7 +2068,8 @@ procedure GamePlayVideoInstall;
 	begin
 		{ if not GameVideoInstall(VIDEO_MODE_80X50, VIEW_PLAY) then
 		if not GameVideoInstall(VIDEO_MODE_80X43, VIEW_PLAY) then }
-		if GameVideoInstall(VIDEO_MODE_40X25, VIEW_PLAY) then begin end;
+		if not GameVideoInstall(VIDEO_MODE_40X25, VIEW_PLAY) then
+		if not GameVideoInstall(VIDEO_MODE_80X25, VIEW_PLAY) then begin end;
 	end;
 
 procedure GameTitleLoop;
@@ -1966,7 +2094,7 @@ procedure GameTitleLoop;
 				end;
 				runPlay := false;
 				if needsTitleRefresh then begin
-					VideoClear(Black);
+					VideoClear(0);
 					GameDisplayResourceImage('MAINMENU');
 {$IFNDEF EDITOR}
 					VideoWriteText(1, 18, $0A, #196#196#196#196#196#196#196#196#196#196#196#196
@@ -2071,12 +2199,22 @@ procedure GameDisplayResourceImage(name: TString50);
 	var
 		fileData: pointer;
 		fileDataLen: word;
-		i: integer;
+		i, j: integer;
 	begin
 		fileDataLen := ResourceDataReadBinaryFile(name + '.BIN', fileData, 0, 4000);
 		if fileDataLen > 0 then begin
 			for i := 0 to 24 do
+{$IFDEF NEC98}
+				for j := 0 to 79 do
+					VideoWriteText(j, i, TScreenBinArray(fileData^)[i][j * 2 + 1],
+						Chr(TScreenBinArray(fileData^)[i][j * 2]));
+{$ELSE}
+{$IFDEF FPC}
+				VideoMove(0, i, 80, fileData + (i * 160), true);
+{$ELSE}
 				VideoMove(0, i, 80, Ptr(Seg(fileData^), Ofs(fileData^) + (i * 160)), true);
+{$ENDIF}
+{$ENDIF}
 			FreeMem(fileData, fileDataLen);
 		end;
 	end;
