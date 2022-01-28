@@ -38,8 +38,6 @@ interface
 		VIEW_EDITOR = 2;
 		VIEW_EDITOR_LARGE = 3;
 	function GameVideoInstall(videoMode, mode: integer): boolean;
-	procedure SidebarClearLine(y: integer);
-	procedure SidebarClear;
 	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
 {$IFNDEF FPC}
 {$IFDEF CPU86}
@@ -68,10 +66,7 @@ interface
 	procedure PauseOnError;
 	function DisplayIOError: boolean;
 	procedure WorldUnload;
-	procedure SidebarAnimateLoading(var loadProgress: integer);
 	function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boolean;
-	procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmallString; var value: byte);
-	procedure SidebarPromptString(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
 	procedure WorldSave(filename, extension: TSmallString);
 	procedure GameWorldSave(prompt: TSmallString; var filename: TSmallString; extension: TSmallString);
 	function GameWorldLoad(extension: TSmallString): boolean;
@@ -132,7 +127,7 @@ const
 	LineChars: TSmallString = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, GameConf, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop;
+uses Dos, Crt, GameConf, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
 { TODO MERGE }
 {	FONT; }
 
@@ -207,19 +202,6 @@ function LFSRUpdateSeed(var seed: word; var tx, ty: byte): boolean;
 		tx := (seed - 1) and LfsrAndConst;
 		ty := ((seed - 1) shr LfsrShrConst) and LfsrAndConst;
 		LFSRUpdateSeed := seed = LFSR_START;
-	end;
-
-procedure SidebarClearLine(y: integer);
-	begin
-		VideoWriteText(60, y, $11, '                    ');
-	end;
-
-procedure SidebarClear;
-	var
-		i: integer;
-	begin
-		for i := 3 to VideoRows - 1 do
-			SidebarClearLine(i);
 	end;
 
 function EnsureIoTmpBufSize(newSize: word): integer;
@@ -719,12 +701,6 @@ procedure WorldUnload;
 			ExtMemFree(World.BoardData[i], World.BoardLen[i]);
 	end;
 
-procedure SidebarAnimateLoading(var loadProgress: integer);
-	begin
-		VideoWriteText(22, VideoRows - 1, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
-		loadProgress := (loadProgress + 1) and 7;
-	end;
-
 function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boolean;
 	var
 		f: file;
@@ -766,7 +742,7 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 				AdvancePointer(ptr, SizeOf(World.Info));
 
 				for i := 0 to World.BoardCount do begin
-					SidebarAnimateLoading(loadProgress);
+					BottomAnimateLoading(loadProgress);
 					BlockRead(f, World.BoardLen[i], 2);
 
 					if ExtMemGet(World.BoardData[i], World.BoardLen[i]) then begin
@@ -798,38 +774,7 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 		Close(f);
 	end;
 
-procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmallString; var value: byte);
-	var
-		i, newValue: integer;
-	begin
-		SidebarClearLine(y);
-		VideoWriteText(x, y, Integer(editable) + $1E, prompt);
-		SidebarClearLine(y + 1);
-		VideoWriteText(x + 5, y + 1, $9F, #31);
-		SidebarClearLine(y + 2);
-
-		repeat
-			for i := (value - 4) to (value + 4) do
-				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) and $FF));
-
-			if editable then begin
-				AccurateDelay(25);
-				InputUpdate;
-				if InputKeyPressed = KEY_TAB then
-					InputDeltaX := 9;
-
-				newValue := value + InputDeltaX;
-				if value <> newValue then begin
-					value := (newValue + $100) and $FF;
-					SidebarClearLine(y + 2);
-				end;
-			end;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
-
-		VideoWriteText(x + 5, y + 1, $1F, #31);
-	end;
-
-procedure SidebarPromptString(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
+procedure BottomPromptString(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
 	begin
 		ClearDisplayMessage;
 
@@ -900,7 +845,7 @@ procedure GameWorldSave(prompt: TSmallString; var filename: TSmallString; extens
 		newFilename: TSmallString;
 	begin
 		newFilename := filename;
-		SidebarPromptString(prompt, extension, newFilename, PROMPT_ALPHANUM);
+		BottomPromptString(prompt, extension, newFilename, PROMPT_ALPHANUM);
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(newFilename) <> 0) then begin
 			filename := newFilename;
 			if extension = '.SZT' then

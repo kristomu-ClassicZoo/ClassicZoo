@@ -46,6 +46,9 @@ interface
 		IO_BUFFER_DEFAULT_SIZE = 20000;
 		IO_BUFFER_MAXIMUM_SIZE = 65500;
 		IO_BUFFER_SIZE_INCREMENT = 500;
+		{ UI-only }
+		MAX_BOARD_NAME_LENGTH = 42;
+		MAX_HIGH_SCORE_NAME_LENGTH = 15;
 	type
 		TString50 = string[50];
 		TSmallString = string[60];

@@ -68,6 +68,7 @@ interface
 		EditorPatternCount = 6;
 	type
 		TString50 = string[50];
+		TSmallString = string[50];
 {$IFDEF SUBDIRS}
 		TFilenameString = string[128];
 {$ELSE}

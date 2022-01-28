@@ -1,6 +1,6 @@
 {	Copyright (c) 2020 Adrian Siekierka
 
-	Based on a reconstruction of code from Super ZZT,
+	Based on a reconstruction of code from ZZT,
 	Copyright 1991 Epic MegaGames, used with permission.
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,31 +24,32 @@
 
 {$I-}
 {$V-}
+
 unit Editor;
 
 interface
 	uses GameVars, TxtWind;
 	var
 		EditorAutoAppendPats: boolean;
+{$IFDEF EDITOR}
 	procedure EditorLoop;
+{$ENDIF}
 	procedure HighScoresLoad;
 	procedure HighScoresSave;
 	procedure HighScoresDisplay(linePos: integer);
+{$IFDEF EDITOR}
 	procedure EditorOpenEditTextWindow(var state: TTextWindowState; extension: TExtensionString;
 		syntaxHighlighting: boolean);
-	procedure EditorEditHelpFile;
+	procedure EditorEditTextFile;
+{$ENDIF}
 	procedure HighScoresAdd(score: integer);
 	function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TSmallString;
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean;
 		windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 
 implementation
-uses Dos, Crt, GameConf, FileSel, ExtMem, ZVideo, Sounds, TimerSys, ZInput, Elements, Oop, Game;
+uses Dos, FileSel, FileSys, ExtMem, GameConf, ZVideo, Sounds, TimerSys, Keys, ZInput, Elements, Oop, Game, Sidebar;
 
-const
-	PROMPT_NUMERIC = 0;
-	PROMPT_ALPHANUM = 1;
-	PROMPT_ANY = 2;
 type
 	TBoardShiftMode = (BoardShiftDelete);
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
@@ -141,139 +142,15 @@ function EditorShiftBoard(bidFrom, bidTo: integer; mode: TBoardShiftMode): boole
 		BoardShiftDelete: begin
 			SidebarAnimateLoading(loadProgress);
 			BoardClose;
-			BoardOpen(bidFrom);
-			BoardClose;
-			ExtMemFree(World.BoardData[bidFrom], World.BoardLen[bidFrom]);
+			ExtMemFree(WorldExt.BoardData[bidFrom], WorldExt.BoardLen[bidFrom]);
 			Dec(World.BoardCount);
 			for i := bidFrom to World.BoardCount do begin
-				World.BoardData[i] := World.BoardData[i + 1];
-				World.BoardLen[i] := World.BoardLen[i + 1];
+				ExtMemMoveBlockPtr(WorldExt.BoardData[i + 1], WorldExt.BoardData[i]);
+				WorldExt.BoardLen[i] := WorldExt.BoardLen[i + 1];
 			end;
 			BoardOpen(prevBoard);
 		end;
 		end;
-	end;
-
-procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: string; var result: byte);
-	var
-		i, j, choiceCount: integer;
-		newResult: integer;
-	begin
-		VideoWriteText(63, y, Integer(editable) + $1E, prompt);
-		VideoWriteText(63, y + 2, $1E, choiceStr);
-
-		choiceCount := 1;
-		for i := 1 to Length(choiceStr) do
-			if choiceStr[i] = ' ' then
-				Inc(choiceCount);
-
-		repeat
-			j := 0;
-			i := 1;
-			while (j < result) and (i < Length(choiceStr)) do begin
-				if choiceStr[i] = ' ' then
-					Inc(j);
-				Inc(i);
-			end;
-
-			if editable then begin
-				SidebarClearLine(y + 1);
-				VideoWriteText(62 + i, y + 1, $9F, #31);
-				AccurateDelay(35);
-				InputUpdate;
-
-				newResult := result + InputDeltaX;
-				if (result <> newResult) and (newResult >= 0) and (newResult <= (choiceCount - 1)) then begin
-					result := newResult;
-				end;
-			end;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
-
-		VideoWriteText(62 + i, y + 1, $1F, #31);
-	end;
-
-procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TSmallString);
-	var
-		i: integer;
-		oldBuffer: string;
-		firstKeyPress: boolean;
-	begin
-		oldBuffer := buffer;
-		firstKeyPress := true;
-
-		repeat
-			for i := 0 to (width - 1) do begin
-				VideoWriteText(x + i, y, color, ' ');
-				VideoWriteText(x + i, y - 1, arrowColor, ' ');
-			end;
-			VideoWriteText(x + width, y - 1, arrowColor, ' ');
-			VideoWriteText(x + Length(buffer), y - 1, (arrowColor and $F0) or $0F, #31);
-			VideoWriteText(x, y, color, buffer);
-
-			InputReadWaitKey;
-
-			if (Length(buffer) < width) and (InputKeyPressed >= #32) and (InputKeyPressed < #128) then begin
-				if firstKeyPress then
-					buffer := '';
-				case mode of
-					PROMPT_NUMERIC: begin
-						if (InputKeyPressed in ['0' .. '9']) then begin
-							buffer := buffer + InputKeyPressed;
-						end;
-					end;
-					PROMPT_ANY: begin
-						buffer := buffer + InputKeyPressed;
-					end;
-					PROMPT_ALPHANUM: begin
-						if (UpCase(InputKeyPressed) in ['A' .. 'Z'])
-							or (InputKeyPressed in ['0' .. '9'])
-							or (InputKeyPressed = '-') then
-						begin
-							buffer := buffer + UpCase(InputKeyPressed);
-						end;
-					end;
-				end;
-			end else if (InputKeyPressed = KEY_LEFT) or (InputKeyPressed = KEY_BACKSPACE) then begin
-				buffer := Copy(buffer, 1, Length(buffer) - 1);
-			end;
-
-			firstKeyPress := false;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE);
-		if InputKeyPressed = KEY_ESCAPE then begin
-			buffer := oldBuffer;
-		end;
-	end;
-
-function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
-	begin
-		SidebarClearLine(3);
-		SidebarClearLine(4);
-		SidebarClearLine(5);
-		VideoWriteText(63, 5, $1F, message);
-		VideoWriteText(63 + Length(message), 5, $9E, '_');
-
-		repeat
-			InputReadWaitKey;
-		until UpCase(InputKeyPressed) in [KEY_ESCAPE, 'N', 'Y'];
-		if UpCase(InputKeyPressed) = 'Y' then
-			defaultReturn := true
-		else
-			defaultReturn := false;
-
-		SidebarPromptYesNo := defaultReturn;
-	end;
-
-procedure PopupPromptString(question: string; var buffer: TSmallString);
-	var
-		x, y: integer;
-	begin
-		VideoWriteText(35, VideoRows - 2, $1F, question);
-
-		buffer := '';
-		PromptString(1, VideoRows - 1, $1F, $1E, 30, PROMPT_ANY, buffer);
-
-		VideoWriteText(0, VideoRows - 2, $1E, '                                                            ');
-		VideoWriteText(0, VideoRows - 1, $1E, '                                                            ');
 	end;
 
 procedure EditorAppendBoard;
@@ -283,110 +160,20 @@ procedure EditorAppendBoard;
 
 			Inc(World.BoardCount);
 			World.Info.CurrentBoard := World.BoardCount;
-			World.BoardLen[World.BoardCount] := 0;
+			WorldExt.BoardLen[World.BoardCount] := 0;
 			BoardCreate;
 
 			TransitionDrawToBoard;
 
 			repeat
-				PopupPromptString('Room'#39's Title:', Board.Name);
+				PopupPromptString('Room'#39's Title:', Board.Name, MAX_BOARD_NAME_LENGTH);
 			until Length(Board.Name) <> 0;
 
 			TransitionDrawToBoard;
 		end;
 	end;
 
-procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; var deltaX, deltaY: integer);
-	var
-		choice: byte;
-	begin
-		if deltaY = -1 then
-			choice := 0
-		else if deltaY = 1 then
-			choice := 1
-		else if deltaX = -1 then
-			choice := 2
-		else
-			choice := 3;
-		SidebarPromptChoice(editable, y, prompt, #24' '#25' '#27' '#26, choice);
-		deltaX := NeighborDeltaX[choice];
-		deltaY := NeighborDeltaY[choice];
-	end;
-
-procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmallString; var value: byte);
-	var
-		i, newValue: integer;
-	begin
-		SidebarClearLine(y);
-		VideoWriteText(x, y, Integer(editable) + $1E, prompt);
-		SidebarClearLine(y + 1);
-		VideoWriteText(x + 5, y + 1, $9F, #31);
-		SidebarClearLine(y + 2);
-
-		repeat
-			for i := (value - 4) to (value + 4) do
-				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) and $FF));
-
-			if editable then begin
-				AccurateDelay(25);
-				InputUpdate;
-				if InputKeyPressed = KEY_TAB then
-					InputDeltaX := 9;
-
-				newValue := value + InputDeltaX;
-				if value <> newValue then begin
-					value := (newValue + $100) and $FF;
-					SidebarClearLine(y + 2);
-				end;
-			end;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
-
-		VideoWriteText(x + 5, y + 1, $1F, #31);
-	end;
-
-procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
-	var
-		newValue: integer;
-		startChar, endChar: char;
-	begin
-		if prompt[Length(prompt) - 2] = ';' then begin
-			startChar := prompt[Length(prompt) - 1];
-			endChar := prompt[Length(prompt)];
-			prompt := Copy(prompt, 1, Length(prompt) - 3);
-		end else begin
-			startChar := '1';
-			endChar := '9';
-		end;
-
-		SidebarClearLine(y);
-		VideoWriteText(x, y, Integer(editable) + $1E, prompt);
-		SidebarClearLine(y + 1);
-		SidebarClearLine(y + 2);
-		VideoWriteText(x, y + 2, $1e, startChar + '....:....' + endChar);
-
-		repeat
-			if editable then begin
-				if InputJoystickMoved then
-					AccurateDelay(45);
-				VideoWriteText(x + value + 1, y + 1, $9F, #31);
-
-				InputUpdate;
-				if (InputKeyPressed >= '1') and (InputKeyPressed <= '9') then begin
-					value := Ord(InputKeyPressed) - 49;
-					SidebarClearLine(y + 1);
-				end else begin
-					newValue := value + InputDeltaX;
-					if (value <> newValue) and (newValue >= 0) and (newValue <= 8) then begin
-						value := newValue;
-						SidebarClearLine(y + 1);
-					end;
-				end;
-			end;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
-
-		VideoWriteText(x + value + 1, y + 1, $1F, #31);
-	end;
-
+{$IFDEF EDITOR}
 procedure EditorCopyStat(var fromStat: TStat; var toStat: TStat);
 	begin
 		Move(fromStat, toStat, SizeOf(TStat));
@@ -395,6 +182,30 @@ procedure EditorCopyStat(var fromStat: TStat; var toStat: TStat);
 			Move(fromStat.Data^, toStat.Data^, toStat.DataLen);
 		end else begin
 			toStat.DataLen := 0;
+		end;
+	end;
+
+procedure EditorWorldCanOpenCheck(closeSavesSilently: boolean);
+	var
+		isSecret: boolean;
+	begin
+		{ Secret worlds: warn always }
+		{ Savegames: error if non-debug, warn if debug }
+		isSecret := (WorldGetFlagPosition('SECRET') >= 0);
+		if (World.Info.IsSave and (not closeSavesSilently)) or isSecret then begin
+			SidebarClearLine(3);
+			SidebarClearLine(4);
+			SidebarClearLine(5);
+			VideoWriteText(63, 4, $1E, 'World marked as');
+			if World.Info.IsSave then
+				VideoWriteText(63, 5, $1E, ' a saved game!')
+			else
+				VideoWriteText(63, 5, $1E, '    locked!');
+			PauseOnError;
+		end;
+		if World.Info.IsSave and (not DebugEnabled) then begin
+			WorldUnload;
+			WorldCreate;
 		end;
 	end;
 
@@ -414,6 +225,20 @@ procedure EditorLoop;
 		inputByte: byte;
 		viewMode: integer;
 		copyBuffer: TEditorCopyBuffer;
+
+	procedure EditorDrawCursor;
+		begin
+			VideoWriteText(
+{$IFDEF E_SUPERZ}
+				cursorX + BOARD_DRAW_X - Board.Info.DrawXOffset,
+				cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
+{$ELSE}
+				cursorX - 1,
+				cursorY - 1,
+{$ENDIF}
+				$0F, #197
+			);
+		end;
 
 	function EditorGetDrawingColor(eid: integer): integer;
 		begin
@@ -605,6 +430,7 @@ procedure EditorLoop;
 			i: integer;
 			copiedChr: byte;
 		begin
+			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 			SidebarClear;
 			SidebarClearLine(1);
 			VideoWriteText(61, 0, $1F, '     - - - -       ');
@@ -626,9 +452,9 @@ procedure EditorLoop;
 			VideoWriteText(68, 10, $1F, ' Item');
 			VideoWriteText(61, 11, $30, '  f2   ');
 			VideoWriteText(68, 11, $1F, ' Creature');
-			VideoWriteText(61, 12, $70, '  f3-4 ');
+			VideoWriteText(61, 12, $70, {$IFDEF E_SUPERZ}'  f3-4 '{$ELSE}'  f3   '{$ENDIF});
 			VideoWriteText(68, 12, $1F, ' Terrain');
-			VideoWriteText(61, 13, $30, '  f6   ');
+			VideoWriteText(61, 13, $30, {$IFDEF E_SUPERZ}'  f6   '{$ELSE}'  f4   '{$ENDIF});
 			VideoWriteText(68, 13, $1F, ' Enter text');
 			VideoWriteText(61, 16, $30, '  Tab  ');
 			VideoWriteText(68, 16, $1F, ' Mode:');
@@ -649,8 +475,8 @@ procedure EditorLoop;
 
 				VideoWriteText(61, 25, $30, ' X ');
 				VideoWriteText(64, 25, $1F, ' Flood Fill');
-				VideoWriteText(61, 26, $70, ' V ');
-				VideoWriteText(64, 26, $1F, ' View Change');
+				VideoWriteText(61, 26, $70, {$IFDEF E_SUPERZ}' O '{$ELSE}' A '{$ENDIF});
+				VideoWriteText(64, 26, $1F, ' Options');
 				VideoWriteText(61, 27, $30, ' W ');
 				VideoWriteText(64, 27, $1F, ' World Info');
 				VideoWriteText(61, 28, $70, ' T ');
@@ -677,6 +503,10 @@ procedure EditorLoop;
 					VideoWriteText(64, 39, $1F, ' New World');
 					VideoWriteText(61, 40, $70, ' Z ');
 					VideoWriteText(64, 40, $1F, ' Clear all');
+{$IFDEF E_SUPERZ}
+					VideoWriteText(61, 41, $30, ' V ');
+					VideoWriteText(64, 41, $1F, ' View Change');
+{$ENDIF}
 				end;
 			end;
 
@@ -694,15 +524,19 @@ procedure EditorLoop;
 
 			EditorUpdateDrawMode;
 			EditorDrawCursorPos;
+			{$IFDEF BASICSYS} VideoUnlockScreenUpdate(60, 0, 79, 24); {$ENDIF}
 		end;
 
 	procedure EditorDrawTileAndNeighborsAt(x, y: integer);
 		var
-			i: integer;
+			i, ix, iy: integer;
 		begin
 			BoardDrawTile(x, y);
 			for i := 0 to 3 do begin
-				BoardDrawTile(x + NeighborDeltaX[i], y + NeighborDeltaY[i]);
+				ix := x + NeighborDeltaX[i];
+				iy := y + NeighborDeltaY[i];
+				if (ix >= 1) and (ix <= BOARD_WIDTH) and (iy >= 1) and (iy <= BOARD_HEIGHT) then
+					BoardDrawTile(ix, iy);
 			end;
 			EditorDrawStatsState;
 		end;
@@ -710,16 +544,19 @@ procedure EditorLoop;
 	procedure EditorDrawRefresh;
 		var
 			boardNumStr: string[20];
-		begin
+		begin	
+			{$IFDEF E_ZZT} BoardDrawBorder; {$ENDIF}
 			EditorDrawSidebar;
 			Str(World.Info.CurrentBoard, boardNumStr);
-			DrawPlayfieldBorder(false);
+			{$IFDEF E_SUPERZ} DrawPlayfieldBorder(false); {$ENDIF}
 			TransitionDrawToBoard;
 
+{$IFDEF E_SUPERZ}
 			VideoWriteText(0, 0, $1F,
 				'                    '
 				+'                    '
 				+'                    ');
+{$ENDIF}
 
 			if Length(Board.Name) <> 0 then
 				VideoWriteText((59 - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
@@ -747,10 +584,17 @@ procedure EditorLoop;
 	procedure EditorAskSaveChanged;
 		begin
 			InputKeyPressed := #0;
-			if wasModified then
-				if SidebarPromptYesNo('Save first? ', true) then
-					if InputKeyPressed <> KEY_ESCAPE then
+			if wasModified then begin
+				if SidebarPromptYesNo('Save first? ', true) then begin
+					if InputKeyPressed <> KEY_ESCAPE then begin
+{$IFDEF E_SUPERZ}
 						GameWorldSave('Save world', LoadedGameFileName, '.SZT');
+{$ELSE}
+						GameWorldSave('Save world', LoadedGameFileName, '.ZZT');
+{$ENDIF}
+					end;
+				end;
+			end;
 			World.Info.Name := LoadedGameFileName;
 		end;
 
@@ -842,7 +686,12 @@ procedure EditorLoop;
 				Str(Board.Info.MaxShots, numStr);
 				state.Lines[2]^ := '      Can fire: ' + numStr + ' shots.';
 
-				state.Lines[3]^ := ' Board is dark: ';
+{$IFDEF E_SUPERZ}
+				{ TODO: Remove completely. }
+				state.Lines[3]^ := ' Board is dark: No';
+{$ELSE}
+				state.Lines[3]^ := ' Board is dark: ' + BoolToString(Board.Info.IsDark);
+{$ENDIF}
 
 				for i := 4 to 7 do begin
 					state.Lines[i]^ := NeighborBoardStrs[i - 4] + ': ' +
@@ -862,7 +711,7 @@ procedure EditorLoop;
 					wasModified := true;
 					case state.LinePos of
 						1: begin
-							PopupPromptString('New title for board:', Board.Name);
+							PopupPromptString('New title for board:', Board.Name, MAX_BOARD_NAME_LENGTH);
 							exitRequested := true;
 							TextWindowDrawClose(state);
 						end;
@@ -874,17 +723,23 @@ procedure EditorLoop;
 							EditorDrawSidebar;
 						end;
 						3: begin
+{$IFDEF E_ZZT}
+							Board.Info.IsDark := not Board.Info.IsDark;
+{$ENDIF}
 						end;
 						4, 5, 6, 7: begin
-							Board.Info.NeighborBoards[state.LinePos - 4]
-								:= EditorSelectBoard(
-									NeighborBoardStrs[state.LinePos - 4],
-									Board.Info.NeighborBoards[state.LinePos - 4],
-									true, true, true
-								);
-							if Board.Info.NeighborBoards[state.LinePos - 4] > World.BoardCount then begin
-								EditorAppendBoard;
-								exitRequested := true;
+							i := EditorSelectBoard(
+								NeighborBoardStrs[state.LinePos - 4],
+								Board.Info.NeighborBoards[state.LinePos - 4],
+								true, true, true
+							);
+							if not TextWindowRejected then begin
+								if i > World.BoardCount then begin
+									EditorAppendBoard;
+									exitRequested := true;
+								end else begin
+									Board.Info.NeighborBoards[state.LinePos - 4] := i;
+								end;
 							end;
 						end;
 						8: begin
@@ -948,7 +803,7 @@ procedure EditorLoop;
 								World.Info.CurrentBoard,
 								true, true, false
 							);
-							if i > 0 then begin
+							if (not TextWindowRejected) and (i > 0) then begin
 								if not EditorShiftBoard(i, -1, BoardShiftDelete) then begin
 									TextWindowFreeEdit(state);
 									
@@ -980,9 +835,7 @@ procedure EditorLoop;
 	procedure EditorEditStatText(statId: integer; prompt: string);
 		var
 			state: TTextWindowState;
-			iLine, iChar, iStat: integer;
-			dataChar: char;
-			dataPtr: pointer;
+			i, iLine, iChar, iStat: integer;
 			affectedStats: array[0 .. MAX_STAT + 1] of boolean;
 		begin
 			with Board.Stats[statId] do begin
@@ -1006,7 +859,7 @@ procedure EditorLoop;
 				EditorOpenEditTextWindow(state, '.TXT', true);
 
 				for iLine := 1 to state.LineCount do
-					DataLen := DataLen + Length(state.Lines[iLine]^) + 1;
+					Inc(DataLen, Length(state.Lines[iLine]^) + 1);
 
 				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
@@ -1020,17 +873,28 @@ procedure EditorLoop;
 						Board.Stats[iStat].DataLen := DataLen;
 					end;
 
-				dataPtr := Data;
+				i := 0;
 				for iLine := 1 to state.LineCount do begin
 					for iChar := 1 to Length(state.Lines[iLine]^) do begin
-						dataChar := state.Lines[iLine]^[iChar];
-						Move(dataChar, dataPtr^, 1);
-						AdvancePointer(dataPtr, 1);
+						{$IFNDEF FPC}
+						{ On Turbo Pascal, the array pointer is actually }
+						{ a poiter to a string. }
+						Data^[i] := state.Lines[iLine]^[iChar];
+						{$ELSE}
+						Data[i] := state.Lines[iLine]^[iChar];
+						{$ENDIF}
+						Inc(i);
 					end;
 
-					dataChar := #13;
-					Move(dataChar, dataPtr^, 1);
-					AdvancePointer(dataPtr, 1);
+
+					{$IFNDEF FPC}
+					{ On Turbo Pascal, the array pointer is actually }
+					{ a poiter to a string. }
+					Data^[i] := #13;
+					{$ELSE}
+					Data[i] := #13;
+					{$ENDIF}
+					Inc(i);
 				end;
 
 				TextWindowDrawClose(state);
@@ -1099,11 +963,11 @@ procedure EditorLoop;
 					if (InputKeyPressed <> KEY_ESCAPE) and
 						(Length(ElementDefs[element].ParamBulletTypeName) <> 0) then
 					begin
-						promptByte := (P2) shr 7;
+						promptByte := P2 shr 7;
 						SidebarPromptChoice(selected, iy, ElementDefs[element].ParamBulletTypeName,
 							'Bullets Stars', promptByte);
 						if selected then begin
-							P2 := (P2 and $7F) + (promptByte * $80);
+							P2 := (P2 and $7F) + (promptByte shl 7);
 							World.EditorStatSettings[element].P2 := P2;
 						end;
 						Inc(iy, 4);
@@ -1137,8 +1001,8 @@ procedure EditorLoop;
 						(Length(ElementDefs[element].ParamBoardName) <> 0) then
 					begin
 						if selected then begin
-							selectedBoard := EditorSelectBoard(ElementDefs[element].ParamBoardName, P3, true, false, true);
-							if selectedBoard <> 0 then begin
+							selectedBoard := EditorSelectBoard(ElementDefs[element].ParamBoardName, P3, false, false, true);
+							if (not TextWindowRejected) then begin
 								P3 := selectedBoard;
 								World.EditorStatSettings[element].P3 := World.Info.CurrentBoard;
 								if P3 > World.BoardCount then begin
@@ -1196,12 +1060,13 @@ procedure EditorLoop;
 		label TransferEnd;
 		begin
 			i := 1;
+			memoryError := false;
 			SidebarPromptChoice(true, 3, 'Transfer board:', 'Import Export', i);
 			if InputKeyPressed <> KEY_ESCAPE then begin
 				if i = 0 then begin
 					SavedBoardFileName := FileSelect('ZZT Boards', '.BRD', FileBoardCachedLinePos);
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
-						Assign(f, SavedBoardFileName + '.BRD');
+						AssignFSys(f, SavedBoardFileName + '.BRD');
 						Reset(f, 1);
 						if DisplayIOError then begin
 							Close(f);
@@ -1209,18 +1074,21 @@ procedure EditorLoop;
 						end;
 
 						BoardClose;
-						ExtMemFree(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
-						BlockRead(f, World.BoardLen[World.Info.CurrentBoard], 2);
+						ExtMemFree(WorldExt.BoardData[World.Info.CurrentBoard], WorldExt.BoardLen[World.Info.CurrentBoard]);
+						BlockRead(f, WorldExt.BoardLen[World.Info.CurrentBoard], 2);
+{$IFDEF ENDIAN_BIG}
+						WorldExt.BoardLen[World.Info.CurrentBoard] := LEtoN(WorldExt.BoardLen[World.Info.CurrentBoard]);
+{$ENDIF}
 						if not DisplayIOError then begin
-							case EnsureIoTmpBufSize(World.BoardLen[World.Info.CurrentBoard]) of
+							case EnsureIoTmpBufSize(WorldExt.BoardLen[World.Info.CurrentBoard]) of
 								2: memoryError := true;
 								0, 1: begin
-									if ExtMemGet(World.BoardData[World.Info.CurrentBoard],
-									World.BoardLen[World.Info.CurrentBoard]) then begin
+									if ExtMemGet(WorldExt.BoardData[World.Info.CurrentBoard],
+									WorldExt.BoardLen[World.Info.CurrentBoard]) then begin
 										BlockRead(f, IoTmpBuf^,
-											  World.BoardLen[World.Info.CurrentBoard]);
-										ExtMemWrite(World.BoardData[World.Info.CurrentBoard], IoTmpBuf^,
-											  World.BoardLen[World.Info.CurrentBoard]);
+											  WorldExt.BoardLen[World.Info.CurrentBoard]);
+										ExtMemWrite(WorldExt.BoardData[World.Info.CurrentBoard], IoTmpBuf^,
+											  WorldExt.BoardLen[World.Info.CurrentBoard]);
 									end else memoryError := true;
 								end;
 							end;
@@ -1229,7 +1097,8 @@ procedure EditorLoop;
 						Close(f);
 
 						if DisplayIOError or memoryError then begin
-							World.BoardLen[World.Info.CurrentBoard] := 0;
+							{ TODO: Show out of memory error. }
+							WorldExt.BoardLen[World.Info.CurrentBoard] := 0;
 							BoardCreate;
 							EditorDrawRefresh;
 						end else begin
@@ -1242,9 +1111,9 @@ procedure EditorLoop;
 				end else if i = 1 then begin
 					SidebarPromptString('Export board', '.BRD', SavedBoardFileName, PROMPT_ALPHANUM);
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
-						case EnsureIoTmpBufSize(World.BoardLen[World.Info.CurrentBoard]) of
+						case EnsureIoTmpBufSize(WorldExt.BoardLen[World.Info.CurrentBoard]) of
 							0, 1: begin
-								Assign(f, SavedBoardFileName + '.BRD');
+								AssignFSys(f, SavedBoardFileName + '.BRD');
 								Rewrite(f, 1);
 								if DisplayIOError then begin
 									Close(f);
@@ -1252,11 +1121,15 @@ procedure EditorLoop;
 								end;
 
 								BoardClose;
-								BlockWrite(f, World.BoardLen[World.Info.CurrentBoard], 2);
-								ExtMemRead(World.BoardData[World.Info.CurrentBoard], IoTmpBuf^,
-									World.BoardLen[World.Info.CurrentBoard]);
+{$IFDEF ENDIAN_BIG}
+								BlockWrite(f, NtoLE(WorldExt.BoardLen[World.Info.CurrentBoard]), 2);
+{$ELSE}
+								BlockWrite(f, WorldExt.BoardLen[World.Info.CurrentBoard], 2);
+{$ENDIF}
+								ExtMemRead(WorldExt.BoardData[World.Info.CurrentBoard], IoTmpBuf^,
+									WorldExt.BoardLen[World.Info.CurrentBoard]);
 								BlockWrite(f, IoTmpBuf^,
-									World.BoardLen[World.Info.CurrentBoard]);
+									WorldExt.BoardLen[World.Info.CurrentBoard]);
 								BoardOpen(World.Info.CurrentBoard);
 
 								Close(f);
@@ -1283,6 +1156,7 @@ procedure EditorLoop;
 			else if newY > BOARD_HEIGHT then
 				newY := BOARD_HEIGHT;
 
+{$IFDEF E_SUPERZ}
 			if (newX < Board.Info.DrawXOffset)
 				or ((Board.Info.DrawXOffset + BOARD_DRAW_WIDTH) <= newX)
 				or (Board.Info.DrawXOffset < BOARD_DRAW_OX_MIN)
@@ -1308,6 +1182,7 @@ procedure EditorLoop;
 				else if Board.Info.DrawYOffset > BOARD_DRAW_OY_MAX then
 					Board.Info.DrawYOffset := BOARD_DRAW_OY_MAX;
 			end;
+{$ENDIF}
 
 			cursorX := newX;
 			cursorY := newY;
@@ -1316,6 +1191,15 @@ procedure EditorLoop;
 			end;
 
 			EditorDrawCursorPos;
+		end;
+
+	procedure EditorResetCursor;
+		begin
+{$IFDEF E_ZZT}
+			EditorMoveCursor(30, 12, false);
+{$ELSE}
+			EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, false);
+{$ENDIF}
 		end;
 
 	procedure EditorBoardChange(boardId: integer);
@@ -1327,25 +1211,27 @@ procedure EditorLoop;
 	procedure EditorUpdateCursorPos(drawCursor: boolean);
 		begin
 			if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+{$IFDEF E_SUPERZ}
 				EditorMoveCursor(
-					((Integer(InputShiftPressed) * ((BOARD_DRAW_WIDTH shr 1) - 1)) + 1) * InputDeltaX + cursorX,
-					((Integer(InputShiftPressed) * ((BOARD_DRAW_HEIGHT shr 1) - 1)) + 1) * InputDeltaY + cursorY,
+					((Integer(KeysAltHeld) * ((BOARD_DRAW_WIDTH shr 1) - 1)) + 1) * InputDeltaX + cursorX,
+					((Integer(KeysAltHeld) * ((BOARD_DRAW_HEIGHT shr 1) - 1)) + 1) * InputDeltaY + cursorY,
 					false
 				);
+{$ELSE}
+				EditorMoveCursor(
+					((Integer(KeysAltHeld) * 9) + 1) * InputDeltaX + cursorX,
+					((Integer(KeysAltHeld) * 4) + 1) * InputDeltaY + cursorY,
+					false
+				);
+{$ENDIF}
 
 				if drawCursor then
-					VideoWriteText(
-						cursorX + BOARD_DRAW_X - Board.Info.DrawXOffset,
-						cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
-						$0F, #197
-					);
-
+					EditorDrawCursor;
 				if (InputKeyPressed = #0) and InputJoystickMoved then
 					AccurateDelay(70);
 				InputShiftAccepted := false;
 			end;
 		end;
-
 
 	procedure EditorFreeCopyBuffer;
 		var
@@ -1377,7 +1263,8 @@ procedure EditorLoop;
 				for ix := -1 to (width + 1) do begin
 					tx := ox + ix;
 					ty := oy + iy;
-					BoardDrawTile(tx, ty);
+					if (tx >= 1) and (ty >= 1) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then
+						BoardDrawTile(tx, ty);
 				end;
 			end;
 			EditorDrawStatsState;
@@ -1455,6 +1342,7 @@ procedure EditorLoop;
 				y2 := ix;
 			end;
 
+{$IFDEF E_SUPERZ}
 			sx1 := x1 + BOARD_DRAW_X - Board.Info.DrawXOffset;
 			sy1 := y1 + BOARD_DRAW_Y - Board.Info.DrawYOffset;
 			sx2 := x2 + BOARD_DRAW_X - Board.Info.DrawXOffset;
@@ -1479,8 +1367,11 @@ procedure EditorLoop;
 				exit
 			else if sy2 >= (BOARD_DRAW_Y + BOARD_DRAW_HEIGHT) then
 				sy2 := BOARD_DRAW_Y + BOARD_DRAW_HEIGHT - 1;
-			
+
 			VideoInvert(sx1, sy1, sx2, sy2);
+{$ELSE}
+			VideoInvert(sx1 - 1, sy1 - 1, sx2 - 1, sy2 - 1);
+{$ENDIF}
 		end;
 
 	procedure EditorAskAndPasteCopyBuffer(ox, oy: integer);
@@ -1728,6 +1619,7 @@ procedure EditorLoop;
 			end;
 		end;
 
+{$IFDEF E_SUPERZ}
 	procedure EditorSetViewMode(mode: integer);
 		begin
 			viewMode := mode;
@@ -1739,34 +1631,16 @@ procedure EditorLoop;
 				if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
 			end;
 		end;
-
-	procedure EditorTypeHexText;
-		var
-			keyHi, keyLo: char;
-			hexStr: TSmallString;
-			typedChr, valCode: integer;
-			
-		begin
-			keyHi := ReadKey;
-			keyLo := ReadKey;
-
-			hexStr := '$' + keyHi + keyLo;
-			Val(hexStr, typedChr, valCode);
-
-			EditorSetAndCopyTile(cursorX, cursorY, ((cursorColor and 7) - 1) + E_TEXT_MIN, typedChr);
-			EditorMoveCursor(cursorX + 1, cursorY, false);
-		end;
+{$ENDIF}
 
 	label DrawNextCategory;
 	label CheckNextCategory;
 	label PlacementDone;
 	begin
+		EditorWorldCanOpenCheck(true);
+{$IFDEF E_SUPERZ}
 		EditorSetViewMode(VIEW_EDITOR);
-
-		if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) then begin
-			WorldUnload;
-			WorldCreate;
-		end;
+{$ENDIF}
 
 		InitElementsEditor;
 		CurrentTick := 0;
@@ -1784,28 +1658,28 @@ procedure EditorLoop;
 
 		if World.Info.CurrentBoard <> 0 then
 			BoardChange(World.Info.CurrentBoard);
-		if World.BoardCount = 0 then
-			EditorAppendBoard;
 
-		EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, false);
+		EditorResetCursor;
 		EditorDrawRefresh;
+
+		if World.BoardCount = 0 then begin
+			EditorAppendBoard;
+			EditorResetCursor;
+			EditorDrawRefresh;
+		end;
 
 		editorExitRequested := false;
 		repeat
 			if drawMode = DrawingOn then
 				EditorPlaceTile(cursorX, cursorY);
 			InputUpdate;
-			if (InputKeyPressed = #0) and (InputDeltaX = 0) and (InputDeltaY = 0) then begin
+			if (InputKeyPressed = #0) and (InputDeltaX = 0) and (InputDeltaY = 0) and not InputShiftPressed then begin
 				if SoundHasTimeElapsed(TickTimeCounter, 15) then
 					cursorBlinker := (cursorBlinker + 1) mod 3;
 				if cursorBlinker = 0  then
 					BoardDrawTile(cursorX, cursorY)
 				else
-					VideoWriteText(
-						cursorX + BOARD_DRAW_X - Board.Info.DrawXOffset,
-						cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
-						$0F, #197
-					);
+					EditorDrawCursor;
 			end else begin
 				BoardDrawTile(cursorX, cursorY);
 			end;
@@ -1829,7 +1703,7 @@ procedure EditorLoop;
 			end;
 
 			with Board.Tiles[cursorX][cursorY] do begin
-				if (InputKeyPressed = ' ') then begin
+				if InputShiftPressed or (InputKeyPressed = ' ') then begin
 					InputShiftAccepted := true;
 
 					canModify := (Element = 0) or (InputDeltaX <> 0) or (InputDeltaY <> 0);
@@ -1892,24 +1766,13 @@ procedure EditorLoop;
 						SidebarClearLine(4);
 						SidebarClearLine(5);
 						EditorAskSaveChanged;
+{$IFDEF E_SUPERZ}
 						if (InputKeyPressed <> KEY_ESCAPE) and GameWorldLoad('.SZT') then begin
-							if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) then begin
-								if not DebugEnabled then begin
-									SidebarClearLine(3);
-									SidebarClearLine(4);
-									SidebarClearLine(5);
-									VideoWriteText(63, 4, $1E, 'Can not edit');
-									if World.Info.IsSave then
-										VideoWriteText(63, 5, $1E, 'a saved game!')
-									else
-										VideoWriteText(63, 5, $1E, '  ' + World.Info.Name + '!');
-									PauseOnError;
-									WorldUnload;
-									WorldCreate;
-								end;
-							end;
+{$ELSE}
+						if (InputKeyPressed <> KEY_ESCAPE) and GameWorldLoad('.ZZT') then begin
+{$ENDIF}
+							EditorWorldCanOpenCheck(false);
 							wasModified := false;
-							EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, true);
 							EditorDrawRefresh;
 						end else begin
 							EditorDrawSidebar;
@@ -1918,7 +1781,11 @@ procedure EditorLoop;
 					'S': begin
 						SidebarClearLine(4);
 						SidebarClearLine(5);
+{$IFDEF E_SUPERZ}
 						GameWorldSave('Save world:', LoadedGameFileName, '.SZT');
+{$ELSE}
+						GameWorldSave('Save world:', LoadedGameFileName, '.ZZT');
+{$ENDIF}
 						if InputKeyPressed <> KEY_ESCAPE then
 							wasModified := false;
 						EditorDrawSidebar;
@@ -1939,6 +1806,7 @@ procedure EditorLoop;
 							if (InputKeyPressed <> KEY_ESCAPE) then begin
 								WorldUnload;
 								WorldCreate;
+								InitElementsEditor;
 								EditorDrawRefresh;
 								wasModified := false;
 							end;
@@ -1964,7 +1832,7 @@ procedure EditorLoop;
 					end;
 					'B': begin
 						i := EditorSelectBoard('Switch boards', World.Info.CurrentBoard, false, false, true);
-						if (InputKeyPressed <> KEY_ESCAPE) then begin
+						if (not TextWindowRejected) then begin
 							if (i > World.BoardCount) then
 								if SidebarPromptYesNo('Add new board? ', false) then
 									EditorAppendBoard;
@@ -1974,6 +1842,7 @@ procedure EditorLoop;
 							EditorDrawSidebar;
 						end;
 					end;
+{$IFDEF E_SUPERZ}
 					'V': begin
 						if viewMode = VIEW_EDITOR then
 							EditorSetViewMode(VIEW_EDITOR_LARGE)
@@ -1982,6 +1851,7 @@ procedure EditorLoop;
 						EditorMoveCursor(cursorX, cursorY, false);
 						EditorDrawRefresh;
 					end;
+{$ENDIF}
 					'?': begin
 						GameDebugPrompt;
 						EditorDrawSidebar;
@@ -1993,52 +1863,63 @@ procedure EditorLoop;
 							drawMode := DrawingOff;
 						EditorUpdateDrawMode;
 					end;
-					KEY_F9: begin
-						EditorTypeHexText;
-					end;
 					KEY_F5: begin
-						VideoWriteText(
-							cursorX + BOARD_DRAW_X - Board.Info.DrawXOffset,
-							cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
-							$0F, #197
-						);
-						for i := 3 to VideoRows - 5 do
+						EditorDrawCursor;
+						{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
+						for i := 3 to 20 do
 							SidebarClearLine(i);
-						VideoWriteText(65, 4, $1E, 'Advanced:');
 
-						VideoWriteText(61, 5, $70, ' E ');
-						VideoWriteText(65, 5, $1F, 'Board edge');
-						VideoWriteText(78, 5, cursorColor, 'E');
+						i := 4;
+						VideoWriteText(65, i, $1E, 'Advanced:');
+						Inc(i, 1);
 
-						VideoWriteText(61, 6, $30, ' H ');
-						VideoWriteText(65, 6, $1F, 'Hori. blink');
-						VideoWriteText(78, 6, cursorColor, #205);
+						VideoWriteText(61, i, $70, ' E ');
+						VideoWriteText(65, i, $1F, 'Board edge');
+						VideoWriteText(78, i, cursorColor, 'E');
+						Inc(i, 1);
 
-						VideoWriteText(61, 7, $70, ' V ');
-						VideoWriteText(65, 7, $1F, 'Vert. blink');
-						VideoWriteText(78, 7, cursorColor, #186);
+						VideoWriteText(61, i, $30, ' H ');
+						VideoWriteText(65, i, $1F, 'Hori. blink');
+						VideoWriteText(78, i, cursorColor, #205);
+						Inc(i, 1);
 
-						VideoWriteText(61, 8, $30, ' C ');
-						VideoWriteText(65, 8, $1F, 'Player clone');
-						VideoWriteText(78, 8, $1F, #2);
+						VideoWriteText(61, i, $70, ' V ');
+						VideoWriteText(65, i, $1F, 'Vert. blink');
+						VideoWriteText(78, i, cursorColor, #186);
+						Inc(i, 1);
 
-						VideoWriteText(61, 9, $70, ' F ');
-						VideoWriteText(65, 9, $1F, 'Fake player');
-						VideoWriteText(78, 9, cursorColor, #2);
+						VideoWriteText(61, i, $30, ' C ');
+						VideoWriteText(65, i, $1F, 'Player clone');
+						VideoWriteText(78, i, $1F, #2);
+						Inc(i, 1);
 
-						VideoWriteText(61, 10, $30, ' P ');
-						VideoWriteText(65, 10, $1F, 'Pairer');
-						VideoWriteText(78, 10, EditorGetDrawingColor(E_PAIRER), ElementDefs[E_PAIRER].Character);
+						VideoWriteText(61, i, $70, ' F ');
+						VideoWriteText(65, i, $1F, 'Fake player');
+						VideoWriteText(78, i, cursorColor, #2);
+						Inc(i, 1);
 
-						VideoWriteText(65, 12, $1E, 'Projectiles:');
+{$IFDEF E_SUPERZ}
+						VideoWriteText(61, i, $30, ' P ');
+						VideoWriteText(65, i, $1F, 'Pairer');
+						VideoWriteText(78, i, EditorGetDrawingColor(E_PAIRER), ElementDefs[E_PAIRER].Character);
+						Inc(i, 1);
+{$ENDIF}
 
-						VideoWriteText(61, 13, $70, ' U ');
-						VideoWriteText(65, 13, $1F, 'Bullet');
-						VideoWriteText(78, 13, cursorColor, #248);
+						Inc(i, 1);
+						VideoWriteText(65, i, $1E, 'Projectiles:');
+						Inc(i, 1);
 
-						VideoWriteText(61, 14, $30, ' A ');
-						VideoWriteText(65, 14, $1F, 'Star');
-						VideoWriteText(78, 14, cursorColor, '/');
+						{ TODO: Fix colors given SuperZ Pairer }
+						VideoWriteText(61, i, $30, ' U ');
+						VideoWriteText(65, i, $1F, 'Bullet');
+						VideoWriteText(78, i, cursorColor, #248);
+						Inc(i, 1);
+
+						VideoWriteText(61, i, $70, ' A ');
+						VideoWriteText(65, i, $1F, 'Star');
+						VideoWriteText(78, i, cursorColor, '/');
+						Inc(i, 1);
+						{$IFDEF BASICSYS} VideoUnlockScreenUpdate(60, 3, 79, 20); {$ENDIF}
 
 						InputReadWaitKey;
 						case UpCase(InputKeyPressed) of
@@ -2054,9 +1935,6 @@ procedure EditorLoop;
 							'C': begin
 								EditorPlaceElement(E_PLAYER, $1F);
 							end;
-							'P': begin
-								EditorPlaceElement(E_PAIRER, EditorGetDrawingColor(E_PAIRER));
-							end;
 							'F': begin
 								EditorPlaceElementNoStat(E_PLAYER, cursorColor);
 							end;
@@ -2066,28 +1944,32 @@ procedure EditorLoop;
 							'A': begin
 								EditorPlaceElement(E_STAR, cursorColor);
 							end;
+{$IFDEF E_SUPERZ}
+							'P': begin
+								EditorPlaceElement(E_PAIRER, EditorGetDrawingColor(E_PAIRER));
+							end;
+{$ENDIF}
 						end;
 						EditorDrawSidebar;
 					end;
-					KEY_F1, KEY_F2, KEY_F3, KEY_F4: begin
-						VideoWriteText(
-							cursorX + BOARD_DRAW_X - Board.Info.DrawXOffset,
-							cursorY + BOARD_DRAW_Y - Board.Info.DrawYOffset,
-							$0F, #197
-						);
-						for i := 3 to VideoRows - 5 do
+					KEY_F1, KEY_F2, KEY_F3{$IFDEF E_SUPERZ}, KEY_F4{$ENDIF}: begin
+						EditorDrawCursor;
+						{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
+						for i := 3 to 20 do
 							SidebarClearLine(i);
 						case InputKeyPressed of
 							KEY_F1: selectedCategory := CATEGORY_ITEM;
 							KEY_F2: selectedCategory := CATEGORY_CREATURE;
 							KEY_F3: selectedCategory := CATEGORY_TERRAIN;
+{$IFDEF E_SUPERZ}
 							KEY_F4: selectedCategory := CATEGORY_TERRAIN2;
+{$ENDIF}
 						end;
 						i := 3; { Y position for text writing }
 DrawNextCategory:
 						for iElem := 1 to MAX_ELEMENT do begin
 							if ElementDefs[iElem].EditorCategory = selectedCategory then begin
-								if ElementDefs[iElem].CategoryName <> '' then begin
+								if Length(ElementDefs[iElem].CategoryName) <> 0 then begin
 									Inc(i);
 									VideoWriteText(65, i, $1E, ElementDefs[iElem].CategoryName);
 									Inc(i);
@@ -2100,6 +1982,8 @@ DrawNextCategory:
 								Inc(i);
 							end;
 						end;
+						{$IFDEF BASICSYS} VideoUnlockScreenUpdate(60, 3, 79, 20); {$ENDIF}
+{$IFDEF E_SUPERZ}
 						if selectedCategory = CATEGORY_CREATURE then begin
 							selectedCategory := CATEGORY_CENTIPEDE;
 							goto DrawNextCategory;
@@ -2108,6 +1992,7 @@ DrawNextCategory:
 							selectedCategory := CATEGORY_CONVEYOR;
 							goto DrawNextCategory;
 						end;
+{$ENDIF}
 						InputReadWaitKey;
 CheckNextCategory:
 						for iElem := 1 to MAX_ELEMENT do begin
@@ -2120,9 +2005,9 @@ CheckNextCategory:
 								end else begin
 									EditorPlaceElement(iElem, EditorGetDrawingColor(iElem));
 								end;
-								goto PlacementDone;
 							end;
 						end;
+{$IFDEF E_SUPERZ}
 						if selectedCategory = CATEGORY_CENTIPEDE then begin
 							selectedCategory := CATEGORY_CREATURE;
 							goto CheckNextCategory;
@@ -2131,10 +2016,11 @@ CheckNextCategory:
 							selectedCategory := CATEGORY_ITEM;
 							goto CheckNextCategory;
 						end;
+{$ENDIF}
 PlacementDone:
 						EditorDrawSidebar;
 					end;
-					KEY_F6: begin
+					{$IFDEF E_SUPERZ}KEY_F6{$ELSE}KEY_F4{$ENDIF}: begin
 						if drawMode <> TextEntry then
 							drawMode := TextEntry
 						else
@@ -2148,7 +2034,7 @@ PlacementDone:
 						EditorFloodFill(cursorX, cursorY, Board.Tiles[cursorX][cursorY]);
 					end;
 					'!': begin
-						EditorEditHelpFile;
+						EditorEditTextFile;
 						EditorDrawSidebar;
 					end;
 					'T': begin
@@ -2158,7 +2044,6 @@ PlacementDone:
 						i := GetStatIdAt(cursorX, cursorY);
 						if i >= 0 then begin
 							EditorEditStat(i);
-							EditorDrawSidebar;
 						end else begin
 							EditorCopyPatternToCurrent(cursorX, cursorY);
 							EditorUpdateCopiedPatterns;
@@ -2167,6 +2052,7 @@ PlacementDone:
 					end;
 					'I': begin
 						EditorEditBoardInfo;
+						TransitionDrawToBoard;
 					end;
 					'W': begin
 						EditorEditWorldInfo;
@@ -2181,7 +2067,7 @@ PlacementDone:
 					KEY_CTRL_V: begin
 						EditorAskAndPasteCopyBuffer(cursorX, cursorY);
 					end;
-					'O': begin
+					{$IFDEF E_SUPERZ}'O'{$ELSE}'A'{$ENDIF}: begin
 						GameOptionsScreen(false);
 						EditorDrawRefresh;
 					end;
@@ -2203,16 +2089,18 @@ PlacementDone:
 		InputKeyPressed := #0;
 		InitElementsGame;
 	end;
+{$ENDIF}
 
 procedure HighScoresLoad;
 	var
 		f: file of THighScoreList;
 		i: integer;
 	begin
-		if Length(World.Info.Name) = 0 then
-			Assign(f, StartupWorldFileName + '.HGS')
-		else
-			Assign(f, World.Info.Name + '.HGS');
+{$IFNDEF MSDOS}
+		AssignFSys(f, World.Info.Name + {$IFDEF E_SUPERZ}'.HGS'{$ELSE}'.HI'{$ENDIF});
+{$ELSE}
+		Assign(f, World.Info.Name + {$IFDEF E_SUPERZ}'.HGS'{$ELSE}'.HI'{$ENDIF});
+{$ENDIF}
 		Reset(f);
 		if IOResult = 0 then begin
 			Read(f, HighScoreList);
@@ -2230,7 +2118,11 @@ procedure HighScoresSave;
 	var
 		f: file of THighScoreList;
 	begin
-		Assign(f, World.Info.Name + '.HGS');
+{$IFNDEF MSDOS}
+		AssignFSys(f, World.Info.Name + {$IFDEF E_SUPERZ}'.HGS'{$ELSE}'.HI'{$ENDIF});
+{$ELSE}
+		Assign(f, World.Info.Name + {$IFDEF E_SUPERZ}'.HGS'{$ELSE}'.HI'{$ENDIF});
+{$ENDIF}
 		Rewrite(f);
 		Write(f, HighScoreList);
 		Close(f);
@@ -2246,7 +2138,11 @@ procedure HighScoresInitTextWindow(var state: TTextWindowState);
 	begin
 		TextWindowInitState(state);
 		TextWindowAppend(state, 'Score  Name');
+{$IFDEF E_SUPERZ}
 		TextWindowAppend(state, '-----  --------------------');
+{$ELSE}
+		TextWindowAppend(state, '-----  ----------------------------------');
+{$ENDIF}
 		for i := 1 to HIGH_SCORE_COUNT do begin
 			if Length(HighScoreList[i].Name) <> 0 then begin
 				Str(HighScoreList[i].Score:5, scoreStr);
@@ -2270,7 +2166,9 @@ procedure HighScoresDisplay(linePos: integer);
 		TextWindowFree(state);
 	end;
 
-procedure EditorOpenEditTextWindow(var state: TTextWindowState; extension: TExtensionString; syntaxHighlighting: boolean);
+{$IFDEF EDITOR}
+procedure EditorOpenEditTextWindow(var state: TTextWindowState; extension: TExtensionString;
+	syntaxHighlighting: boolean);
 	begin
 		SidebarClear;
 		VideoWriteText(61, 7, $30, ' Return ');
@@ -2293,28 +2191,42 @@ procedure EditorOpenEditTextWindow(var state: TTextWindowState; extension: TExte
 		VideoWriteText(69, 18, $1F, ' Copy');
 		VideoWriteText(61, 19, $70, ' Ctrl-V ');
 		VideoWriteText(69, 19, $1F, ' Paste');
-		VideoWriteText(61, 21, $30, ' Esc ');
-		VideoWriteText(66, 21, $1F, ' Exit editor');
+		VideoWriteText(61, 21, $30, ' Ctrl-O ');
+		VideoWriteText(69, 21, $1F, ' Open file');
+		VideoWriteText(61, 22, $70, ' Ctrl-S ');
+		VideoWriteText(69, 22, $1F, ' Save file');
+		VideoWriteText(61, 23, $30, ' Esc ');
+		VideoWriteText(66, 23, $1F, ' Exit editor');
 		TextWindowEdit(state, extension, syntaxHighlighting);
 	end;
 
-procedure EditorEditHelpFile;
+procedure EditorEditTextFile;
 	var
 		textWindow: TTextWindowState;
-		filename: TSmallString;
+		filename: TFilenameString;
+		extension: TExtensionString;
+		i: integer;
 	begin
-		filename := '';
-		SidebarPromptString('File to edit', '.HLP', filename, PROMPT_ALPHANUM);
-		if Length(filename) <> 0 then begin
-			TextWindowOpenFile('*' + filename + '.HLP', textWindow, true, true);
-			textWindow.Title := 'Editing ' + filename;
-			TextWindowDrawOpen(textWindow);
-			EditorOpenEditTextWindow(textWindow, '.HLP', false);
-			TextWindowSaveFile(filename + '.HLP', textWindow);
-			TextWindowDrawClose(textWindow);
-			TextWindowFreeEdit(textWindow);
+		TextWindowInitState(textWindow);
+		TextWindowPromptFilename('File to open?', filename);
+
+		if Length(filename) <> 0 then
+			TextWindowOpenFile('*' + filename, textWindow, true, true);
+
+		extension := '.HLP';
+		for i := Length(filename) downto (Length(filename) - 4) do begin
+			if (i >= 1) and (filename[i] = '.') then begin
+				extension := Copy(filename, i, 4);
+			end;
 		end;
+
+		textWindow.Title := filename;
+		TextWindowDrawOpen(textWindow);
+		EditorOpenEditTextWindow(textWindow, extension, false);
+		TextWindowDrawClose(textWindow);
+		TextWindowFreeEdit(textWindow);
 	end;
+{$ENDIF}
 
 procedure HighScoresAdd(score: integer);
 	var
@@ -2329,6 +2241,7 @@ procedure HighScoresAdd(score: integer);
 			for i := (HIGH_SCORE_COUNT - 1) downto listPos do
 				HighScoreList[i + 1] := HighScoreList[i];
 			HighScoreList[listPos].Score := score;
+{$IFDEF E_SUPERZ}
 			TextWindowInitState(textWindow);
 			TextWindowAppend(textWindow, '');
 			TextWindowAppend(textWindow, ' Enter your name:');
@@ -2345,15 +2258,27 @@ procedure HighScoresAdd(score: integer);
 			PromptString(
 				TextWindowX + 11,
 				(TextWindowHeight shr 1) + TextWindowY + 2,
-				$1F, $1E, 15, PROMPT_ANY, name
+				$1F, $1E, MAX_HIGH_SCORE_NAME_LENGTH, MAX_HIGH_SCORE_NAME_LENGTH, PROMPT_ANY, name
 			);
-			HighScoreList[listPos].Name := name;
-			HighScoresSave;
+{$ELSE}
+			HighScoreList[listPos].Name := '-- You! --';
 
+			HighScoresInitTextWindow(textWindow);
+			textWindow.LinePos := listPos;
+			textWindow.Title := 'New high score for ' + World.Info.Name;
+
+			TextWindowDrawOpen(textWindow);
+			TextWindowDraw(textWindow, false, false);
+
+			name := '';
+			PopupPromptString('Congratulations!  Enter your name:', name, MAX_HIGH_SCORE_NAME_LENGTH);
+{$ENDIF}
 			TextWindowDrawClose(textWindow);
 			TransitionDrawToBoard;
 			TextWindowFree(textWindow);
+{$IFDEF E_SUPERZ}
 			HighScoresDisplay(listPos);
+{$ENDIF}
 		end;
 	end;
 
@@ -2366,7 +2291,7 @@ function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TSmal
 		else if (boardId = World.Info.CurrentBoard) then
 			EditorGetBoardName := Board.Name
 		else begin
-			ExtMemRead(World.BoardData[boardId], copiedName, SizeOf(copiedName));
+			ExtMemRead(WorldExt.BoardData[boardId], copiedName, SizeOf(copiedName));
 			EditorGetBoardName := copiedName;
 		end;
 	end;
@@ -2393,10 +2318,8 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 		TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
 		if not windowAlreadyOpen then TextWindowDrawClose(textWindow);
 		TextWindowFree(textWindow);
-		if InputKeyPressed = KEY_ESCAPE then
-			EditorSelectBoard := 0
-		else
-			EditorSelectBoard := textWindow.LinePos - 1;
+
+		EditorSelectBoard := textWindow.LinePos - 1;
 	end;
 
 begin

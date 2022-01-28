@@ -117,11 +117,12 @@ interface
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
+uses
 {$IFDEF PRINTTXT}
-uses Sounds, TimerSys, FileSys, ZInput, Keys, Printer, FileSel, Game;
-{$ELSE}
-uses Sounds, TimerSys, FileSys, ZInput, Keys, FileSel, Game;
+Printer,
 {$ENDIF}
+Sounds, TimerSys, FileSys, ZInput, Keys, FileSel, Game, Sidebar;
+
 type
 	TTextWindowLineBuffer = array[1 .. MAX_TEXT_WINDOW_LINES] of PTTextWindowLine;
 {$IFNDEF FASTVID}

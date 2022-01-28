@@ -43,7 +43,7 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, GameConf, Game;
+ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, GameConf, Sidebar, Game;
 
 const
 	TransporterNSChars: string = '^~^-v_v-';

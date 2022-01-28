@@ -159,6 +159,12 @@ fi
 for i in `find "$TEMP_PATH"/SRC -type f`; do
 	sed -i -e 's#%'ENGINE'%#'"$ENGINE"'#g' "$i"
 done
+# HACK: Replace WorldExt with World in non-ZZT engines
+if [ "$ENGINE" != "ZZT" ]; then
+	for i in `find "$TEMP_PATH"/SRC -type f`; do
+		sed -i -e 's#WorldExt#World#g' "$i"
+	done
+fi
 
 FPC_BINARY_PATH="$FPC_PATH"
 if [ -x "$(command -v $FPC_BINARY)" ]; then

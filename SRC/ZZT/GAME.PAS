@@ -34,8 +34,6 @@ interface
 		PROMPT_ALPHANUM = 1;
 		PROMPT_ANY = 2;
 	function TileOutOfBounds(x, y: integer): boolean;
-	procedure SidebarClearLine(y: integer);
-	procedure SidebarClear;
 	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
 {$IFNDEF FPC}
 {$IFDEF CPU86}
@@ -59,18 +57,8 @@ interface
 	procedure BoardDrawTile(x, y: integer);
 	procedure BoardDrawBorder;
 	procedure TransitionDrawToBoard;
-	procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TString50; var value: byte);
-	procedure SidebarPromptNumeric(editable: boolean; x, y: integer; prompt: string; minV, maxV: integer; var value: integer);
-	procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
-	procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: string; var result: byte);
-	procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; var deltaX, deltaY: integer);
-	procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mode: byte; var buffer: TString50);
-	function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
-	procedure SidebarPromptString(prompt: string; extension: TString50; var filename: string; promptMode: byte);
 	procedure PauseOnError;
-	function DisplayIOError: boolean;
 	procedure WorldUnload;
-	procedure SidebarAnimateLoading(var loadProgress: integer);
 	function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 	procedure WorldSave(filename, extension: TString50);
 	procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: TString50);
@@ -82,7 +70,6 @@ interface
 	function GetStatIdAt(tx, ty: integer): integer;
 	function BoardPrepareTileForPlacement(x, y: integer): boolean;
 	procedure MoveStat(statId: integer; newX, newY: integer);
-	procedure PopupPromptString(question: string; var buffer: TString50; maxLen: integer);
 	function Signum(val: integer): integer;
 	function Difference(a, b: integer): integer;
 	procedure DamageStat(attackerStatId: integer);
@@ -102,9 +89,6 @@ interface
 	procedure ResetCachedLinePos;
 const
 	LFSR11_START = 42;
-	ProgressAnimColors: array[0 .. 7] of byte = ($14, $1C, $15, $1D, $16, $1E, $17, $1F);
-	ProgressAnimStrings: array[0 .. 7] of string[5] =
-		('....|', '...*/', '..*.-', '.*..\', '*...|', '..../', '....-', '....\');
 	ColorNames: array[1 .. 7] of string[8] =
 		('Blue', 'Green', 'Cyan', 'Red', 'Purple', 'Yellow', 'White');
 	{}
@@ -143,7 +127,7 @@ ZetaSupp,
 {$IFNDEF RAWSTRUCTS}
 GameVSer,
 {$ENDIF}
-Dos, FileSel, FileSys, GameConf, ExtMem, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop;
+Dos, FileSel, FileSys, GameConf, ExtMem, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
 
 function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
 	begin
@@ -156,25 +140,6 @@ function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
 function TileOutOfBounds(x, y: integer): boolean;
 	begin
 		TileOutOfBounds := (x < 0) or (y < 0) or (x > (BOARD_WIDTH + 1)) or (y > (BOARD_HEIGHT + 1));
-	end;
-
-procedure SidebarClearLine(y: integer);
-	begin
-{$IFDEF NEC98}
-		if VideoEightColor then
-			VideoWriteText(60, y, $01, #179'                   ')
-		else
-{$ENDIF}
-		VideoWriteText(60, y, $11, #179'                   ');
-	end;
-
-procedure SidebarClear;
-	var
-		i: integer;
-
-	begin
-		for i := 3 to 24 do
-			SidebarClearLine(i);
 	end;
 
 function EnsureIoTmpBufSize(newSize: word): integer;
@@ -631,323 +596,10 @@ procedure TransitionDrawToBoard;
 		{$IFDEF BASICSYS} VideoUnlockScreenUpdate(0, 0, 59, 24); {$ENDIF}
 	end;
 
-procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TString50; var value: byte);
-	var
-		i, newValue: integer;
-	begin
-		SidebarClearLine(y);
-		VideoWriteText(x, y, Integer(editable) + $1E, prompt);
-		SidebarClearLine(y + 1);
-		VideoWriteText(x + 5, y + 1, $9F, #31);
-		SidebarClearLine(y + 2);
-
-		repeat
-			for i := (value - 4) to (value + 4) do
-				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr(i and $FF));
-
-			if editable then begin
-				AccurateDelay(25);
-				InputUpdate;
-				if (InputKeyPressed = KEY_TAB) or (InputKeyPressed = KEY_PAGE_DOWN) then
-					InputDeltaX := 9
-				else if (InputKeyPressed = KEY_PAGE_UP) then
-					InputDeltaX := -9;
-
-				newValue := value + InputDeltaX;
-				if value <> newValue then begin
-					value := newValue and $FF;
-					SidebarClearLine(y + 2);
-				end;
-			end;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
-
-		VideoWriteText(x + 5, y + 1, $1F, #31);
-	end;
-
-procedure SidebarPromptNumeric(editable: boolean; x, y: integer; prompt: string; minV, maxV: integer; var value: integer);
-	var
-		valueOffset: integer;
-		newValue: longint;
-		numStr: string[6];
-	begin
-		SidebarClearLine(y);
-		VideoWriteText(x, y, Integer(editable) + $1E, prompt);
-		SidebarClearLine(y + 1);
-		SidebarClearLine(y + 2);
-		VideoWriteText(x + 1, y + 2, $1E, #30#31);
-
-		repeat
-			if editable then begin
-				if InputJoystickMoved then
-					AccurateDelay(45);
-
-				Str(value, numStr);
-				VideoWriteText(x + 4, y + 2, $1F, numStr);
-
-{$IFDEF SDL2}
-				SoundIdle(IMUntilFrame);
-{$ENDIF}
-				InputUpdate;
-				valueOffset := 0;
-				case InputKeyPressed of
-					KEY_UP: valueOffset := 1;
-					KEY_DOWN: valueOffset := -1;
-					KEY_PAGE_UP: valueOffset := 5;
-					KEY_PAGE_DOWN: valueOffset := -5;
-				end;
-				
-				newValue := LongInt(value) + valueOffset;
-				
-				if (value <> newValue) and (newValue >= minV) and (newValue <= maxV) then begin
-					value := Integer(newValue);
-					VideoWriteText(x + 4, y + 2, $1E, '      ');
-				end;
-			end;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
-
-		Str(value, numStr);
-		VideoWriteText(x + 4, y + 2, $1E, numStr);
-	end;
-
-procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
-	var
-		newValue: integer;
-		startChar, endChar: char;
-	begin
-		if prompt[Length(prompt) - 2] = ';' then begin
-			startChar := prompt[Length(prompt) - 1];
-			endChar := prompt[Length(prompt)];
-			prompt := Copy(prompt, 1, Length(prompt) - 3);
-		end else begin
-			startChar := '1';
-			endChar := '9';
-		end;
-
-		SidebarClearLine(y);
-		VideoWriteText(x, y, Integer(editable) + $1E, prompt);
-		SidebarClearLine(y + 1);
-		SidebarClearLine(y + 2);
-		VideoWriteText(x, y + 2, $1e, startChar + '....:....' + endChar);
-
-		repeat
-			if editable then begin
-				if InputJoystickMoved then
-					AccurateDelay(45);
-				VideoWriteText(x + value + 1, y + 1, $9F, #31);
-
-{$IFDEF SDL2}
-				SoundIdle(IMUntilFrame);
-{$ENDIF}
-				InputUpdate;
-				if (InputKeyPressed >= '1') and (InputKeyPressed <= '9') then begin
-					value := Ord(InputKeyPressed) - 49;
-					SidebarClearLine(y + 1);
-				end else begin
-					if (InputKeyPressed = KEY_PAGE_DOWN) then
-						newValue := 8
-					else if (InputKeyPressed = KEY_PAGE_UP) then
-						newValue := 0
-					else
-						newValue := value + InputDeltaX;
-					if (value <> newValue) and (newValue >= 0) and (newValue <= 8) then begin
-						value := newValue;
-						SidebarClearLine(y + 1);
-					end;
-				end;
-			end;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
-
-		VideoWriteText(x + value + 1, y + 1, $1F, #31);
-	end;
-
-procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: string; var result: byte);
-	var
-		i, j, choiceCount: integer;
-		newResult: integer;
-	begin
-		SidebarClearLine(y);
-		SidebarClearLine(y + 1);
-		SidebarClearLine(y + 2);
-		VideoWriteText(63, y, Integer(editable) + $1E, prompt);
-		VideoWriteText(63, y + 2, $1E, choiceStr);
-
-		choiceCount := 1;
-		for i := 1 to Length(choiceStr) do
-			if choiceStr[i] = ' ' then
-				Inc(choiceCount);
-
-		repeat
-			j := 0;
-			i := 1;
-			while (j < result) and (i < Length(choiceStr)) do begin
-				if choiceStr[i] = ' ' then
-					Inc(j);	
-				Inc(i);
-			end;
-
-			if editable then begin
-				VideoWriteText(62 + i, y + 1, $9F, #31);
-				AccurateDelay(35);
-				InputUpdate;
-
-				if (InputKeyPressed = KEY_PAGE_DOWN) then
-					newResult := choiceCount - 1
-				else if (InputKeyPressed = KEY_PAGE_UP) then
-					newResult := 0
-				else
-					newResult := result + InputDeltaX;
-				if (result <> newResult) and (newResult >= 0) and (newResult <= (choiceCount - 1)) then begin
-					result := newResult;
-					SidebarClearLine(y + 1);
-				end;
-			end;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
-
-		VideoWriteText(62 + i, y + 1, $1F, #31);
-	end;
-
-procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; var deltaX, deltaY: integer);
-	var
-		choice: byte;
-	begin
-		if deltaY = -1 then
-			choice := 0
-		else if deltaY = 1 then
-			choice := 1
-		else if deltaX = -1 then
-			choice := 2
-		else
-			choice := 3;
-		SidebarPromptChoice(editable, y, prompt, #24' '#25' '#27' '#26, choice);
-		deltaX := NeighborDeltaX[choice];
-		deltaY := NeighborDeltaY[choice];
-	end;
-
-procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mode: byte; var buffer: TString50);
-	var
-		i, iOffs: integer;
-		oldBuffer: string;
-		firstKeyPress: boolean;
-	begin
-		oldBuffer := buffer;
-		firstKeyPress := true;
-
-		repeat
-			iOffs := Length(buffer) - width;
-			if iOffs < 0 then iOffs := 0;
-			for i := 0 to (width - 1) do begin
-				VideoWriteText(x + i, y, color, ' ');
-				VideoWriteText(x + i, y - 1, arrowColor, ' ');
-			end;
-			VideoWriteText(x + width, y - 1, arrowColor, ' ');
-			VideoWriteText(x + Length(buffer) - iOffs, y - 1, (arrowColor and $F0) + $0F, #31);
-			VideoWriteText(x, y, color, Copy(buffer, iOffs + 1, width));
-
-			InputReadWaitKey;
-
-			if (Length(buffer) < stringLength) and (InputKeyPressed >= #32) and (InputKeyPressed < #128) then begin
-				if firstKeyPress then
-					buffer := '';
-				case mode of
-					PROMPT_NUMERIC: begin
-						if (InputKeyPressed in ['0' .. '9']) then begin
-							buffer := buffer + InputKeyPressed;
-						end;
-					end;
-					PROMPT_ANY: begin
-						buffer := buffer + InputKeyPressed;
-					end;
-					PROMPT_ALPHANUM: begin
-						if (UpCase(InputKeyPressed) in ['A' .. 'Z'])
-							or (InputKeyPressed in ['0' .. '9'])
-							or (InputKeyPressed = '-') then
-						begin
-							buffer := buffer + UpCase(InputKeyPressed);
-						end;
-					end;
-				end;
-			end else if (InputKeyPressed = KEY_LEFT) or (InputKeyPressed = KEY_BACKSPACE) then begin
-				buffer := Copy(buffer, 1, Length(buffer) - 1);
-			end;
-
-			firstKeyPress := false;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE);
-		if InputKeyPressed = KEY_ESCAPE then begin
-			buffer := oldBuffer;
-		end;
-	end;
-
-function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
-	begin
-		SidebarClearLine(3);
-		SidebarClearLine(4);
-		SidebarClearLine(5);
-		VideoWriteText(63, 5, $1F, message);
-		VideoWriteText(63 + Length(message), 5, $9E, '_');
-
-		repeat
-			InputReadWaitKey;
-		until UpCase(InputKeyPressed) in [KEY_ESCAPE, 'N', 'Y'];
-		if UpCase(InputKeyPressed) = 'Y' then
-			defaultReturn := true
-		else
-			defaultReturn := false;
-
-		SidebarClearLine(5);
-		SidebarPromptYesNo := defaultReturn;
-	end;
-
-procedure SidebarPromptString(prompt: string; extension: TString50; var filename: string; promptMode: byte);
-	begin
-		SidebarClearLine(3);
-		SidebarClearLine(4);
-		SidebarClearLine(5);
-		VideoWriteText(75 - Length(prompt), 3, $1F, prompt);
-		VideoWriteText(63, 5, $0F, '        ' + extension);
-
-		PromptString(63, 5, $1E, $0F, 8, 8, promptMode, filename);
-
-		SidebarClearLine(3);
-		SidebarClearLine(4);
-		SidebarClearLine(5);
-	end;
-
 procedure PauseOnError;
 	begin
 		SoundQueue(1, SoundParse('s004x114x9'));
 		AccurateDelay(2000);
-	end;
-
-function DisplayIOError: boolean;
-	var
-		ioResValue: word;
-		errorNumStr: TString50;
-		textWindow: TTextWindowState;
-	begin
-		ioResValue := IOResult;
-		if ioResValue = 0 then begin
-			DisplayIOError := false;
-			exit;
-		end;
-
-		DisplayIOError := true;
-
-		Str(ioResValue, textWindow.Title);
-		textWindow.Title := 'Error # ' + textWindow.Title;
-		TextWindowInitState(textWindow);
-		TextWindowAppend(textWindow, '$DOS Error: ');
-		TextWindowAppend(textWindow, '');
-		TextWindowAppend(textWindow, 'This may be caused by missing');
-		TextWindowAppend(textWindow, 'ZZT files or a bad disk.  If');
-		TextWindowAppend(textWindow, 'you are trying to save a game,');
-		TextWindowAppend(textWindow, 'your disk may be full -- try');
-		TextWindowAppend(textWindow, 'using a blank, formatted disk');
-		TextWindowAppend(textWindow, 'for saving the game!');
-
-		TextWindowDrawOpen(textWindow);
-		TextWindowSelect(textWindow, 0);
-		TextWindowDrawClose(textWindow);
-		TextWindowFree(textWindow);
 	end;
 
 procedure WorldUnload;
@@ -957,12 +609,6 @@ procedure WorldUnload;
 		BoardClose;
 		for i := 0 to World.BoardCount do
 			ExtMemFree(WorldExt.BoardData[i], WorldExt.BoardLen[i]);
-	end;
-
-procedure SidebarAnimateLoading(var loadProgress: integer);
-	begin
-		VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
-		loadProgress := (loadProgress + 1) mod 8;
 	end;
 
 function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
@@ -1483,27 +1129,6 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			end;
 
 		end;
-	end;
-
-procedure PopupPromptString(question: string; var buffer: TString50; maxLen: integer);
-	var
-		x, y: integer;
-	begin
-		VideoWriteText(3, 18, $4F, TextWindowStrTop);
-		VideoWriteText(3, 19, $4F, TextWindowStrText);
-		VideoWriteText(3, 20, $4F, TextWindowStrSep);
-		VideoWriteText(3, 21, $4F, TextWindowStrText);
-		VideoWriteText(3, 22, $4F, TextWindowStrText);
-		VideoWriteText(3, 23, $4F, TextWindowStrBottom);
-		VideoWriteText(4 + (TextWindowWidth - Length(question)) div 2, 19, $4F, question);
-		buffer := '';
-		{ x = x, y = width }
-		if maxLen > (TextWindowWidth - 8) then y := (TextWindowWidth - 8) else y := maxLen;
-		x := 6 + (((TextWindowWidth - 8) - y) shr 1);
-		PromptString(x, 22, $4F, $4E, y, maxLen, PROMPT_ANY, buffer);
-		for y := 18 to 23 do
-			for x := 3 to (TextWindowWidth + 3) do
-				BoardDrawTile(x + 1, y + 1);
 	end;
 
 function Signum(val: integer): integer;
