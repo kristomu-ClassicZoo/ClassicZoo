@@ -427,7 +427,7 @@ procedure EditorLoop;
 
 	procedure EditorDrawRefresh;
 		var
-			boardNumStr: string;
+			boardNumStr: string[20];
 		begin
 			BoardDrawBorder;
 			EditorDrawSidebar;
@@ -674,8 +674,8 @@ procedure EditorLoop;
 
 									state.Lines[1]^ := '$Warning';
 									state.Lines[2]^ := '';
-									state.Lines[3]^ := 'Some passages have had their destination';
-									state.Lines[4]^ := 'boards reset.';
+									state.Lines[3]^ := 'Some board exits and/or passages have had';
+									state.Lines[4]^ := 'their destinations reset.';
 
 									TextWindowSelect(state, 0);
 								end;
@@ -1344,8 +1344,8 @@ procedure EditorLoop;
 			i: integer;
 			tileAt, tilePlaced: TTile;
 			toFill, filled: byte;
-			xPosition: array[0 .. 255] of integer;
-			yPosition: array[0 .. 255] of integer;
+			xPosition: array[0 .. 255] of shortint;
+			yPosition: array[0 .. 255] of shortint;
 		begin
 			toFill := 1;
 			filled := 0;
@@ -1764,7 +1764,7 @@ procedure HighScoresLoad;
 		end;
 		Close(f);
 		if IOResult <> 0 then begin
-			for i := 1 to 30 do begin
+			for i := 1 to HIGH_SCORE_COUNT do begin
 				HighScoreList[i].Name := '';
 				HighScoreList[i].Score := -1;
 			end;
@@ -1888,10 +1888,10 @@ procedure HighScoresAdd(score: integer);
 		i, listPos: integer;
 	begin
 		listPos := 1;
-		while (listPos <= 30) and (score < HighScoreList[listPos].Score) do
+		while (listPos <= HIGH_SCORE_COUNT) and (score < HighScoreList[listPos].Score) do
 			Inc(listPos);
-		if (listPos <= 30) and (score > 0) then begin
-			for i := 29 downto listPos do
+		if (listPos <= HIGH_SCORE_COUNT) and (score > 0) then begin
+			for i := (HIGH_SCORE_COUNT - 1) downto listPos do
 				HighScoreList[i + 1] := HighScoreList[i];
 			HighScoreList[listPos].Score := score;
 			HighScoreList[listPos].Name := '-- You! --';
@@ -1940,11 +1940,16 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 		for i := 0 to World.BoardCount do begin
 			TextWindowAppend(textWindow, EditorGetBoardName(i, titleScreenIsNone));
 		end;
-		if showAddNewBoard then TextWindowAppend(textWindow, 'Add new board');
+		if showAddNewBoard then begin
+			if World.BoardCount < MAX_BOARD then begin
+				TextWindowAppend(textWindow, 'Add new board');
+			end;
+		end;
 		if not windowAlreadyOpen then TextWindowDrawOpen(textWindow);
 		TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
 		if not windowAlreadyOpen then TextWindowDrawClose(textWindow);
 		TextWindowFree(textWindow);
+
 		EditorSelectBoard := textWindow.LinePos - 1;
 	end;
 
