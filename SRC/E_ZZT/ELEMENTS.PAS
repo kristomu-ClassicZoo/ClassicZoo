@@ -1469,7 +1469,7 @@ procedure ElementPlayerTick(statId: integer);
 				ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].TouchProc(
 					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					{$IFDEF PLRSOUND}
+					{$IFDEF PLAYSTEP}
 					if SoundEnabled and not SoundIsPlaying then
 						Sound(110);
 					{$ENDIF}
@@ -1478,13 +1478,13 @@ procedure ElementPlayerTick(statId: integer);
 					or (CheatNoClip and (Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element <> E_BOARD_EDGE))
 {$ENDIF}
 					then begin
-						{$IFDEF PLRSOUND}
+						{$IFDEF PLAYSTEP}
 						if SoundEnabled and not SoundIsPlaying then
 							NoSound;
 						{$ENDIF}
 
 						MoveStat(0, X + InputDeltaX, Y + InputDeltaY);
-					{$IFDEF PLRSOUND}
+					{$IFDEF PLAYSTEP}
 					end else if SoundEnabled and not SoundIsPlaying then begin
 						NoSound;
 					{$ENDIF}

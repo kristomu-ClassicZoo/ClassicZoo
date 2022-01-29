@@ -850,10 +850,8 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			iUnder := Under;
 {$IFDEF MEMBOUND}
 			if TileOutOfBounds(newX, newY) then begin
-				Board.Tiles[oldX][oldY] := iUnder;
-				X := newX;
-				Y := newY;
-				BoardDrawTile(oldX, oldY);
+				if not TileOutOfBounds(X, Y) then
+					Board.Tiles[X][Y] := iUnder;
 			end else begin
 {$ENDIF}
 			Board.Stats[statId].Under := Board.Tiles[newX][newY];
@@ -879,7 +877,8 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 				oldOX := Board.Info.DrawXOffset;
 				oldOY := Board.Info.DrawYOffset;
 
-				if ((newX - Board.Info.DrawXOffset) < ((BOARD_DRAW_WIDTH shr 1) - 3)) then begin
+				if ((newX - Board.Info.DrawXOffset) < ((BOARD_DRAW_WIDTH shr 1) - 3))
+				and (Board.Info.DrawXOffset > BOARD_DRAW_OX_MIN) then begin
 					if (X - 1) = newX then begin
 						Dec(Board.Info.DrawXOffset);
 					end else begin
@@ -888,7 +887,8 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 				end;
 
 
-				if ((newX - Board.Info.DrawXOffset) >= ((BOARD_DRAW_WIDTH shr 1) + 2)) then begin
+				if ((newX - Board.Info.DrawXOffset) >= ((BOARD_DRAW_WIDTH shr 1) + 2))
+				and (Board.Info.DrawXOffset < BOARD_DRAW_OX_MAX) then begin
 					if (X + 1) = newX then begin
 						Inc(Board.Info.DrawXOffset);
 					end else begin
@@ -896,7 +896,8 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 					end;
 				end;
 
-				if ((newY - Board.Info.DrawYOffset) < ((BOARD_DRAW_HEIGHT shr 1) - 2)) then begin
+				if ((newY - Board.Info.DrawYOffset) < ((BOARD_DRAW_HEIGHT shr 1) - 2))
+				and (Board.Info.DrawYOffset > BOARD_DRAW_OY_MIN) then begin
 					if (Y - 1) = newY then begin
 						Dec(Board.Info.DrawYOffset);
 					end else begin
@@ -904,7 +905,8 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 					end;
 				end;
 
-				if ((newY - Board.Info.DrawYOffset) >= ((BOARD_DRAW_HEIGHT shr 1) + 4)) then begin
+				if ((newY - Board.Info.DrawYOffset) >= ((BOARD_DRAW_HEIGHT shr 1) + 4))
+				and (Board.Info.DrawYOffset < BOARD_DRAW_OY_MAX) then begin
 					if (Y + 1) = newY then begin
 						Inc(Board.Info.DrawYOffset);
 					end else begin
@@ -919,11 +921,11 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 
 				if Board.Info.DrawXOffset < BOARD_DRAW_OX_MIN then
 					Board.Info.DrawXOffset := BOARD_DRAW_OX_MIN
-				else if Board.Info.DrawXOffset >= BOARD_DRAW_OX_MAX then
+				else if Board.Info.DrawXOffset > BOARD_DRAW_OX_MAX then
 					Board.Info.DrawXOffset := BOARD_DRAW_OX_MAX;
 				if Board.Info.DrawYOffset < BOARD_DRAW_OY_MIN then
 					Board.Info.DrawYOffset := BOARD_DRAW_OY_MIN
-				else if Board.Info.DrawYOffset >= BOARD_DRAW_OY_MAX then
+				else if Board.Info.DrawYOffset > BOARD_DRAW_OY_MAX then
 					Board.Info.DrawYOffset := BOARD_DRAW_OY_MAX;
 
 				if (oldOX <> Board.Info.DrawXOffset) or (oldOY <> Board.Info.DrawYOffset) then begin
@@ -953,7 +955,9 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 					end;
 				end;
 			end;
-
+{$IFDEF MEMBOUND}
+			if TileOutOfBounds(newX, newY) then exit;
+{$ENDIF}
 			X := newX;
 			Y := newY;
 			BoardDrawTile(X, Y);

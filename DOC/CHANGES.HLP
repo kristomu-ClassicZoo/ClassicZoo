@@ -4,6 +4,7 @@ Legend:
 
 + Additions         * Changes
 - Removals          / Bugfixes
+[] Platform         {} Engine
 
 $< ClassicZoo dev >
 
@@ -20,6 +21,7 @@ $< ClassicZoo dev >
   * Cosmetic tweaks.
 / [Amiga] Fix regressions.
 / [SDL2] Fix sticky modifier keys.
+/ {SuperZ} Fix scrolling behaviour.
 
 $< ClassicZoo 4.22 >
 
