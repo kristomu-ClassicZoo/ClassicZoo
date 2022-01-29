@@ -119,10 +119,8 @@ interface
 			StartPlayerX: byte;
 			StartPlayerY: byte;
 			TimeLimitSec: integer;
-			unk1: integer;
 			BoardTicks: integer;
-			Local: array[1 .. 3] of integer;
-			unk2: array[80 .. 85] of byte;
+			Local: array[1 .. 7] of integer;
 		end;
 		TWorldInfo = record
 			Ammo: integer;
@@ -166,7 +164,7 @@ interface
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
 		TConfigList = array[1 .. CONFIG_FILE_COUNT] of string[80];
 		TCustomFlagList = array[1 .. CUSTOM_FLAG_COUNT] of TString20;
-		TCustomBoardList = array[1 .. 3] of TString20;
+		TCustomBoardList = array[1 .. 7] of TString20;
 		TCustomObjList = array[1 .. 6] of TString20;
 		TParamList = array[1 .. PARAM_FILE_COUNT] of integer;
 		TCustomOOPList = array[1 .. CUSTOM_OOP_COUNT] of TString20;

@@ -61,6 +61,7 @@ interface
 	function GameWorldLoad(extension: TString50): boolean;
 	procedure AddStat(tx, ty: integer; txelement, txcolor: byte; tcycle: integer; template: TStat);
 	function FileLoadStatData(s: TString8; statId: integer): boolean;
+	function FileAppendStatData(s: TString8; statId: integer): boolean;
 	procedure FreeStatDataMem(statId: integer);
 	procedure RemoveStat(statId: integer);
 	function GetStatIdAt(x, y: integer): integer;
@@ -309,14 +310,18 @@ function OopConfigs (i: integer): string;
 			65: OopConfigs := 'FLAG.BOARD.1';
 			66: OopConfigs := 'FLAG.BOARD.2';
 			67: OopConfigs := 'FLAG.BOARD.3';
-			68: OopConfigs := 'FLAG.OBJ.1';
-			69: OopConfigs := 'FLAG.OBJ.2';
-			70: OopConfigs := 'FLAG.OBJ.3';
-			71: OopConfigs := 'FLAG.OBJ.4';
-			72: OopConfigs := 'FLAG.OBJ.5';
-			73: OopConfigs := 'FLAG.OBJ.6';
-			74: OopConfigs := 'WORLD.FLAG';
-			75: OopConfigs := 'WORLD.COUNTER';
+			68: OopConfigs := 'FLAG.BOARD.4';
+			69: OopConfigs := 'FLAG.BOARD.5';
+			70: OopConfigs := 'FLAG.BOARD.6';
+			71: OopConfigs := 'FLAG.BOARD.7';
+			72: OopConfigs := 'FLAG.OBJ.1';
+			73: OopConfigs := 'FLAG.OBJ.2';
+			74: OopConfigs := 'FLAG.OBJ.3';
+			75: OopConfigs := 'FLAG.OBJ.4';
+			76: OopConfigs := 'FLAG.OBJ.5';
+			77: OopConfigs := 'FLAG.OBJ.6';
+			78: OopConfigs := 'WORLD.FLAG';
+			79: OopConfigs := 'WORLD.COUNTER';
 		else OopConfigs := '_nil' end;
 	end;
 
@@ -383,7 +388,7 @@ procedure CustomOOPLoad;
 			Str(i,s);
 			CustomFlagList[i] := 'FLAG' + s;
 		end;
-		for i := 1 to 3 do begin
+		for i := 1 to 7 do begin
 			Str(i,s);
 			CustomBoardList[i] := 'LOCAL' + s;
 		end; 
@@ -434,13 +439,13 @@ procedure CustomOOPLoad;
 								if KeyLimit <= (i div 3) then
 									KeyLimit := (i div 3) + 1;
 							end;
-						for i := 65 to 67 do
+						for i := 65 to 71 do
 							if (OopConfigs(i) = k) and (l <> '') then
-								CustomBoardList[i - 63] := UpcaseString(l);
-						for i := 68 to 73 do
+								CustomBoardList[i - 64] := UpcaseString(l);
+						for i := 72 to 77 do
 							if (OopConfigs(i) = k) and (l <> '') then
-								CustomObjList[i - 66] := UpcaseString(l);
-						for i := 74 to 75 do
+								CustomObjList[i - 71] := UpcaseString(l);
+						for i := 78 to 79 do
 							if (OopConfigs(i) = k) and (l <> '') then begin
 								CustomFlagList[v] := UpcaseString(l);
 								Inc(v);
@@ -1364,6 +1369,59 @@ function FileLoadStatData(s: TString8; statId: integer): boolean;
 			end;
 		end else
 			FileLoadStatData := false;
+		Close(f);
+	end;
+
+function FileAppendStatData(s: TString8; statId: integer): boolean;
+	var
+		TmpString: string;
+		f: text;
+		i, j, k: integer;
+		NumRead: word;
+		TmpPtr: pointer;
+	begin
+		FileAppendStatData := true;
+		Assign(f, s + '.OBJ');
+		Reset(f);
+		if IOResult = 0 then begin
+			with Board.Stats[statId] do begin
+				TmpPtr := ObjTmpBuf;
+				Move(Data^, TmpPtr^, DataLen);
+				AdvancePointer(TmpPtr, DataLen);
+				NumRead := DataLen;
+				FreeStatDataMem(statId);
+				k := 0;
+				i := 0;
+
+				while i < 1024 do begin
+					Inc(i);
+					TmpString := '';
+					ReadLn(f, TmpString);
+					if NumRead < (LOAD_OBJ_LENGTH - 255) then begin
+						if TmpString <> '' then begin
+							k := 0;
+							TmpString := TmpString + KEY_ENTER;
+							NumRead := NumRead + Length(TmpString);						
+							for j := 1 to Length(TmpString) do begin
+								Char(TmpPtr^) := TmpString[j];
+								AdvancePointer(TmpPtr, 1);
+							end;
+						end else begin
+							Inc(NumRead);
+							Inc(k);
+							if k > 5 then i := 1024;
+							Char(TmpPtr^) := KEY_ENTER;
+							AdvancePointer(TmpPtr, 1);
+						end;
+					end;
+				end;
+
+				GetMem(Data, NumRead - k);
+				Move(ObjTmpBuf^, Data^, NumRead - k);
+				DataLen := NumRead - k;
+			end;
+		end else
+			FileAppendStatData := false;
 		Close(f);
 	end;
 

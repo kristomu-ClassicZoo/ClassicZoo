@@ -185,7 +185,7 @@ function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 			cPtr := @World.Info.TorchTicks
 		else begin
 			OopGetCounter := false;
-			for i := 1 to 3 do
+			for i := 1 to 7 do
 				if s = CustomBoardList[i] then begin
 					cPtr := @Board.Info.Local[i];
 					OopGetCounter := true;
@@ -812,7 +812,7 @@ procedure GetBoardStats;
 				TextWindowAppend(textWindow, 'Time: No time limit');
 			Str(Board.StatCount, s);
 			TextWindowAppend(textWindow, 'Stat Count: ' + s);
-			for i := 1 to 3 do begin
+			for i := 1 to 7 do begin
 				Str(Local[i],s);
 				TextWindowAppend(textWindow, CustomBoardList[i] + ': ' + s);
 			end;
@@ -1094,8 +1094,16 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopReadWord(statId, position);
 							if Board.Tiles[X + deltaX][Y + deltaY].element = E_OBJECT then begin
 								bindStatId := GetStatIdAt(X + deltaX, Y + deltaY);
+								textLine := OopWord;
+								if textLine = 'APPEND' then
+									OopReadWord(statId, position);
 								if (OopWord <> '') and (bindStatId > 0) then begin
-									if FileLoadStatData(OopWord,bindStatId) then
+									if (textLine = 'APPEND') then begin
+										if FileAppendStatData(OopWord,bindStatId) then
+											goto ReadCommand
+										else
+											OopError(statId,position, 'File not found ' + OopWord + '.OBJ');
+									end else if FileLoadStatData(OopWord,bindStatId) then
 										Board.Stats[bindStatId].DataPos := 0
 									else
 										OopError(statId,position, 'File not found ' + OopWord + '.OBJ');

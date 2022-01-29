@@ -1,4 +1,22 @@
-= 1/18/2002: 2.5 rc3
+= 1/28/2022: 2.5 (Release!)
+Bugs Fixed:
+* Behavior of player clones was not correct. (FirmWeave and SoftWeave)
+* When paused, in some cases objects would skip executing on the tick when P was pressed.
+
+Improvements:
+* #LOAD now allows appending of files. 
+
+
+
+
+= 1/23/2022: 2.5 rc4
+Bugs Fixed:
+* Off-by-one error in board and object locals.
+
+Improvements:
+* Board locals increased to 7.
+
+= 1/18/2022: 2.5 rc3
 Bugs Fixed:
 * DUPLICATE was not correctly adjusting AT <x> <y> for the relative position of the duplicator and duplicatee. STEP and SHOVE were correct but needed cleaning up as well.
 

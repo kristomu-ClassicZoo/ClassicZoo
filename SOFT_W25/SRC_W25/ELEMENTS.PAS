@@ -1367,14 +1367,14 @@ procedure GamePromptEndPlay;
 		InputKeyPressed := #0;
 	end;
 
-procedure ElementPlayerTick(statId: integer);
+procedure ElementTruePlayerTick;
 	var
 		i: integer;
 		bulletCount: integer;
 		inputC: char;
 	begin
 		if NeuromotorAssist then GameMove := false else GameMove := true;
-		with Board.Stats[statId] do begin
+		with Board.Stats[0] do begin
 
 			if (World.Info.Health <= 0) then begin
 				if World.Info.GracePeriod < ParamList[11] then begin
@@ -1561,7 +1561,8 @@ procedure ElementPlayerTick(statId: integer);
 			end;
 
 			if GameMove then begin
-				Board.Info.BoardTicks := Board.Info.BoardTicks + 1;
+				If not GamePaused then
+					Inc(Board.Info.BoardTicks);
 				if (Board.Info.BoardTicks > 420) then
 					Board.Info.BoardTicks := 1;
 			end else begin
@@ -1571,6 +1572,69 @@ procedure ElementPlayerTick(statId: integer);
 			BoardDrawTile(X, Y);
 
 		end;
+	end;
+
+procedure ElementCloneTick(statId: integer);
+	var
+		i: integer;
+		bulletCount: integer;
+	begin
+		with Board.Stats[statId] do begin
+			if InputShiftPressed or (InputKeyPressed = ' ') then begin
+				if InputShiftPressed and ((InputDeltaX <> 0) or (InputDeltaY <> 0)) then begin
+					PlayerDirX := InputDeltaX;
+					PlayerDirY := InputDeltaY;
+				end;
+
+				if (PlayerDirX <> 0) or (PlayerDirY <> 0) then begin
+					if (Board.Info.MaxShots > 0) and (World.Info.Ammo > 0) then begin
+						bulletCount := 0;
+						for i := 0 to Board.StatCount do
+							if (Board.Tiles[Board.Stats[i].X][Board.Stats[i].Y].Element = E_BULLET)
+								and (Board.Stats[i].P1 = SHOT_SOURCE_PLAYER)
+							then
+								bulletCount := bulletCount + 1;
+
+						if bulletCount < Board.Info.MaxShots then begin
+							if BoardShoot(E_BULLET, X, Y, PlayerDirX, PlayerDirY, SHOT_SOURCE_PLAYER) then begin
+								Dec(World.Info.Ammo);
+								GameUpdateSidebar;
+
+								SoundQueue(2, #64#1#48#1#32#1);
+
+								InputDeltaX := 0;
+								InputDeltaY := 0;
+							end;
+						end;
+					end;
+				end;
+			end else if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+				PlayerDirX := InputDeltaX;
+				PlayerDirY := InputDeltaY;
+
+				ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].TouchProc(
+					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
+				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+					if ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].Walkable then
+						MoveStat(0, X + InputDeltaX, Y + InputDeltaY);
+				end;
+			end;
+
+			if World.Info.TorchTicks > 1 then
+				Dec(World.Info.TorchTicks);
+
+			if World.Info.EnergizerTicks > 11 then
+				Dec(World.Info.EnergizerTicks);
+
+		end;
+	end;
+
+procedure ElementPlayerTick(statId: integer);
+	begin
+		if statId = 0 then
+			ElementTruePlayerTick
+		else
+			ElementCloneTick(statId);
 	end;
 
 procedure ElementMonitorTick(statId: integer);
