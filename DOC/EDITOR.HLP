@@ -114,3 +114,6 @@ the screen.  These are:
 [Ctrl+V] Paste board area; the cursor
          location is treated as the
          top-left corner.
+
+[Ctrl+S] View stats list. From there:
+  -  Change stat order: Use [-] and [+]

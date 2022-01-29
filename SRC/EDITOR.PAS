@@ -46,6 +46,11 @@ interface
 	function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TSmallString;
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean;
 		windowAlreadyOpen: boolean; showAddNewBoard: boolean; editable: boolean): integer;
+{$IFDEF EDITOR}
+	function EditorGetElementName(elemId: integer): TString50;
+	function EditorSelectStat(title: string; currentStat: integer; 
+		windowAlreadyOpen: boolean; showAddNewStat: boolean; editable: boolean): integer;
+{$ENDIF}
 
 implementation
 uses Dos, GameIo, GameSh, FileSel, FileSys, ExtMem,
@@ -129,15 +134,15 @@ function EditorShiftBoard(bidFrom, bidTo: integer; mode: TIdShiftMode): boolean;
 		movedData: TExtMemBlock;
 		movedLen: word;
 	begin
+		EditorShiftBoard := true;
+
 		if (bidFrom = bidTo) then exit;
 
 		SidebarClearLine(4);
 		SidebarClearLine(5);
 		VideoWriteText(VideoSidebarX + 2, 5, $1F, 'Editing.....');
-
 		loadProgress := 0;
 
-		EditorShiftBoard := true;
 		prevBoard := IdShiftApply(mode, bidFrom, bidTo, World.Info.CurrentBoard);
 		if prevBoard < 0 then begin
 			prevBoard := 0;
@@ -206,6 +211,61 @@ function EditorShiftBoard(bidFrom, bidTo: integer; mode: TIdShiftMode): boolean;
 			WorldExt.BoardLen[bidTo] := movedLen;
 
 			BoardOpen(prevBoard);
+		end;
+		end;
+	end;
+
+function EditorShiftStat(idFrom, idTo: integer; mode: TIdShiftMode): boolean;
+	var
+		i: integer;
+		movedStat: TStat;
+	begin
+		EditorShiftStat := true;
+
+		if (idFrom = idTo) then exit;
+		if (idFrom = 0) or (idTo = 0) then exit;
+
+		for i := 0 to Board.StatCount do begin
+			{ Skip stats about to be deleted. }
+			if IdShiftApply(mode, idFrom, idTo, i) < 0 then begin end;
+
+			with Board.Stats[i] do begin
+				if Follower >= 0 then begin
+					Follower := IdShiftApply(mode, idFrom, idTo, Follower);
+					if Follower < 0 then EditorShiftStat := false;
+				end;
+				if Leader >= 0 then begin
+					Leader := IdShiftApply(mode, idFrom, idTo, Leader);
+					if Leader < 0 then EditorShiftStat := false;
+				end;
+			end;
+		end;
+
+		case mode of
+		IdShiftDelete: begin
+			FreeStatDataMem(idFrom, false);
+			with Board.Stats[idFrom] do
+				Board.Tiles[X][Y] := Under;
+
+			Dec(Board.StatCount);
+			for i := idFrom to Board.StatCount do
+				Board.Stats[i] := Board.Stats[i + 1];
+		end;
+		IdShiftAdd: begin
+			RunError(200); { TODO }
+		end;
+		IdShiftMove: begin
+			movedStat := Board.Stats[idFrom];
+
+			if idFrom > idTo then begin
+				for i := (idTo + 1) to idFrom do
+					Board.Stats[i] := Board.Stats[i - 1];
+			end else begin
+				for i := idFrom to (idTo - 1) do
+					Board.Stats[i] := Board.Stats[i + 1];
+			end;
+
+			Board.Stats[idTo] := movedStat;
 		end;
 		end;
 	end;
@@ -2145,6 +2205,10 @@ PlacementDone:
 					KEY_CTRL_V: begin
 						EditorAskAndPasteCopyBuffer(cursorX, cursorY);
 					end;
+					KEY_CTRL_S: begin
+						i := EditorSelectStat('Stats', 0, false, false, true);
+						{ TODO }
+					end;
 					{$IFDEF E_SUPERZ}'O'{$ELSE}'A'{$ENDIF}: begin
 						GameOptionsScreen(false);
 						EditorDrawRefresh;
@@ -2459,6 +2523,127 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 
 		EditorSelectBoard := textWindow.LinePos - 1;
 	end;
+
+{$IFDEF EDITOR}
+function EditorGetElementName(elemId: integer): TString50;
+	var
+		elemStr: TString50;
+	begin
+		elemStr := ElementDefs[elemId].Name;
+		if Length(elemStr) = 0 then begin
+			case elemId of
+			1: elemStr := 'Board Edge';
+			2: elemStr := 'Message Timer';
+			else begin
+				Str(elemId, elemStr);
+				elemStr := 'Element #' + elemStr;
+			end end;
+		end;
+		EditorGetElementName := elemStr;
+	end;
+
+function EditorSelectStat(title: string; currentStat: integer; 
+	windowAlreadyOpen: boolean; showAddNewStat: boolean; editable: boolean): integer;
+	var
+		i: integer;
+		textWindow: TTextWindowState;
+		running: boolean;
+		choiceResult: byte;
+	procedure PadSpaces(var s: string; sLen: integer);
+		begin
+			while Length(s) < sLen do
+				s := ' ' + s;
+		end;
+	procedure PopulateStats;
+		var
+			j: integer;
+			statStr: TString50;
+			xStr, yStr, idStr: string[20];
+		begin
+			TextWindowFree(textWindow);
+			for j := 0 to Board.StatCount do with Board.Stats[j] do begin
+				Str(X, xStr);
+				PadSpaces(xStr, 2);
+				Str(Y, yStr);
+				PadSpaces(yStr, 2);
+				Str(j, idStr);
+				PadSpaces(idStr, 3);
+				TextWindowAppend(textWindow,
+					idStr + ' ( ' + xStr + ', ' + yStr + ') '
+					+ EditorGetElementName(Board.Tiles[X][Y].Element));
+			end;
+			if showAddNewStat then begin
+				if Board.StatCount < MAX_STAT then begin
+					TextWindowAppend(textWindow, 'Add new stat');
+				end;
+			end;
+		end;
+	begin
+		textWindow.Title := title;
+		textWindow.LinePos := currentStat + 1;
+		textWindow.Selectable := true;
+		textWindow.LineCount := 0;
+		if not windowAlreadyOpen then TextWindowDrawOpen(textWindow);
+{$IFDEF EDITOR}
+		if editable then begin
+			running := true;
+			while running do begin
+				EditorDrawSidebar345(true);
+				PopulateStats;
+				TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS or TWS_EXIT_MINUS_PLUS_DEL);
+				if InputKeyPressed = '-' then begin
+					if textWindow.LinePos > 2 then begin
+						if EditorShiftStat(
+							textWindow.LinePos - 1,
+							textWindow.LinePos - 2,
+							IdShiftMove) then begin end;
+						Dec(textWindow.LinePos);
+					end;
+				end else if InputKeyPressed = '+' then begin
+					if (textWindow.LinePos > 1) and (textWindow.LinePos <= Board.StatCount) then begin
+						if EditorShiftStat(
+							textWindow.LinePos - 1,
+							textWindow.LinePos,
+							IdShiftMove) then begin end;
+						Inc(textWindow.LinePos);
+					end;
+				end else if InputKeyPressed = KEY_DELETE then begin
+					{ TODO }
+					{ if Board.StatCount > 0 then begin
+						choiceResult := 1;
+						SidebarPromptChoice(true, 3, 'Confirm delete:', 'Yes No', choiceResult);
+						if choiceResult = 0 then if not EditorShiftStat(
+								textWindow.LinePos - 1,
+								-1,
+								IdShiftDelete) then begin
+							TextWindowFree(textWindow);
+							textWindow.LineCount := 4;
+							for i := 1 to textWindow.LineCount do
+								New(textWindow.Lines[i]);
+
+							textWindow.Lines[1]^ := '$Warning';
+							textWindow.Lines[2]^ := '';
+							textWindow.Lines[3]^ := 'Some Stat exits and/or passages have had';
+							textWindow.Lines[4]^ := 'their destinations reset.';
+
+							TextWindowSelect(textWindow, 0);
+						end;
+					end; }
+				end else running := false;
+			end;
+		end else begin
+{$ENDIF}
+		PopulateStats;
+		TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
+{$IFDEF EDITOR}
+		end;
+{$ENDIF}
+		if not windowAlreadyOpen then TextWindowDrawClose(textWindow);
+		TextWindowFree(textWindow);
+
+		EditorSelectStat := textWindow.LinePos - 1;
+	end;
+{$ENDIF}
 
 begin
 	EditorAutoAppendPats := false;

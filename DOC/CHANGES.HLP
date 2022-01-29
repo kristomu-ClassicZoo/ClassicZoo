@@ -20,6 +20,8 @@ $< ClassicZoo dev >
     faster on the board.
   + Board reordering - use -/+
     in the board selection menu!
+  + Stats list - Ctrl+S; use -/+
+    to reoder stats.
   * Board deletion is now done by
     pressing DEL in the board list.
 / [Amiga] Fix regressions.
