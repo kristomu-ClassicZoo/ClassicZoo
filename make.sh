@@ -150,6 +150,11 @@ done
 # Replace symbols with ones from PROPERTIES_FILE
 if [ -f "$PROPERTIES_FILE" ]; then
 	while IFS='=' read -r KEY VALUE; do
+		cd DOC
+		for i in *.HLP; do
+			sed -i -e 's#%'"$KEY"'%#'"$VALUE"'#g' "$i"
+		done
+		cd ..
 		for i in `find "$TEMP_PATH"/SRC -type f`; do
 			sed -i -e 's#%'"$KEY"'%#'"$VALUE"'#g' "$i"
 		done

@@ -216,6 +216,7 @@ procedure EditorLoop;
 		wasModified: boolean;
 		editorExitRequested: boolean;
 		drawMode: TDrawMode;
+		lastCursorX, lastCursorY: integer;
 		cursorX, cursorY: integer;
 		cursorPattern, cursorColor: integer;
 		colorIgnoreDefaults: boolean;
@@ -1211,19 +1212,16 @@ procedure EditorLoop;
 	procedure EditorUpdateCursorPos(drawCursor: boolean);
 		begin
 			if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-{$IFDEF E_SUPERZ}
-				EditorMoveCursor(
+{				EditorMoveCursor(
 					((Integer(KeysAltHeld) * ((BOARD_DRAW_WIDTH shr 1) - 1)) + 1) * InputDeltaX + cursorX,
 					((Integer(KeysAltHeld) * ((BOARD_DRAW_HEIGHT shr 1) - 1)) + 1) * InputDeltaY + cursorY,
 					false
-				);
-{$ELSE}
+				); }
 				EditorMoveCursor(
 					((Integer(KeysAltHeld) * 9) + 1) * InputDeltaX + cursorX,
 					((Integer(KeysAltHeld) * 4) + 1) * InputDeltaY + cursorY,
 					false
 				);
-{$ENDIF}
 
 				if drawCursor then
 					EditorDrawCursor;
@@ -1639,6 +1637,32 @@ procedure EditorLoop;
 		end;
 {$ENDIF}
 
+	procedure EditorPlaceCursor(cx, cy: integer);
+		begin
+			with Board.Tiles[cx][cy] do begin
+				if InputShiftPressed or (InputKeyPressed = ' ') then begin
+					InputShiftAccepted := true;
+					canModify := (Element = 0) or (InputDeltaX <> 0) or (InputDeltaY <> 0);
+					if not canModify and ElementDefs[Element].PlaceableOnTop and (cursorPattern > EditorPatternCount) then begin
+						{ Place stats -> Under }
+						canModify := copiedTiles[cursorPattern - EditorPatternCount].hasStat;
+					end;
+
+					if canModify then begin
+						EditorPlaceTile(cx, cy);
+					end else begin
+						canModify := EditorPrepareModifyTile(cx, cy);
+						if canModify then
+							Board.Tiles[cx][cy].Element := 0;
+					end;
+				end else if (InputKeyPressed = KEY_DELETE) then begin
+					EditorRemoveTile(cx, cy);
+				end else if drawMode = DrawingOn then begin
+					EditorPlaceTile(cx, cy);
+				end;
+			end;
+		end;
+
 	label DrawNextCategory;
 	label CheckNextCategory;
 	label PlacementDone;
@@ -1686,8 +1710,6 @@ procedure EditorLoop;
 			end;
 {$ENDIF}
 {$ENDIF}
-			if drawMode = DrawingOn then
-				EditorPlaceTile(cursorX, cursorY);
 			InputUpdate;
 			if (InputKeyPressed = #0) and (InputDeltaX = 0) and (InputDeltaY = 0) and not InputShiftPressed then begin
 				if SoundHasTimeElapsed(TickTimeCounter, 15) then
@@ -1718,29 +1740,28 @@ procedure EditorLoop;
 				InputKeyPressed := #0;
 			end;
 
+			lastCursorX := cursorX;
+			lastCursorY := cursorY;
+			EditorUpdateCursorPos(true);
+			if (lastCursorX = cursorX) and (lastCursorY = cursorY) then
+				EditorPlaceCursor(lastCursorX, lastCursorY)
+			else if (lastCursorX <> cursorX) and (lastCursorY <> cursorY) then
+				EditorPlaceCursor(lastCursorX, lastCursorY)
+			else if (lastCursorX < cursorX) then begin
+				for i := lastCursorX to (cursorX - 1) do
+					EditorPlaceCursor(i, cursorY);
+			end else if (lastCursorX > cursorX) then begin
+				for i := (cursorX + 1) to lastCursorX do
+					EditorPlaceCursor(i, cursorY);
+			end else if (lastCursorY < cursorY) then begin
+				for i := lastCursorY to (cursorY - 1) do
+					EditorPlaceCursor(cursorX, i);
+			end else if (lastCursorY > cursorY) then begin
+				for i := (cursorY + 1) to lastCursorY do
+					EditorPlaceCursor(cursorX, i);
+			end;
+
 			with Board.Tiles[cursorX][cursorY] do begin
-				if InputShiftPressed or (InputKeyPressed = ' ') then begin
-					InputShiftAccepted := true;
-
-					canModify := (Element = 0) or (InputDeltaX <> 0) or (InputDeltaY <> 0);
-					if not canModify and ElementDefs[Element].PlaceableOnTop and (cursorPattern > EditorPatternCount) then begin
-						{ Place stats -> Under }
-						canModify := copiedTiles[cursorPattern - EditorPatternCount].hasStat;
-					end;
-
-					if canModify then begin
-						EditorPlaceTile(cursorX, cursorY);
-					end else begin
-						canModify := EditorPrepareModifyTile(cursorX, cursorY);
-						if canModify then
-							Board.Tiles[cursorX][cursorY].Element := 0;
-					end;
-				end else if (InputKeyPressed = KEY_DELETE) then begin
-					EditorRemoveTile(cursorX, cursorY);
-				end;
-
-				EditorUpdateCursorPos(true);
-
 				case UpCase(InputKeyPressed) of
 					'0'..'9': begin
 						if InputKeyPressed = '0' then
