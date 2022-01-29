@@ -328,6 +328,7 @@ procedure InputUpdate;
 		InputShiftPressed := false;
 		InputJoystickMoved := false;
 		localHsecs := TimerSysGetHsecs;
+		sizeChanged := false;
 
 		SDL_LockMutex(eventMutex);
 		while SDL_PollEvent(@event) <> 0 do begin
@@ -365,11 +366,15 @@ procedure InputUpdate;
 					end else if scode <= 83 then begin
 						k := Char(Integer(PCScancodeMap[scode]) + 128);
 					end else k := #0;
-					if ((Byte(k) and $7F) <> 0) and not ((Byte(k) >= 32) and (Byte(k) < 127)) then
-						if event.type_ = SDL_KEYDOWN then
+					if Byte(k) >= 212 then begin
+						{ Modifier keys are bound by regular autorepeat to prevent stickiness. }
+						InputSetKeyPressed(KPSKeyboard, k, true, false);
+					end else if ((Byte(k) and $7F) <> 0) and not ((Byte(k) >= 32) and (Byte(k) < 127)) then begin
+ 						if event.type_ = SDL_KEYDOWN then
 							InputSetKeyPressed(KPSKeyboard, k, false, event.key._repeat <> 0)
 						else
 							InputClearKeyPressed(KPSKeyboard, k, false);
+					end;
 				end;
 				SDL_CONTROLLERDEVICEREMOVED: begin
 					if event.cdevice.which = InputControllerIndex then

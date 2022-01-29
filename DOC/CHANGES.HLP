@@ -5,9 +5,20 @@ Legend:
 + Additions         * Changes
 - Removals          / Bugfixes
 
-$< ClassicZoo 4.23 >
+$< ClassicZoo dev >
 
-* Cosmetic editor improvements.
++ Super ClassicZoo has now been merged
+  into ClassicZoo! This means that many
+  improvements and bugfixes from each
+  codebase have made its way to both.
+  + In particular, this means Super
+    ClassicZoo now has PC-9801 and
+    SDL2 ports!
++ Editor improvements.
+  + [SDL2] Press Alt+arrows to move
+    faster on the board.
+  * Cosmetic tweaks.
+/ [SDL2] Fix sticky modifier keys.
 
 $< ClassicZoo 4.22 >
 

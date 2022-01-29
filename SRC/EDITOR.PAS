@@ -560,9 +560,9 @@ procedure EditorLoop;
 {$ENDIF}
 
 			if Length(Board.Name) <> 0 then
-				VideoWriteText((59 - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
+				VideoWriteText(((VideoSidebarX - 1) - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
 			else
-				VideoWriteText(26, 0, $70, ' Untitled ');
+				VideoWriteText((VideoSidebarX - 34), 0, $70, ' Untitled ');
 		end;
 
 	procedure EditorSetTile(x, y, newElement, newColor: byte);
@@ -886,7 +886,6 @@ procedure EditorLoop;
 						{$ENDIF}
 						Inc(i);
 					end;
-
 
 					{$IFNDEF FPC}
 					{ On Turbo Pascal, the array pointer is actually }
@@ -1330,7 +1329,10 @@ procedure EditorLoop;
 
 	procedure EditorBoardInvert(x1, y1, x2, y2: integer);
 		var
-			ix, sx1, sy1, sx2, sy2: integer;
+			ix: integer;
+{$IFDEF E_SUPERZ}
+			sx1, sy1, sx2, sy2: integer;
+{$ENDIF}
 		begin
 			if x2 < x1 then begin
 				ix := x1;
@@ -1371,7 +1373,7 @@ procedure EditorLoop;
 
 			VideoInvert(sx1, sy1, sx2, sy2);
 {$ELSE}
-			VideoInvert(sx1 - 1, sy1 - 1, sx2 - 1, sy2 - 1);
+			VideoInvert(x1 - 1, y1 - 1, x2 - 1, y2 - 1);
 {$ENDIF}
 		end;
 
@@ -1390,7 +1392,7 @@ procedure EditorLoop;
 			InvertSel;
 			while true do begin
 				InputReadWaitKey;
-				case UpCase(InputKeyPressed) of
+				case InputKeyPressed of
 					KEY_ENTER: begin
 						InvertSel;
 						EditorPasteCopyBuffer(ox, oy);
@@ -1517,7 +1519,7 @@ procedure EditorLoop;
 					InvertLocal;
 				end;
 
-				case UpCase(InputKeyPressed) of
+				case InputKeyPressed of
 					KEY_ESCAPE: begin
 						EditorDrawBufferState;
 						running := false;

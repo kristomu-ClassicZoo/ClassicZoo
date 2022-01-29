@@ -305,7 +305,6 @@ procedure VideoOnSizeChanged;
 				VideoColumns := nw;
 				VideoRows := nh;
 				VideoSidebarX := VideoColumns - 20;
-				WriteLn(VideoColumns, ', ', VideoRows);
 				VideoScaleChanged := true;
 			end;
 		end;
@@ -896,14 +895,16 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 		end else begin
 			SDL_UnlockMutex(eventMutex);
 
-			SDLResizeWindow(0, true, false);
+			if mode <> VIDEO_MODE_RESIZABLE then
+				SDLResizeWindow(0, true, false);
 		end;
 
+		VideoScaleChanged := false;
+		if installed then VideoOnSizeChanged;
 		VideoClear(borderColor);
 
 		installed := true;
 		VideoInstall := true;
-		VideoScaleChanged := false;
 	end;
 
 procedure VideoUninstall;
