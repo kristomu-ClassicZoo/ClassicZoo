@@ -56,6 +56,7 @@ interface
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
 	procedure VideoSetBlink(value: boolean);
+	function VideoBlink: boolean;
 	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 	procedure VideoClear(bgColor: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
@@ -142,6 +143,11 @@ procedure VideoSetBlink(value: boolean);
 			VideoBlinkMask := $FF
 		else
 			VideoBlinkMask := $00;
+	end;
+
+function VideoBlink: boolean;
+	begin
+		VideoBlink := (VideoBlinkMask <> 0);
 	end;
 
 function VideoSetCharset(data: PTCharsetData; height: integer): boolean;

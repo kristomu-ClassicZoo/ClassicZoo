@@ -263,6 +263,29 @@ function ConfigSoundShowValue: string;
 	begin
 		ConfigSoundShowValue := ConfigShowOnOffValue(SoundEnabled);
 	end;
+
+function ConfigVideoBlinkGetValue: integer;
+	begin
+		ConfigVideoBlinkGetValue := Byte(VideoBlink);
+	end;
+
+procedure ConfigVideoBlinkSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		VideoSetBlink(Boolean(value));
+	end;
+
+function ConfigVideoBlinkShowValue: string;
+	begin
+		if VideoBlink then
+			ConfigVideoBlinkShowValue := 'Enabled'
+		else
+{$IFDEF NEC98}
+			ConfigVideoBlinkShowValue := 'Disabled';
+{$ELSE}
+			ConfigVideoBlinkShowValue := 'Disabled (High Colors)';
+{$ENDIF}
+	end;
 {$ENDIF}
 
 {$IFDEF FASTVID}
@@ -556,7 +579,7 @@ function ConfigInputCustomAction: boolean;
 
 const
 	ConfigEntryCount = 5
-	{$IFDEF MSDOS} + 2 {$ENDIF}
+	{$IFDEF MSDOS} + 3 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF DEBUGWND} + 3 {$ENDIF}
 	{$IFDEF SDL2} + 7 {$IFNDEF WINDOWS} + 1 {$ENDIF} {$ENDIF}
@@ -659,6 +682,16 @@ procedure GameConfigInit;
 			CustomAction := ConfigCustomActionNone;
 		end;
 		ConfigEntryInputPos := i;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCFrontend;
+			Key := 'FVidBlnk';
+			Name := 'Blinking';
+			GetValue := ConfigVideoBlinkGetValue;
+			SetValue := ConfigVideoBlinkSetValue;
+			ShowValue := ConfigVideoBlinkShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
 		Inc(i);
 {$ENDIF}
 {$IFDEF FASTVID}

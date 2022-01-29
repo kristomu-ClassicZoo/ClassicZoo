@@ -100,6 +100,12 @@ const
 	ColorNames: array[0 .. 15] of string[3] =
 		('Blk', 'DBl', 'DGn', 'DCy', 'DRe', 'DMa', 'Bro', 'LGr', 'DGr', 'LBl', 'LGn', 'LCy', 'LRe', 'LMa', 'Yel', 'Wht');
 
+procedure EditorPadSpaces(var s: string; sLen: integer);
+	begin
+		while Length(s) < sLen do
+			s := ' ' + s;
+	end;
+
 function IdShiftApply(mode: TIdShiftMode; bidFrom, bidTo, boardId: integer): integer;
 	begin
 		IdShiftApply := boardId;
@@ -904,7 +910,7 @@ procedure EditorLoop;
 
 			repeat
 				state.Selectable := true;
-				state.LineCount := 4;
+				state.LineCount := 2;
 				for i := 1 to state.LineCount do
 					New(state.Lines[i]);
 
@@ -2549,11 +2555,6 @@ function EditorSelectStat(title: string; currentStat: integer;
 		textWindow: TTextWindowState;
 		running: boolean;
 		choiceResult: byte;
-	procedure PadSpaces(var s: string; sLen: integer);
-		begin
-			while Length(s) < sLen do
-				s := ' ' + s;
-		end;
 	procedure PopulateStats;
 		var
 			j, k: integer;
@@ -2563,11 +2564,11 @@ function EditorSelectStat(title: string; currentStat: integer;
 			TextWindowFree(textWindow);
 			for j := 0 to Board.StatCount do with Board.Stats[j] do begin
 				Str(X, xStr);
-				PadSpaces(xStr, 2);
+				EditorPadSpaces(xStr, 2);
 				Str(Y, yStr);
-				PadSpaces(yStr, 2);
+				EditorPadSpaces(yStr, 2);
 				Str(j, idStr);
-				PadSpaces(idStr, 3);
+				EditorPadSpaces(idStr, 3);
 				statStr := idStr + ' ( ' + xStr + ', ' + yStr + ') '
 					+ EditorGetElementName(Board.Tiles[X][Y].Element);
 				if (Data <> nil) and (DataLen > 0) then begin

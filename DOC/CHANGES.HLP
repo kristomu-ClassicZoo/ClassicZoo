@@ -24,6 +24,8 @@ $< ClassicZoo dev >
     to reoder stats.
   * Board deletion is now done by
     pressing DEL in the board list.
++ [DOS, PC-98] Support changing blink
+  modes in the options menu.
 / [Amiga] Fix regressions.
 / [SDL2] Fix sticky modifier keys.
 / {SuperZ} Fix scrolling behaviour.

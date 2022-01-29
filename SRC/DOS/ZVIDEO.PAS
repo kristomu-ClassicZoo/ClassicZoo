@@ -50,6 +50,7 @@ interface
 		VideoForceNoSnow: boolean;
 		VideoCurrentMode: integer;
 		VideoMonochrome: boolean;
+		VideoBlink: boolean;
 		VideoColumns: integer;
 		VideoRows: integer;
 		VideoCharsetHeight: integer;
@@ -513,6 +514,7 @@ procedure VideoSetBlink(value: boolean);
 	var
 		regs: Registers;
 	begin
+		VideoBlink := value;
 		{ CGA route }
 		if not VideoForceSafe then begin
 			if value then
@@ -697,6 +699,7 @@ begin
 	end;
 	VideoForceNoSnow := false;
 	VideoForceSafe := false;
+	VideoBlink := true;
 
 	VideoPreInstall;
 end.
