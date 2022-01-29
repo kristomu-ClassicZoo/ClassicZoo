@@ -1936,7 +1936,7 @@ procedure EditorLoop;
 						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Star');
 						VideoWriteText(VideoSidebarX + 18, i, cursorColor, '/');
 						Inc(i, 1);
-						{$IFDEF BASICSYS} VideoUnlockScreenUpdate(VideoSidebarX, 3, VideoSideBar + 19, 20); {$ENDIF}
+						{$IFDEF BASICSYS} VideoUnlockScreenUpdate(VideoSidebarX, 3, VideoSidebarX + 19, 20); {$ENDIF}
 
 						InputReadWaitKey;
 						case UpCase(InputKeyPressed) of

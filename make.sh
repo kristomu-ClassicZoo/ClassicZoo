@@ -173,6 +173,7 @@ fi
 
 sed -i -e 's#%COMPARGS%#'"$TPC_ARGS"'#g' "$TEMP_PATH"/BUILD.BAT
 sed -i -e 's#%ENGINE%#'"$ENGINE"'#g' "$TEMP_PATH"/BUILD.BAT
+sed -i -e 's#%ENGINE%#'"$ENGINE"'#g' "$TEMP_PATH"/RUNTOOLS.BAT
 sed -i -e 's#%FPC_PATH%#'"$FPC_PATH"'#g' "$TEMP_PATH"/SYSTEM/fpc.datpack.cfg
 for i in `ls "$TEMP_PATH"/SYSTEM/fpc.*.cfg`; do
 	sed -i -e 's#%FPC_PATH%#'"$FPC_BINARY_PATH"'#g' "$i"

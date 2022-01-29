@@ -135,7 +135,7 @@ procedure TimerSysIdle(mode: TIdleMode);
 		regs: Registers;
 	begin
 {$IFDEF ZETAEMU}
-		if ZetaDetected and (mode = IMSleepPit) then begin
+		if ZetaDetected and (mode = IMUntilPit) then begin
 			ZetaSleepPit;
 		end;
 {$ENDIF}

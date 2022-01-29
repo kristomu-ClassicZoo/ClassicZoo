@@ -40,7 +40,10 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-GameSh, ExtMem, GameVSer;
+{$IFNDEF RAWSTRUCTS}
+GameVSer,
+{$ENDIF}
+GameSh, ExtMem;
 
 function EnsureIoTmpBufSize(newSize: word): integer;
 	var

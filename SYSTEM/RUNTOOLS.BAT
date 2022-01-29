@@ -8,9 +8,9 @@ echo [ Converting ASCII.CHR ] >> BUILD.LOG
 BUILD\BIN2PAS SRC\ASCII.CHR SRC\F_ASCII.PAS F_ASCII >> BUILD.LOG
 if errorlevel 1 goto error
 
-echo [ Building ZZT.DAT ] >> BUILD.LOG
+echo [ Building %ENGINE%.DAT ] >> BUILD.LOG
 cd DOC
-..\BUILD\DATPACK.EXE /C ..\BUILD\ZZT.DAT *.* >> ..\BUILD.LOG
+..\BUILD\DATPACK.EXE /C ..\BUILD\%ENGINE%.DAT *.* >> ..\BUILD.LOG
 if errorlevel 1 goto error
 cd ..
 goto done

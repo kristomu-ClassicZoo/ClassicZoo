@@ -140,6 +140,7 @@ function GameVideoInstall(videoMode, mode: integer): boolean;
 			borderColor := 0;
 
 {$IFNDEF NEC98}
+{$IFNDEF BASICSYS}
 		if UseCustomFont then
 			fileDataLen := ResourceDataReadBinaryFile('8X8.CHR', fileData, 0, 2048)
 		else
@@ -151,8 +152,9 @@ function GameVideoInstall(videoMode, mode: integer): boolean;
 			if viResult then goto GameVideoInstalled;
 		end;
 {$ENDIF}
+{$ENDIF}
 
-		if not VideoInstall(videoMode, Ptr(0, 0), -1, borderColor) then exit;
+		if not VideoInstall(videoMode, {$IFDEF FPC}Nil{$ELSE}Ptr(0, 0){$ENDIF}, -1, borderColor) then exit;
 
 GameVideoInstalled:
 		if mode = VIEW_TITLE then
@@ -301,6 +303,7 @@ procedure TransitionDrawToFill(chr: char; color: integer);
 		tx, ty: byte;
 	begin
 		seed := LFSR_START;
+		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		repeat
 			if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then begin
 				VideoWriteText(tx + BOARD_DRAW_X, ty + BOARD_DRAW_Y, color, chr);
@@ -316,6 +319,8 @@ procedure TransitionDrawToFill(chr: char; color: integer);
 
 		if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then
 			VideoWriteText(tx + BOARD_DRAW_X, ty + BOARD_DRAW_Y, color, chr);
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate(BOARD_DRAW_X, BOARD_DRAW_Y,
+		BOARD_DRAW_X-1+BOARD_DRAW_WIDTH, BOARD_DRAW_Y-1+BOARD_DRAW_HEIGHT); {$ENDIF}
 	end;
 
 procedure BoardDrawTile(x, y: integer);
@@ -365,6 +370,7 @@ procedure TransitionDrawToBoard;
 		tx, ty: byte;
 	begin
 		seed := LFSR_START;
+		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		repeat
 			if (tx < BOARD_DRAW_WIDTH) and (ty < BOARD_DRAW_HEIGHT) then begin
 				BoardDrawTile(
@@ -386,6 +392,8 @@ procedure TransitionDrawToBoard;
 				tx + Board.Info.DrawXOffset,
 				ty + Board.Info.DrawYOffset
 			);
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate(BOARD_DRAW_X, BOARD_DRAW_Y,
+		BOARD_DRAW_X-1+BOARD_DRAW_WIDTH, BOARD_DRAW_Y-1+BOARD_DRAW_HEIGHT); {$ENDIF}
 	end;
 
 procedure ClearDisplayMessage;
@@ -582,7 +590,7 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 					BottomAnimateLoading(loadProgress);
 					BlockRead(f, World.BoardLen[i], 2);
 {$IFDEF ENDIAN_BIG}
-					World.BoardLen[boardId] := LEtoN(World.BoardLen[boardId]);
+					World.BoardLen[i] := LEtoN(World.BoardLen[i]);
 {$ENDIF}
 
 					if ExtMemGet(World.BoardData[i], World.BoardLen[i]) then begin
@@ -1577,8 +1585,10 @@ procedure GamePlayLoop(isTitle: boolean);
 			DrawPlayfieldBorder(true);
 		end;
 	begin
+		{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 		GameDrawSidebar;
 		GameUpdateSidebar;
+		{$IFDEF BASICSYS} VideoUnlockScreenUpdate(0, 0, VideoColumns-1, VideoRows-1); {$ENDIF}
 
 		if isTitle then
 			BoardChange(0)
@@ -1873,6 +1883,13 @@ LoadWorldSelect:
 		until GameTitleExitRequested <> false;
 	end;
 
+{$IFDEF NEC98}
+{$DEFINE GDRISAFE}
+{$ENDIF}
+{$IFDEF HASAMIGA}
+{$DEFINE GDRISAFE}
+{$ENDIF}
+
 procedure GameDisplayResourceImage(name: TString50);
 	var
 		fileData: pointer;
@@ -1881,8 +1898,9 @@ procedure GameDisplayResourceImage(name: TString50);
 	begin
 		fileDataLen := ResourceDataReadBinaryFile(name + '.BIN', fileData, 0, 4000);
 		if fileDataLen > 0 then begin
+			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 			for i := 0 to 24 do
-{$IFDEF NEC98}
+{$IFDEF GDRISAFE}
 				for j := 0 to 79 do
 					VideoWriteText(j, i, TScreenBinArray(fileData^)[i][j * 2 + 1],
 						Chr(TScreenBinArray(fileData^)[i][j * 2]));
@@ -1893,6 +1911,7 @@ procedure GameDisplayResourceImage(name: TString50);
 				VideoMove(0, i, 80, Ptr(Seg(fileData^), Ofs(fileData^) + (i * 160)), true);
 {$ENDIF}
 {$ENDIF}
+			{$IFDEF BASICSYS} VideoUnlockScreenUpdate(0, 0, 79, 24); {$ENDIF}
 			FreeMem(fileData, fileDataLen);
 		end;
 	end;

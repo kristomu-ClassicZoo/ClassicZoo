@@ -34,31 +34,42 @@ interface
 		TScreenCopyLine = string[100];
 		TScreenCopyLine16 = array[0 .. 49] of word;
 		TVideoWriteTextProc = procedure(x, y, color: byte; text: TVideoLine);
+		TCharsetData = array[0 .. 31999] of byte;
+		PTCharsetData = ^TCharsetData;
 	const
-		VideoSidebarX = 60;
-		VideoRows = 25;
+		VIDEO_MODE_40X25 = 0;
+		VIDEO_MODE_80X25 = 1;
+		VIDEO_MODE_80X43 = 2;
+		VIDEO_MODE_80X50 = 3;
+		VIDEO_CHARSET_UNCHANGED = -1;
 	var
 		VideoWriteText: TVideoWriteTextProc;
 		VideoForceSafe: boolean;
 		VideoForceNoSnow: boolean;
 		VideoMonochrome: boolean;
-		VideoColumns: integer;
 		VideoTextSegment: word;
 		VideoEGAInstalled: boolean;
 		VideoVGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
 		VideoLastMode: word;
+		VideoSidebarX: integer;
+		VideoColumns: integer;
+		VideoRows: integer;
+		VideoCurrentMode: integer;
 	procedure VideoLockScreenUpdate;
 	procedure VideoUnlockScreenUpdate(x1, y1, x2, y2: integer);
-	function VideoSetCharset(data: pointer; height: integer): boolean;
-	procedure VideoInstall(borderColor: integer);
+	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
+	function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
+		borderColor: integer): boolean;
 	procedure VideoUninstall;
 	procedure VideoShowCursor;
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
 	procedure VideoSetBlink(value: boolean);
+	procedure VideoClear(bgColor: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
+	procedure VideoScroll(x, y, width, height, dx, dy: integer);
 
 implementation
 uses Dos, Video, Keyboard, Mouse, SysUtils, TimerSys;
@@ -114,7 +125,7 @@ procedure VideoWriteTextBuf(x, y, color: byte; text: TVideoLine);
 		attr, offset: word;
 	begin
 		attr := color shl 8;
-		offset := (y * VideoColumns + x);
+		offset := (y * ScreenWidth + x);
 		for i := 1 to Length(text) do begin
 			VideoBuf^[offset] := attr or Ord(text[i]);
 			Inc(offset);
@@ -129,7 +140,7 @@ procedure VideoWriteTextBufBW(x, y, color: byte; text: TVideoLine);
 
 {$F-}
 
-function VideoSetCharset(data: pointer; height: integer): boolean;
+function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 	begin
 		VideoSetCharset := false;
 	end;
@@ -138,15 +149,34 @@ procedure VideoPreInstall;
 	begin
 	end;
 
-procedure VideoInstall(borderColor: integer);
+function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
+	borderColor: integer): boolean;
 	begin
-		FillChar(VideoBuf^, 0, VideoColumns * 25);
+		VideoInstall := false;
+
+		VideoSidebarX := 60;
+		VideoColumns := 80;
+		VideoRows := 25;
+		if mode = VIDEO_MODE_40X25 then
+			VideoColumns := 40
+		else if mode = VIDEO_MODE_80X43 then
+			VideoRows := 43
+		else if mode = VIDEO_MODE_80X50 then
+			VideoRows := 50;
+
+		if (VideoColumns <> ScreenWidth) or (VideoRows <> ScreenHeight) then
+			exit;
+
+		VideoClear(borderColor);
+		VideoCurrentMode := mode;
+
 		VideoHideCursor;
+		VideoInstall := true;
 	end;
 
 procedure VideoUninstall;
 	begin
-		FillChar(VideoBuf^, 0, VideoColumns * 25);
+		VideoClear(0);
 		VideoShowCursor;
 	end;
 
@@ -169,11 +199,17 @@ procedure VideoSetBlink(value: boolean);
 		{ TODO }
 	end;
 
+procedure VideoClear(bgColor: integer);
+	begin
+		FillWord(VideoBuf^, Word((bgColor * $11) shl 8), ScreenWidth * ScreenHeight);
+		UpdateScreen(false);
+	end;
+
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	var
 		offset: integer;
 	begin
-		offset := (y * VideoColumns + x);
+		offset := (y * ScreenWidth + x);
 		if toVideo then begin
 			Move(data^, VideoBuf^[offset], chars * 2);
 			UpdateScreenArea(x, y, x + chars - 1, y, false);
@@ -197,13 +233,63 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 			y2 := ix;
 		end;
 		for iy := y1 to y2 do begin
-			offset := ((iy * VideoColumns) + x1);
+			offset := ((iy * ScreenWidth) + x1);
 			for ix := x1 to x2 do begin
 				VideoBuf^[offset] := VideoBuf^[offset] xor $7F00;
 				Inc(offset, 1);
 			end;
 		end;
 		UpdateScreenArea(x1, y1, x2, y2, false);
+	end;
+
+procedure VideoScroll(x, y, width, height, dx, dy: integer);
+	var
+		iy: integer;
+		srcOfs, destOfs: integer;
+	begin
+		if dy = 0 then begin
+			if dx >= 0 then begin
+				{ move right }
+				srcOfs := (y * ScreenWidth + x);
+				destOfs := srcOfs + (dx);
+				for iy := 1 to height do begin
+					Move(VideoBuf^[srcOfs], VideoBuf^[destOfs], (width - dx) * 2);
+					srcOfs := srcOfs + (ScreenWidth);
+					destOfs := destOfs + (ScreenWidth);
+				end;
+			end else begin
+				{ move left }
+				destOfs := (y * ScreenWidth + x);
+				srcOfs := destOfs - (dx);
+				for iy := 1 to height do begin
+					Move(VideoBuf^[srcOfs], VideoBuf^[destOfs], (width + dx) * 2);
+					srcOfs := srcOfs + (ScreenWidth);
+					destOfs := destOfs + (ScreenWidth);
+				end;
+			end;
+		end else begin
+			if dy > 0 then begin
+				{ move down }
+				srcOfs := ((y + height - 2) * ScreenWidth + x);
+				destOfs := ScreenWidth + srcOfs;
+				for iy := 1 to (height - 1) do begin
+					Move(VideoBuf^[srcOfs], VideoBuf^[destOfs], width * 2);
+					srcOfs := srcOfs - (ScreenWidth);
+					destOfs := destOfs - (ScreenWidth);
+				end;
+			end else begin
+				{ move up }
+				destOfs := (y * ScreenWidth + x);
+				srcOfs := ScreenWidth + destOfs;
+				for iy := 1 to (height - 1) do begin
+					Move(VideoBuf^[srcOfs], VideoBuf^[destOfs], width * 2);
+					srcOfs := srcOfs + (ScreenWidth);
+					destOfs := destOfs + (ScreenWidth);
+				end;
+			end;
+		end;
+		{ TODO: Use UpdateScreenArea }
+		UpdateScreen(false);
 	end;
 
 initialization
@@ -214,6 +300,7 @@ initialization
 	InitMouse;
 	InitKeyboard;
 	VideoColumns := ScreenWidth;
+	VideoRows := ScreenHeight;
 	VideoWriteText := @VideoWriteTextBuf;
 	VideoForceNoSnow := false;
 	VideoForceSafe := false;

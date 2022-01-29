@@ -36,11 +36,18 @@ interface
 	function OopExecute(statId: integer; var position: integer; name: TSmallString): boolean;
 
 implementation
-uses Sounds, TxtWind, Game, GameSh, Elements;
+uses Sounds, TxtWind, Game, GameSh, Elements, ZVideo;
 
 procedure OopError(statId: integer; message: string);
 	begin
 		with Board.Stats[statId] do begin
+{$IFDEF DEBUGWND}
+			if DebugEnabled then begin
+				DebugShowElementMessage(message, X, Y);
+				DataPos := -1;
+				exit;
+			end;
+{$ENDIF}
 			DisplayMessage(200, '', 'ERR: ' + message);
 			SoundQueue(5, #80#10);
 			DataPos := -1;
@@ -633,7 +640,7 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 					if Length(OopWord) = 0 then
 						goto ReadInstruction;
 					Inc(insCount);
-					if Length(OopWord) <> 0 then begin
+					{ if Length(OopWord) <> 0 then begin // already checked above }
 						if OopWord = 'GO' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
 
@@ -711,7 +718,7 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 									if counterSubtract then
 										OopValue := -OopValue;
 
-									if (counterPtr^ + OopValue) >= 0 then begin
+									if Integer(counterPtr^ + OopValue) >= 0 then begin
 										Inc(counterPtr^, OopValue);
 									end else begin
 										goto ReadCommand;
@@ -827,6 +834,10 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 									FreeStatDataMem(statId, true);
 									Data := Board.Stats[bindStatId].Data;
 									DataLen := Board.Stats[bindStatId].DataLen;
+{$IFDEF DEBUGWND}
+								end else if DebugCompatEnabled then begin
+									DebugShowElementMessage('Illegal double free (self-#BIND)', X, Y);
+{$ENDIF}
 								end;
 								position := 0;
 							end;
@@ -840,7 +851,7 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 								end;
 							end;
 						end;
-					end;
+					{ end; }
 
 					if lineFinished then
 						OopSkipLine(statId, position);
@@ -881,6 +892,7 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 				TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT);
 				TextWindowDrawClose(textWindow);
 				TextWindowFree(textWindow);
+				{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 
 				if Length(textWindow.Hyperlink) <> 0 then
 					if OopSend(statId, textWindow.Hyperlink, false) then
