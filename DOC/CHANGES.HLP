@@ -30,6 +30,8 @@ $< ClassicZoo dev >
 + [DOS, PC-98] Support changing blink
   modes in the options menu.
 + [SDL2] Built-in Museum of ZZT client.
+* The file selection window no longer
+  animates when changing directories.
 / [Amiga] Fix regressions.
 / [SDL2] Fix sticky modifier keys.
 / {SuperZ} Fix scrolling behaviour.

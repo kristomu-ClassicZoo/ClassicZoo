@@ -118,6 +118,10 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 		GetDir(0, startPath);
 {$ENDIF}
 
+		TextWindowInitState(textWindow);
+		textWindow.Title := '';
+		TextWindowDrawOpen(textWindow);
+
 		while searching do begin
 			TextWindowInitState(textWindow);
 {$IFDEF SUBDIRS}
@@ -231,9 +235,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 			TextWindowSort(textWindow, iSortStart, textWindow.LineCount);
 			TextWindowAppend(textWindow, 'Exit');
 
-			TextWindowDrawOpen(textWindow);
 			TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT);
-			TextWindowDrawClose(textWindow);
 			InputKeyPressed := #0;
 
 			if (textWindow.LinePos = textWindow.LineCount) or TextWindowRejected then begin
@@ -262,6 +264,10 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 			{ Clear IOResult }
 			if IOResult <> 0 then begin end;
 		end;
+
+		TextWindowInitState(textWindow);
+		TextWindowDrawClose(textWindow);
+		TextWindowFree(textWindow);
 	end;
 
 end.

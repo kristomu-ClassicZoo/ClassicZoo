@@ -65,6 +65,8 @@ const
 	ENGINE_DETAIL_CODE = 13;
 	ENGINE_EXTENSION = '.SZT';
 {$ENDIF}
+var
+	startingPath: string;
 
 constructor TWebUnzipper.Create(path: string);
 begin
@@ -186,16 +188,72 @@ end;
 function WebBrowserLoadZipFile(letter, museumFilename: string): boolean;
 var
 	i: Int32;
-	textWindow: TTextWindowState;
 	unz: TUnzipper;
+{	textWindow: TTextWindowState;
 	filename: string;
-	filenameShort: string;
+	filenameShort: string; }
 	choiceResult: byte;
+	zztEntryCount: integer;
+	zztEntryFilename: string;
 begin
 	WebBrowserLoadZipFile := false;
 	if not DownloadMuseumZipFile(letter, museumFilename, unz) then exit;
 
-	TextWindowInitState(textWindow);
+	zztEntryCount := 0;
+	for i := 0 to (unz.Entries.Count - 1) do with unz.Entries.Entries[i] do begin
+		if EndsText(ENGINE_EXTENSION, ArchiveFilename) then begin
+			Inc(zztEntryCount);
+			zztEntryFilename := ArchiveFilename;
+		end;
+	end;
+
+	if zztEntryCount <= 0 then begin
+		ShowStatusMessage('No file found!');
+		exit;
+	end;
+
+	ShowStatusMessage('Unpacking...');
+
+	if unz.Entries.Count > 1 then begin
+		CreateDir(ChangeFileExt(museumFilename, ''));
+		ChDir(ChangeFileExt(museumFilename, ''));
+	end;
+
+	choiceResult := 1;
+	for i := 0 to (unz.Entries.Count - 1) do with unz.Entries.Entries[i] do begin
+		if FileExists(ArchiveFilename) and (choiceResult = 1) then begin
+			SidebarPromptChoice(true, 3, 'Overwrite?', 'Yes No', choiceResult);
+			SidebarClearLine(3);
+			SidebarClearLine(4);
+			SidebarClearLine(5);
+			if choiceResult = 1 then begin
+				ChDir('..');
+				exit;
+			end;
+		end;
+		unz.UnZipFile(ArchiveFilename, ArchiveFilename);
+	end;
+
+	ShowStatusMessage('');
+
+	if zztEntryCount > 1 then begin
+		if GameWorldLoad(ENGINE_EXTENSION) then begin
+			ReturnBoardId := World.Info.CurrentBoard;
+			BoardChange(0);
+			WebBrowserLoadZipFile := true;
+		end;
+	end else begin
+		if WorldLoad(zztEntryFilename, '', false) then begin
+			ReturnBoardId := World.Info.CurrentBoard;
+			BoardChange(0);
+			WebBrowserLoadZipFile := true;
+		end else begin
+			WorldCreate;
+			ShowStatusMessage('World load error!');
+		end;
+	end;
+
+{	TextWindowInitState(textWindow);
 	textWindow.Title := 'Select file';
 	textWindow.LinePos := 1;
 
@@ -238,11 +296,12 @@ begin
 	end else begin
 		WorldCreate;
 		ShowStatusMessage('World load error!');
-	end;
+	end; }
 end;
 
 procedure WebBrowserLoop;
 var
+	preLoopPath: string;
 	textWindow: TTextWindowState;
 	function EntryContainsDetail(entry: TJSONObject; detailId: Int32): boolean;
 	var
@@ -386,6 +445,9 @@ var
 		end;
 	end;
 begin
+	GetDir(0, preLoopPath);
+	ChDir(startingPath);
+
 	VideoClear(1);
 	GameDisplayResourceImage('MUSEUMBG', 0, 0, 60, 25);
 	VideoWriteText(VideoSidebarX + 1, 0, $1F, '     - - - -       ');
@@ -397,11 +459,18 @@ begin
 	TextWindowDrawOpen(textWindow);
 	TextWindowFree(textWindow);
 
-	if WebBrowserSearch then begin end;
+	if WebBrowserSearch then begin
+		{ Exit to new path. }
+	end else begin
+		{ Return to old path. }
+		ChDir(preLoopPath);
+	end;
 
 	TextWindowInitState(textWindow);
 	TextWindowDrawClose(textWindow);
 	TextWindowFree(textWindow);
 end;
 
+begin
+	GetDir(0, startingPath);
 end.
