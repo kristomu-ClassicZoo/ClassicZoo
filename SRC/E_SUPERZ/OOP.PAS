@@ -36,7 +36,11 @@ interface
 	function OopExecute(statId: integer; var position: integer; name: TSmallString): boolean;
 
 implementation
-uses Sounds, TxtWind, Game, GameSh, Elements, ZVideo;
+uses
+{$IFDEF DEBUGWND}
+DebugWnd,
+{$ENDIF}
+Sounds, TxtWind, Game, GameSh, Elements, ZVideo;
 
 procedure OopError(statId: integer; message: string);
 	begin

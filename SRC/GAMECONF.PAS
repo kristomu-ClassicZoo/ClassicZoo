@@ -346,15 +346,12 @@ function ConfigDebugCustomAction: boolean;
 	begin
 		if DebugEnabled then begin
 			DebugEnabled := false;
-{$IFDEF E_ZZT}
 			DebugCompatEnabled := false;
 			DebugUndefEnabled := false;
-{$ENDIF}
 		end else DebugEnabled := true;
 		ConfigDebugCustomAction := true;
 	end;
 
-{$IFDEF E_ZZT}
 function ConfigDCompatShowValue: string;
 	begin
 		ConfigDCompatShowValue := ConfigShowOnOffValue(DebugCompatEnabled);
@@ -380,7 +377,6 @@ function ConfigDUndefCustomAction: boolean;
 		end else DebugUndefEnabled := true;
 		ConfigDUndefCustomAction := true;
 	end;
-{$ENDIF}
 {$ENDIF}
 
 {$IFDEF SDL2}
@@ -562,8 +558,7 @@ const
 	ConfigEntryCount = 5
 	{$IFDEF MSDOS} + 2 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
-	{$IFDEF DEBUGWND} + 1 {$ENDIF}
-	{$IFDEF DEBUGWND} {$IFDEF E_ZZT} + 2 {$ENDIF} {$ENDIF}
+	{$IFDEF DEBUGWND} + 3 {$ENDIF}
 	{$IFDEF SDL2} + 7 {$IFNDEF WINDOWS} + 1 {$ENDIF} {$ENDIF}
 	;
 	ConfigHiddenEntryCount = 0
@@ -696,10 +691,13 @@ procedure GameConfigInit;
 			CustomAction := ConfigDebugCustomAction;
 		end;
 		Inc(i);
-{$IFDEF E_ZZT}
 		with ConfigEntries[i] do begin
 			Category := CCDebugger;
+{$IFDEF E_SUPERZ}
+			Name := 'SZZT 2.0 compat checks';
+{$ELSE}
 			Name := 'ZZT 3.2 compat checks';
+{$ENDIF}
 			ShowValue := ConfigDCompatShowValue;
 			CustomAction := ConfigDCompatCustomAction;
 		end;
@@ -711,7 +709,6 @@ procedure GameConfigInit;
 			CustomAction := ConfigDUndefCustomAction;
 		end;
 		Inc(i);
-{$ENDIF}
 {$ENDIF}
 {$IFDEF SDL2}
 {$IFNDEF WINDOWS}

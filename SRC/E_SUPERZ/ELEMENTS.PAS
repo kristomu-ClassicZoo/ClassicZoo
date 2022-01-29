@@ -39,7 +39,11 @@ interface
 	procedure InitEditorStatSettings;
 
 implementation
-uses GameConf, ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, GameSh, Game;
+uses
+{$IFDEF DEBUGWND}
+DebugWnd,
+{$ENDIF}
+GameConf, ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, GameSh, Game;
 
 const
 	ForestSoundTable: array[0 .. 7] of byte = ($45, $40, $47, $50, $46, $41, $48, $51);
@@ -1014,6 +1018,11 @@ procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 				end else if Board.Tiles[x + deltaX][y + deltaY].Element <> E_EMPTY then begin
 					if (deltaX <> 0) or (deltaY <> 0) then begin
 						ElementPushablePush(x + deltaX, y + deltaY, deltaX, deltaY);
+{$IFDEF DEBUGWND}
+					end else begin
+						if DebugCompatEnabled then
+							DebugShowElementMessage('Illegal pushable movement', x, y);
+{$ENDIF}
 					end;
 				end;
 

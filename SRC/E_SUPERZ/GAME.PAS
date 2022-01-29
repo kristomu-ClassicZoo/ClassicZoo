@@ -119,6 +119,9 @@ const
 
 implementation
 uses
+{$IFDEF DEBUGWND}
+DebugWnd,
+{$ENDIF}
 {$IFNDEF RAWSTRUCTS}
 GameVSer,
 {$ENDIF}
@@ -575,6 +578,11 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 					HighCompat := false;
 				if CleenModeAuto then
 					CleenMode := false;
+{$IFDEF DEBUGWND}
+				{ BoardEnter is only called for play-boards, not title-boards. }
+				if titleOnly and DebugCompatEnabled then
+					DebugBoardIllegalElements;
+{$ENDIF}
 			end;
 		end;
 
@@ -861,7 +869,11 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 {$IFDEF MEMBOUND}
 			end;
 {$ENDIF}
-
+{$IFDEF DEBUGWND}
+			if DebugUndefEnabled and ((X > (BOARD_WIDTH+1)) or (Y > (BOARD_HEIGHT+1))) then begin
+				DebugShowElementMessage('Move out of bounds!', X, Y);
+			end;
+{$ENDIF}
 			if (statId = 0) and scrollOffset then begin
 				recalcRequired := false;
 				oldOX := Board.Info.DrawXOffset;
@@ -1191,6 +1203,11 @@ procedure BoardEnter;
 
 		World.Info.BoardTimeSec := 0;
 		GameUpdateSidebar;
+
+{$IFDEF DEBUGWND}
+		if DebugCompatEnabled then
+			DebugBoardIllegalElements;
+{$ENDIF}
 	end;
 
 procedure BoardPassageTeleport(x, y: integer);

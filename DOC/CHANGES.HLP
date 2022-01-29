@@ -18,6 +18,7 @@ $< ClassicZoo dev >
   + [SDL2] Press Alt+arrows to move
     faster on the board.
   * Cosmetic tweaks.
+/ [Amiga] Fix regressions.
 / [SDL2] Fix sticky modifier keys.
 
 $< ClassicZoo 4.22 >
