@@ -146,10 +146,8 @@ begin
 	CheatFreeze := false;
 {$ENDIF}
 {$IFDEF DEBUGWND}
-{$IFDEF E_ZZT}
 	DebugCompatEnabled := false;
 	DebugUndefEnabled := false;
-{$ENDIF}
 {$ENDIF}
 
 {$IFDEF E_ZZT}

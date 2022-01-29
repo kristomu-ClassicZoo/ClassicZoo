@@ -48,7 +48,8 @@ interface
 		windowAlreadyOpen: boolean; showAddNewBoard: boolean): integer;
 
 implementation
-uses Dos, FileSel, FileSys, ExtMem, GameConf, ZVideo, Sounds, TimerSys, Keys, ZInput, Elements, Oop, Game, Sidebar;
+uses Dos, GameIo, GameSh, FileSel, FileSys, ExtMem,
+GameConf, ZVideo, Sounds, TimerSys, Keys, ZInput, Elements, Oop, Game, Sidebar;
 
 type
 	TBoardShiftMode = (BoardShiftDelete);

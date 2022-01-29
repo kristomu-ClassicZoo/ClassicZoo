@@ -26,14 +26,48 @@ unit DebugWnd;
 
 interface
 	uses GameVars;
+	procedure DebugBoardIllegalElements;
 	procedure DebugShowElementMessage(msg: string; x, y: integer);
 	procedure DebugShowSizeTooLarge(expected, actual: word; id: integer; name, desc: TString50);
 
 implementation
-uses Game, Sounds, ZInput, TxtWind;
+uses Game, GameSh, Sounds, ZInput, TxtWind;
 
 const
 	PARTIAL_STAT_LINES_AROUND = 2;
+
+procedure DebugBoardIllegalElements;
+	var
+		textWindow: TTextWindowState;
+		xStr, yStr, zStr: string[11];
+		count, ix, iy: integer;
+	begin
+		count := 0;
+		for iy := 1 to BOARD_HEIGHT do
+			for ix := 1 to BOARD_WIDTH do
+				with Board.Tiles[ix][iy] do
+{ TODO: Are these safe? What about Super ZZT? }
+{ and (not (Element in [238, 239, 240, 241, 244, 246, 248, 250, 252, 254])) then begin }
+					if (Element > SAFE_MAX_ELEMENT) then begin
+						if count = 0 then begin
+							textWindow.Title := '[Debug] Illegal Elements';
+							TextWindowInitState(textWindow);
+							TextWindowAppend(textWindow, 'Illegal elements detected on board at:');
+							TextWindowAppend(textWindow, '');
+						end;
+						Str(ix, xStr);
+						Str(iy, yStr);
+						Str(Element, zStr);
+						TextWindowAppend(textWindow, xStr + ', ' + yStr + ': ID ' + zStr);
+						Inc(count);
+					end;
+		if count > 0 then begin
+			TextWindowDrawOpen(textWindow);
+			TextWindowSelect(textWindow, 0);
+			TextWindowDrawClose(textWindow);
+			TextWindowFree(textWindow);
+		end;
+	end;
 
 procedure CopyPartialStatDataToTextWindow(statId: integer; var state: TTextWindowState);
 	var

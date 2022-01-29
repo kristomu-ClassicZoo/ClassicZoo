@@ -38,23 +38,6 @@ interface
 		VIEW_EDITOR = 2;
 		VIEW_EDITOR_LARGE = 3;
 	function GameVideoInstall(videoMode, mode: integer): boolean;
-	function TileOutOfBounds(x, y: integer): boolean;
-	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
-{$IFNDEF FPC}
-{$IFDEF CPU86}
-	procedure AdvancePointer(var address: pointer; count: integer);
-		inline(
-			$58/$5F/$07/ { POP AX, DI, ES }
-			$26/$01/$05 { ADD ES:[DI], AX }
-		);
-{$ELSE}
-	procedure AdvancePointer(var address: pointer; count: integer);
-{$ENDIF}
-{$ELSE}
-	procedure AdvancePointer(var address: pointer; count: integer);
-{$ENDIF}
-	procedure BoardClose;
-	procedure BoardOpen(boardId: integer);
 	procedure BoardChange(boardId: integer);
 	procedure BoardCreate;
 	procedure WorldCreate;
@@ -71,16 +54,11 @@ interface
 	procedure WorldSave(filename, extension: TSmallString);
 	procedure GameWorldSave(prompt: TSmallString; var filename: TSmallString; extension: TSmallString);
 	function GameWorldLoad(extension: TSmallString): boolean;
-	procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState);
 	procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; template: TStat);
-	procedure FreeStatDataMem(statId: integer);
 	procedure RemoveStat(statId: integer);
-	function GetStatIdAt(x, y: integer): integer;
 	procedure BoardRemoveTile(x, y: integer);
 	function BoardPrepareTileForPlacement(x, y: integer): boolean;
 	procedure MoveStat(statId: integer; newX, newY: integer);
-	function Signum(val: integer): integer;
-	function Difference(a, b: integer): integer;
 	procedure GameUpdateSidebar;
 	procedure DisplayMessage(time: integer; line1, line2: TSmallString);
 	procedure DamageStat(attackerStatId: integer);
@@ -144,7 +122,8 @@ uses
 {$IFNDEF RAWSTRUCTS}
 GameVSer,
 {$ENDIF}
-Dos, GameConf, FileSys, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
+Dos, GameSh, GameIo,
+GameConf, FileSys, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
 
 function GameVideoInstall(videoMode, mode: integer): boolean;
 	var
@@ -231,236 +210,6 @@ function LFSRUpdateSeed(var seed: word; var tx, ty: byte): boolean;
 		tx := (seed - 1) and LfsrAndConst;
 		ty := ((seed - 1) shr LfsrShrConst) and LfsrAndConst;
 		LFSRUpdateSeed := seed = LFSR_START;
-	end;
-
-function TileOutOfBounds(x, y: integer): boolean;
-	begin
-		TileOutOfBounds := (x < 0) or (y < 0) or (x > (BOARD_WIDTH + 1)) or (y > (BOARD_HEIGHT + 1));
-	end;
-
-function EnsureIoTmpBufSize(newSize: word): integer;
-	var
-		oldSize: word;
-	begin
-		if newSize > IO_BUFFER_MAXIMUM_SIZE then begin
-			EnsureIoTmpBufSize := 2;
-			exit;
-		end;
-		oldSize := IoTmpBufSize;
-		EnsureIoTmpBufSize := 0;
-		while IoTmpBufSize < newSize do
-			Inc(IoTmpBufSize, IO_BUFFER_SIZE_INCREMENT);
-		if oldSize <> IoTmpBufSize then begin
-			FreeMem(IoTmpBuf, oldSize);
-			GetMem(IoTmpBuf, IoTmpBufSize);
-			EnsureIoTmpBufSize := 1;
-		end;
-	end;
-
-{$IFDEF FPC}
-procedure AdvancePointer(var address: pointer; count: integer);
-	begin
-		Inc(address, count);
-	end;
-{$ELSE}
-{$IFNDEF CPU86}
-procedure AdvancePointer(var address: pointer; count: integer);
-	begin
-		address := Ptr(Seg(address^), Ofs(address^) + count);
-	end;
-{$ENDIF}
-{$ENDIF}
-
-procedure BoardClose;
-	var
-		ix, iy: integer;
-		ptr: pointer;
-		rle: TRleTile;
-	label RestartWrite;
-	begin
-		{ Bind stats early. }
-		for ix := 0 to Board.StatCount do begin
-			with Board.Stats[ix] do begin
-				if DataLen > 0 then begin
-					for iy := 1 to (ix - 1) do begin
-						if Board.Stats[iy].Data = Data then
-							DataLen := -iy;
-					end;
-				end;
-			end;
-		end;
-
-	RestartWrite:
-		ptr := IoTmpBuf;
-
-		Move(Board.Name, ptr^, SizeOf(Board.Name));
-		AdvancePointer(ptr, SizeOf(Board.Name));
-
-		ix := 1;
-		iy := 1;
-		rle.Count := 1;
-		rle.Tile := Board.Tiles[ix][iy];
-		repeat
-			Inc(ix);
-			if ix > BOARD_WIDTH then begin
-				ix := 1;
-				Inc(iy);
-			end;
-			if (Board.Tiles[ix][iy].Color = rle.Tile.Color) and
-				(Board.Tiles[ix][iy].Element = rle.Tile.Element) and
-				(rle.Count < 255) and (iy <= BOARD_HEIGHT) then
-			begin
-				Inc(rle.Count);
-			end else begin
-				Move(rle, ptr^, SizeOf(rle));
-				AdvancePointer(ptr, SizeOf(rle));
-				rle.Tile := Board.Tiles[ix][iy];
-				rle.Count := 1;
-			end;
-		until iy > BOARD_HEIGHT;
-
-{$IFDEF RAWSTRUCTS}
-		Move(Board.Info, ptr^, SizeOf(Board.Info));
-		AdvancePointer(ptr, SizeOf(Board.Info));
-{$ELSE}
-		CopyBoardInfoFromLocal(ptr);
-{$ENDIF}
-
-{$IFDEF ENDIAN_BIG}
-		Board.StatCount := NtoLE(Board.StatCount);
-{$ENDIF}
-		Move(Board.StatCount, ptr^, SizeOf(Board.StatCount));
-		AdvancePointer(ptr, SizeOf(Board.StatCount));
-{$IFDEF ENDIAN_BIG}
-		Board.StatCount := LEtoN(Board.StatCount);
-{$ENDIF}
-
-		{ We will always have enough size to store the above in the default IoTmpBuf. }
-		{ From here, do size estimation. }
-		iy := (Ofs(ptr^) - Ofs(IoTmpBuf^)) + ((Board.StatCount + 1) * SizeOf(TStat));
-
-		for ix := 0 to Board.StatCount do begin
-			with Board.Stats[ix] do begin
-				if DataLen > 0 then
-					Inc(iy, DataLen);
-			end;
-		end;
-
-		case EnsureIoTmpBufSize(iy) of
-			0: begin end; { We good. }
-			1: goto RestartWrite; { Not so good. }
-			2: RunError(203);
-		end;
-
-		for ix := 0 to Board.StatCount do begin
-			with Board.Stats[ix] do begin
-{$IFDEF RAWSTRUCTS}
-				Move(Board.Stats[ix], ptr^, STAT_SIZE_BYTES);
-				AdvancePointer(ptr, STAT_SIZE_BYTES);
-{$ELSE}
-				CopyStatFromLocal(ptr, Board.Stats[ix]);
-{$ENDIF}
-				if DataLen > 0 then begin
-					Move(Data^, ptr^, DataLen);
-					FreeMem(Data, DataLen);
-					AdvancePointer(ptr, DataLen);
-				end;
-			end;
-		end;
-
-		ExtMemFree(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
-		World.BoardLen[World.Info.CurrentBoard] := Ofs(ptr^) - Ofs(IoTmpBuf^);
-		if ExtMemGet(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]) then begin
-			ExtMemWrite(World.BoardData[World.Info.CurrentBoard], IoTmpBuf^, World.BoardLen[World.Info.CurrentBoard]);
-		end else RunError(203);
-	end;
-
-procedure BoardOpen(boardId: integer);
-	var
-		ptr: pointer;
-		ix, iy: integer;
-		rle: TRleTile;
-	begin
-		if boardId > World.BoardCount then
-			boardId := World.Info.CurrentBoard;
-
-		case EnsureIoTmpBufSize(World.BoardLen[boardId]) of
-			0, 1: begin end;
-			2: RunError(203);
-		end;
-
-		ExtMemRead(World.BoardData[boardId], IoTmpBuf^, World.BoardLen[boardId]);
-
-		ptr := IoTmpBuf;
-
-		Move(ptr^, Board.Name, SizeOf(Board.Name));
-		AdvancePointer(ptr, SizeOf(Board.Name));
-
-		ix := 1;
-		iy := 1;
-		rle.Count := 0;
-		repeat
-			if rle.Count <= 0 then begin
-				Move(ptr^, rle, SizeOf(rle));
-				AdvancePointer(ptr, SizeOf(rle));
-			end;
-			Board.Tiles[ix][iy] := rle.Tile;
-			Inc(ix);
-			if ix > BOARD_WIDTH then begin
-				ix := 1;
-				Inc(iy);
-			end;
-			Dec(rle.Count);
-		until iy > BOARD_HEIGHT;
-
-{$IFDEF RAWSTRUCTS}
-		Move(ptr^, Board.Info, SizeOf(Board.Info));
-		AdvancePointer(ptr, SizeOf(Board.Info));
-{$ELSE}
-		CopyBoardInfoToLocal(ptr);
-{$ENDIF}
-
-		Move(ptr^, Board.StatCount, SizeOf(Board.StatCount));
-		AdvancePointer(ptr, SizeOf(Board.StatCount));
-{$IFDEF ENDIAN_BIG}
-		Board.StatCount := LEtoN(Board.StatCount);
-{$ENDIF}
-
-		for ix := 0 to Board.StatCount do
-			with Board.Stats[ix] do begin
-{$IFDEF RAWSTRUCTS}
-				Move(ptr^, Board.Stats[ix], STAT_SIZE_BYTES);
-				AdvancePointer(ptr, STAT_SIZE_BYTES);
-				{$IFDEF FPC} Data := Nil; {$ENDIF}
-{$ELSE}
-				CopyStatToLocal(ptr, Board.Stats[ix]);
-{$ENDIF}
-				if DataLen > 0 then begin
-{$IFDEF MSDOS}
-					if MaxAvail < DataLen then begin
-						VideoClear(0);
-						Writeln('Out of Memory!');
-						Writeln('Mem ', MaxAvail, '..', DataLen);
-						Writeln('Obj ', ix, '..', Board.StatCount);
-						Writeln('Bd  ', boardId);
-					end;
-{$ENDIF}
-
-					GetMem(Data, DataLen);
-					Move(ptr^, Data^, DataLen);
-					AdvancePointer(ptr, DataLen);
-				end;
-			end;
-
-		for ix := 0 to Board.StatCount do
-			with Board.Stats[ix] do begin
-				if DataLen < 0 then begin
-					Data := Board.Stats[-DataLen].Data;
-					DataLen := Board.Stats[-DataLen].DataLen;
-				end;
-			end;
-
-		World.Info.CurrentBoard := boardId;
 	end;
 
 procedure BoardChange(boardId: integer);
@@ -980,34 +729,6 @@ function GameWorldLoad(extension: TSmallString): boolean;
 		end;
 	end;
 
-procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState);
-	var
-		dataStr: string;
-		dataPtr: pointer;
-		dataChr: char;
-		i: integer;
-	begin
-		with Board.Stats[statId] do begin
-			TextWindowInitState(state);
-			dataStr := '';
-			dataPtr := Data;
-
-			for i := 1 to DataLen do begin
-				Move(dataPtr^, dataChr, 1);
-				if dataChr = KEY_ENTER then begin
-					TextWindowAppendEdit(state, dataStr);
-					dataStr := '';
-				end else begin
-					dataStr := dataStr + dataChr;
-				end;
-				AdvancePointer(dataPtr, 1);
-			end;
-
-			if dataStr <> '' then
-				TextWindowAppend(state, dataStr);
-		end;
-	end;
-
 procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; template: TStat);
 	begin
 		if Board.StatCount < MAX_STAT then begin
@@ -1038,26 +759,11 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 		end;
 	end;
 
-procedure FreeStatDataMem(statId: integer);
-	var
-		i: integer;
-	begin
-		with Board.Stats[statId] do begin
-			if DataLen <> 0 then begin
-				for i := 1 to Board.StatCount do begin
-					if (Board.Stats[i].Data = Data) and (i <> statId) then
-						exit;
-				end;
-				FreeMem(Data, DataLen);
-			end;
-		end;
-	end;
-
 procedure RemoveStat(statId: integer);
 	var
 		i: integer;
 	begin
-		FreeStatDataMem(statId);
+		FreeStatDataMem(statId, false);
 
 		with Board.Stats[statId] do begin
 			if statId < CurrentStatTicked then
@@ -1087,21 +793,6 @@ procedure RemoveStat(statId: integer);
 				Board.Stats[i - 1] := Board.Stats[i];
 			Dec(Board.StatCount);
 		end;
-	end;
-
-function GetStatIdAt(x, y: integer): integer;
-	var
-		i: integer;
-	begin
-		i := -1;
-		repeat
-			Inc(i);
-		until ((Board.Stats[i].X = x) and (Board.Stats[i].Y = y)) or (i > Board.StatCount);
-
-		if i > Board.StatCount then
-			GetStatIdAt := -1
-		else
-			GetStatIdAt := i;
 	end;
 
 procedure BoardRemoveTile(x, y: integer);
@@ -1287,24 +978,6 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			Y := newY;
 			BoardDrawTile(X, Y);
 		end;
-	end;
-
-function Signum(val: integer): integer;
-	begin
-		if val > 0 then
-			Signum := 1
-		else if val < 0 then
-			Signum := -1
-		else
-			Signum := 0;
-	end;
-
-function Difference(a, b: integer): integer;
-	begin
-		if (a - b) >= 0 then
-			Difference := a - b
-		else
-			Difference := b - a;
 	end;
 
 procedure GameUpdateSidebar;

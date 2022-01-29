@@ -36,7 +36,7 @@ interface
 	function OopExecute(statId: integer; var position: integer; name: TSmallString): boolean;
 
 implementation
-uses Sounds, TxtWind, Game, Elements;
+uses Sounds, TxtWind, Game, GameSh, Elements;
 
 procedure OopError(statId: integer; message: string);
 	begin
@@ -824,7 +824,7 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 							bindStatId := 0;
 							if OopIterateStat(statId, bindStatId, OopWord) then begin
 								if statId <> bindStatId then begin
-									FreeStatDataMem(statId);
+									FreeStatDataMem(statId, true);
 									Data := Board.Stats[bindStatId].Data;
 									DataLen := Board.Stats[bindStatId].DataLen;
 								end;

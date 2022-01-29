@@ -35,7 +35,7 @@ interface
 	uses ExtMem;
 	const
 		MAX_STAT = 128;
-		SZZT20_MAX_ELEMENT = 79;
+		SAFE_MAX_ELEMENT = 79;
 {$IFDEF SDL2}
 		MAX_ELEMENT = 255;
 {$ELSE}
@@ -54,6 +54,7 @@ interface
 		TORCH_DY = 8;
 		TORCH_DIST_SQR = 64 { 8 * 8 };
 		OOP_TOKEN_LENGTH = 20;
+		ZZT_32_BOARD_MAX_SIZE = 20000;
 {$IFDEF SDL2}
 		IO_BUFFER_DEFAULT_SIZE = 65535;
 		IO_BUFFER_MAXIMUM_SIZE = 65535;
@@ -325,6 +326,10 @@ interface
 		NeuromotorAssist: boolean;
 		UseCustomFont: boolean;
 
+{$IFDEF DEBUGWND}
+		DebugCompatEnabled: boolean;
+		DebugUndefEnabled: boolean;
+{$ENDIF}
 {$IFDEF EXTCHEAT}
 		CheatColorModifiers: array[0 .. MAX_ELEMENT] of byte;
 		CheatCharModifiers: array[0 .. MAX_ELEMENT] of char;

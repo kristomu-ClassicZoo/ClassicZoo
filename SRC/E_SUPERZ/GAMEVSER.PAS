@@ -37,7 +37,7 @@ interface
 	procedure CopyStatToLocal(var ptr: pointer; var stat: TStat);
 
 implementation
-uses Game;
+uses GameSh;
 
 type
 	TStatPacked = packed record
