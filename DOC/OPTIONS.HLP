@@ -126,15 +126,15 @@ This enables the following functions:
 - (DOS) Displaying the amount of free
   memory while playing. 
 
-:dcompat;[ ZZT 3.2 compat checks ]
+:dcompat;[ ZZT compat checks ]
 
 This toggle checks for (some) behaviours
-which are invalid or unstable on ZZT 3.2,
+which are invalid or unstable on ZZT,
 but fixed in ClassicZoo:
 
 - Bugged pushable movements,
 - Scrolls deleting themselves with OOP,
-- Binders Keepers (unstable in ZZT 3.2),
+- Binders Keepers (unstable in ZZT),
 - Saving boards above 20000 bytes in
   size,
 - Loading boards with out-of-bounds
