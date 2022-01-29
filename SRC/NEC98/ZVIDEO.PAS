@@ -33,6 +33,7 @@ interface
 		TCharsetData = array[0 .. 31999] of byte;
 		PTCharsetData = ^TCharsetData;
 	const
+		VideoSidebarX = 60;
 		VideoColumns = 80;
 		VideoRows = 25;
 		VIDEO_MODE_40X25 = 0;

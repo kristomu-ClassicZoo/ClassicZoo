@@ -60,12 +60,12 @@ procedure SidebarClearLine(y: integer);
 	begin
 {$IFDEF NEC98}
 		if VideoEightColor then
-			VideoWriteText(60, y, $01,
+			VideoWriteText(VideoSidebarX + 0, y, $01,
 				{$IFDEF E_SUPERZ}'                   '
 				{$ELSE}#179'                   '{$ENDIF})
 		else
 {$ENDIF}
-		VideoWriteText(60, y, $11,
+		VideoWriteText(VideoSidebarX + 0, y, $11,
 			{$IFDEF E_SUPERZ}'                   '
 			{$ELSE}#179'                   '{$ENDIF});
 	end;
@@ -216,8 +216,8 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 		SidebarClearLine(y);
 		SidebarClearLine(y + 1);
 		SidebarClearLine(y + 2);
-		VideoWriteText(63, y, Integer(editable) + $1E, prompt);
-		VideoWriteText(63, y + 2, $1E, choiceStr);
+		VideoWriteText(VideoSidebarX + 3, y, Integer(editable) + $1E, prompt);
+		VideoWriteText(VideoSidebarX + 3, y + 2, $1E, choiceStr);
 
 		choiceCount := 1;
 		for i := 1 to Length(choiceStr) do
@@ -234,7 +234,7 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 			end;
 
 			if editable then begin
-				VideoWriteText(62 + i, y + 1, $9F, #31);
+				VideoWriteText(VideoSidebarX + 2 + i, y + 1, $9F, #31);
 				AccurateDelay(35);
 				InputUpdate;
 
@@ -251,7 +251,7 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 			end;
 		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
 
-		VideoWriteText(62 + i, y + 1, $1F, #31);
+		VideoWriteText(VideoSidebarX + 2 + i, y + 1, $1F, #31);
 	end;
 
 procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; var deltaX, deltaY: integer);
@@ -330,8 +330,8 @@ function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
 		SidebarClearLine(3);
 		SidebarClearLine(4);
 		SidebarClearLine(5);
-		VideoWriteText(63, 5, $1F, message);
-		VideoWriteText(63 + Length(message), 5, $9E, '_');
+		VideoWriteText(VideoSidebarX + 3, 5, $1F, message);
+		VideoWriteText(VideoSidebarX + 3 + Length(message), 5, $9E, '_');
 
 		repeat
 			InputReadWaitKey;
@@ -350,8 +350,8 @@ procedure SidebarPromptString(prompt: string; extension: TSmallString; var filen
 		SidebarClearLine(3);
 		SidebarClearLine(4);
 		SidebarClearLine(5);
-		VideoWriteText(75 - Length(prompt), 3, $1F, prompt);
-		VideoWriteText(63, 5, $0F, '        ' + extension);
+		VideoWriteText(VideoSidebarX + 15 - Length(prompt), 3, $1F, prompt);
+		VideoWriteText(VideoSidebarX + 3, 5, $0F, '        ' + extension);
 
 		PromptString(63, 5, $1E, $0F, 8, 8, promptMode, filename);
 
@@ -395,7 +395,7 @@ function DisplayIOError: boolean;
 procedure SidebarAnimateLoading(var loadProgress: integer);
 	begin
 		VideoWriteText(
-			69, 5,
+			VideoSidebarX + 9, 5,
 			ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
 		loadProgress := (loadProgress + 1) and 7;
 	end;
@@ -410,25 +410,26 @@ procedure BottomAnimateLoading(var loadProgress: integer);
 
 procedure PopupPromptString(question: string; var buffer: TSmallString; maxLen: integer);
 	var
-		x, y: integer;
-		screenCopy: array[18 .. 23] of TScreenCopyLine;
+		x, y, yMin: integer;
+		screenCopy: array[0 .. 5] of TScreenCopyLine;
 	begin
-		for y := 18 to 23 do
-			VideoMove(3, y, TextWindowWidth, @screenCopy[y], false);
-		VideoWriteText(3, 18, $4F, TextWindowStrTop);
-		VideoWriteText(3, 19, $4F, TextWindowStrText);
-		VideoWriteText(3, 20, $4F, TextWindowStrSep);
-		VideoWriteText(3, 21, $4F, TextWindowStrText);
-		VideoWriteText(3, 22, $4F, TextWindowStrText);
-		VideoWriteText(3, 23, $4F, TextWindowStrBottom);
-		VideoWriteText(4 + (TextWindowWidth - Length(question)) div 2, 19, $4F, question);
+		yMin := VideoRows - 7;
+		for y := 0 to 5 do
+			VideoMove(3, y + yMin, TextWindowWidth, @screenCopy[y], false);
+		VideoWriteText(3, yMin, $4F, TextWindowStrTop);
+		VideoWriteText(3, yMin + 1, $4F, TextWindowStrText);
+		VideoWriteText(3, yMin + 2, $4F, TextWindowStrSep);
+		VideoWriteText(3, yMin + 3, $4F, TextWindowStrText);
+		VideoWriteText(3, yMin + 4, $4F, TextWindowStrText);
+		VideoWriteText(3, yMin + 5, $4F, TextWindowStrBottom);
+		VideoWriteText(4 + (TextWindowWidth - Length(question)) div 2, yMin + 1, $4F, question);
 		buffer := '';
 		{ x = x, y = width }
 		if maxLen > (TextWindowWidth - 8) then y := (TextWindowWidth - 8) else y := maxLen;
 		x := 6 + (((TextWindowWidth - 8) - y) shr 1);
-		PromptString(x, 22, $4F, $4E, y, maxLen, PROMPT_ANY, buffer);
-		for y := 18 to 23 do
-			VideoMove(3, y, TextWindowWidth, @screenCopy[y], true);
+		PromptString(x, yMin + 4, $4F, $4E, y, maxLen, PROMPT_ANY, buffer);
+		for y := 0 to 5 do
+			VideoMove(3, y + yMin, TextWindowWidth, @screenCopy[y], true);
 	end;
 
 end.

@@ -36,6 +36,7 @@ interface
 		TCharsetData = array[0 .. 31999] of byte;
 		PTCharsetData = ^TCharsetData;
 	const
+		VideoSidebarX = 60;
 		PORT_CGA_MODE = $03D8;
 		PORT_CGA_PALETTE = $03D9;
 		VIDEO_MODE_40X25 = 0;

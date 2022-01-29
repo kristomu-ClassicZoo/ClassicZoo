@@ -103,7 +103,7 @@ function EditorShiftBoard(bidFrom, bidTo: integer; mode: TBoardShiftMode): boole
 	begin
 		SidebarClearLine(4);
 		SidebarClearLine(5);
-		VideoWriteText(62, 5, $1F, 'Editing.....');
+		VideoWriteText(VideoSidebarX + 2, 5, $1F, 'Editing.....');
 
 		loadProgress := 0;
 
@@ -196,11 +196,11 @@ procedure EditorWorldCanOpenCheck(closeSavesSilently: boolean);
 			SidebarClearLine(3);
 			SidebarClearLine(4);
 			SidebarClearLine(5);
-			VideoWriteText(63, 4, $1E, 'World marked as');
+			VideoWriteText(VideoSidebarX + 3, 4, $1E, 'World marked as');
 			if World.Info.IsSave then
-				VideoWriteText(63, 5, $1E, ' a saved game!')
+				VideoWriteText(VideoSidebarX + 3, 5, $1E, ' a saved game!')
 			else
-				VideoWriteText(63, 5, $1E, '    locked!');
+				VideoWriteText(VideoSidebarX + 3, 5, $1E, '    locked!');
 			PauseOnError;
 		end;
 		if World.Info.IsSave and (not DebugEnabled) then begin
@@ -258,51 +258,51 @@ procedure EditorLoop;
 		var
 			colorBg, colorFg: byte;
 		begin
-			VideoWriteText(72, 19, $1E, ColorNames[cursorColor and $0F]);
-			VideoWriteText(76, 19, $1E, ColorNames[cursorColor shr 4]);
+			VideoWriteText(VideoSidebarX + 12, 19, $1E, ColorNames[cursorColor and $0F]);
+			VideoWriteText(VideoSidebarX + 16, 19, $1E, ColorNames[cursorColor shr 4]);
 
-			VideoWriteText(61, VideoRows - 1, $1F, '                ');
+			VideoWriteText(VideoSidebarX + 1, VideoRows - 1, $1F, '                ');
 
 			colorBg := cursorColor shr 4;
 			colorFg := cursorColor and $0F;
 
 			if colorBg = colorFg then begin
-				VideoWriteText(61 + colorBg, VideoRows - 1, $9F, #30);
+				VideoWriteText(VideoSidebarX + 1 + colorBg, VideoRows - 1, $9F, #30);
 			end else begin
-				VideoWriteText(61 + colorFg, VideoRows - 1, $1F, #24);
-				VideoWriteText(61 + colorBg, VideoRows - 1, $1F, '^');
+				VideoWriteText(VideoSidebarX + 1 + colorFg, VideoRows - 1, $1F, #24);
+				VideoWriteText(VideoSidebarX + 1 + colorBg, VideoRows - 1, $1F, '^');
 			end;
 		end;
 
 	procedure EditorUpdateCursorPattern;
 		begin
-			VideoWriteText(61, VideoRows - 3, $1F, '                ');
-			VideoWriteText(60 + cursorPattern, VideoRows - 3, $1F, #30);
+			VideoWriteText(VideoSidebarX + 1, VideoRows - 3, $1F, '                ');
+			VideoWriteText(VideoSidebarX + 0 + cursorPattern, VideoRows - 3, $1F, #30);
 		end;
 
 	procedure EditorUpdateDrawMode;
 		begin
 			case drawMode of
-				DrawingOn: VideoWriteText(75, 16, $9E, 'Draw');
-				TextEntry: VideoWriteText(75, 16, $9E, 'Text');
-				DrawingOff: VideoWriteText(75, 16, $1E, 'None');
+				DrawingOn: VideoWriteText(VideoSidebarX + 15, 16, $9E, 'Draw');
+				TextEntry: VideoWriteText(VideoSidebarX + 15, 16, $9E, 'Text');
+				DrawingOff: VideoWriteText(VideoSidebarX + 15, 16, $1E, 'None');
 			end;
 
 			if drawMode = TextEntry then begin
-				VideoWriteText(61, 15, $70, '  f10  ');
-				VideoWriteText(68, 15, $1F, ' Custom');
+				VideoWriteText(VideoSidebarX + 1, 15, $70, '  f10  ');
+				VideoWriteText(VideoSidebarX + 8, 15, $1F, ' Custom');
 			end else begin
-				VideoWriteText(61, 15, $70, ' Space ');
-				VideoWriteText(68, 15, $1F, ' Plot  ');
+				VideoWriteText(VideoSidebarX + 1, 15, $70, ' Space ');
+				VideoWriteText(VideoSidebarX + 8, 15, $1F, ' Plot  ');
 			end;
 		end;
 
 	procedure EditorUpdateColorIgnoreDefaults;
 		begin
 			if colorIgnoreDefaults then
-				VideoWriteText(78, VideoRows - 2, $1F, 'd')
+				VideoWriteText(VideoSidebarX + 18, VideoRows - 2, $1F, 'd')
 			else
-				VideoWriteText(78, VideoRows - 2, $1F, 'D')
+				VideoWriteText(VideoSidebarX + 18, VideoRows - 2, $1F, 'D')
 		end;
 
 	procedure EditorUpdateCopiedPatterns;
@@ -311,7 +311,7 @@ procedure EditorLoop;
 		begin
 			for i := 1 to COPIED_TILES_COUNT do
 				with copiedTiles[i] do
-					VideoWriteText(60 + EditorPatternCount + i, VideoRows - 4, previewColor, Chr(previewChar));
+					VideoWriteText(VideoSidebarX + 0 + EditorPatternCount + i, VideoRows - 4, previewColor, Chr(previewChar));
 		end;
 
 	procedure EditorClearPattern(var copied: TEditorCopiedTile; first: boolean);
@@ -398,13 +398,13 @@ procedure EditorLoop;
 		begin
 			if VideoRows >= 43 then begin
 				if copyBuffer.width <= 0 then
-					VideoWriteText(69, 31, $1E, 'Empty')
+					VideoWriteText(VideoSidebarX + 9, 31, $1E, 'Empty')
 				else begin
-					VideoWriteText(69, 31, $1E, '  x  ');
+					VideoWriteText(VideoSidebarX + 9, 31, $1E, '  x  ');
 					Str(copyBuffer.width, numStr);
-					VideoWriteText(71 - Length(numStr), 31, $1F, numStr);
+					VideoWriteText(VideoSidebarX + 11 - Length(numStr), 31, $1F, numStr);
 					Str(copyBuffer.height, numStr);
-					VideoWriteText(74 - Length(numStr), 31, $1F, numStr);
+					VideoWriteText(VideoSidebarX + 14 - Length(numStr), 31, $1F, numStr);
 				end;
 			end;
 		end;
@@ -418,10 +418,10 @@ procedure EditorLoop;
 				Str(Board.StatCount, numStr);
 				Str(MAX_STAT, numStr2);
 
-				VideoWriteText(68, 37, $1F, numStr);
-				VideoWriteText(68 + Length(numStr), 37, $1E, '/');
-				VideoWriteText(68 + Length(numStr) + 1, 37, $1F, numStr2);
-				VideoWriteText(68 + Length(numStr) + 1 + Length(numStr2), 37, $1F, '     ');
+				VideoWriteText(VideoSidebarX + 8, 37, $1F, numStr);
+				VideoWriteText(VideoSidebarX + 8 + Length(numStr), 37, $1E, '/');
+				VideoWriteText(VideoSidebarX + 8 + Length(numStr) + 1, 37, $1F, numStr2);
+				VideoWriteText(VideoSidebarX + 8 + Length(numStr) + 1 + Length(numStr2), 37, $1F, '     ');
 			end;
 		end;
 
@@ -433,98 +433,98 @@ procedure EditorLoop;
 			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 			SidebarClear;
 			SidebarClearLine(1);
-			VideoWriteText(61, 0, $1F, '     - - - -       ');
-			VideoWriteText(62, 1, $70, '  ZZT* Editor  ');
-			VideoWriteText(61, 2, $1F, '     - - - -       ');
-			VideoWriteText(61, 4, $70, ' L ');
-			VideoWriteText(64, 4, $1F, ' Load');
-			VideoWriteText(61, 5, $30, ' S ');
-			VideoWriteText(64, 5, $1F, ' Save');
-			VideoWriteText(70, 4, $70, ' H ');
-			VideoWriteText(73, 4, $1F, ' Help');
-			VideoWriteText(70, 5, $30, ' Q ');
-			VideoWriteText(73, 5, $1F, ' Quit');
-			VideoWriteText(61, 7, $70, ' B ');
-			VideoWriteText(64, 7, $1F, ' Switch boards');
-			VideoWriteText(61, 8, $30, ' I ');
-			VideoWriteText(64, 8, $1F, ' Board Info');
-			VideoWriteText(61, 10, $70, '  f1   ');
-			VideoWriteText(68, 10, $1F, ' Item');
-			VideoWriteText(61, 11, $30, '  f2   ');
-			VideoWriteText(68, 11, $1F, ' Creature');
-			VideoWriteText(61, 12, $70, {$IFDEF E_SUPERZ}'  f3-4 '{$ELSE}'  f3   '{$ENDIF});
-			VideoWriteText(68, 12, $1F, ' Terrain');
-			VideoWriteText(61, 13, $30, {$IFDEF E_SUPERZ}'  f6   '{$ELSE}'  f4   '{$ENDIF});
-			VideoWriteText(68, 13, $1F, ' Enter text');
-			VideoWriteText(61, 16, $30, '  Tab  ');
-			VideoWriteText(68, 16, $1F, ' Mode:');
-			VideoWriteText(61, 18, $70, ' P ');
-			VideoWriteText(64, 18, $1F, ' Pattern');
-			VideoWriteText(61, 19, $30, ' C ');
-			VideoWriteText(64, 19, $1F, ' Color:');
-			VideoWriteText(75, 19, $1F, #26);
+			VideoWriteText(VideoSidebarX + 1, 0, $1F, '     - - - -       ');
+			VideoWriteText(VideoSidebarX + 2, 1, $70, '  ZZT* Editor  ');
+			VideoWriteText(VideoSidebarX + 1, 2, $1F, '     - - - -       ');
+			VideoWriteText(VideoSidebarX + 1, 4, $70, ' L ');
+			VideoWriteText(VideoSidebarX + 4, 4, $1F, ' Load');
+			VideoWriteText(VideoSidebarX + 1, 5, $30, ' S ');
+			VideoWriteText(VideoSidebarX + 4, 5, $1F, ' Save');
+			VideoWriteText(VideoSidebarX + 10, 4, $70, ' H ');
+			VideoWriteText(VideoSidebarX + 13, 4, $1F, ' Help');
+			VideoWriteText(VideoSidebarX + 10, 5, $30, ' Q ');
+			VideoWriteText(VideoSidebarX + 13, 5, $1F, ' Quit');
+			VideoWriteText(VideoSidebarX + 1, 7, $70, ' B ');
+			VideoWriteText(VideoSidebarX + 4, 7, $1F, ' Switch boards');
+			VideoWriteText(VideoSidebarX + 1, 8, $30, ' I ');
+			VideoWriteText(VideoSidebarX + 4, 8, $1F, ' Board Info');
+			VideoWriteText(VideoSidebarX + 1, 10, $70, '  f1   ');
+			VideoWriteText(VideoSidebarX + 8, 10, $1F, ' Item');
+			VideoWriteText(VideoSidebarX + 1, 11, $30, '  f2   ');
+			VideoWriteText(VideoSidebarX + 8, 11, $1F, ' Creature');
+			VideoWriteText(VideoSidebarX + 1, 12, $70, {$IFDEF E_SUPERZ}'  f3-4 '{$ELSE}'  f3   '{$ENDIF});
+			VideoWriteText(VideoSidebarX + 8, 12, $1F, ' Terrain');
+			VideoWriteText(VideoSidebarX + 1, 13, $30, {$IFDEF E_SUPERZ}'  f6   '{$ELSE}'  f4   '{$ENDIF});
+			VideoWriteText(VideoSidebarX + 8, 13, $1F, ' Enter text');
+			VideoWriteText(VideoSidebarX + 1, 16, $30, '  Tab  ');
+			VideoWriteText(VideoSidebarX + 8, 16, $1F, ' Mode:');
+			VideoWriteText(VideoSidebarX + 1, 18, $70, ' P ');
+			VideoWriteText(VideoSidebarX + 4, 18, $1F, ' Pattern');
+			VideoWriteText(VideoSidebarX + 1, 19, $30, ' C ');
+			VideoWriteText(VideoSidebarX + 4, 19, $1F, ' Color:');
+			VideoWriteText(VideoSidebarX + 15, 19, $1F, #26);
 
 			if VideoRows >= 43 then begin
 				{ Extra help }
-				VideoWriteText(61, 21, $70, '  f5   ');
-				VideoWriteText(68, 21, $1F, ' Advanced');
-				VideoWriteText(61, 22, $30, ' Enter ');
-				VideoWriteText(68, 22, $1F, ' Modify');
-				VideoWriteText(61, 23, $70, '  Del  ');
-				VideoWriteText(68, 23, $1F, ' Erase');
+				VideoWriteText(VideoSidebarX + 1, 21, $70, '  f5   ');
+				VideoWriteText(VideoSidebarX + 8, 21, $1F, ' Advanced');
+				VideoWriteText(VideoSidebarX + 1, 22, $30, ' Enter ');
+				VideoWriteText(VideoSidebarX + 8, 22, $1F, ' Modify');
+				VideoWriteText(VideoSidebarX + 1, 23, $70, '  Del  ');
+				VideoWriteText(VideoSidebarX + 8, 23, $1F, ' Erase');
 
-				VideoWriteText(61, 25, $30, ' X ');
-				VideoWriteText(64, 25, $1F, ' Flood Fill');
-				VideoWriteText(61, 26, $70, {$IFDEF E_SUPERZ}' O '{$ELSE}' A '{$ENDIF});
-				VideoWriteText(64, 26, $1F, ' Options');
-				VideoWriteText(61, 27, $30, ' W ');
-				VideoWriteText(64, 27, $1F, ' World Info');
-				VideoWriteText(61, 28, $70, ' T ');
-				VideoWriteText(64, 28, $1F, ' Transfer');
-				VideoWriteText(61, 29, $30, ' ! ');
-				VideoWriteText(64, 29, $1F, ' Text Editor');
+				VideoWriteText(VideoSidebarX + 1, 25, $30, ' X ');
+				VideoWriteText(VideoSidebarX + 4, 25, $1F, ' Flood Fill');
+				VideoWriteText(VideoSidebarX + 1, 26, $70, {$IFDEF E_SUPERZ}' O '{$ELSE}' A '{$ENDIF});
+				VideoWriteText(VideoSidebarX + 4, 26, $1F, ' Options');
+				VideoWriteText(VideoSidebarX + 1, 27, $30, ' W ');
+				VideoWriteText(VideoSidebarX + 4, 27, $1F, ' World Info');
+				VideoWriteText(VideoSidebarX + 1, 28, $70, ' T ');
+				VideoWriteText(VideoSidebarX + 4, 28, $1F, ' Transfer');
+				VideoWriteText(VideoSidebarX + 1, 29, $30, ' ! ');
+				VideoWriteText(VideoSidebarX + 4, 29, $1F, ' Text Editor');
 
-				VideoWriteText(61, 31, $1F, 'Buffer: ');
-				VideoWriteText(61, 32, $70, ' Ctrl-X ');
-				VideoWriteText(69, 32, $1F, ' Cut');
-				VideoWriteText(61, 33, $30, ' Ctrl-C ');
-				VideoWriteText(69, 33, $1F, ' Copy');
-				VideoWriteText(61, 34, $70, ' Ctrl-V ');
-				VideoWriteText(69, 34, $1F, ' Paste');
+				VideoWriteText(VideoSidebarX + 1, 31, $1F, 'Buffer: ');
+				VideoWriteText(VideoSidebarX + 1, 32, $70, ' Ctrl-X ');
+				VideoWriteText(VideoSidebarX + 9, 32, $1F, ' Cut');
+				VideoWriteText(VideoSidebarX + 1, 33, $30, ' Ctrl-C ');
+				VideoWriteText(VideoSidebarX + 9, 33, $1F, ' Copy');
+				VideoWriteText(VideoSidebarX + 1, 34, $70, ' Ctrl-V ');
+				VideoWriteText(VideoSidebarX + 9, 34, $1F, ' Paste');
 
-				VideoWriteText(61, 36, $1F, 'Position: ');
-				VideoWriteText(61, 37, $1F, 'Stats: ');
+				VideoWriteText(VideoSidebarX + 1, 36, $1F, 'Position: ');
+				VideoWriteText(VideoSidebarX + 1, 37, $1F, 'Stats: ');
 
 				EditorDrawBufferState;
 				EditorDrawStatsState;
 
 				if VideoRows >= 50 then begin
-					VideoWriteText(61, 39, $30, ' N ');
-					VideoWriteText(64, 39, $1F, ' New World');
-					VideoWriteText(61, 40, $70, ' Z ');
-					VideoWriteText(64, 40, $1F, ' Clear all');
+					VideoWriteText(VideoSidebarX + 1, 39, $30, ' N ');
+					VideoWriteText(VideoSidebarX + 4, 39, $1F, ' New World');
+					VideoWriteText(VideoSidebarX + 1, 40, $70, ' Z ');
+					VideoWriteText(VideoSidebarX + 4, 40, $1F, ' Clear all');
 {$IFDEF E_SUPERZ}
-					VideoWriteText(61, 41, $30, ' V ');
-					VideoWriteText(64, 41, $1F, ' View Change');
+					VideoWriteText(VideoSidebarX + 1, 41, $30, ' V ');
+					VideoWriteText(VideoSidebarX + 4, 41, $1F, ' View Change');
 {$ENDIF}
 				end;
 			end;
 
 			{ Colors }
 			for i := 0 to 15 do
-				VideoWriteText(61 + i, VideoRows - 2, $10 + i, #219);
+				VideoWriteText(VideoSidebarX + 1 + i, VideoRows - 2, $10 + i, #219);
 			EditorUpdateCursorColor;
 			EditorUpdateColorIgnoreDefaults;
 
 			{ Patterns }
 			for i := 1 to EditorPatternCount do
-				VideoWriteText(60 + i, VideoRows - 4, $0F, ElementDefs[EditorPatterns[i]].Character);
+				VideoWriteText(VideoSidebarX + 0 + i, VideoRows - 4, $0F, ElementDefs[EditorPatterns[i]].Character);
 			EditorUpdateCopiedPatterns;
 			EditorUpdateCursorPattern;
 
 			EditorUpdateDrawMode;
 			EditorDrawCursorPos;
-			{$IFDEF BASICSYS} VideoUnlockScreenUpdate(60, 0, 79, 24); {$ENDIF}
+			{$IFDEF BASICSYS} VideoUnlockScreenUpdate(VideoSidebarX, 0, VideoSidebarX + 19, 24); {$ENDIF}
 		end;
 
 	procedure EditorDrawTileAndNeighborsAt(x, y: integer);
@@ -920,12 +920,12 @@ procedure EditorLoop;
 
 					if Length(ElementDefs[element].Param1Name) <> 0 then begin
 						if Length(ElementDefs[element].ParamTextName) = 0 then begin
-							SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param1Name, P1);
+							SidebarPromptSlider(selected, VideoSidebarX + 3, iy, ElementDefs[element].Param1Name, P1);
 						end else begin
 							if P1 = 0 then
 								P1 := World.EditorStatSettings[element].P1;
 							BoardDrawTile(X, Y);
-							SidebarPromptCharacter(selected, 63, iy, ElementDefs[element].Param1Name, P1);
+							SidebarPromptCharacter(selected, VideoSidebarX + 3, iy, ElementDefs[element].Param1Name, P1);
 							BoardDrawTile(X, Y);
 						end;
 						if selected then
@@ -934,7 +934,7 @@ procedure EditorLoop;
 					end;
 
 					{ if element = E_OBJECT then begin
-						SidebarPromptNumeric(selected, 63, iy, 'Initial cycle?', 1, 420, Cycle);
+						SidebarPromptNumeric(selected, VideoSidebarX + 3, iy, 'Initial cycle?', 1, 420, Cycle);
 						Inc(iy, 4);
 					end; }
 
@@ -952,7 +952,7 @@ procedure EditorLoop;
 						(Length(ElementDefs[element].Param2Name) <> 0) then
 					begin
 						promptByte := (P2 and $7F);
-						SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param2Name, promptByte);
+						SidebarPromptSlider(selected, VideoSidebarX + 3, iy, ElementDefs[element].Param2Name, promptByte);
 						if selected then begin
 							P2 := (P2 and $80) + promptByte;
 							World.EditorStatSettings[element].P2 := P2;
@@ -1018,7 +1018,7 @@ procedure EditorLoop;
 							end;
 							Inc(iy, 4);
 						end else begin
-							VideoWriteText(63, iy, $1F, 'Room: ' + Copy(EditorGetBoardName(P3, true), 1, 10));
+							VideoWriteText(VideoSidebarX + 3, iy, $1F, 'Room: ' + Copy(EditorGetBoardName(P3, true), 1, 10));
 						end;
 					end;
 				end;
@@ -1040,8 +1040,8 @@ procedure EditorLoop;
 					end;
 				end;
 
-				VideoWriteText(64, 6, $1E, categoryName);
-				VideoWriteText(64, 7, $1F, ElementDefs[element].Name);
+				VideoWriteText(VideoSidebarX + 4, 6, $1E, categoryName);
+				VideoWriteText(VideoSidebarX + 4, 7, $1F, ElementDefs[element].Name);
 
 				EditorEditStatSettings(false);
 				EditorEditStatSettings(true);
@@ -1624,6 +1624,9 @@ procedure EditorLoop;
 		begin
 			viewMode := mode;
 			if viewMode = VIEW_EDITOR_LARGE then begin
+{$IFDEF SDL2}
+				if not GameVideoInstall(VIDEO_MODE_RESIZABLE, viewMode) then
+{$ENDIF}
 				if not GameVideoInstall(VIDEO_MODE_80X50, viewMode) then
 				if not GameVideoInstall(VIDEO_MODE_80X43, viewMode) then
 					if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
@@ -1670,6 +1673,14 @@ procedure EditorLoop;
 
 		editorExitRequested := false;
 		repeat
+{$IFDEF SDL2}
+			if VideoScaleChanged then begin
+				if not GameVideoInstall(VIDEO_MODE_RESIZABLE, viewMode) then begin end;
+				EditorMoveCursor(cursorX, cursorY, false);
+				EditorDrawRefresh;
+				VideoScaleChanged := false;
+			end;
+{$ENDIF}
 			if drawMode = DrawingOn then
 				EditorPlaceTile(cursorX, cursorY);
 			InputUpdate;
@@ -1695,7 +1706,7 @@ procedure EditorLoop;
 					drawMode := DrawingOff;
 					EditorUpdateDrawMode;
 				end else if (InputKeyPressed = KEY_F10) then begin
-					SidebarPromptCharacter(true, 63, 3, 'Character?', inputByte);
+					SidebarPromptCharacter(true, VideoSidebarX + 3, 3, 'Character?', inputByte);
 					EditorTypeCharacter(inputByte);
 					EditorDrawSidebar;
 				end;
@@ -1773,6 +1784,7 @@ procedure EditorLoop;
 {$ENDIF}
 							EditorWorldCanOpenCheck(false);
 							wasModified := false;
+							EditorMoveCursor(cursorX, cursorY, false);
 							EditorDrawRefresh;
 						end else begin
 							EditorDrawSidebar;
@@ -1866,60 +1878,60 @@ procedure EditorLoop;
 					KEY_F5: begin
 						EditorDrawCursor;
 						{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
-						for i := 3 to 20 do
+						for i := 3 to (VideoRows - 5) do
 							SidebarClearLine(i);
 
 						i := 4;
-						VideoWriteText(65, i, $1E, 'Advanced:');
+						VideoWriteText(VideoSidebarX + 5, i, $1E, 'Advanced:');
 						Inc(i, 1);
 
-						VideoWriteText(61, i, $70, ' E ');
-						VideoWriteText(65, i, $1F, 'Board edge');
-						VideoWriteText(78, i, cursorColor, 'E');
+						VideoWriteText(VideoSidebarX + 1, i, $70, ' E ');
+						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Board edge');
+						VideoWriteText(VideoSidebarX + 18, i, cursorColor, 'E');
 						Inc(i, 1);
 
-						VideoWriteText(61, i, $30, ' H ');
-						VideoWriteText(65, i, $1F, 'Hori. blink');
-						VideoWriteText(78, i, cursorColor, #205);
+						VideoWriteText(VideoSidebarX + 1, i, $30, ' H ');
+						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Hori. blink');
+						VideoWriteText(VideoSidebarX + 18, i, cursorColor, #205);
 						Inc(i, 1);
 
-						VideoWriteText(61, i, $70, ' V ');
-						VideoWriteText(65, i, $1F, 'Vert. blink');
-						VideoWriteText(78, i, cursorColor, #186);
+						VideoWriteText(VideoSidebarX + 1, i, $70, ' V ');
+						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Vert. blink');
+						VideoWriteText(VideoSidebarX + 18, i, cursorColor, #186);
 						Inc(i, 1);
 
-						VideoWriteText(61, i, $30, ' C ');
-						VideoWriteText(65, i, $1F, 'Player clone');
-						VideoWriteText(78, i, $1F, #2);
+						VideoWriteText(VideoSidebarX + 1, i, $30, ' C ');
+						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Player clone');
+						VideoWriteText(VideoSidebarX + 18, i, $1F, #2);
 						Inc(i, 1);
 
-						VideoWriteText(61, i, $70, ' F ');
-						VideoWriteText(65, i, $1F, 'Fake player');
-						VideoWriteText(78, i, cursorColor, #2);
+						VideoWriteText(VideoSidebarX + 1, i, $70, ' F ');
+						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Fake player');
+						VideoWriteText(VideoSidebarX + 18, i, cursorColor, #2);
 						Inc(i, 1);
 
 {$IFDEF E_SUPERZ}
-						VideoWriteText(61, i, $30, ' P ');
-						VideoWriteText(65, i, $1F, 'Pairer');
-						VideoWriteText(78, i, EditorGetDrawingColor(E_PAIRER), ElementDefs[E_PAIRER].Character);
+						VideoWriteText(VideoSidebarX + 1, i, $30, ' P ');
+						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Pairer');
+						VideoWriteText(VideoSidebarX + 18, i, EditorGetDrawingColor(E_PAIRER), ElementDefs[E_PAIRER].Character);
 						Inc(i, 1);
 {$ENDIF}
 
 						Inc(i, 1);
-						VideoWriteText(65, i, $1E, 'Projectiles:');
+						VideoWriteText(VideoSidebarX + 5, i, $1E, 'Projectiles:');
 						Inc(i, 1);
 
 						{ TODO: Fix colors given SuperZ Pairer }
-						VideoWriteText(61, i, $30, ' U ');
-						VideoWriteText(65, i, $1F, 'Bullet');
-						VideoWriteText(78, i, cursorColor, #248);
+						VideoWriteText(VideoSidebarX + 1, i, $30, ' U ');
+						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Bullet');
+						VideoWriteText(VideoSidebarX + 18, i, cursorColor, #248);
 						Inc(i, 1);
 
-						VideoWriteText(61, i, $70, ' A ');
-						VideoWriteText(65, i, $1F, 'Star');
-						VideoWriteText(78, i, cursorColor, '/');
+						VideoWriteText(VideoSidebarX + 1, i, $70, ' A ');
+						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Star');
+						VideoWriteText(VideoSidebarX + 18, i, cursorColor, '/');
 						Inc(i, 1);
-						{$IFDEF BASICSYS} VideoUnlockScreenUpdate(60, 3, 79, 20); {$ENDIF}
+						{$IFDEF BASICSYS} VideoUnlockScreenUpdate(VideoSidebarX, 3, VideoSideBar + 19, 20); {$ENDIF}
 
 						InputReadWaitKey;
 						case UpCase(InputKeyPressed) of
@@ -1955,7 +1967,7 @@ procedure EditorLoop;
 					KEY_F1, KEY_F2, KEY_F3{$IFDEF E_SUPERZ}, KEY_F4{$ENDIF}: begin
 						EditorDrawCursor;
 						{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
-						for i := 3 to 20 do
+						for i := 3 to (VideoRows - 5) do
 							SidebarClearLine(i);
 						case InputKeyPressed of
 							KEY_F1: selectedCategory := CATEGORY_ITEM;
@@ -1971,18 +1983,18 @@ DrawNextCategory:
 							if ElementDefs[iElem].EditorCategory = selectedCategory then begin
 								if Length(ElementDefs[iElem].CategoryName) <> 0 then begin
 									Inc(i);
-									VideoWriteText(65, i, $1E, ElementDefs[iElem].CategoryName);
+									VideoWriteText(VideoSidebarX + 5, i, $1E, ElementDefs[iElem].CategoryName);
 									Inc(i);
 								end;
 
-								VideoWriteText(61, i, ((i and 1) shl 6) + $30, ' ' + ElementDefs[iElem].EditorShortcut + ' ');
-								VideoWriteText(65, i, $1F, ElementDefs[iElem].Name);
-								VideoWriteText(78, i, EditorGetDrawingColor(iElem), ElementDefs[iElem].Character);
+								VideoWriteText(VideoSidebarX + 1, i, ((i and 1) shl 6) + $30, ' ' + ElementDefs[iElem].EditorShortcut + ' ');
+								VideoWriteText(VideoSidebarX + 5, i, $1F, ElementDefs[iElem].Name);
+								VideoWriteText(VideoSidebarX + 18, i, EditorGetDrawingColor(iElem), ElementDefs[iElem].Character);
 
 								Inc(i);
 							end;
 						end;
-						{$IFDEF BASICSYS} VideoUnlockScreenUpdate(60, 3, 79, 20); {$ENDIF}
+						{$IFDEF BASICSYS} VideoUnlockScreenUpdate(VideoSidebarX, 3, VideoSidebarX + 19, 20); {$ENDIF}
 {$IFDEF E_SUPERZ}
 						if selectedCategory = CATEGORY_CREATURE then begin
 							selectedCategory := CATEGORY_CENTIPEDE;
@@ -2171,32 +2183,32 @@ procedure EditorOpenEditTextWindow(var state: TTextWindowState; extension: TExte
 	syntaxHighlighting: boolean);
 	begin
 		SidebarClear;
-		VideoWriteText(61, 7, $30, ' Return ');
-		VideoWriteText(69, 7, $1F, ' New line');
-		VideoWriteText(61, 8, $70, ' Ctrl-Y ');
-		VideoWriteText(69, 8, $1F, ' Del line');
-		VideoWriteText(61, 10, $30, ' '#24#25#27#26' ');
-		VideoWriteText(67, 10, $1F, ' Move cursor');
-		VideoWriteText(61, 12, $70, ' Ins ');
-		VideoWriteText(66, 12, $1F, ' Insert: ');
-		VideoWriteText(61, 13, $30, ' Del ');
-		VideoWriteText(66, 13, $1F, ' Delete char');
-		VideoWriteText(61, 14, $70, ' f10 ');
-		VideoWriteText(66, 14, $1F, ' Custom char');
-		VideoWriteText(61, 16, $30, ' Shift  ');
-		VideoWriteText(69, 16, $1F, ' Select');
-		VideoWriteText(61, 17, $70, ' Ctrl-X ');
-		VideoWriteText(69, 17, $1F, ' Cut');
-		VideoWriteText(61, 18, $30, ' Ctrl-C ');
-		VideoWriteText(69, 18, $1F, ' Copy');
-		VideoWriteText(61, 19, $70, ' Ctrl-V ');
-		VideoWriteText(69, 19, $1F, ' Paste');
-		VideoWriteText(61, 21, $30, ' Ctrl-O ');
-		VideoWriteText(69, 21, $1F, ' Open file');
-		VideoWriteText(61, 22, $70, ' Ctrl-S ');
-		VideoWriteText(69, 22, $1F, ' Save file');
-		VideoWriteText(61, 23, $30, ' Esc ');
-		VideoWriteText(66, 23, $1F, ' Exit editor');
+		VideoWriteText(VideoSidebarX + 1, 7, $30, ' Return ');
+		VideoWriteText(VideoSidebarX + 9, 7, $1F, ' New line');
+		VideoWriteText(VideoSidebarX + 1, 8, $70, ' Ctrl-Y ');
+		VideoWriteText(VideoSidebarX + 9, 8, $1F, ' Del line');
+		VideoWriteText(VideoSidebarX + 1, 10, $30, ' '#24#25#27#26' ');
+		VideoWriteText(VideoSidebarX + 7, 10, $1F, ' Move cursor');
+		VideoWriteText(VideoSidebarX + 1, 12, $70, ' Ins ');
+		VideoWriteText(VideoSidebarX + 6, 12, $1F, ' Insert: ');
+		VideoWriteText(VideoSidebarX + 1, 13, $30, ' Del ');
+		VideoWriteText(VideoSidebarX + 6, 13, $1F, ' Delete char');
+		VideoWriteText(VideoSidebarX + 1, 14, $70, ' f10 ');
+		VideoWriteText(VideoSidebarX + 6, 14, $1F, ' Custom char');
+		VideoWriteText(VideoSidebarX + 1, 16, $30, ' Shift  ');
+		VideoWriteText(VideoSidebarX + 9, 16, $1F, ' Select');
+		VideoWriteText(VideoSidebarX + 1, 17, $70, ' Ctrl-X ');
+		VideoWriteText(VideoSidebarX + 9, 17, $1F, ' Cut');
+		VideoWriteText(VideoSidebarX + 1, 18, $30, ' Ctrl-C ');
+		VideoWriteText(VideoSidebarX + 9, 18, $1F, ' Copy');
+		VideoWriteText(VideoSidebarX + 1, 19, $70, ' Ctrl-V ');
+		VideoWriteText(VideoSidebarX + 9, 19, $1F, ' Paste');
+		VideoWriteText(VideoSidebarX + 1, 21, $30, ' Ctrl-O ');
+		VideoWriteText(VideoSidebarX + 9, 21, $1F, ' Open file');
+		VideoWriteText(VideoSidebarX + 1, 22, $70, ' Ctrl-S ');
+		VideoWriteText(VideoSidebarX + 9, 22, $1F, ' Save file');
+		VideoWriteText(VideoSidebarX + 1, 23, $30, ' Esc ');
+		VideoWriteText(VideoSidebarX + 6, 23, $1F, ' Exit editor');
 		TextWindowEdit(state, extension, syntaxHighlighting);
 	end;
 

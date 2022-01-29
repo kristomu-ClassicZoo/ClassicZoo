@@ -39,11 +39,13 @@ interface
 		VIDEO_MODE_80X25 = 1;
 		VIDEO_MODE_80X43 = 2;
 		VIDEO_MODE_80X50 = 3;
+		VIDEO_MODE_RESIZABLE = 256;
 		VIDEO_CHARSET_UNCHANGED = -1;
 	var
 		VideoMonochrome: boolean;
 		VideoColumns: integer;
 		VideoRows: integer;
+		VideoSidebarX: integer;
 		VideoBorderColor: integer;
 		VideoTextSegment: word;
 		VideoTextPointer: pointer;
@@ -52,6 +54,7 @@ interface
 		VideoMDAInstalled: boolean;
 		VideoForceNoSnow: boolean;
 		VideoCurrentMode: integer;
+		VideoScaleChanged: boolean;
 	procedure VideoForcePlayfieldRedraw;
 	procedure VideoOnSizeChanged;
 	function VideoGetSDLBlinkMode: TSDLBlinkMode;
@@ -114,7 +117,9 @@ const
 		$FFFFFF
 	);
 	TEXT_BLINK_RATE = 534;
-	MAX_VIDEO_BUFFER_SIZE_CHARS = (80 * 50);
+	MAX_VIDEO_WIDTH = 96 + 24;
+	MAX_VIDEO_HEIGHT = 80 + 5;
+	MAX_VIDEO_BUFFER_SIZE_CHARS = (MAX_VIDEO_WIDTH * MAX_VIDEO_HEIGHT);
 	MAX_VIDEO_BUFFER_SIZE_BYTES = (MAX_VIDEO_BUFFER_SIZE_CHARS * 2);
 var
 	window: PSDL_Window;
@@ -135,6 +140,14 @@ var
 	usingCustomCharset: boolean;
 	usingCustomPalette: boolean;
 	windowedLastWidth, windowedLastHeight: Int32;
+
+function VideoGetActiveScalingMode: TSDLScalingMode;
+	begin
+		if VideoCurrentMode = VIDEO_MODE_RESIZABLE then
+			VideoGetActiveScalingMode := SMNone
+		else
+			VideoGetActiveScalingMode := scalingMode;
+	end;
 
 procedure VideoForcePlayfieldRedraw;
 	begin
@@ -169,7 +182,7 @@ procedure CalcRenderArea(rect: PSDL_Rect; w, h: Int32);
 		while (((scale+1)*iw <= w) and ((scale+1)*ih <= h)) do Inc(scale);
 
 		if rect <> Nil then begin
-			case scalingMode of
+			case VideoGetActiveScalingMode of
 				SMNone: begin
 					w := iw;
 					h := ih;
@@ -226,12 +239,12 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 
 		iw := VideoColumns * charsetTexture.charWidth;
 		ih := VideoRows * charsetTexture.charHeight;
-		case scalingMode of
+		case VideoGetActiveScalingMode of
 			SMNone, SM2x, SM3x: begin
 				onlyIfTooSmall := false;
 			end;
 		end;
-		case scalingMode of
+		case VideoGetActiveScalingMode of
 			SM43Aspect: ih := iw * 3 div 4;
 			SM2x: begin
 				iw := iw * 2;
@@ -245,8 +258,12 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 
 		SDL_LockMutex(eventMutex);
 
-		SDL_SetWindowMinimumSize(window, iw, ih);
+		if VideoCurrentMode = VIDEO_MODE_RESIZABLE then
+			SDL_SetWindowMinimumSize(window, 80 * charsetTexture.charWidth, 25 * charsetTexture.charHeight)
+		else
+			SDL_SetWindowMinimumSize(window, iw, ih);
 		SDL_GetWindowSize(window, @ww, @wh);
+
 		if forceMinimumSize then begin
 			w := iw;
 			h := ih;
@@ -275,7 +292,23 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 	end;
 
 procedure VideoOnSizeChanged;
+	var
+		iw, ih, nw, nh: integer;
 	begin
+		if VideoCurrentMode = VIDEO_MODE_RESIZABLE then begin
+			SDL_GetWindowSize(window, @iw, @ih);
+			nw := iw div charsetTexture.charWidth;
+			if nw > MAX_VIDEO_WIDTH then nw := MAX_VIDEO_WIDTH;
+			nh := ih div charsetTexture.charHeight;
+			if nh > MAX_VIDEO_HEIGHT then nh := MAX_VIDEO_HEIGHT;
+			if (nw <> VideoColumns) or (nh <> VideoRows) then begin
+				VideoColumns := nw;
+				VideoRows := nh;
+				VideoSidebarX := VideoColumns - 20;
+				WriteLn(VideoColumns, ', ', VideoRows);
+				VideoScaleChanged := true;
+			end;
+		end;
 		VideoForcePlayfieldRedraw;
 	end;
 
@@ -603,7 +636,7 @@ procedure VideoDrawCharBg(x, y: integer);
 		bgCol: Uint32;
 		outRect: TSDL_Rect;
 	begin
-		offset := (y * VideoColumns + x) shl 1;
+		offset := (y * MAX_VIDEO_WIDTH + x) shl 1;
 		chr := screenBuffer[offset];
 		col := screenBuffer[offset + 1];
 
@@ -631,7 +664,7 @@ procedure VideoDrawCharFg(x, y: integer; blink: boolean);
 		fgCol: Uint32;
 		inRect, outRect: TSDL_Rect;
 	begin
-		offset := (y * VideoColumns + x) shl 1;
+		offset := (y * MAX_VIDEO_WIDTH + x) shl 1;
 		chr := screenBuffer[offset];
 		col := screenBuffer[offset + 1];
 
@@ -681,7 +714,7 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, '0');
 
 		playfieldTexture := SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-			VideoColumns * 8, VideoRows * 16); { TODO: Allocates 640x400 texture to allow up to 8x16 fonts. }
+			MAX_VIDEO_WIDTH * 8, MAX_VIDEO_HEIGHT * 16); { TODO: Allocates 640x400 texture to allow up to 8x16 fonts. }
 
 		SDL_RenderClear(renderer);
 		SDL_RenderPresent(renderer);
@@ -746,7 +779,7 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	var
 		i, offset: integer;
 	begin
-		offset := (y * VideoColumns + x) shl 1;
+		offset := (y * MAX_VIDEO_WIDTH + x) shl 1;
 		SDL_LockMutex(playfieldMutex);
 		for i := 1 to Length(text) do begin
 			screenBuffer[offset] := Byte(text[i]);
@@ -811,14 +844,17 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 			SDL_LockMutex(eventMutex);
 		end;
 
-		VideoColumns := 80;
-		VideoRows := 25;
-		if mode = VIDEO_MODE_40X25 then
-			VideoColumns := 40
-		else if mode = VIDEO_MODE_80X43 then
-			VideoRows := 43
-		else if mode = VIDEO_MODE_80X50 then
-			VideoRows := 50;
+		if mode <> VIDEO_MODE_RESIZABLE then begin
+			VideoSidebarX := 60;
+			VideoColumns := 80;
+			VideoRows := 25;
+			if mode = VIDEO_MODE_40X25 then
+				VideoColumns := 40
+			else if mode = VIDEO_MODE_80X43 then
+				VideoRows := 43
+			else if mode = VIDEO_MODE_80X50 then
+				VideoRows := 50;
+		end;
 		VideoCurrentMode := mode;
 
 		if not installed then begin
@@ -867,6 +903,7 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 
 		installed := true;
 		VideoInstall := true;
+		VideoScaleChanged := false;
 	end;
 
 procedure VideoUninstall;
@@ -929,7 +966,7 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	var
 		i, offset: integer;
 	begin
-		offset := (y * VideoColumns + x) shl 1;
+		offset := (y * MAX_VIDEO_WIDTH + x) shl 1;
 		if toVideo then begin
 			SDL_LockMutex(playfieldMutex);
 			Move(data^, screenBuffer[offset], chars shl 1);
@@ -957,7 +994,7 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 		end;
 		SDL_LockMutex(playfieldMutex);
 		for iy := y1 to y2 do begin
-			offset := (((iy * VideoColumns) + x1) shl 1);
+			offset := (((iy * MAX_VIDEO_WIDTH) + x1) shl 1);
 			for ix := x1 to x2 do begin
 				screenBuffer[offset + 1] := screenBuffer[offset + 1] xor $7F;
 				screenBufferChange[offset] := true;
@@ -976,7 +1013,7 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 		if dy = 0 then begin
 			if dx >= 0 then begin
 				{ move right }
-				srcOfs := (y * VideoColumns + x) * 2;
+				srcOfs := (y * MAX_VIDEO_WIDTH + x) * 2;
 				destOfs := srcOfs + (dx * 2);
 				for iy := 1 to height do begin
 					xOfs := ((width - dx) - 1) shl 1;
@@ -986,12 +1023,12 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 						screenBufferChange[destOfs + xOfs] := true;
 						Dec(xOfs, 2);
 					end;
-					srcOfs := srcOfs + (VideoColumns * 2);
-					destOfs := destOfs + (VideoColumns * 2);
+					srcOfs := srcOfs + (MAX_VIDEO_WIDTH * 2);
+					destOfs := destOfs + (MAX_VIDEO_WIDTH * 2);
 				end;
 			end else begin
 				{ move left }
-				destOfs := (y * VideoColumns + x) * 2;
+				destOfs := (y * MAX_VIDEO_WIDTH + x) * 2;
 				srcOfs := destOfs - (dx * 2);
 				for iy := 1 to height do begin					
 					xOfs := 0;
@@ -1001,15 +1038,15 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 						screenBufferChange[destOfs + xOfs] := true;
 						Inc(xOfs, 2);
 					end;
-					srcOfs := srcOfs + (VideoColumns * 2);
-					destOfs := destOfs + (VideoColumns * 2);
+					srcOfs := srcOfs + (MAX_VIDEO_WIDTH * 2);
+					destOfs := destOfs + (MAX_VIDEO_WIDTH * 2);
 				end;
 			end;
 		end else begin
 			if dy > 0 then begin
 				{ move down }
-				srcOfs := ((y + height - 2) * VideoColumns + x) * 2;
-				destOfs := VideoColumns * 2 + srcOfs;
+				srcOfs := ((y + height - 2) * MAX_VIDEO_WIDTH + x) * 2;
+				destOfs := MAX_VIDEO_WIDTH * 2 + srcOfs;
 				for iy := 1 to (height - 1) do begin
 					xOfs := 0;
 					for ix := 1 to width do begin
@@ -1018,13 +1055,13 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 						screenBufferChange[destOfs + xOfs] := true;
 						Inc(xOfs, 2);
 					end;
-					srcOfs := srcOfs - (VideoColumns * 2);
-					destOfs := destOfs - (VideoColumns * 2);
+					srcOfs := srcOfs - (MAX_VIDEO_WIDTH * 2);
+					destOfs := destOfs - (MAX_VIDEO_WIDTH * 2);
 				end;
 			end else begin
 				{ move up }
-				destOfs := (y * VideoColumns + x) * 2;
-				srcOfs := VideoColumns * 2 + destOfs;
+				destOfs := (y * MAX_VIDEO_WIDTH + x) * 2;
+				srcOfs := MAX_VIDEO_WIDTH * 2 + destOfs;
 				for iy := 1 to (height - 1) do begin
 					xOfs := 0;
 					for ix := 1 to width do begin
@@ -1033,8 +1070,8 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 						screenBufferChange[destOfs + xOfs] := true;
 						Inc(xOfs, 2);
 					end;
-					srcOfs := srcOfs + (VideoColumns * 2);
-					destOfs := destOfs + (VideoColumns * 2);
+					srcOfs := srcOfs + (MAX_VIDEO_WIDTH * 2);
+					destOfs := destOfs + (MAX_VIDEO_WIDTH * 2);
 				end;
 			end;
 		end;
@@ -1044,6 +1081,7 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 begin
 	VideoClear(0);
 	VideoBorderColor := 0;
+	VideoSidebarX := 60;
 	VideoColumns := 80;
 	VideoRows := 25;
 	VideoCursorVisible := true;

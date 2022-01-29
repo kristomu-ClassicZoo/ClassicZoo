@@ -191,7 +191,7 @@ GameVideoInstalled:
 		if mode = VIEW_EDITOR_LARGE then begin
 			BOARD_DRAW_X := 2;
 			BOARD_DRAW_Y := 2;
-			BOARD_DRAW_WIDTH := 56;
+			BOARD_DRAW_WIDTH := VideoColumns - 24;
 			BOARD_DRAW_HEIGHT := VideoRows - 5;
 		end else begin
 {$ENDIF}
