@@ -201,7 +201,7 @@ procedure VideoSetBlink(value: boolean);
 
 procedure VideoClear(bgColor: integer);
 	begin
-		FillWord(VideoBuf^, Word((bgColor * $11) shl 8), ScreenWidth * ScreenHeight);
+		FillWord(VideoBuf^, ScreenWidth * ScreenHeight, Word((bgColor * $11) shl 8));
 		UpdateScreen(false);
 	end;
 

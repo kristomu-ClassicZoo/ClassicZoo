@@ -364,6 +364,9 @@ function DisplayIOError: boolean;
 	var
 		ioResValue: word;
 		errorNumStr: TSmallString;
+{$IFDEF E_SUPERZ}
+		statusMsg: TSmallString;
+{$ENDIF}
 		textWindow: TTextWindowState;
 	begin
 		ioResValue := IOResult;
@@ -372,6 +375,19 @@ function DisplayIOError: boolean;
 			exit;
 		end;
 
+{$IFDEF E_SUPERZ}
+		case IOResult of
+			2: statusMsg := 'File not found!';
+			3: statusMsg := 'Path not found!';
+			101: statusMsg := 'Disk full!';
+		else
+			statusMsg := 'DOS Error!';
+		end;
+
+		DrawStatusMessage(statusMsg);
+		PauseOnError;
+		ClearDisplayMessage;
+{$ENDIF}
 		DisplayIOError := true;
 
 		Str(ioResValue, textWindow.Title);

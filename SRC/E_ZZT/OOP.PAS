@@ -914,7 +914,6 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 				TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT);
 				TextWindowDrawClose(textWindow);
 				TextWindowFree(textWindow);
-				{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
 
 				if Length(textWindow.Hyperlink) <> 0 then
 					if OopSend(statId, textWindow.Hyperlink, false) then

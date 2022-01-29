@@ -45,10 +45,10 @@ interface
 	procedure BoardDrawTile(x, y: integer);
 	procedure TransitionDrawToBoard;
 	procedure ClearDisplayMessage;
+	procedure DrawStatusMessage(msg: string);
 	procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TSmallString);
 	function PromptYesNo(message: string; defaultReturn: boolean; color: integer): boolean;
 	procedure PauseOnError;
-	function DisplayIOError: boolean;
 	procedure WorldUnload;
 	function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boolean;
 	procedure WorldSave(filename, extension: TSmallString);
@@ -485,46 +485,6 @@ procedure PauseOnError;
 	begin
 		SoundQueue(1, SoundParse('s004x114x9'));
 		AccurateDelay(2000);
-	end;
-
-function DisplayIOError: boolean;
-	var
-		statusMsg: TSmallString;
-		textWindow: TTextWindowState;
-	begin
-		if IOResult = 0 then begin
-			DisplayIOError := false;
-			exit;
-		end;
-
-		case IOResult of
-			2: statusMsg := 'File not found!';
-			3: statusMsg := 'Path not found!';
-			101: statusMsg := 'Disk full!';
-		else
-			statusMsg := 'DOS Error!';
-		end;
-
-		DrawStatusMessage(statusMsg);
-		PauseOnError;
-		ClearDisplayMessage;
-		DisplayIOError := true;
-
-		textWindow.Title := 'Error';
-		TextWindowInitState(textWindow);
-		TextWindowAppend(textWindow, '$DOS Error:');
-		TextWindowAppend(textWindow, '');
-		TextWindowAppend(textWindow, 'This may be caused by missing');
-		TextWindowAppend(textWindow, 'ZZT files or a bad disk.  If');
-		TextWindowAppend(textWindow, 'you are trying to save a game,');
-		TextWindowAppend(textWindow, 'your disk may be full -- try');
-		TextWindowAppend(textWindow, 'using a blank, formatted disk');
-		TextWindowAppend(textWindow, 'for saving the game!');
-
-		TextWindowDrawOpen(textWindow);
-		TextWindowSelect(textWindow, 0);
-		TextWindowDrawClose(textWindow);
-		TextWindowFree(textWindow);
 	end;
 
 procedure WorldUnload;
