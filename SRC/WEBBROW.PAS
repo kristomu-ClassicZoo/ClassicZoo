@@ -236,7 +236,7 @@ begin
 
 	ShowStatusMessage('');
 
-	if zztEntryCount > 1 then begin
+	if zztEntryCount {$IFDEF E_SUPERZ}>={$ELSE}>{$ENDIF} 1 then begin
 		if GameWorldLoad(ENGINE_EXTENSION) then begin
 			ReturnBoardId := World.Info.CurrentBoard;
 			BoardChange(0);
@@ -361,16 +361,19 @@ var
 					for jsonResultEnum in jsonResults do begin
 						jsonResult := jsonResultEnum.Value as TJSONObject;
 						if not EntryContainsDetail(jsonResult, ENGINE_DETAIL_CODE) then continue;
+						if jsonResult.Get('explicit', 0) <> 0 then continue;
 
 						titleString := jsonResult.Get('title') + ' by ' + jsonResult.Get('author');
 						if Length(titleString) > 34 then
 							titleString := Copy(titleString, 1, 31) + '...';
 						TextWindowAppend(textWindow, '!'
-							+ jsonResult.Get('letter') + jsonResult.Get('filename')
+							+ IntToStr(jsonResultEnum.KeyNum)
 							+ ';' + titleString);
 					end;
 					searchCount := jsonData.Get('count', 0);
 
+					if textWindow.LineCount = 0 then
+						TextWindowAppend(textWindow, 'No results found.');
 					TextWindowAppend(textWindow, '');
 					addSpace := false;
 					if searchCount = SEARCH_RESULT_SIZE then begin
@@ -431,10 +434,10 @@ var
 				if searchQuery.Offset < 0 then
 					searchQuery.Offset := 0;
 				searchRequested := true;
-			end else if (Length(textWindow.Hyperlink) > 1) and (textWindow.Hyperlink[1] <> '$') then begin
+			end else if (Length(textWindow.Hyperlink) >= 1) and (textWindow.Hyperlink[1] <> '$') then begin
+				jsonResult := jsonResults.Extract(StrToInt(textWindow.Hyperlink)) as TJSONObject;
 				if WebBrowserLoadZipFile(
-					Copy(textWindow.Hyperlink, 1, 1),
-					Copy(textWindow.Hyperlink, 2, Length(textWindow.Hyperlink) - 1)
+					jsonResult.Get('letter'), jsonResult.Get('filename')
 				) then begin
 					WebBrowserSearch := true;
 					running := false;
