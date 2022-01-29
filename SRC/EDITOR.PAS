@@ -2556,8 +2556,8 @@ function EditorSelectStat(title: string; currentStat: integer;
 		end;
 	procedure PopulateStats;
 		var
-			j: integer;
-			statStr: TString50;
+			j, k: integer;
+			statStr: string;
 			xStr, yStr, idStr: string[20];
 		begin
 			TextWindowFree(textWindow);
@@ -2568,9 +2568,17 @@ function EditorSelectStat(title: string; currentStat: integer;
 				PadSpaces(yStr, 2);
 				Str(j, idStr);
 				PadSpaces(idStr, 3);
-				TextWindowAppend(textWindow,
-					idStr + ' ( ' + xStr + ', ' + yStr + ') '
-					+ EditorGetElementName(Board.Tiles[X][Y].Element));
+				statStr := idStr + ' ( ' + xStr + ', ' + yStr + ') '
+					+ EditorGetElementName(Board.Tiles[X][Y].Element);
+				if (Data <> nil) and (DataLen > 0) then begin
+					k := 0;
+					OopReadChar(j, k);
+					if OopChar = '@' then
+						statStr := statStr + ': ' + OopReadLineToEnd(j, k);
+				end;
+				if Length(statStr) >= 42 then
+					statStr := Copy(statStr, 1, 39) + '...';
+				TextWindowAppend(textWindow, statStr);
 			end;
 			if showAddNewStat then begin
 				if Board.StatCount < MAX_STAT then begin

@@ -28,10 +28,12 @@ unit Oop;
 
 interface
 	uses GameVars;
-	function OopStringToWord(input: TString50): TString50;
+	procedure OopReadChar(statId: integer; var position: integer);
+	function OopReadLineToEnd(statId: integer; var position: integer) : string;
 	function WorldGetFlagPosition(name: TString50): integer;
 	procedure WorldSetFlag(name: TString50);
 	procedure WorldClearFlag(name: TString50);
+	function OopStringToWord(input: TString50): TString50;
 	function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
 	procedure OopExecute(statId: integer; var position: integer; name: TString50);
 

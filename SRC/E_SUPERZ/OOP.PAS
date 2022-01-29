@@ -28,6 +28,8 @@ unit Oop;
 
 interface
 	uses GameVars;
+	procedure OopReadChar(statId: integer; var position: integer);
+	function OopReadLineToEnd(statId: integer; var position: integer) : string;
 	function WorldGetFlagPosition(name: TSmallString): integer;
 	procedure WorldSetFlag(name: TSmallString);
 	procedure WorldClearFlag(name: TSmallString);
