@@ -134,6 +134,11 @@ procedure TimerSysIdle(mode: TIdleMode);
 	var
 		regs: Registers;
 	begin
+{$IFDEF ZETAEMU}
+		if ZetaDetected and (mode = IMSleepPit) then begin
+			ZetaSleepPit;
+		end;
+{$ENDIF}
 	end;
 
 procedure SoundPlayDrum(var drum: TDrumData);

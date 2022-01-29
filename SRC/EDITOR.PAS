@@ -378,10 +378,10 @@ procedure EditorLoop;
 			numStr: string[20];
 		begin
 			if VideoRows >= 43 then begin
-				ctX := 71;
+				ctX := VideoSidebarX + 11;
 				ctY := 36;
 			end else begin
-				ctX := 72;
+				ctX := VideoSidebarX + 12;
 				ctY := 20;
 			end;
 
@@ -1674,12 +1674,14 @@ procedure EditorLoop;
 		editorExitRequested := false;
 		repeat
 {$IFDEF SDL2}
+{$IFDEF E_SUPERZ}
 			if VideoScaleChanged then begin
 				if not GameVideoInstall(VIDEO_MODE_RESIZABLE, viewMode) then begin end;
 				EditorMoveCursor(cursorX, cursorY, false);
 				EditorDrawRefresh;
 				VideoScaleChanged := false;
 			end;
+{$ENDIF}
 {$ENDIF}
 			if drawMode = DrawingOn then
 				EditorPlaceTile(cursorX, cursorY);

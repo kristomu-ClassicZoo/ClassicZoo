@@ -121,9 +121,6 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-{$IFDEF ZETAEMU}
-ZetaSupp,
-{$ENDIF}
 {$IFNDEF RAWSTRUCTS}
 GameVSer,
 {$ENDIF}
@@ -1887,14 +1884,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 					end;
 
 					{ In ZZT 3.2, InputUpdate; is here. }
-{$IFDEF SDL2}
 				end else begin
 					SoundIdle(IMUntilPit);
-{$ENDIF}
-{$IFDEF ZETAEMU}
-				end else begin
-					ZetaSleepPit;
-{$ENDIF}
 				end;
 			end;
 		until GamePlayExitRequested;

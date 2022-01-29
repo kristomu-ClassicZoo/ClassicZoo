@@ -144,10 +144,7 @@ uses
 {$IFNDEF RAWSTRUCTS}
 GameVSer,
 {$ENDIF}
-{$IFDEF ZETAEMU}
-ZetaSupp,
-{$ENDIF}
-Dos, GameConf, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
+Dos, GameConf, FileSys, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
 
 function GameVideoInstall(videoMode, mode: integer): boolean;
 	var
@@ -795,7 +792,7 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 
 		VideoWriteText(15, VideoRows - 1, $1F, 'Loading.....');
 
-		Assign(f, filename + extension);
+		AssignFSys(f, filename + extension);
 		Reset(f, 1);
 
 		if not DisplayIOError then begin
@@ -892,7 +889,7 @@ procedure WorldSave(filename, extension: TSmallString);
 		BoardClose;
 		DrawStatusMessage('Saving...');
 
-		Assign(f, filename + extension);
+		AssignFSys(f, filename + extension);
 		Rewrite(f, 1);
 
 		if not DisplayIOError then begin
@@ -2030,14 +2027,8 @@ procedure GamePlayLoop(isTitle: boolean);
 					end;
 
 					{ In ZZT 3.2, InputUpdate; is here. }
-{$IFDEF SDL2}
 				end else begin
 					SoundIdle(IMUntilPit);
-{$ENDIF}
-{$IFDEF ZETAEMU}
-				end else begin
-					ZetaSleepPit;
-{$ENDIF}
 				end;
 			end;
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;

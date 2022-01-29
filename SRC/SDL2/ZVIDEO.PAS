@@ -956,10 +956,10 @@ procedure VideoSetBlink(value: boolean);
 
 procedure VideoClear(bgColor: integer);
 	begin
-		SDL_LockMutex(playfieldMutex);
+		if installed then SDL_LockMutex(playfieldMutex);
 		FillWord(screenBuffer, MAX_VIDEO_BUFFER_SIZE_BYTES shr 1, Word((bgColor * $11) shl 8));
 		FillChar(screenBufferChange, MAX_VIDEO_BUFFER_SIZE_BYTES, true);
-		SDL_UnlockMutex(playfieldMutex);
+		if installed then SDL_UnlockMutex(playfieldMutex);
 	end;
 
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
@@ -1079,13 +1079,13 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 	end;
 
 begin
+	installed := false;
 	VideoClear(0);
 	VideoBorderColor := 0;
 	VideoSidebarX := 60;
 	VideoColumns := 80;
 	VideoRows := 25;
 	VideoCursorVisible := true;
-	installed := false;
 	blinkMode := BlinkModeOn;
 	scalingMode := SMInteger;
 end.
