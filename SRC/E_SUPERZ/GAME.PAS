@@ -72,11 +72,8 @@ interface
 	procedure BoardUpdateDrawOffset;
 	procedure GamePlayLoop(isTitle: boolean);
 	procedure GameTitleLoop;
-	procedure GameDisplayResourceImage(name: TString50);
 	procedure ResetCachedLinePos;
 
-type
-	TScreenBinArray = array[0 .. 24] of array[0 .. 159] of byte;
 const
 	LFSR_START = 42;
 	LFSR10_TAP_CONST = $321;
@@ -121,6 +118,9 @@ DebugWnd,
 {$ENDIF}
 {$IFNDEF RAWSTRUCTS}
 GameVSer,
+{$ENDIF}
+{$IFDEF WEBBROW}
+WebBrow,
 {$ENDIF}
 Dos, GameSh, GameIo,
 GameConf, FileSys, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
@@ -1765,9 +1765,13 @@ procedure GameTitleLoop;
 				runPlay := false;
 				if needsTitleRefresh then begin
 					VideoClear(0);
-					GameDisplayResourceImage('MAINMENU');
+					GameDisplayResourceImage('MAINMENU', 0, 0, 80, 25);
 {$IFNDEF EDITOR}
 					VideoWriteText(1, 18, $0A, #196#196#196#196#196#196#196#196#196#196#196#196
+						+ #196#196#196#196#196#196#196#196#196);
+{$ENDIF}
+{$IFNDEF WEBBROW}
+					VideoWriteText(1, 12, $0A, #196#196#196#196#196#196#196#196#196#196#196#196
 						+ #196#196#196#196#196#196#196#196#196);
 {$ENDIF}
 				end;
@@ -1829,6 +1833,11 @@ LoadWorldSelect:
 							HighScoresDisplay(1);
 						end;
 					end;
+{$IFDEF WEBBROW}
+					'B': begin
+						WebBrowserLoop;
+					end;
+{$ENDIF}
 					'O': begin
 						needsTitleRefresh := false;
 						GameOptionsScreen(false);
@@ -1863,39 +1872,6 @@ LoadWorldSelect:
 				returningFromGame := true;
 			end;
 		until GameTitleExitRequested <> false;
-	end;
-
-{$IFDEF NEC98}
-{$DEFINE GDRISAFE}
-{$ENDIF}
-{$IFDEF HASAMIGA}
-{$DEFINE GDRISAFE}
-{$ENDIF}
-
-procedure GameDisplayResourceImage(name: TString50);
-	var
-		fileData: pointer;
-		fileDataLen: word;
-		i, j: integer;
-	begin
-		fileDataLen := ResourceDataReadBinaryFile(name + '.BIN', fileData, 0, 4000);
-		if fileDataLen > 0 then begin
-			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
-			for i := 0 to 24 do
-{$IFDEF GDRISAFE}
-				for j := 0 to 79 do
-					VideoWriteText(j, i, TScreenBinArray(fileData^)[i][j * 2 + 1],
-						Chr(TScreenBinArray(fileData^)[i][j * 2]));
-{$ELSE}
-{$IFDEF FPC}
-				VideoMove(0, i, 80, fileData + (i * 160), true);
-{$ELSE}
-				VideoMove(0, i, 80, Ptr(Seg(fileData^), Ofs(fileData^) + (i * 160)), true);
-{$ENDIF}
-{$ENDIF}
-			{$IFDEF BASICSYS} VideoUnlockScreenUpdate(0, 0, 79, 24); {$ENDIF}
-			FreeMem(fileData, fileDataLen);
-		end;
 	end;
 
 procedure ResetCachedLinePos;

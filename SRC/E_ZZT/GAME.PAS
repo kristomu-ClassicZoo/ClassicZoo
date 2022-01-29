@@ -98,6 +98,9 @@ DebugWnd,
 {$IFNDEF RAWSTRUCTS}
 GameVSer,
 {$ENDIF}
+{$IFDEF WEBBROW}
+WebBrow,
+{$ENDIF}
 Dos, GameSh, GameIo,
 FileSel, FileSys, GameConf, ExtMem, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
 
@@ -1250,7 +1253,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 		pauseBlink: boolean;
 		pausedElement: byte;
 	procedure GameDrawSidebar;
+		var
+			colorMask: byte;
 		begin
+			colorMask := 0;
 			SidebarClear;
 			SidebarClearLine(0);
 			SidebarClearLine(1);
@@ -1305,13 +1311,18 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(65, 12, $1E, ' Restore game');
 				VideoWriteText(62, 13, $70, ' Q ');
 				VideoWriteText(65, 13, $1E, ' Quit');
-				VideoWriteText(62, 16, $30, ' A ');
+{$IFDEF WEBBROW}
+				VideoWriteText(62, 14, $30, ' B ');
+				VideoWriteText(65, 14, $1E, ' Browse/Web');
+				colorMask := $40;
+{$ENDIF}
+				VideoWriteText(62, 16, $30 xor colorMask, ' A ');
 				VideoWriteText(65, 16, $1F, ' Options/About');
-				VideoWriteText(62, 17, $70, ' H ');
+				VideoWriteText(62, 17, $70 xor colorMask, ' H ');
 				VideoWriteText(65, 17, $1E, ' High Scores');
 {$IFDEF EDITOR}
 				if EditorEnabled then begin
-					VideoWriteText(62, 18, $30, ' E ');
+					VideoWriteText(62, 18, $30 xor colorMask, ' E ');
 					VideoWriteText(65, 18, $1E, ' Board Editor');
 				end;
 {$ENDIF}
@@ -1429,6 +1440,13 @@ procedure GamePlayLoop(boardChanged: boolean);
 				{ all stats ticked }
 				if SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
 					InputUpdate;
+
+					{ This is here, as to not break ElementMonitorTick. }
+					if GameStateElement = E_MONITOR then begin
+						if UpCase(InputKeyPressed) in ['B'] then
+							GamePlayExitRequested := true;
+					end;
+
 					if (GameStateElement = E_PLAYER) and NeuromotorAssist and (InputKeyPressed = #0) then begin
 						SoundIdle(IMUntilFrame);
 					end else begin
@@ -1498,6 +1516,12 @@ procedure GameTitleLoop;
 							BoardEnter;
 						end;
 					end;
+{$IFDEF WEBBROW}
+					'B': begin
+						WebBrowserLoop;
+						TransitionDrawToBoard;
+					end;
+{$ENDIF}
 					'A': begin
 						GameOptionsScreen(false);
 						TransitionDrawToBoard;

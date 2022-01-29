@@ -10,11 +10,11 @@
 -a fpc-i8086-msdos-dos -d RAWSTRUCTS -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -d PRINTTXT -d ZETAEMU -e SUPERZL -n SUPERZ -o zztlibre.zip -p build.properties
 -a fpc-i8086-msdos-dos -d RAWSTRUCTS -d SUBDIRS -d PRINTTXT -d ZETAEMU -e ZZTLRUN -o zztlibre.zip -p build.properties
 -a fpc-i8086-msdos-dos -d RAWSTRUCTS -d SUBDIRS -d PRINTTXT -d ZETAEMU -e SZLRUN -n SUPERZ -o zztlibre.zip -p build.properties
--a fpc-i386-win32-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -d FASTVID -d AUD16BIT -o zztwin32.zip -p build.properties
+-a fpc-i386-win32-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -d FASTVID -d AUD16BIT -d WEBBROW -o zztwin32.zip -p build.properties
 -a fpc-i386-win32-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -d FASTVID -d AUD16BIT -e SUPERZ -n SUPERZ -o zztwin32.zip -p build.properties
--a fpc-x86_64-win64-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -d FASTVID -d AUD16BIT -o zztwin64.zip -p build.properties
+-a fpc-x86_64-win64-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -d FASTVID -d AUD16BIT -d WEBBROW -o zztwin64.zip -p build.properties
 -a fpc-x86_64-win64-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -d FASTVID -d AUD16BIT -e SUPERZ -n SUPERZ -o zztwin64.zip -p build.properties
--a fpc-x86_64-linux-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -d FASTVID -d AUD16BIT -o zztlin64.zip -p build.properties
+-a fpc-x86_64-linux-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -d FASTVID -d AUD16BIT -d WEBBROW -o zztlin64.zip -p build.properties
 -a fpc-x86_64-linux-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d SUBDIRS -d FASTVID -d AUD16BIT -e SUPERZ -n SUPERZ -o zztlin64.zip -p build.properties
 -a fpc-m68k-amiga-basic -d EXTCHEAT -d EDITOR -d SUBDIRS -d FASTVID -o zztamiga020.zip -p build.properties
 -a fpc-m68k-amiga-basic -d EXTCHEAT -d EDITOR -d SUBDIRS -d FASTVID -e SUPERZ -n SUPERZ -o zztamiga020.zip -p build.properties

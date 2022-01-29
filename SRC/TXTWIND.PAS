@@ -53,6 +53,7 @@ interface
 {$IFDEF EDITOR}
 		TWS_EXIT_MINUS_PLUS_DEL = $08;
 {$ENDIF}
+		TWS_CONSTANT_TITLE = $10;
 		MAX_TEXT_WINDOW_WIDTH = 50;
 {$IFDEF E_SUPERZ}
 	{$IFDEF NEC98}
@@ -512,7 +513,7 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 				if newLinePos <> LinePos then begin
 					LinePos := newLinePos;
 					TextWindowDraw(state, false, viewingFile);
-					if (Lines[LinePos]^[1]) = '!' then
+					if ((Lines[LinePos]^[1]) = '!') and ((flags and TWS_CONSTANT_TITLE) = 0) then
 						if (flags and TWS_HYPERLINK_AS_SELECT) <> 0 then
 							TextWindowDrawTitle($1E, #174'Press ENTER to select this'#175)
 						else

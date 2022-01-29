@@ -47,6 +47,9 @@ Crt,
 {$IFDEF SDL2}
 SysUtils, FileSel,
 {$ENDIF}
+{$IFDEF UNIX}
+cwstring,
+{$ENDIF}
 Dos, ExtMem, FileSys, ZVideo, Keys, Sounds, TimerSys, ZInput, TxtWind,
 GameConf, GameVars, Elements, Editor, Oop, Game;
 

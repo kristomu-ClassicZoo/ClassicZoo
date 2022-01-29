@@ -49,10 +49,21 @@ interface
 	procedure SidebarAnimateLoading(var loadProgress: integer);
 	procedure BottomAnimateLoading(var loadProgress: integer);
 	function DisplayIOError: boolean;
+	procedure GameDisplayResourceImage(name: TString50; x, y, width, height: integer);
 
 implementation
 uses ZInput, TimerSys, Sounds, ZVideo, TxtWind, Game;
 
+{$IFDEF NEC98}
+{$DEFINE SAFEVID}
+{$ENDIF}
+{$IFDEF HASAMIGA}
+{$DEFINE SAFEVID}
+{$ENDIF}
+
+type
+	{ TODO: Used on Amiga only - fix this for non-80-wide ResourceImages }
+	TScreenBinArray = array[0 .. 24] of array[0 .. 159] of byte;
 const
 {$IFDEF E_SUPERZ}
 	ProgressAnimColors: array[0 .. 7] of byte = ($18, $1C, $19, $1D, $1A, $1E, $1B, $1F);
@@ -479,6 +490,32 @@ procedure PopupPromptString(question: string; var buffer: TSmallString; maxLen: 
 		PromptString(x, yMin + 4, $4F, $4E, y, maxLen, PROMPT_ANY, buffer);
 		for y := 0 to 5 do
 			VideoMove(3, y + yMin, TextWindowWidth, @screenCopy[y], true);
+	end;
+
+procedure GameDisplayResourceImage(name: TString50; x, y, width, height: integer);
+	var
+		fileData: pointer;
+		fileDataLen: word;
+		i, j: integer;
+	begin
+		fileDataLen := ResourceDataReadBinaryFile(name + '.BIN', fileData, 0, width * height * 2);
+		if fileDataLen > 0 then begin
+			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
+			for i := 1 to height do
+{$IFDEF SAFEVID}
+				for j := 1 to width do
+					VideoWriteText(x + j - 1, y + i - 1, TScreenBinArray(fileData^)[i - 1][j * 2 - 1],
+						Chr(TScreenBinArray(fileData^)[i - 1][j * 2 - 2]));
+{$ELSE}
+{$IFDEF FPC}
+				VideoMove(x, y + i - 1, width, fileData + ((i - 1) * width * 2), true);
+{$ELSE}
+				VideoMove(x, y + i - 1, width, Ptr(Seg(fileData^), Ofs(fileData^) + ((i - 1) * width * 2)), true);
+{$ENDIF}
+{$ENDIF}
+			{$IFDEF BASICSYS} VideoUnlockScreenUpdate(x, y, x + width - 1, y + height - 1); {$ENDIF}
+			FreeMem(fileData, fileDataLen);
+		end;
 	end;
 
 end.
