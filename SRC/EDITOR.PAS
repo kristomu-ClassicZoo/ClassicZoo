@@ -850,10 +850,9 @@ procedure EditorLoop;
 							TextWindowDrawClose(state);
 						end;
 						2: begin
-							Str(Board.Info.MaxShots, numStr);
-							SidebarPromptString('Maximum shots?', '', numStr, PROMPT_NUMERIC);
-							if Length(numStr) <> 0 then
-								Val(numStr, Board.Info.MaxShots, i);
+							i := Board.Info.MaxShots;
+							SidebarPromptNumericAsString('Maximum shots?', '', 0, 255, i);
+							Board.Info.MaxShots := i;
 							EditorDrawSidebar;
 						end;
 						3: begin
@@ -880,10 +879,7 @@ procedure EditorLoop;
 							Board.Info.ReenterWhenZapped := not Board.Info.ReenterWhenZapped;
 						end;
 						9: begin
-							Str(Board.Info.TimeLimitSec, numStr);
-							SidebarPromptString('Time limit?', ' Sec', numStr, PROMPT_NUMERIC);
-							if Length(numStr) <> 0 then
-								Val(numStr, Board.Info.TimeLimitSec, i);
+							SidebarPromptNumericAsString('Time limit?', ' Sec',  -32768, 32767, Board.Info.TimeLimitSec);
 							EditorDrawSidebar;
 						end;
 					end
@@ -923,10 +919,7 @@ procedure EditorLoop;
 					wasModified := true;
 					case state.LinePos of
 						1: begin
-							Str(World.Info.Health, numStr);
-							SidebarPromptString('Health?', '', numStr, PROMPT_NUMERIC);
-							if Length(numStr) <> 0 then
-								Val(numStr, World.Info.Health, i);
+							SidebarPromptNumericAsString('Health?', '', -32768, 32767, World.Info.Health);
 							EditorDrawSidebar;
 						end;
 					end

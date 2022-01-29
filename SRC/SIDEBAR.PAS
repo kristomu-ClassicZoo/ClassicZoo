@@ -29,6 +29,10 @@ unit Sidebar;
 
 interface
 	uses GameVars;
+	const
+		PROMPT_NUMERIC = 0;
+		PROMPT_ALPHANUM = 1;
+		PROMPT_ANY = 2;
 	procedure SidebarClearLine(y: integer);
 	procedure SidebarClear;
 	procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmallString; var value: byte);
@@ -39,6 +43,7 @@ interface
 	procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; var deltaX, deltaY: integer);
 	procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mode: byte; var buffer: TSmallString);
 	function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
+	procedure SidebarPromptNumericAsString(prompt: string; extension: TSmallString; minV, maxV: integer; var value: integer);
 	procedure SidebarPromptString(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
 	procedure PopupPromptString(question: string; var buffer: TSmallString; maxLen: integer);
 	procedure SidebarAnimateLoading(var loadProgress: integer);
@@ -351,6 +356,7 @@ procedure SidebarPromptString(prompt: string; extension: TSmallString; var filen
 		SidebarClearLine(3);
 		SidebarClearLine(4);
 		SidebarClearLine(5);
+
 		VideoWriteText(VideoSidebarX + 15 - Length(prompt), 3, $1F, prompt);
 		VideoWriteText(VideoSidebarX + 3, 5, $0F, '        ' + extension);
 
@@ -359,6 +365,32 @@ procedure SidebarPromptString(prompt: string; extension: TSmallString; var filen
 		SidebarClearLine(3);
 		SidebarClearLine(4);
 		SidebarClearLine(5);
+	end;
+
+procedure SidebarPromptNumericAsString(prompt: string; extension: TSmallString; minV, maxV: integer; var value: integer);
+	var
+		running: boolean;
+		valStr: string[20];
+		i: integer;
+	function ClampVal: boolean;
+		begin
+			ClampVal := true;
+			if value < minV then
+				value := minV
+			else if value > maxV then
+				value := maxV
+			else
+				ClampVal := false;
+		end;
+	begin
+		running := true;
+		while running do begin
+			if ClampVal then begin end;
+			Str(value, valStr);
+			SidebarPromptString(prompt, extension, valStr, PROMPT_NUMERIC);
+			Val(valStr, value, i);
+			if not ClampVal then running := false;
+		end;
 	end;
 
 function DisplayIOError: boolean;

@@ -29,10 +29,6 @@ unit Game;
 
 interface
 	uses GameVars, TxtWind;
-	const
-		PROMPT_NUMERIC = 0;
-		PROMPT_ALPHANUM = 1;
-		PROMPT_ANY = 2;
 	procedure BoardChange(boardId: integer);
 	procedure BoardCreate;
 	procedure WorldCreate;

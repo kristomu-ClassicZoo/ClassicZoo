@@ -30,9 +30,6 @@ unit Game;
 interface
 	uses GameVars, TxtWind;
 	const
-		PROMPT_NUMERIC = 0;
-		PROMPT_ALPHANUM = 1;
-		PROMPT_ANY = 2;
 		VIEW_TITLE = 0;
 		VIEW_PLAY = 1;
 		VIEW_EDITOR = 2;

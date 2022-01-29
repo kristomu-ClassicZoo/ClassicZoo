@@ -24,6 +24,9 @@ $< ClassicZoo dev >
     to reoder stats.
   * Board deletion is now done by
     pressing DEL in the board list.
+  * The user is now prevented from
+    trying to provide out-of-bounds
+    max shots values.
 + [DOS, PC-98] Support changing blink
   modes in the options menu.
 / [Amiga] Fix regressions.
