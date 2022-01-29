@@ -18,7 +18,10 @@ $< ClassicZoo dev >
 + Editor improvements.
   + [SDL2] Press Alt+arrows to move
     faster on the board.
-  * Cosmetic tweaks.
+  + Board reordering - use -/+
+    in the board selection menu!
+  * Board deletion is now done by
+    pressing DEL in the board list.
 / [Amiga] Fix regressions.
 / [SDL2] Fix sticky modifier keys.
 / {SuperZ} Fix scrolling behaviour.

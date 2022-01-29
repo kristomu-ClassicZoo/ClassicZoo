@@ -141,6 +141,10 @@ function GameVideoInstall(videoMode, mode: integer): boolean;
 		borderColor := 1;
 		if mode = VIEW_TITLE then
 			borderColor := 0;
+{$IFDEF SDL2}
+		if (mode = VIEW_TITLE) and (videoMode = VIDEO_MODE_80X25) then
+			videoMode := VIDEO_MODE_80X25_STRETCH;
+{$ENDIF}
 
 {$IFNDEF NEC98}
 {$IFNDEF BASICSYS}
@@ -1438,7 +1442,7 @@ procedure GameDebugPrompt;
 {$IFDEF EXTCHEAT}
 				if input = 'PASSAGE' then begin
 					if GameStateElement = E_PLAYER then begin
-						i := EditorSelectBoard('Teleport to', World.Info.CurrentBoard, false, false, false);
+						i := EditorSelectBoard('Teleport to', World.Info.CurrentBoard, false, false, false, false);
 						if (not TextWindowRejected) then begin
 							BoardChange(i);
 							GamePaused := true;

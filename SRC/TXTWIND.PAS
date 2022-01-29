@@ -50,6 +50,9 @@ interface
 		TWS_HYPERLINK_AS_SELECT = $01;
 		TWS_VIEWING_FILE = $02;
 		TWS_IGNORE_HYPERLINKS = $04;
+{$IFDEF EDITOR}
+		TWS_EXIT_MINUS_PLUS_DEL = $08;
+{$ENDIF}
 		MAX_TEXT_WINDOW_WIDTH = 50;
 {$IFDEF E_SUPERZ}
 	{$IFDEF NEC98}
@@ -417,13 +420,14 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 	var
 		newLinePos: integer;
 		viewingFile: boolean;
-		unk1: boolean;
+		exitWindow: boolean;
 		iLine, iChar: integer;
 		pointerStr: string[20];
 	label LabelMatched;
 	label LabelNotMatched;
 	begin
 		viewingFile := (flags and TWS_VIEWING_FILE) <> 0;
+		exitWindow := false;
 
 		with state do begin
 			TextWindowRejected := false;
@@ -486,6 +490,12 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 						newLinePos := LinePos - TextWindowHeight + 4;
 					end else if InputKeyPressed = KEY_PAGE_DOWN then begin
 						newLinePos := LinePos + TextWindowHeight - 4;
+{$IFDEF EDITOR}
+					end else if ((InputKeyPressed = '-') or (InputKeyPressed = '+')
+					or (InputKeyPressed = KEY_DELETE))
+					and ((flags and TWS_EXIT_MINUS_PLUS_DEL) <> 0) then begin
+						exitWindow := true;	
+{$ENDIF}
 {$IFDEF PRINTTXT}
 					end else if InputKeyPressed = KEY_ALT_P then begin
 						TextWindowPrint(state);
@@ -511,7 +521,8 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 				if InputJoystickMoved then begin
 					AccurateDelay(35);
 				end;
-			until (InputKeyPressed = KEY_ESCAPE) or (InputKeyPressed = KEY_ENTER) or InputShiftPressed;
+			until (InputKeyPressed = KEY_ESCAPE) or (InputKeyPressed = KEY_ENTER)
+			or exitWindow or InputShiftPressed;
 			if InputKeyPressed = KEY_ESCAPE then begin
 				InputKeyPressed := #0;
 				TextWindowRejected := true;

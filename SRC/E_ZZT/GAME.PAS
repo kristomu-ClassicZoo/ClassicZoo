@@ -1195,7 +1195,7 @@ procedure GameDebugPrompt;
 {$IFDEF EXTCHEAT}
 				if input = 'PASSAGE' then begin
 					if GameStateElement = E_PLAYER then begin
-						i := EditorSelectBoard('Teleport to', World.Info.CurrentBoard, false, false, false);
+						i := EditorSelectBoard('Teleport to', World.Info.CurrentBoard, false, false, false, false);
 						if (not TextWindowRejected) then begin
 							BoardChange(i);
 							GamePaused := true;

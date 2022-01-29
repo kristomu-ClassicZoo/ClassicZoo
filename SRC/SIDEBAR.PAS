@@ -34,6 +34,7 @@ interface
 	procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TSmallString; var value: byte);
 	procedure SidebarPromptNumeric(editable: boolean; x, y: integer; prompt: string; minV, maxV: integer; var value: integer);
 	procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
+	{ choiceStr: "A B C", spaces are significant }
 	procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: string; var result: byte);
 	procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; var deltaX, deltaY: integer);
 	procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mode: byte; var buffer: TSmallString);

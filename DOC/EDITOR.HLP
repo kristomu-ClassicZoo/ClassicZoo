@@ -41,8 +41,11 @@ effort.
 [L]  Load a world from disk.
 [S]  Save a world to disk.
 [Q]  Quit the ZZT Editor.
-[B]  Switch boards.  Also use this command
-     to create a new board.
+[B]  Switch boards. Also use this command
+     to:
+  -  Create a board: "Add new board"
+  -  Move boards: Use [-] and [+]
+  -  Delete boards: Press [DELETE]
 [I]  Board Information:  Change the
      characteristics of the particular
      board being edited.

@@ -40,6 +40,7 @@ interface
 		VIDEO_MODE_80X43 = 2;
 		VIDEO_MODE_80X50 = 3;
 		VIDEO_MODE_RESIZABLE = 256;
+		VIDEO_MODE_80X25_STRETCH = 257;
 		VIDEO_CHARSET_UNCHANGED = -1;
 	var
 		VideoMonochrome: boolean;
@@ -175,6 +176,8 @@ procedure CalcRenderArea(rect: PSDL_Rect; w, h: Int32);
 	begin
 		iw := VideoColumns * charsetTexture.charWidth;
 		ih := VideoRows * charsetTexture.charHeight;
+		if (VideoCurrentMode = VIDEO_MODE_80X25_STRETCH) and (charsetTexture.charHeight <= 8) then
+			ih := ih * 2;
 		origw := w;
 		origh := h;
 
@@ -239,6 +242,8 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 
 		iw := VideoColumns * charsetTexture.charWidth;
 		ih := VideoRows * charsetTexture.charHeight;
+		if (VideoCurrentMode = VIDEO_MODE_80X25_STRETCH) and (charsetTexture.charHeight <= 8) then
+			ih := ih * 2;
 		case VideoGetActiveScalingMode of
 			SMNone, SM2x, SM3x: begin
 				onlyIfTooSmall := false;
@@ -861,7 +866,8 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 
 			window := SDL_CreateWindow('%NAME% %VERSION%',
 				SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-				VideoColumns * 8, VideoRows * 14, SDL_WINDOW_RESIZABLE or SDL_WINDOW_ALLOW_HIGHDPI);
+				640, {$IFDEF E_SUPERZ}400{$ELSE}350{$ENDIF},
+				SDL_WINDOW_RESIZABLE or SDL_WINDOW_ALLOW_HIGHDPI);
 		end;
 
 		if installed then begin
@@ -870,7 +876,7 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 
 		if charsetHeight > 0 then begin
 			LoadCharsetFromByteArray(charsetTexture, PByteArray(charsetData)^, charsetHeight * 256);
-			usingCustomCharset := true;
+			usingCustomCharset := false;
 		end;
 		if not charsetTexture.valid then begin
 			LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);
