@@ -222,7 +222,12 @@ interface
 			Name: TSmallString;
 			Tiles: array[0 .. BOARD_WIDTH + 1] of array[0 .. BOARD_HEIGHT + 1] of TTile;
 			StatCount: integer;
+{$IFDEF MEMBOUND}
+			{ On platforms with different memory layouts, add a faux stat -1. }
+			Stats: array[-1 .. MAX_STAT + 1] of TStat;
+{$ELSE}
 			Stats: array[0 .. MAX_STAT + 1] of TStat;
+{$ENDIF}
 			Info: TBoardInfo;
 		end;
 		TWorld = record
@@ -417,4 +422,23 @@ interface
 
 implementation
 
+{$IFDEF MEMBOUND}
+begin
+	with Board.Stats[-1] do begin
+		X := 0;
+		Y := 1;
+		StepX := 256;
+		StepY := 256;
+		Cycle := 256;
+		P1 := 0;
+		P2 := 1;
+		P3 := 0;
+		Follower := 1;
+		Leader := 1;
+		Under.Element := E_BOARD_EDGE;
+		Under.Color := $00;
+		DataPos := 1;
+		DataLen := 1;
+	end;
+{$ENDIF}
 end.

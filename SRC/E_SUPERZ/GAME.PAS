@@ -38,6 +38,7 @@ interface
 		VIEW_EDITOR = 2;
 		VIEW_EDITOR_LARGE = 3;
 	function GameVideoInstall(videoMode, mode: integer): boolean;
+	function TileOutOfBounds(x, y: integer): boolean;
 	function EnsureIoTmpBufSize(newSize: word): integer; { 1 if IoTmpBuf was wiped, 2 if the size is too large. }
 {$IFNDEF FPC}
 {$IFDEF CPU86}
@@ -233,6 +234,11 @@ function LFSRUpdateSeed(var seed: word; var tx, ty: byte): boolean;
 		tx := (seed - 1) and LfsrAndConst;
 		ty := ((seed - 1) shr LfsrShrConst) and LfsrAndConst;
 		LFSRUpdateSeed := seed = LFSR_START;
+	end;
+
+function TileOutOfBounds(x, y: integer): boolean;
+	begin
+		TileOutOfBounds := (x < 0) or (y < 0) or (x > (BOARD_WIDTH + 1)) or (y > (BOARD_HEIGHT + 1));
 	end;
 
 function EnsureIoTmpBufSize(newSize: word): integer;
@@ -1165,7 +1171,6 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 	var
 		iUnder: TTile;
 		oldX, oldY: integer;
-		oldBgColor: integer;
 		i: integer;
 		scrollOffset: boolean;
 		recalcRequired: boolean;
@@ -1178,9 +1183,15 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 				scrollOffset := false;
 			end;
 
-			oldBgColor := Board.Tiles[newX][newY].Color and $F0;
-
-			iUnder := Board.Stats[statId].Under;
+			iUnder := Under;
+{$IFDEF MEMBOUND}
+			if TileOutOfBounds(newX, newY) then begin
+				Board.Tiles[oldX][oldY] := iUnder;
+				X := newX;
+				Y := newY;
+				BoardDrawTile(oldX, oldY);
+			end else begin
+{$ENDIF}
 			Board.Stats[statId].Under := Board.Tiles[newX][newY];
 
 			if Board.Tiles[newX][newY].Element = E_EMPTY then
@@ -1191,6 +1202,9 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			Board.Tiles[newX][newY].Element := Board.Tiles[X][Y].Element;
 			Board.Tiles[X][Y] := iUnder;
 			BoardDrawTile(X, Y);
+{$IFDEF MEMBOUND}
+			end;
+{$ENDIF}
 
 			if (statId = 0) and scrollOffset then begin
 				recalcRequired := false;

@@ -433,6 +433,9 @@ procedure OopPlaceTile(x, y: integer; var tile: TTile);
 	var
 		color: byte;
 	begin
+{$IFDEF MEMBOUND}
+		if TileOutOfBounds(x, y) then exit;
+{$ENDIF}
 		if Board.Tiles[x][y].Element <> E_PLAYER then begin
 			color := tile.Color;
 			if ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN then
