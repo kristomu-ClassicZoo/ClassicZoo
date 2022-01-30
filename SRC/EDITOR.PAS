@@ -51,6 +51,7 @@ interface
 {$IFDEF EDITOR}
 	function EditorGetElementName(elemId: integer): TString50;
 	function EditorGetColorName(color: byte): TString50;
+	procedure EditorSelectElement(title: string; var element: byte; windowAlreadyOpen: boolean);
 	function EditorSelectStat(title: string; currentStat: integer; showNone: boolean;
 		windowAlreadyOpen: boolean; showAddNewStat: boolean; editable: boolean): integer;
 {$ENDIF}
@@ -370,15 +371,6 @@ procedure EditorLoop;
 		inputByte: byte;
 		viewMode: integer;
 		copyBuffer: TEditorCopyBuffer;
-
-	function EditorGetCursorElement: integer;
-		begin
-			if cursorPattern <= EditorPatternCount then begin
-				EditorGetCursorElement := EditorPatterns[cursorPattern];
-			end else with copiedTiles[cursorPattern - EditorPatternCount] do begin
-				EditorGetCursorElement := tile.Element;
-			end;
-		end;
 
 	procedure EditorOnWorldOpen;
 		begin
@@ -1203,7 +1195,9 @@ procedure EditorLoop;
 					AppendAction(LLEditDataPos, '       Pos: ', numStr);
 					AppendAction(LLEditDataBound, '  Bound to: ', GetStatName(GetStatBoundToId));
 					AppendAction(LLEditNone, '', '');
-					AppendAction(LLEditDeleteStat, '!;Delete', '');
+					if Board.StatCount > 0 then begin
+						AppendAction(LLEditDeleteStat, '!;Delete', '');
+					end;
 				end;
 
 				AppendAction(LLEditNone, '!;Exit', '');
@@ -1213,7 +1207,7 @@ procedure EditorLoop;
 					if (tx > 0) and (ty > 0) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then
 					with Board.Tiles[tx][ty] do case actionMap[state.LinePos] of
 						LLEditElement: begin
-							Element := EditorGetCursorElement;
+							EditorSelectElement('Element?', Element, true);
 							wasModified := true;
 						end;
 						LLEditColor: begin
@@ -1280,7 +1274,7 @@ procedure EditorLoop;
 							end;
 						end;
 						LLEditUnderElement: begin
-							Under.Element := EditorGetCursorElement;
+							EditorSelectElement('Element?', Under.Element, true);
 							wasModified := true;
 						end;
 						LLEditUnderColor: begin
@@ -2795,10 +2789,10 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 			end;
 		end;
 	begin
+		TextWindowInitState(textWindow);
 		textWindow.Title := title;
 		textWindow.LinePos := currentBoard + 1;
 		textWindow.Selectable := true;
-		textWindow.LineCount := 0;
 		if not windowAlreadyOpen then TextWindowDrawOpen(textWindow);
 {$IFDEF EDITOR}
 		if editable then begin
@@ -2867,8 +2861,17 @@ function EditorGetElementName(elemId: integer): TString50;
 		elemStr := ElementDefs[elemId].Name;
 		if Length(elemStr) = 0 then begin
 			case elemId of
-			1: elemStr := 'Board Edge';
-			2: elemStr := 'Message Timer';
+			E_BOARD_EDGE: elemStr := 'Board Edge';
+			E_MESSAGE_TIMER: elemStr := 'Message Timer';
+			E_BLINK_RAY_EW: elemStr := 'Horizontal Blink';
+			E_BLINK_RAY_NS: elemStr := 'Vertical Blink';
+			E_TEXT_BLUE: elemStr := 'Blue Text';
+			E_TEXT_GREEN: elemStr := 'Green Text';
+			E_TEXT_CYAN: elemStr := 'Cyan Text';
+			E_TEXT_RED: elemStr := 'Red Text';
+			E_TEXT_PURPLE: elemStr := 'Purple Text';
+			E_TEXT_YELLOW: elemStr := 'Yellow Text';
+			E_TEXT_WHITE: elemStr := 'White Text';
 			else begin
 				Str(elemId, elemStr);
 				elemStr := 'Element #' + elemStr;
@@ -2880,6 +2883,26 @@ function EditorGetElementName(elemId: integer): TString50;
 function EditorGetColorName(color: byte): TString50;
 	begin
 		EditorGetColorName := LongColorNames[color and $0F] + ' on ' + LongColorNames[color shr 4];
+	end;
+
+procedure EditorSelectElement(title: string; var element: byte; windowAlreadyOpen: boolean);
+	var
+		i: integer;
+		textWindow: TTextWindowState;
+	begin
+		TextWindowInitState(textWindow);
+		textWindow.Title := title;
+		textWindow.LinePos := element + 1;
+		textWindow.Selectable := true;
+		for i := 0 to SAFE_MAX_ELEMENT do
+			TextWindowAppend(textWindow, EditorGetElementName(i));
+		if not windowAlreadyOpen then TextWindowDrawOpen(textWindow);
+		TextWindowSelect(textWindow, 0);
+		if not windowAlreadyOpen then TextWindowDrawClose(textWindow);
+		TextWindowFree(textWindow);
+
+		if not TextWindowRejected then
+			element := textWindow.LinePos - 1;
 	end;
 
 function EditorSelectStat(title: string; currentStat: integer; showNone: boolean;
@@ -2924,10 +2947,10 @@ function EditorSelectStat(title: string; currentStat: integer; showNone: boolean
 			end;
 		end;
 	begin
+		TextWindowInitState(textWindow);
 		textWindow.Title := title;
 		textWindow.LinePos := currentStat + 1;
 		textWindow.Selectable := true;
-		textWindow.LineCount := 0;
 		if not windowAlreadyOpen then TextWindowDrawOpen(textWindow);
 		if editable then begin
 			running := true;

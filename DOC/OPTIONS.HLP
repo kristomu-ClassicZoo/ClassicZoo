@@ -119,6 +119,21 @@ information menu ([W]); if off, it is
 the board the world is saved on (as in
 classic ZZT).
 
+:edlowlvl;[ Low-level tile edit ]
+
+This option enables advanced features
+for editing a board's tiles and stats at
+the data structure level. Beware!
+
+The following additional features are
+enabled if turned on:
+
+- Deleting stats in the stats list,
+- Editing tile/stat low-level data by
+  selecting them in the stats list,
+- [SDL2] Pressing ALT+ENTER on a tile
+  to edit its low-level data.
+
 :debugmode;=== Debug mode ===
 
 NOTE: The debugger's options are not
