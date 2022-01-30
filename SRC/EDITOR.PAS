@@ -31,6 +31,7 @@ interface
 	uses GameVars, TxtWind;
 	var
 		EditorAutoAppendPats: boolean;
+		EditorSeparateStartingBoard: boolean;
 {$IFDEF EDITOR}
 	procedure EditorLoop;
 {$ENDIF}
@@ -325,36 +326,13 @@ procedure EditorDrawSidebar345(clear: boolean);
 		VideoWriteText(VideoSidebarX + 13, 5, $1F, ' Quit');
 	end;
 
-procedure EditorWorldCanOpenCheck(closeSavesSilently: boolean);
-	var
-		isSecret: boolean;
-	begin
-		{ Secret worlds: warn always }
-		{ Savegames: error if non-debug, warn if debug }
-		isSecret := (WorldGetFlagPosition('SECRET') >= 0);
-		if (World.Info.IsSave and (not closeSavesSilently)) or isSecret then begin
-			SidebarClearLine(3);
-			SidebarClearLine(4);
-			SidebarClearLine(5);
-			VideoWriteText(VideoSidebarX + 3, 4, $1E, 'World marked as');
-			if World.Info.IsSave then
-				VideoWriteText(VideoSidebarX + 3, 5, $1E, ' a saved game!')
-			else
-				VideoWriteText(VideoSidebarX + 3, 5, $1E, '    locked!');
-			PauseOnError;
-		end;
-		if World.Info.IsSave and (not DebugEnabled) then begin
-			WorldUnload;
-			WorldCreate;
-		end;
-	end;
-
 procedure EditorLoop;
 	var
 		selectedCategory: integer;
 		wasModified: boolean;
 		editorExitRequested: boolean;
 		drawMode: TDrawMode;
+		startingBoard, tmpBoard: integer;
 		lastCursorX, lastCursorY: integer;
 		cursorX, cursorY: integer;
 		cursorPattern, cursorColor: integer;
@@ -366,6 +344,45 @@ procedure EditorLoop;
 		inputByte: byte;
 		viewMode: integer;
 		copyBuffer: TEditorCopyBuffer;
+
+	procedure EditorOnWorldOpen;
+		begin
+			InitElementsEditor;
+			startingBoard := World.Info.CurrentBoard;
+		end;
+
+	procedure EditorWorldCanOpenCheck(closeSavesSilently: boolean);
+		var
+			isSecret: boolean;
+		begin
+			{ Secret worlds: warn always }
+			{ Savegames: error if non-debug, warn if debug }
+			isSecret := (WorldGetFlagPosition('SECRET') >= 0);
+			if (World.Info.IsSave and (not closeSavesSilently)) or isSecret then begin
+				SidebarClearLine(3);
+				SidebarClearLine(4);
+				SidebarClearLine(5);
+				VideoWriteText(VideoSidebarX + 3, 4, $1E, 'World marked as');
+				if World.Info.IsSave then
+					VideoWriteText(VideoSidebarX + 3, 5, $1E, ' a saved game!')
+				else
+					VideoWriteText(VideoSidebarX + 3, 5, $1E, '    locked!');
+				PauseOnError;
+			end;
+			if World.Info.IsSave and (not DebugEnabled) then begin
+				WorldUnload;
+				WorldCreate;
+				EditorOnWorldOpen;
+			end;
+		end;
+
+	function EditorGetStartingBoard: integer;
+		begin
+			if (EditorSeparateStartingBoard) and (startingBoard >= 0) then
+				EditorGetStartingBoard := startingBoard
+			else
+				EditorGetStartingBoard := World.Info.CurrentBoard;
+		end;
 
 	procedure EditorDrawCursor;
 		begin
@@ -715,18 +732,32 @@ procedure EditorLoop;
 			EditorUpdateCopiedPatterns;
 		end;
 
+	function EditorSaveWorld: boolean;
+		begin
+			SidebarClearLine(4);
+			SidebarClearLine(5);
+			if EditorSeparateStartingBoard and (startingBoard >= 0) then begin
+				tmpBoard := World.Info.CurrentBoard;
+				BoardChange(startingBoard);
+			end;
+{$IFDEF E_SUPERZ}
+			GameWorldSave('Save world:', LoadedGameFileName, '.SZT');
+{$ELSE}
+			GameWorldSave('Save world:', LoadedGameFileName, '.ZZT');
+{$ENDIF}
+			if EditorSeparateStartingBoard and (startingBoard >= 0) then begin
+				BoardChange(tmpBoard);
+			end;
+			EditorSaveWorld := InputKeyPressed <> KEY_ESCAPE;
+		end;
+
 	procedure EditorAskSaveChanged;
 		begin
 			InputKeyPressed := #0;
 			if wasModified then begin
 				if SidebarPromptYesNo('Save first? ', true) then begin
-					if InputKeyPressed <> KEY_ESCAPE then begin
-{$IFDEF E_SUPERZ}
-						GameWorldSave('Save world', LoadedGameFileName, '.SZT');
-{$ELSE}
-						GameWorldSave('Save world', LoadedGameFileName, '.ZZT');
-{$ENDIF}
-					end;
+					if InputKeyPressed <> KEY_ESCAPE then
+						if EditorSaveWorld then begin end;
 				end;
 			end;
 			World.Info.Name := LoadedGameFileName;
@@ -913,21 +944,31 @@ procedure EditorLoop;
 
 			repeat
 				state.Selectable := true;
-				state.LineCount := 2;
+				state.LineCount := 4;
 				for i := 1 to state.LineCount do
 					New(state.Lines[i]);
 
 				Str(World.Info.Health, numStr);
 				state.Lines[1]^  := ' Starting health: ' + numStr;
-				state.Lines[2]^ := '!;Exit';
+				state.Lines[2]^  := '  Starting board: ' + EditorGetBoardName(EditorGetStartingBoard, false);
+				state.Lines[3]^ := '';
+				state.Lines[4]^ := '!;Exit';
 
 				TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
-				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 2) then begin
-					wasModified := true;
+				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 4) then begin
 					case state.LinePos of
 						1: begin
 							SidebarPromptNumericAsString('Health?', '', -32768, 32767, World.Info.Health);
 							EditorDrawSidebar;
+							wasModified := true;
+						end;
+						2: if EditorSeparateStartingBoard then begin
+							i := EditorSelectBoard('Starting board',
+								startingBoard, false, true, false, false);
+							if not TextWindowRejected then begin
+								startingBoard := i;
+								wasModified := true;
+							end;
 						end;
 					end
 				end else begin
@@ -1313,6 +1354,8 @@ procedure EditorLoop;
 		begin
 			BoardChange(boardId);
 			EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, false);
+			if not EditorSeparateStartingBoard then
+				startingBoard := World.Info.CurrentBoard;
 		end;
 
 	procedure EditorUpdateCursorPos(drawCursor: boolean);
@@ -1804,6 +1847,8 @@ procedure EditorLoop;
 			EditorDrawRefresh;
 		end;
 
+		EditorOnWorldOpen;
+
 		editorExitRequested := false;
 		repeat
 {$IFDEF SDL2}
@@ -1914,6 +1959,7 @@ procedure EditorLoop;
 {$ELSE}
 						if (InputKeyPressed <> KEY_ESCAPE) and GameWorldLoad('.ZZT') then begin
 {$ENDIF}
+							EditorOnWorldOpen;
 							EditorWorldCanOpenCheck(false);
 							wasModified := false;
 							EditorMoveCursor(cursorX, cursorY, false);
@@ -1923,14 +1969,7 @@ procedure EditorLoop;
 						end;
 					end;
 					'S': begin
-						SidebarClearLine(4);
-						SidebarClearLine(5);
-{$IFDEF E_SUPERZ}
-						GameWorldSave('Save world:', LoadedGameFileName, '.SZT');
-{$ELSE}
-						GameWorldSave('Save world:', LoadedGameFileName, '.ZZT');
-{$ENDIF}
-						if InputKeyPressed <> KEY_ESCAPE then
+						if EditorSaveWorld then
 							wasModified := false;
 						EditorDrawSidebar;
 					end;
@@ -1950,7 +1989,7 @@ procedure EditorLoop;
 							if (InputKeyPressed <> KEY_ESCAPE) then begin
 								WorldUnload;
 								WorldCreate;
-								InitElementsEditor;
+								EditorOnWorldOpen;
 								EditorDrawRefresh;
 								wasModified := false;
 							end;
@@ -2236,6 +2275,9 @@ PlacementDone:
 			EditorClearPattern(copiedTiles[i], false);
 		InputKeyPressed := #0;
 		InitElementsGame;
+
+		if (EditorSeparateStartingBoard) and (startingBoard >= 0) and (not DebugEnabled) then
+			BoardChange(startingBoard);
 	end;
 {$ENDIF}
 
@@ -2656,4 +2698,5 @@ function EditorSelectStat(title: string; currentStat: integer;
 
 begin
 	EditorAutoAppendPats := false;
+	EditorSeparateStartingBoard := false;
 end.

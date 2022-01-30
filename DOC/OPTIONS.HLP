@@ -110,6 +110,15 @@ This option controls auto-appending
 patterns upon picking them from the
 board with ENTER (like in KevEdit).
 
+:edsepstb;[ Separate start board ]
+
+This option controls how the starting
+board of a world is configured. If
+on, it is configured using the world
+information menu ([W]); if off, it is
+the board the world is saved on (as in
+classic ZZT).
+
 :debugmode;=== Debug mode ===
 
 NOTE: The debugger's options are not

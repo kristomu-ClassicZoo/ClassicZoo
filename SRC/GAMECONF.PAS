@@ -45,6 +45,9 @@ interface
 	function ConfigEdAutoAppendGetValue: integer;
 	procedure ConfigEdAutoAppendSetValue(value: integer);
 	function ConfigEdAutoAppendShowValue: string;
+	function ConfigEdSepStartBoardGetValue: integer;
+	procedure ConfigEdSepStartBoardSetValue(value: integer);
+	function ConfigEdSepStartBoardShowValue: string;
 	function ConfigCleenModeGetValue: integer;
 	procedure ConfigCleenModeSetValue(value: integer);
 	function ConfigCleenModeShowValue: string;
@@ -104,6 +107,15 @@ function ConfigShowOnOffValue(val: boolean): string;
 		else
 			ConfigShowOnOffValue := 'Off';
 	end;
+
+function ConfigShowYesNoValue(val: boolean): string;
+	begin
+		if val then
+			ConfigShowYesNoValue := 'Yes'
+		else
+			ConfigShowYesNoValue := 'No';
+	end;
+
 { }
 
 function ConfigCompatibilityGetValue: integer;
@@ -147,10 +159,23 @@ procedure ConfigEdAutoAppendSetValue(value: integer);
 
 function ConfigEdAutoAppendShowValue: string;
 	begin
-		if EditorAutoAppendPats then
-			ConfigEdAutoAppendShowValue := 'Yes'
-		else
-			ConfigEdAutoAppendShowValue := 'No';
+		ConfigEdAutoAppendShowValue := ConfigShowYesNoValue(EditorAutoAppendPats);
+	end;
+
+function ConfigEdSepStartBoardGetValue: integer;
+	begin
+		ConfigEdSepStartBoardGetValue := Byte(EditorSeparateStartingBoard);
+	end;
+
+procedure ConfigEdSepStartBoardSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		EditorSeparateStartingBoard := Boolean(value);
+	end;
+
+function ConfigEdSepStartBoardShowValue: string;
+	begin
+		ConfigEdSepStartBoardShowValue := ConfigShowYesNoValue(EditorSeparateStartingBoard);
 	end;
 
 function ConfigCleenModeGetValue: integer;
@@ -175,10 +200,8 @@ function ConfigCleenModeShowValue: string;
 	begin
 		if CleenModeAuto then
 			ConfigCleenModeShowValue := 'Automatic'
-		else if CleenMode then
-			ConfigCleenModeShowValue := 'Yes'
 		else
-			ConfigCleenModeShowValue := 'No';
+			ConfigCleenModeShowValue := ConfigShowYesNoValue(CleenMode);
 	end;
 
 function ConfigNeuromotorAssistGetValue: integer;
@@ -194,10 +217,7 @@ procedure ConfigNeuromotorAssistSetValue(value: integer);
 
 function ConfigNeuromotorAssistShowValue: string;
 	begin
-		if NeuromotorAssist then
-			ConfigNeuromotorAssistShowValue := 'Yes'
-		else
-			ConfigNeuromotorAssistShowValue := 'No';
+		ConfigNeuromotorAssistShowValue := ConfigShowYesNoValue(NeuromotorAssist);
 	end;
 
 function ConfigVidColorGetValue: integer;
@@ -578,7 +598,7 @@ function ConfigInputCustomAction: boolean;
 {$ENDIF}
 
 const
-	ConfigEntryCount = 5
+	ConfigEntryCount = 6
 	{$IFDEF MSDOS} + 3 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF DEBUGWND} + 3 {$ENDIF}
@@ -628,6 +648,16 @@ procedure GameConfigInit;
 			GetValue := ConfigEdAutoAppendGetValue;
 			SetValue := ConfigEdAutoAppendSetValue;
 			ShowValue := ConfigEdAutoAppendShowValue;
+			CustomAction := ConfigCustomActionNone;
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCEditor;
+			Key := 'EdSepStB';
+			Name := 'Separate start board';
+			GetValue := ConfigEdSepStartBoardGetValue;
+			SetValue := ConfigEdSepStartBoardSetValue;
+			ShowValue := ConfigEdSepStartBoardShowValue;
 			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
