@@ -32,6 +32,7 @@ interface
 	var
 		EditorAutoAppendPats: boolean;
 		EditorSeparateStartingBoard: boolean;
+		EditorLowLevelEnable: boolean;
 {$IFDEF EDITOR}
 	procedure EditorLoop;
 {$ENDIF}
@@ -49,7 +50,8 @@ interface
 		windowAlreadyOpen: boolean; showAddNewBoard: boolean; editable: boolean): integer;
 {$IFDEF EDITOR}
 	function EditorGetElementName(elemId: integer): TString50;
-	function EditorSelectStat(title: string; currentStat: integer; 
+	function EditorGetColorName(color: byte): TString50;
+	function EditorSelectStat(title: string; currentStat: integer; showNone: boolean;
 		windowAlreadyOpen: boolean; showAddNewStat: boolean; editable: boolean): integer;
 {$ENDIF}
 
@@ -58,6 +60,28 @@ uses Dos, GameIo, GameSh, FileSel, FileSys, ExtMem,
 GameConf, ZVideo, Sounds, TimerSys, Keys, ZInput, Elements, Oop, Game, Sidebar;
 
 type
+	TLLEditAction = (
+		LLEditNone,
+		LLEditElement,
+		LLEditColor,
+		LLEditX,
+		LLEditY,
+		LLEditStepX,
+		LLEditStepY,
+		LLEditCycle,
+		LLEditP1,
+		LLEditP2,	
+		LLEditP3,
+		LLEditFollower,
+		LLEditLeader,
+		LLEditUnderElement,
+		LLEditUnderColor,
+		LLEditData,
+		LLEditDataBound,
+		LLEditDataPos,
+		LLEditDeleteStat
+	);
+
 	TIdShiftMode = (
 		IdShiftDelete,
 		IdShiftAdd,
@@ -95,9 +119,9 @@ const
 	COPIED_TILES_COUNT = 10;
 	NeighborBoardStrs: array[0 .. 3] of string[20] =
 		('       Board '#24, '       Board '#25, '       Board '#27, '       Board '#26);
-{	ColorNames: array[0 .. 15] of string[7] =
-		('Black  ', 'DBlue  ', 'DGreen ', 'DCyan  ', 'DRed   ', 'DPurple', 'Brown  ', 'LGray  ',
-		'DGray  ', 'Blue   ', 'Green  ', 'Cyan   ', 'Red    ', 'Purple ', 'Yellow ', 'White  ');}
+	LongColorNames: array[0 .. 15] of string[7] =
+		('Black', 'D.Blue', 'D.Green', 'D.Cyan', 'D.Red', 'DPurple', 'Brown', 'L.Gray',
+		'D.Gray', 'Blue', 'Green', 'Cyan', 'Red', 'Purple', 'Yellow', 'White');
 	ColorNames: array[0 .. 15] of string[3] =
 		('Blk', 'DBl', 'DGn', 'DCy', 'DRe', 'DMa', 'Bro', 'LGr', 'DGr', 'LBl', 'LGn', 'LCy', 'LRe', 'LMa', 'Yel', 'Wht');
 
@@ -251,12 +275,14 @@ function EditorShiftStat(idFrom, idTo: integer; mode: TIdShiftMode): boolean;
 		case mode of
 		IdShiftDelete: begin
 			FreeStatDataMem(idFrom, false);
-			with Board.Stats[idFrom] do
-				Board.Tiles[X][Y] := Under;
+			with Board.Stats[idFrom] do begin
+				if not EditorLowLevelEnable then
+					Board.Tiles[X][Y] := Under;
+			end;
 
+			for i := (idFrom + 1) to Board.StatCount do
+				Board.Stats[i - 1] := Board.Stats[i];
 			Dec(Board.StatCount);
-			for i := idFrom to Board.StatCount do
-				Board.Stats[i] := Board.Stats[i + 1];
 		end;
 		IdShiftAdd: begin
 			RunError(200); { TODO }
@@ -344,6 +370,15 @@ procedure EditorLoop;
 		inputByte: byte;
 		viewMode: integer;
 		copyBuffer: TEditorCopyBuffer;
+
+	function EditorGetCursorElement: integer;
+		begin
+			if cursorPattern <= EditorPatternCount then begin
+				EditorGetCursorElement := EditorPatterns[cursorPattern];
+			end else with copiedTiles[cursorPattern - EditorPatternCount] do begin
+				EditorGetCursorElement := tile.Element;
+			end;
+		end;
 
 	procedure EditorOnWorldOpen;
 		begin
@@ -1048,6 +1083,250 @@ procedure EditorLoop;
 				TextWindowFreeEdit(state);
 				InputKeyPressed := #0;
 			end;
+		end;
+
+	procedure EditorEditTileLowLevel(tx, ty, statId: integer);
+		var
+			state: TTextWindowState;
+			i: integer;
+			numStr: string[20];
+			actionMap: array[1 .. 32] of TLLEditAction;
+			exitRequested: boolean;
+			choiceResult: byte;
+		function GetStatBoundToId: integer;
+			var
+				k: integer;
+			begin
+				for k := 0 to Board.StatCount do begin
+					if (k <> statId) and (Board.Stats[k].Data = Board.Stats[statId].Data) then begin
+						GetStatBoundToId := k;
+						exit;
+					end;
+				end;
+				GetStatBoundToId := -1;
+			end;
+		function GetStatName(newStatId: integer): string;
+			var
+				k: integer;
+				statStr: string;
+				xStr, yStr, idStr: string[20];
+			begin
+				if (newStatId < 0) then
+					GetStatName := 'None'
+				else if (newStatId > Board.StatCount) then begin
+					Str(newStatId, idStr);
+					GetStatName := idStr + ' ???';
+				end else with Board.Stats[newStatId] do begin
+					Str(X, xStr);
+					EditorPadSpaces(xStr, 2);
+					Str(Y, yStr);
+					EditorPadSpaces(yStr, 2);
+					Str(newStatId, idStr);
+					statStr := idStr + ' ( ' + xStr + ', ' + yStr + ')';
+					if (Data <> nil) and (DataLen > 0) then begin
+						k := 0;
+						OopReadChar(newStatId, k);
+						if OopChar = '@' then
+							statStr := statStr + ' ' + OopReadLineToEnd(newStatId, k);
+					end;
+					GetStatName := statStr;
+				end;
+			end;
+		procedure AppendAction(action: TLLEditAction; name, value: string);
+			var
+				ccStr: TString50;
+			begin
+				Inc(state.LineCount);
+				actionMap[state.LineCount] := action;
+				New(state.Lines[state.LineCount]);
+				ccStr := name + value;
+				if Length(ccStr) > 42 then
+					ccStr := Copy(ccStr, 1, 39) + '...';
+				state.Lines[state.LineCount]^ := ccStr;
+			end;
+		begin
+			state.Title := 'Low-Level Tile Info';
+			TextWindowDrawOpen(state);
+			state.LinePos := 1;
+			exitRequested := false;
+
+			repeat
+				for i := 1 to 32 do
+					actionMap[i] := LLEditNone;
+				state.Selectable := true;
+				state.LineCount := 0;
+
+				if (tx > 0) and (ty > 0) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then
+				with Board.Tiles[tx][ty] do begin
+					AppendAction(LLEditNone, '$Tile', '');
+					if statId < 0 then begin
+						Str(tx, numStr);
+						AppendAction(LLEditNone, '            X: ', numStr);
+						Str(ty, numStr);
+						AppendAction(LLEditNone, '            Y: ', numStr);
+					end;
+					AppendAction(LLEditElement, '   Element: ', EditorGetElementName(Element));
+					AppendAction(LLEditColor, '     Color: ', EditorGetColorName(Color));
+					AppendAction(LLEditNone, '', '');
+				end;
+
+				if statId >= 0 then with Board.Stats[statId] do begin
+					AppendAction(LLEditNone, '$Stat', '');
+					Str(X, numStr);
+					AppendAction(LLEditX, '         X: ', numStr);
+					Str(Y, numStr);
+					AppendAction(LLEditY, '         Y: ', numStr);
+					Str(StepX, numStr);
+					AppendAction(LLEditStepX, '    Step X: ', numStr);
+					Str(StepY, numStr);
+					AppendAction(LLEditStepY, '    Step Y: ', numStr);
+					Str(Cycle, numStr);
+					AppendAction(LLEditCycle, '     Cycle: ', numStr);
+					Str(P1, numStr);
+					AppendAction(LLEditP1, '   Param 1: ', numStr);
+					Str(P2, numStr);
+					AppendAction(LLEditP2, '   Param 2: ', numStr);
+					Str(P3, numStr);
+					AppendAction(LLEditP3, '   Param 3: ', numStr);
+					AppendAction(LLEditFollower, '  Follower: ', GetStatName(Follower));
+					AppendAction(LLEditLeader, '    Leader: ', GetStatName(Leader));
+					AppendAction(LLEditUnderElement, ' '#25' Element: ', EditorGetElementName(Under.Element));
+					AppendAction(LLEditUnderColor, ' '#25'   Color: ', EditorGetColorName(Under.Color));
+					AppendAction(LLEditNone, '', '');
+					if DataLen > 0 then begin
+						Str(DataLen, numStr);
+						AppendAction(LLEditData, '      Data: ', numStr + ' bytes');
+					end else begin
+						AppendAction(LLEditData, '      Data: ', 'None');
+					end;
+					Str(DataPos, numStr);
+					AppendAction(LLEditDataPos, '       Pos: ', numStr);
+					AppendAction(LLEditDataBound, '  Bound to: ', GetStatName(GetStatBoundToId));
+					AppendAction(LLEditNone, '', '');
+					AppendAction(LLEditDeleteStat, '!;Delete', '');
+				end;
+
+				AppendAction(LLEditNone, '!;Exit', '');
+
+				TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
+				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> state.LineCount) then begin
+					if (tx > 0) and (ty > 0) and (tx <= BOARD_WIDTH) and (ty <= BOARD_HEIGHT) then
+					with Board.Tiles[tx][ty] do case actionMap[state.LinePos] of
+						LLEditElement: begin
+							Element := EditorGetCursorElement;
+							wasModified := true;
+						end;
+						LLEditColor: begin
+							Color := cursorColor;
+							wasModified := true;
+						end;
+					end;
+
+					if statId >= 0 then with Board.Stats[statId] do case actionMap[state.LinePos] of
+						LLEditX: begin
+							i := X;
+							SidebarPromptNumericAsString('X?', '', 0, 255, i);
+							X := i; tx := i;
+							wasModified := true;
+						end;
+						LLEditY: begin
+							i := Y;
+							SidebarPromptNumericAsString('Y?', '', 0, 255, i);
+							Y := i; ty := i;
+							wasModified := true;
+						end;
+						LLEditStepX: begin
+							SidebarPromptNumericAsString('Step X?', '', -32768, 32767, StepX);
+							wasModified := true;
+						end;
+						LLEditStepY: begin
+							SidebarPromptNumericAsString('Step Y?', '', -32768, 32767, StepY);
+							wasModified := true;
+						end;
+						LLEditCycle: begin
+							SidebarPromptNumericAsString('Cycle?', '', -32768, 32767, Cycle);
+							wasModified := true;
+						end;
+						LLEditP1: begin
+							i := P1;
+							SidebarPromptNumericAsString('Param 1?', '', 0, 255, i);
+							P1 := i;
+							wasModified := true;
+						end;
+						LLEditP2: begin
+							i := P2;
+							SidebarPromptNumericAsString('Param 2?', '', 0, 255, i);
+							P2 := i;
+							wasModified := true;
+						end;
+						LLEditP3: begin
+							i := P3;
+							SidebarPromptNumericAsString('Param 3?', '', 0, 255, i);
+							P3 := i;
+							wasModified := true;
+						end;
+						LLEditFollower: begin
+							i := EditorSelectStat('Follower?', Follower, true, true, false, false);
+							if not TextWindowRejected then begin
+								Follower := i;
+								wasModified := true;
+							end;
+						end;
+						LLEditLeader: begin
+							i := EditorSelectStat('Leader?', Leader, true, true, false, false);
+							if not TextWindowRejected then begin
+								Leader := i;
+								wasModified := true;
+							end;
+						end;
+						LLEditUnderElement: begin
+							Under.Element := EditorGetCursorElement;
+							wasModified := true;
+						end;
+						LLEditUnderColor: begin
+							Under.Color := cursorColor;
+							wasModified := true;
+						end;
+						LLEditData: begin
+							EditorEditStatText(statId, ElementDefs[Board.Tiles[X][Y].Element].ParamTextName);
+						end;
+						LLEditDataBound: begin
+							i := EditorSelectStat('Bound to?', GetStatBoundToId, true, true, false, false);
+							if not TextWindowRejected then begin
+								FreeStatDataMem(statId, true);
+								if (i >= 0) and (i <> statId) then begin
+									Data := Board.Stats[i].Data;
+									DataLen := Board.Stats[i].DataLen;
+								end else begin
+									DataLen := 0;
+								end;
+								wasModified := true;
+							end;
+						end;
+						LLEditDataPos: begin
+							SidebarPromptNumericAsString('Pos?', '', -1, DataLen, DataPos);
+						end;
+						LLEditDeleteStat: begin
+							if Board.StatCount > 0 then begin
+								choiceResult := 1;
+								SidebarPromptChoice(true, 3, 'Confirm delete:', 'Yes No', choiceResult);
+								if choiceResult = 0 then begin
+									if not EditorShiftStat(
+										statId,
+										-1,
+										IdShiftDelete) then begin end;
+									statId := -1;
+								end;
+							end;
+						end;
+					end
+				end else begin
+					exitRequested := true;
+					TextWindowDrawClose(state);
+				end;
+
+				TextWindowFreeEdit(state);
+			until exitRequested;
 		end;
 
 	procedure EditorEditStat(statId: integer);
@@ -2225,7 +2504,10 @@ PlacementDone:
 					end;
 					KEY_ENTER: begin
 						i := GetStatIdAt(cursorX, cursorY);
-						if i >= 0 then begin
+						if KeysAltHeld and EditorLowLevelEnable then begin
+							EditorEditTileLowLevel(cursorX, cursorY, i);
+							TransitionDrawToBoard;
+						end else if i >= 0 then begin
 							EditorEditStat(i);
 						end else begin
 							EditorCopyPatternToCurrent(cursorX, cursorY);
@@ -2251,8 +2533,13 @@ PlacementDone:
 						EditorAskAndPasteCopyBuffer(cursorX, cursorY);
 					end;
 					KEY_CTRL_S: begin
-						i := EditorSelectStat('Stats', 0, false, false, true);
-						{ TODO }
+						i := EditorSelectStat('Stats', 0, false, false, false, true);
+						if (not TextWindowRejected) and EditorLowLevelEnable then
+							with Board.Stats[i] do begin
+								EditorEditTileLowLevel(X, Y, i);
+								TransitionDrawToBoard;
+								EditorDrawSidebar;
+							end;
 					end;
 					{$IFDEF E_SUPERZ}'O'{$ELSE}'A'{$ENDIF}: begin
 						GameOptionsScreen(false);
@@ -2590,7 +2877,12 @@ function EditorGetElementName(elemId: integer): TString50;
 		EditorGetElementName := elemStr;
 	end;
 
-function EditorSelectStat(title: string; currentStat: integer; 
+function EditorGetColorName(color: byte): TString50;
+	begin
+		EditorGetColorName := LongColorNames[color and $0F] + ' on ' + LongColorNames[color shr 4];
+	end;
+
+function EditorSelectStat(title: string; currentStat: integer; showNone: boolean;
 	windowAlreadyOpen: boolean; showAddNewStat: boolean; editable: boolean): integer;
 	var
 		i: integer;
@@ -2604,6 +2896,8 @@ function EditorSelectStat(title: string; currentStat: integer;
 			xStr, yStr, idStr: string[20];
 		begin
 			TextWindowFree(textWindow);
+			if showNone then
+				TextWindowAppend(textWindow, 'None');
 			for j := 0 to Board.StatCount do with Board.Stats[j] do begin
 				Str(X, xStr);
 				EditorPadSpaces(xStr, 2);
@@ -2635,13 +2929,14 @@ function EditorSelectStat(title: string; currentStat: integer;
 		textWindow.Selectable := true;
 		textWindow.LineCount := 0;
 		if not windowAlreadyOpen then TextWindowDrawOpen(textWindow);
-{$IFDEF EDITOR}
 		if editable then begin
 			running := true;
 			while running do begin
 				EditorDrawSidebar345(true);
 				PopulateStats;
+				if showNone then Inc(textWindow.LinePos);
 				TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS or TWS_EXIT_MINUS_PLUS_DEL);
+				if showNone then Dec(textWindow.LinePos);
 				if InputKeyPressed = '-' then begin
 					if textWindow.LinePos > 2 then begin
 						if EditorShiftStat(
@@ -2659,36 +2954,24 @@ function EditorSelectStat(title: string; currentStat: integer;
 						Inc(textWindow.LinePos);
 					end;
 				end else if InputKeyPressed = KEY_DELETE then begin
-					{ TODO }
-					{ if Board.StatCount > 0 then begin
+					if EditorLowLevelEnable and (Board.StatCount > 0) then begin
 						choiceResult := 1;
 						SidebarPromptChoice(true, 3, 'Confirm delete:', 'Yes No', choiceResult);
 						if choiceResult = 0 then if not EditorShiftStat(
 								textWindow.LinePos - 1,
 								-1,
 								IdShiftDelete) then begin
-							TextWindowFree(textWindow);
-							textWindow.LineCount := 4;
-							for i := 1 to textWindow.LineCount do
-								New(textWindow.Lines[i]);
-
-							textWindow.Lines[1]^ := '$Warning';
-							textWindow.Lines[2]^ := '';
-							textWindow.Lines[3]^ := 'Some Stat exits and/or passages have had';
-							textWindow.Lines[4]^ := 'their destinations reset.';
-
-							TextWindowSelect(textWindow, 0);
 						end;
-					end; }
+					end;
 				end else running := false;
 			end;
 		end else begin
-{$ENDIF}
-		PopulateStats;
-		TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
-{$IFDEF EDITOR}
+			PopulateStats;
+			if showNone then Inc(textWindow.LinePos);
+			TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS or TWS_EXIT_MINUS_PLUS_DEL);
+			if showNone then Dec(textWindow.LinePos);
 		end;
-{$ENDIF}
+
 		if not windowAlreadyOpen then TextWindowDrawClose(textWindow);
 		TextWindowFree(textWindow);
 
@@ -2699,4 +2982,5 @@ function EditorSelectStat(title: string; currentStat: integer;
 begin
 	EditorAutoAppendPats := false;
 	EditorSeparateStartingBoard := false;
+	EditorLowLevelEnable := false;
 end.

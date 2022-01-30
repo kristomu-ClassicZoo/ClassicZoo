@@ -38,6 +38,7 @@ interface
 	procedure GameAboutScreen;
 	procedure GameOptionsScreen(playingGame: boolean);
 {$IFNDEF FPC}
+	function ConfigShowValueNone: string;
 	function ConfigCustomActionNone: boolean;
 	function ConfigCompatibilityGetValue: integer;
 	procedure ConfigCompatibilitySetValue(value: integer);
@@ -48,6 +49,9 @@ interface
 	function ConfigEdSepStartBoardGetValue: integer;
 	procedure ConfigEdSepStartBoardSetValue(value: integer);
 	function ConfigEdSepStartBoardShowValue: string;
+	function ConfigEdLowLevelGetValue: integer;
+	procedure ConfigEdLowLevelSetValue(value: integer);
+	function ConfigEdLowLevelShowValue: string;
 	function ConfigCleenModeGetValue: integer;
 	procedure ConfigCleenModeSetValue(value: integer);
 	function ConfigCleenModeShowValue: string;
@@ -94,6 +98,11 @@ type
 var
 	ConfigEntryInputPos: integer;
 	HardEscapeHack: boolean;
+
+function ConfigShowValueNone: string;
+	begin
+		ConfigShowValueNone := '';
+	end;
 
 function ConfigCustomActionNone: boolean;
 	begin
@@ -176,6 +185,22 @@ procedure ConfigEdSepStartBoardSetValue(value: integer);
 function ConfigEdSepStartBoardShowValue: string;
 	begin
 		ConfigEdSepStartBoardShowValue := ConfigShowYesNoValue(EditorSeparateStartingBoard);
+	end;
+
+function ConfigEdLowLevelGetValue: integer;
+	begin
+		ConfigEdLowLevelGetValue := Byte(EditorLowLevelEnable);
+	end;
+
+procedure ConfigEdLowLevelSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		EditorLowLevelEnable := Boolean(value);
+	end;
+
+function ConfigEdLowLevelShowValue: string;
+	begin
+		ConfigEdLowLevelShowValue := ConfigShowYesNoValue(EditorLowLevelEnable);
 	end;
 
 function ConfigCleenModeGetValue: integer;
@@ -598,7 +623,7 @@ function ConfigInputCustomAction: boolean;
 {$ENDIF}
 
 const
-	ConfigEntryCount = 6
+	ConfigEntryCount = 7
 	{$IFDEF MSDOS} + 3 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF DEBUGWND} + 3 {$ENDIF}
@@ -627,6 +652,8 @@ procedure GameConfigInit;
 				GetValue := nil;
 				SetValue := nil;
 {$ENDIF}
+				ShowValue := ConfigShowValueNone;
+				CustomAction := ConfigCustomActionNone;
 			end;
 
 		i := 1;
@@ -638,7 +665,6 @@ procedure GameConfigInit;
 			GetValue := ConfigCompatibilityGetValue;
 			SetValue := ConfigCompatibilitySetValue;
 			ShowValue := ConfigCompatibilityShowValue;
-			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
 		with ConfigEntries[i] do begin
@@ -647,8 +673,9 @@ procedure GameConfigInit;
 			Name := 'Auto-Append';
 			GetValue := ConfigEdAutoAppendGetValue;
 			SetValue := ConfigEdAutoAppendSetValue;
+{$IFDEF EDITOR}
 			ShowValue := ConfigEdAutoAppendShowValue;
-			CustomAction := ConfigCustomActionNone;
+{$ENDIF}
 		end;
 		Inc(i);
 		with ConfigEntries[i] do begin
@@ -657,8 +684,20 @@ procedure GameConfigInit;
 			Name := 'Separate start board';
 			GetValue := ConfigEdSepStartBoardGetValue;
 			SetValue := ConfigEdSepStartBoardSetValue;
+{$IFDEF EDITOR}
 			ShowValue := ConfigEdSepStartBoardShowValue;
-			CustomAction := ConfigCustomActionNone;
+{$ENDIF}
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCEditor;
+			Key := 'EdLowLvl';
+			Name := 'Low-level tile edit';
+			GetValue := ConfigEdLowLevelGetValue;
+			SetValue := ConfigEdLowLevelSetValue;
+{$IFDEF EDITOR}
+			ShowValue := ConfigEdLowLevelShowValue;
+{$ENDIF}
 		end;
 		Inc(i);
 		with ConfigEntries[i] do begin
@@ -668,7 +707,6 @@ procedure GameConfigInit;
 			GetValue := ConfigCleenModeGetValue;
 			SetValue := ConfigCleenModeSetValue;
 			ShowValue := ConfigCleenModeShowValue;
-			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
 		with ConfigEntries[i] do begin
@@ -678,7 +716,6 @@ procedure GameConfigInit;
 			GetValue := ConfigNeuromotorAssistGetValue;
 			SetValue := ConfigNeuromotorAssistSetValue;
 			ShowValue := ConfigNeuromotorAssistShowValue;
-			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
 		with ConfigEntries[i] do begin
@@ -688,7 +725,6 @@ procedure GameConfigInit;
 			GetValue := ConfigVidColorGetValue;
 			SetValue := ConfigVidColorSetValue;
 			ShowValue := ConfigVidColorShowValue;
-			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
 {$IFDEF MSDOS}
@@ -699,7 +735,6 @@ procedure GameConfigInit;
 			GetValue := ConfigSoundGetValue;
 			SetValue := ConfigSoundSetValue;
 			ShowValue := ConfigSoundShowValue;
-			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
 		with ConfigEntries[i] do begin
@@ -709,7 +744,6 @@ procedure GameConfigInit;
 			GetValue := ConfigInputGetValue;
 			SetValue := ConfigInputSetValue;
 			ShowValue := ConfigInputShowValue;
-			CustomAction := ConfigCustomActionNone;
 		end;
 		ConfigEntryInputPos := i;
 		Inc(i);
@@ -720,7 +754,6 @@ procedure GameConfigInit;
 			GetValue := ConfigVideoBlinkGetValue;
 			SetValue := ConfigVideoBlinkSetValue;
 			ShowValue := ConfigVideoBlinkShowValue;
-			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
 {$ENDIF}
@@ -782,7 +815,6 @@ procedure GameConfigInit;
 			GetValue := ConfigFullscreenGetValue;
 			SetValue := ConfigFullscreenSetValue;
 			ShowValue := ConfigFullscreenShowValue;
-			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
 {$ENDIF}
@@ -794,7 +826,6 @@ procedure GameConfigInit;
 			GetValue := ConfigVideoScalingGetValue;
 			SetValue := ConfigVideoScalingSetValue;
 			ShowValue := ConfigVideoScalingShowValue;
-			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
 
@@ -826,7 +857,6 @@ procedure GameConfigInit;
 			GetValue := ConfigHQSoundGetValue;
 			SetValue := ConfigHQSoundSetValue;
 			ShowValue := ConfigHQSoundShowValue;
-			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
 
@@ -853,7 +883,6 @@ procedure GameConfigInit;
 			GetValue := ConfigVideoBlinkGetValue;
 			SetValue := ConfigVideoBlinkSetValue;
 			ShowValue := ConfigVideoBlinkShowValue;
-			CustomAction := ConfigCustomActionNone;
 		end;
 		Inc(i);
 {$ENDIF}

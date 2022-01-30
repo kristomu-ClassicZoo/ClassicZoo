@@ -26,6 +26,8 @@ $< ClassicZoo dev >
     board size in bytes.
   + Config option to make the starting
     board editable separately ([W]).
+  + Config option and menu for low-level
+    tile/stat editing.
   * Board deletion is now done by
     pressing DEL in the board list.
   * The user is now prevented from
