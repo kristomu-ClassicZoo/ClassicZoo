@@ -351,18 +351,9 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 
 		if charsetHeight > 0 then begin
 			VideoCharsetHeight := charsetHeight;
+			if (VideoCharsetHeight > 8) and (VideoRows <> 25) then exit;
 		end else begin
 			if VideoVGAInstalled then begin
-				if mode = VIDEO_MODE_80X50 then begin
-					regs.AX := $1202;
-				end else begin
-					regs.AX := $1201;
-				end;
-				regs.BL := $30;
-				Intr($10, regs);
-
-				if (regs.AL <> $12) and (VideoRows <> 25) then exit;
-
 				if VideoRows = 25 then
 					VideoCharsetHeight := 14
 				else
@@ -372,6 +363,20 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 			end else begin
 				VideoCharsetHeight := 8;
 			end;
+		end;
+
+		if VideoVGAInstalled then begin
+			if (mode = VIDEO_MODE_80X50) or (VideoCharsetHeight = 16) then begin
+				regs.AX := $1202;
+			end else if (mode = VIDEO_MODE_80X43) or (VideoCharsetHeight = 14) then begin
+				regs.AX := $1201;
+			end else begin
+				regs.AX := $1200;
+			end;
+			regs.BL := $30;
+			Intr($10, regs);
+
+			if (regs.AL <> $12) and (VideoRows <> 25) then exit;
 		end;
 
 		if VideoMonochrome then begin
@@ -475,7 +480,7 @@ procedure VideoUninstall;
 		TextBackground(0);
 		VideoColumns := 80;
 		VideoRows := 25;
-		VideoCurrentMode := VIDEO_MODE_80X25;
+		VideoCurrentMode := -1;
 		TextMode(VideoLastMode);
 		VideoSetBorderColor(0);
 
@@ -700,6 +705,7 @@ begin
 	VideoForceNoSnow := false;
 	VideoForceSafe := false;
 	VideoBlink := true;
+	VideoCurrentMode := -1;
 
 	VideoPreInstall;
 end.
