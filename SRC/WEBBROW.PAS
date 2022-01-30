@@ -41,6 +41,7 @@ type
 		Title: string;
 		Author: string;
 		Company: string;
+		Genre: string;
 		Year: integer;
 		Offset: integer;
 		Sort: string;
@@ -180,6 +181,7 @@ begin
 	if Length(query.Title) > 0 then AppendQuery('title', query.Title);
 	if Length(query.Author) > 0 then AppendQuery('author', query.Author);
 	if Length(query.Company) > 0 then AppendQuery('company', query.Company);
+	if Length(query.Genre) > 0 then AppendQuery('genre', query.Genre);
 	if query.Year > 1990 then AppendQuery('year', IntToStr(query.Year));
 	if query.Offset > 0 then AppendQuery('offset', IntToStr(query.Offset));
 	if Length(query.Sort) > 0 then AppendQuery('sort', query.Sort);
@@ -256,6 +258,7 @@ begin
 		end else begin
 			WorldCreate;
 			ShowStatusMessage('World load error!');
+			PauseOnError;
 		end;
 	end;
 
@@ -305,7 +308,7 @@ begin
 	end; }
 end;
 
-function WebBrowserTextFiles(url, urlFilename: string): boolean;
+function WebBrowserTextFiles(title, url, urlFilename: string): boolean;
 var
 	i: Int32;
 	textWindow: TTextWindowState;
@@ -333,6 +336,7 @@ begin
 		ShowStatusMessage('');
 
 		TextWindowInitState(textWindow);
+		textWindow.Title := title;
 		if urlRequested then begin
 			TextWindowAppend(textWindow, 'Error downloading file!');
 			TextWindowAppend(textWindow, '');
@@ -352,7 +356,7 @@ begin
 			end;
 		end;
 
-		TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT);
+		TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT or TWS_LONG_HYPERLINKS);
 
 		if (TextWindowRejected) or (textWindow.Hyperlink = '$return') then begin
 			running := false;
@@ -405,6 +409,7 @@ var
 		searchCount: Int32;
 		searchActive: boolean;
 		searchRequested: boolean;
+		detailActive: boolean;
 		running: boolean;
 		titleString: string;
 		addSpace: boolean;
@@ -413,13 +418,18 @@ var
 			FillChar(searchQuery, SizeOf(searchQuery), 0);
 		end;
 	begin
+		searchActive := false;
+		detailActive := false;
+
 		WebBrowserSearch := false;
 		NewSearchQuery;
 
 		running := true;
 		while running do begin
 			TextWindowInitState(textWindow);
-			if searchActive then try
+			{ if detailActive then try
+				
+			end else }if searchActive then try
 				if (not searchRequested) or CallMuseumSearch(searchQuery, jsonData) then begin
 					if Length(searchQuery.Title) <> 0 then
 						titleString := 'Title: ' + searchQuery.Title
@@ -473,6 +483,7 @@ var
 			except
 				begin
 					ShowStatusMessage('Search error!');
+					PauseOnError;
 					searchActive := false;
 				end;
 			end else begin
@@ -481,6 +492,7 @@ var
 			TextWindowAppend(textWindow, '!$title;Search by title');
 			TextWindowAppend(textWindow, '!$author;Search by author');
 			TextWindowAppend(textWindow, '!$company;Search by company');
+			TextWindowAppend(textWindow, '!$genre;Search by genre');
 			TextWindowAppend(textWindow, '');
 			TextWindowAppend(textWindow, '!@REC_%ENGINE%;Recommended worlds');
 			TextWindowAppend(textWindow, '!$all;Browse all files');
@@ -489,7 +501,8 @@ var
 			TextWindowAppend(textWindow, '         https://museumofzzt.com');
 			TextWindowAppend(textWindow, '');
 
-			TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT or TWS_CONSTANT_TITLE);
+			TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT or TWS_CONSTANT_TITLE
+				or TWS_LONG_HYPERLINKS);
 			try
 				if TextWindowRejected then begin
 					running := false;
@@ -512,6 +525,11 @@ var
 					PopupPromptString('Company?', searchQuery.Company, 50);
 					searchActive := true;
 					searchRequested := true;
+				end else if textWindow.Hyperlink = '$genre' then begin
+					NewSearchQuery;
+					PopupPromptString('Genre?', searchQuery.Genre, 50);
+					searchActive := true;
+					searchRequested := true;
 				end else if textWindow.Hyperlink = '$next' then begin
 					searchQuery.Offset := jsonData.Get('next_offset', searchQuery.Offset + SEARCH_RESULT_SIZE);
 					searchRequested := true;
@@ -520,8 +538,15 @@ var
 					if searchQuery.Offset < 0 then
 						searchQuery.Offset := 0;
 					searchRequested := true;
+				end else if textWindow.Hyperlink = '$download' then begin
+					if WebBrowserLoadZipFile(
+						jsonResult.Get('letter'), jsonResult.Get('filename')
+					) then begin
+						WebBrowserSearch := true;
+						running := false;
+					end;
 				end else if (Length(textWindow.Hyperlink) >= 1) and (textWindow.Hyperlink[1] = '@') then begin
-					if WebBrowserTextFiles('https://zeta.asie.pl/museum_client',
+					if WebBrowserTextFiles('Viewing file', 'https://zeta.asie.pl/museum_client',
 						Copy(textWindow.Hyperlink, 2, Length(textWindow.Hyperlink) - 1)
 					) then begin
 						WebBrowserSearch := true;
@@ -535,10 +560,12 @@ var
 						WebBrowserSearch := true;
 						running := false;
 					end;
+					{ detailActive := true; }
 				end;
 			except
 				begin
 					ShowStatusMessage('Error!');
+					PauseOnError;
 				end;
 			end;
 			TextWindowFree(textWindow);

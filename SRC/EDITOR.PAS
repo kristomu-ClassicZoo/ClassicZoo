@@ -898,9 +898,11 @@ procedure EditorLoop;
 
 				state.Lines[10]^ := '';
 				Str(BoardCurrentStorageSize, numStr);
+{$IFDEF DEBUGWND}
 				if DebugCompatEnabled then
 					Str(ZZT_32_BOARD_MAX_SIZE, numStrTwo)
 				else
+{$ENDIF}
 					Str(IO_BUFFER_MAXIMUM_SIZE, numStrTwo);
 				state.Lines[11]^ := 'Board size: ' + numStr + '/' + numStrTwo + ' bytes.';
 				state.Lines[12]^ := '!;Exit';

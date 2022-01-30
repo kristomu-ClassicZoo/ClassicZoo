@@ -54,6 +54,7 @@ interface
 		TWS_EXIT_MINUS_PLUS_DEL = $08;
 {$ENDIF}
 		TWS_CONSTANT_TITLE = $10;
+		TWS_LONG_HYPERLINKS = $20;
 		MAX_TEXT_WINDOW_WIDTH = 50;
 {$IFDEF E_SUPERZ}
 	{$IFDEF NEC98}
@@ -77,9 +78,8 @@ interface
 			LineCount: integer;
 			LinePos: integer;
 			Lines: array[1 .. MAX_TEXT_WINDOW_LINES] of PTTextWindowLine;
-			Hyperlink: string[20];
+			Hyperlink: string[50];
 			Title: TTextWindowLine;
-			LoadedFilename: string[50];
 			ScreenCopy: array[1 .. (MAX_TEXT_WINDOW_HEIGHT + 1)] of TScreenCopyLine;
 		end;
 		TResourceDataHeader = record
@@ -176,7 +176,6 @@ procedure TextWindowInitState(var state: TTextWindowState);
 		with state do begin
 			LineCount := 0;
 			LinePos := 1;
-			LoadedFilename := '';
 		end;
 	end;
 
@@ -362,7 +361,6 @@ procedure TextWindowFree(var state: TTextWindowState);
 				FreeMem(Lines[LineCount], Ord(Lines[LineCount]^[0]) + 1);
 				Dec(LineCount);
 			end;
-			LoadedFilename := '';
 		end;
 	end;
 
@@ -373,7 +371,6 @@ procedure TextWindowFreeEdit(var state: TTextWindowState);
 				Dispose(Lines[LineCount]);
 				Dec(LineCount);
 			end;
-			LoadedFilename := '';
 		end;
 	end;
 
@@ -423,7 +420,7 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 		viewingFile: boolean;
 		exitWindow: boolean;
 		iLine, iChar: integer;
-		pointerStr: string[20];
+		pointerStr: TString50;
 	label LabelMatched;
 	label LabelNotMatched;
 	begin
@@ -450,6 +447,9 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 						if Pos(';', pointerStr) > 0 then begin
 							pointerStr := Copy(pointerStr, 1, Pos(';', pointerStr) - 1);
 						end;
+
+						if ((flags and TWS_LONG_HYPERLINKS) = 0) and (Length(pointerStr) > 20) then
+							pointerStr[0] := Chr(20);
 
 						if pointerStr[1] = '-' then begin
 							Delete(pointerStr, 1, 1);
@@ -1066,12 +1066,10 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 			end;
 
 			TextWindowInitState(state);
-			LoadedFilename := UpCaseString(filename);
 
 			if ResourceDataCheckPresent and (entryPos = 0) then begin
 				for i := 1 to ResourceDataHeader.EntryCount do begin
-					{ assumption: LoadedFilename is UpCaseString(filename) }
-					if ResourceDataHeader.Name[i] = LoadedFilename then begin
+					if ResourceDataHeader.Name[i] = UpCaseString(filename) then begin
 						entryPos := i;
 						goto EntryPosFoundResData;
 					end;

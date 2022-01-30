@@ -43,8 +43,10 @@ keys or the numeric keypad.
 and press the cursor key in the direction
 you wish to shoot.
 
+   Other keys are listed on the sidebar,
+to the right-hand side of the playfield.
 
-$Using a Joystick
+$Using a Joystick/Gamepad
 
    ZZT fully supports joystick operation.
 To move, just point the joystick in the
@@ -52,15 +54,8 @@ desired direction.  To shoot, hold down
 the button then move the stick in the
 direction you wish to shoot.
 
-   To use a joystick, you must say so when
-you first run ZZT and you are prompted
-"Keyboard, Joystick, Mouse?".  If you
-have not done this, leave the program
-and start over.
-
    At times, you may prefer to use the
 keyboard for more accurate maneuvers.
-
 
 $Using a Mouse
 

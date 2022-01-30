@@ -1,0 +1,163 @@
+$Terrains
+
+     Terrains are the most important part
+of any ZZT board because they form the
+foundation upon which the game's action
+is based.
+
+     Walls, Boulders, Forest and other
+terrains can be arranged to form puzzles,
+mazes, and scenery.  Each type of terrain
+has unique properties.
+
+!lava;Lava
+!forest;Forest
+!walls;Solid and Normal walls
+!breakable;Breakable walls
+!boulder;Boulders
+!slider;Sliders
+!fake;Fake walls
+!invisible;Invisible walls
+!blinking;Blinking walls
+!transporter;Transporter
+!ricochet;Ricochet
+!floor;Floors
+!water;Water
+!web;Web
+
+:lava;Lava
+
+     Neither players nor creatures can
+travel through lava, but bullets pass
+freely over it.  The player must make
+their way around it, taking care to
+avoid bullets and stars passing over
+the lava pools.
+
+
+:forest;Forest
+
+     The player can move through forest,
+clearing a path behind them.  Creatures
+cannot move through forest, but readily
+follow the player through cleared paths.
+
+
+:walls;Solid and Normal walls
+
+     These walls form a barrier that is
+always impenetrable.  Nobody walks through
+walls.  Period.
+
+
+:breakable;Breakable walls
+
+     These walls also block the player and
+all creatures, but can be destroyed.
+
+     When a breakable wall is shot with a
+bullet, one piece of the wall disappears.
+Also, when a bomb explodes, all breakable
+walls in the vicinity of the bomb are
+destroyed.
+
+
+:boulder;Boulders
+
+     Boulders are solid objects that can
+be pushed around by the player.
+
+     By combining boulders, pushers,
+walls, and other objects, a variety of
+challenging thought puzzles can be
+created.
+
+
+:slider;Sliders
+
+     Sliders are similar to boulders, but
+are confined to move in a line.  A slider
+looks like a line with two arrows at
+opposite ends, and can only move in the
+direction of the arrows.
+
+
+:fake;Fake walls
+
+     Fake walls look exactly like normal
+walls, but have no effect on the player.
+The player can walk over fake walls just
+as if they were empty space.  Fake walls
+are meant for creating secret passages.
+
+
+:invisible;Invisible walls
+
+     Invisible walls look like empty space
+to the player, but prevent the player
+from moving over them.  When the player
+touches an invisible wall, it suddenly
+appears as a normal wall.  Creatures can
+not pass through invisible walls either.
+
+
+:blinking;Blinking walls
+
+     A blinking wall placed on the board
+emitts a ray pointing in a specified
+direction.  This ray blinks on and off
+at a constant rate, and forms a barrier
+that is difficult for the player to cross.
+
+     When created, each blinking wall
+must be assigned a starting time and
+a duration.  By creating a line of
+walls with the same duration but varying
+start times, a moving wave appears.
+
+
+:transporter;Transporter
+
+     When the player enters a transporter,
+they are magically moved to another area
+of the board.
+
+     Each transporter points in a given
+direction, and the player can only enter
+the transporter from behind.  They are
+then moved along a line, in the direction
+of the transporter, to the nearest
+transporter that points in the opposite
+direction.
+
+
+:ricochet;Ricochet
+
+    Ricochets can be used to reverse the
+direction of bullets hitting them. In
+addition, if a bullet hits a wall with a
+ricochet to the side, it will turn left
+or right depending on its location.
+
+
+:floor;Floors
+
+    This type of terrain allows the
+player to walk on it. Unlike fake walls,
+it is not meant to hide secrets, but
+rather as decration.
+
+
+:water;Water
+
+    Water will propel the player in the
+direction pointed by the arrow on it. It
+can be used to create streams, as well
+as flowing rivers.
+
+
+:web;Web
+
+    This is another walkable kind of
+terrain. In addition to the player, it
+is utilized by Spiders.

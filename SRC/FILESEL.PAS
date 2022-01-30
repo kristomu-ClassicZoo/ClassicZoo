@@ -237,7 +237,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 			TextWindowSort(textWindow, iSortStart, textWindow.LineCount);
 			TextWindowAppend(textWindow, 'Exit');
 
-			TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT);
+			TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT or TWS_LONG_HYPERLINKS);
 			InputKeyPressed := #0;
 
 			if (textWindow.LinePos = textWindow.LineCount) or TextWindowRejected then begin
