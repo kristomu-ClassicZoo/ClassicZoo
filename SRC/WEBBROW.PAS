@@ -43,6 +43,7 @@ type
 		Company: string;
 		Year: integer;
 		Offset: integer;
+		Sort: string;
 	end;
 	TWebUnzipper = class(TUnzipper)
 	private
@@ -181,6 +182,7 @@ begin
 	if Length(query.Company) > 0 then AppendQuery('company', query.Company);
 	if query.Year > 1990 then AppendQuery('year', IntToStr(query.Year));
 	if query.Offset > 0 then AppendQuery('offset', IntToStr(query.Offset));
+	if Length(query.Sort) > 0 then AppendQuery('sort', query.Sort);
 
 	CallMuseumSearch := CallMuseumAPI(path, jsonData);
 end;
@@ -299,6 +301,76 @@ begin
 	end; }
 end;
 
+function WebBrowserTextFiles(url, urlFilename: string): boolean;
+var
+	i: Int32;
+	textWindow: TTextWindowState;
+	urlRequested: boolean;
+	running: boolean;
+	data: AnsiString;
+	dataLine: string;
+begin
+	WebBrowserTextFiles := false;
+	urlRequested := true;
+	running := true;
+
+	while running do begin
+		ShowStatusMessage('Connecting...');
+
+		with TFPHttpClient.Create(Nil) do
+			try
+				AllowRedirect := true;
+				data := Get(url + '/' + urlFilename + '.TXT');
+				urlRequested := false;
+			finally
+				Free;
+			end;
+
+		ShowStatusMessage('');
+
+		TextWindowInitState(textWindow);
+		if urlRequested then begin
+			TextWindowAppend(textWindow, 'Error downloading file!');
+			TextWindowAppend(textWindow, '');
+			TextWindowAppend(textWindow, '!$return;Return');
+		end else begin
+			dataLine := '';
+			for i := 1 to Length(data) do begin
+				if data[i] = #10 then begin
+					TextWindowAppend(textWindow, dataLine);
+					dataLine := '';
+				end else begin
+					dataLine := dataLine + data[i];
+				end;
+			end;
+			if Length(dataLine) > 0 then begin
+				TextWindowAppend(textWindow, dataLine);
+			end;
+		end;
+
+		TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT);
+
+		if (TextWindowRejected) or (textWindow.Hyperlink = '$return') then begin
+			running := false;
+		end else if (Length(textWindow.Hyperlink) >= 1) and (textWindow.Hyperlink[1] = '$') then begin
+			{ }
+		end else if (Length(textWindow.Hyperlink) >= 1) and (textWindow.Hyperlink[1] = '@') then begin
+			urlFilename := Copy(textWindow.Hyperlink, 2, Length(textWindow.Hyperlink) - 1);
+			urlRequested := true;
+		end else begin
+			if WebBrowserLoadZipFile(
+				Copy(textWindow.Hyperlink, 1, 1),
+				Copy(textWindow.Hyperlink, 2, Length(textWindow.Hyperlink) - 1)
+			) then begin
+				WebBrowserTextFiles := true;
+				running := false;
+			end;
+		end;
+
+		TextWindowFree(textWindow);
+	end;
+end;
+
 procedure WebBrowserLoop;
 var
 	preLoopPath: string;
@@ -376,13 +448,15 @@ var
 						TextWindowAppend(textWindow, 'No results found.');
 					TextWindowAppend(textWindow, '');
 					addSpace := false;
-					if searchCount = SEARCH_RESULT_SIZE then begin
-						TextWindowAppend(textWindow, '!$next;Next page');
-						addSpace := true;
-					end;
-					if searchQuery.Offset > 0 then begin
-						TextWindowAppend(textWindow, '!$prev;Previous page');
-						addSpace := true;
+					if searchQuery.Sort <> 'roulette' then begin
+						if searchCount = SEARCH_RESULT_SIZE then begin
+							TextWindowAppend(textWindow, '!$next;Next page');
+							addSpace := true;
+						end;
+						if searchQuery.Offset > 0 then begin
+							TextWindowAppend(textWindow, '!$prev;Previous page');
+							addSpace := true;
+						end;
 					end;
 					if addSpace then
 						TextWindowAppend(textWindow, '');
@@ -398,6 +472,8 @@ var
 			TextWindowAppend(textWindow, '!$title;Search by title');
 			TextWindowAppend(textWindow, '!$author;Search by author');
 			TextWindowAppend(textWindow, '!$company;Search by company');
+			TextWindowAppend(textWindow, '');
+			TextWindowAppend(textWindow, '!@REC_%ENGINE%;Recommended worlds');
 			TextWindowAppend(textWindow, '!$all;Browse all files');
 			TextWindowAppend(textWindow, '');
 			TextWindowAppend(textWindow, '       Visit the Museum of ZZT at:');
@@ -434,6 +510,13 @@ var
 				if searchQuery.Offset < 0 then
 					searchQuery.Offset := 0;
 				searchRequested := true;
+			end else if (Length(textWindow.Hyperlink) >= 1) and (textWindow.Hyperlink[1] = '@') then begin
+				if WebBrowserTextFiles('https://zeta.asie.pl/museum_client',
+					Copy(textWindow.Hyperlink, 2, Length(textWindow.Hyperlink) - 1)
+				) then begin
+					WebBrowserSearch := true;
+					running := false;
+				end;
 			end else if (Length(textWindow.Hyperlink) >= 1) and (textWindow.Hyperlink[1] <> '$') then begin
 				jsonResult := jsonResults.Extract(StrToInt(textWindow.Hyperlink)) as TJSONObject;
 				if WebBrowserLoadZipFile(

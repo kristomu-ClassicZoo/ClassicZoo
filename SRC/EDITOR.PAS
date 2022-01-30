@@ -1298,7 +1298,8 @@ procedure EditorLoop;
 							end;
 						end;
 						LLEditDataPos: begin
-							SidebarPromptNumericAsString('Pos?', '', -1, DataLen, DataPos);
+							{ -1 .. DataLen }
+							SidebarPromptNumericAsString('Pos?', '', -32768, 32767, DataPos);
 						end;
 						LLEditDeleteStat: begin
 							if Board.StatCount > 0 then begin

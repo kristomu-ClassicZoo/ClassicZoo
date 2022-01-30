@@ -13,15 +13,15 @@ $< ClassicZoo dev >
   improvements and bugfixes from each
   codebase have made its way to both.
   + In particular, this means Super
-    ClassicZoo now has PC-9801 and
-    SDL2 ports!
+    ClassicZoo now has PC-9801, SDL2
+    and Amiga ports!
 + Editor improvements.
   + [SDL2] Press Alt+arrows to move
     faster on the board.
   + Board reordering - use -/+
     in the board selection menu!
   + Stats list - Ctrl+S; use -/+
-    to reoder stats.
+    to reorder stats.
   + Board info menu now displays the
     board size in bytes.
   + Config option to make the starting
