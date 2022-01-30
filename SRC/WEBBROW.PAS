@@ -199,7 +199,11 @@ var
 	zztEntryFilename: string;
 begin
 	WebBrowserLoadZipFile := false;
-	if not DownloadMuseumZipFile(letter, museumFilename, unz) then exit;
+	try
+		if not DownloadMuseumZipFile(letter, museumFilename, unz) then exit;
+	except
+		exit
+	end;
 
 	zztEntryCount := 0;
 	for i := 0 to (unz.Entries.Count - 1) do with unz.Entries.Entries[i] do begin
@@ -357,7 +361,7 @@ begin
 		end else if (Length(textWindow.Hyperlink) >= 1) and (textWindow.Hyperlink[1] = '@') then begin
 			urlFilename := Copy(textWindow.Hyperlink, 2, Length(textWindow.Hyperlink) - 1);
 			urlRequested := true;
-		end else begin
+		end else if (Length(textWindow.Hyperlink) >= 2) then begin
 			if WebBrowserLoadZipFile(
 				Copy(textWindow.Hyperlink, 1, 1),
 				Copy(textWindow.Hyperlink, 2, Length(textWindow.Hyperlink) - 1)
@@ -415,7 +419,7 @@ var
 		running := true;
 		while running do begin
 			TextWindowInitState(textWindow);
-			if searchActive then begin
+			if searchActive then try
 				if (not searchRequested) or CallMuseumSearch(searchQuery, jsonData) then begin
 					if Length(searchQuery.Title) <> 0 then
 						titleString := 'Title: ' + searchQuery.Title
@@ -466,6 +470,11 @@ var
 				end;
 
 				searchRequested := false;
+			except
+				begin
+					ShowStatusMessage('Search error!');
+					searchActive := false;
+				end;
 			end else begin
 				textWindow.Title := 'Museum of ZZT';
 			end;
@@ -481,52 +490,57 @@ var
 			TextWindowAppend(textWindow, '');
 
 			TextWindowSelect(textWindow, TWS_HYPERLINK_AS_SELECT or TWS_CONSTANT_TITLE);
-			if TextWindowRejected then begin
-				running := false;
-			end else if textWindow.Hyperlink = '$all' then begin
-				NewSearchQuery;
-				searchActive := true;
-				searchRequested := true;
-			end else if textWindow.Hyperlink = '$title' then begin
-				NewSearchQuery;
-				PopupPromptString('Title?', searchQuery.Title, 50);
-				searchActive := true;
-				searchRequested := true;
-			end else if textWindow.Hyperlink = '$author' then begin
-				NewSearchQuery;
-				PopupPromptString('Author?', searchQuery.Author, 50);
-				searchActive := true;
-				searchRequested := true;
-			end else if textWindow.Hyperlink = '$company' then begin
-				NewSearchQuery;
-				PopupPromptString('Company?', searchQuery.Company, 50);
-				searchActive := true;
-				searchRequested := true;
-			end else if textWindow.Hyperlink = '$next' then begin
-				searchQuery.Offset := jsonData.Get('next_offset', searchQuery.Offset + SEARCH_RESULT_SIZE);
-				searchRequested := true;
-			end else if textWindow.Hyperlink = '$prev' then begin
-				searchQuery.Offset := searchQuery.Offset - SEARCH_RESULT_SIZE;
-				if searchQuery.Offset < 0 then
-					searchQuery.Offset := 0;
-				searchRequested := true;
-			end else if (Length(textWindow.Hyperlink) >= 1) and (textWindow.Hyperlink[1] = '@') then begin
-				if WebBrowserTextFiles('https://zeta.asie.pl/museum_client',
-					Copy(textWindow.Hyperlink, 2, Length(textWindow.Hyperlink) - 1)
-				) then begin
-					WebBrowserSearch := true;
+			try
+				if TextWindowRejected then begin
 					running := false;
+				end else if textWindow.Hyperlink = '$all' then begin
+					NewSearchQuery;
+					searchActive := true;
+					searchRequested := true;
+				end else if textWindow.Hyperlink = '$title' then begin
+					NewSearchQuery;
+					PopupPromptString('Title?', searchQuery.Title, 50);
+					searchActive := true;
+					searchRequested := true;
+				end else if textWindow.Hyperlink = '$author' then begin
+					NewSearchQuery;
+					PopupPromptString('Author?', searchQuery.Author, 50);
+					searchActive := true;
+					searchRequested := true;
+				end else if textWindow.Hyperlink = '$company' then begin
+					NewSearchQuery;
+					PopupPromptString('Company?', searchQuery.Company, 50);
+					searchActive := true;
+					searchRequested := true;
+				end else if textWindow.Hyperlink = '$next' then begin
+					searchQuery.Offset := jsonData.Get('next_offset', searchQuery.Offset + SEARCH_RESULT_SIZE);
+					searchRequested := true;
+				end else if textWindow.Hyperlink = '$prev' then begin
+					searchQuery.Offset := searchQuery.Offset - SEARCH_RESULT_SIZE;
+					if searchQuery.Offset < 0 then
+						searchQuery.Offset := 0;
+					searchRequested := true;
+				end else if (Length(textWindow.Hyperlink) >= 1) and (textWindow.Hyperlink[1] = '@') then begin
+					if WebBrowserTextFiles('https://zeta.asie.pl/museum_client',
+						Copy(textWindow.Hyperlink, 2, Length(textWindow.Hyperlink) - 1)
+					) then begin
+						WebBrowserSearch := true;
+						running := false;
+					end;
+				end else if (Length(textWindow.Hyperlink) >= 1) and (textWindow.Hyperlink[1] <> '$') then begin
+					jsonResult := jsonResults.Extract(StrToInt(textWindow.Hyperlink)) as TJSONObject;
+					if WebBrowserLoadZipFile(
+						jsonResult.Get('letter'), jsonResult.Get('filename')
+					) then begin
+						WebBrowserSearch := true;
+						running := false;
+					end;
 				end;
-			end else if (Length(textWindow.Hyperlink) >= 1) and (textWindow.Hyperlink[1] <> '$') then begin
-				jsonResult := jsonResults.Extract(StrToInt(textWindow.Hyperlink)) as TJSONObject;
-				if WebBrowserLoadZipFile(
-					jsonResult.Get('letter'), jsonResult.Get('filename')
-				) then begin
-					WebBrowserSearch := true;
-					running := false;
+			except
+				begin
+					ShowStatusMessage('Error!');
 				end;
 			end;
-
 			TextWindowFree(textWindow);
 		end;
 	end;
