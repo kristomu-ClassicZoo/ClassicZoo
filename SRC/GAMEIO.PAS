@@ -32,6 +32,7 @@ interface
 	{ Ensures IoTmpBuf is at least [newSize] bytes. }
 	{ Returns: 1 if IoTmpBuf was wiped, 2 if the size is too large. }
 	function EnsureIoTmpBufSize(newSize: word): integer;
+	function BoardCurrentStorageSize: word;
 	procedure BoardClose;
 	procedure BoardOpen(boardId: integer);
 
@@ -64,31 +65,11 @@ function EnsureIoTmpBufSize(newSize: word): integer;
 		end;
 	end;
 
-procedure BoardClose;
+procedure BoardWriteRle(var ptr: pointer);
 	var
 		ix, iy: integer;
-		ptr: pointer;
 		rle: TRleTile;
-	label RestartWrite;
 	begin
-		{ Bind stats early. }
-		for ix := 0 to Board.StatCount do begin
-			with Board.Stats[ix] do begin
-				if DataLen > 0 then begin
-					for iy := 1 to (ix - 1) do begin
-						if Board.Stats[iy].Data = Data then
-							DataLen := -iy;
-					end;
-				end;
-			end;
-		end;
-
-	RestartWrite:
-		ptr := IoTmpBuf;
-
-		Move(Board.Name, ptr^, SizeOf(Board.Name));
-		AdvancePointer(ptr, SizeOf(Board.Name));
-
 		ix := 1;
 		iy := 1;
 		rle.Count := 1;
@@ -111,6 +92,69 @@ procedure BoardClose;
 				rle.Count := 1;
 			end;
 		until iy > BOARD_HEIGHT;
+	end;
+
+function BoardCurrentStorageSize: word;
+	var
+		ix, iy, iz, isize: word;
+		ptr: pointer;
+	begin
+		ptr := IoTmpBuf;
+		BoardWriteRle(ptr);
+
+		{ We will always have enough size to store the above in the default IoTmpBuf. }
+		{ From here, do size estimation. }
+{$IFDEF FPC}
+		isize := Word(ptr - IoTmpBuf)
+{$ELSE}
+		isize := (Ofs(ptr^) - Ofs(IoTmpBuf^))
+{$ENDIF}
+			 + ((Board.StatCount + 1) * STAT_SIZE_BYTES)
+			+ SizeOf(Board.Name) + BOARD_INFO_BYTES + 2 { StatCount };
+
+		for ix := 0 to Board.StatCount do begin
+			with Board.Stats[ix] do begin
+				if DataLen > 0 then begin
+					iz := 0;
+					for iy := 1 to (ix - 1) do begin
+						if Board.Stats[iy].Data = Data then
+							iz := 1;
+					end;
+					if iz = 0 then
+						Inc(isize, DataLen);
+				end;
+			end;
+		end;
+
+		BoardCurrentStorageSize := isize;
+	end;
+
+procedure BoardClose;
+	var
+		ix, iy: integer;
+		isize: word;
+		ptr: pointer;
+	label RestartWrite;
+	begin
+		{ Bind stats early. }
+		for ix := 0 to Board.StatCount do begin
+			with Board.Stats[ix] do begin
+				if DataLen > 0 then begin
+					for iy := 1 to (ix - 1) do begin
+						if Board.Stats[iy].Data = Data then
+							DataLen := -iy;
+					end;
+				end;
+			end;
+		end;
+
+	RestartWrite:
+		ptr := IoTmpBuf;
+
+		Move(Board.Name, ptr^, SizeOf(Board.Name));
+		AdvancePointer(ptr, SizeOf(Board.Name));
+
+		BoardWriteRle(ptr);
 
 {$IFDEF RAWSTRUCTS}
 		Move(Board.Info, ptr^, SizeOf(Board.Info));
@@ -130,24 +174,29 @@ procedure BoardClose;
 
 		{ We will always have enough size to store the above in the default IoTmpBuf. }
 		{ From here, do size estimation. }
-		iy := (Ofs(ptr^) - Ofs(IoTmpBuf^)) + ((Board.StatCount + 1) * STAT_SIZE_BYTES);
+{$IFDEF FPC}
+		isize := Word(ptr - IoTmpBuf)
+{$ELSE}
+		isize := (Ofs(ptr^) - Ofs(IoTmpBuf^))
+{$ENDIF}
+			+ ((Board.StatCount + 1) * STAT_SIZE_BYTES);
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
 				if DataLen > 0 then
-					Inc(iy, DataLen);
+					Inc(isize, DataLen);
 			end;
 		end;
 
-		case EnsureIoTmpBufSize(iy) of
+		case EnsureIoTmpBufSize(isize) of
 			0: begin end; { We good. }
 			1: goto RestartWrite; { Not so good. }
 			2: RunError(203);
 		end;
 
 {$IFDEF DEBUGWND}
-		if DebugCompatEnabled and (iy > ZZT_32_BOARD_MAX_SIZE) then
-			DebugShowSizeTooLarge(ZZT_32_BOARD_MAX_SIZE, iy, World.Info.CurrentBoard,
+		if DebugCompatEnabled and (isize > ZZT_32_BOARD_MAX_SIZE) then
+			DebugShowSizeTooLarge(ZZT_32_BOARD_MAX_SIZE, isize, World.Info.CurrentBoard,
 				'Board', 'is above the vanilla ZZT limit!');
 {$ENDIF}
 

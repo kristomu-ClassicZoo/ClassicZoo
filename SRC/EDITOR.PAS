@@ -793,6 +793,7 @@ procedure EditorLoop;
 			state: TTextWindowState;
 			i: integer;
 			numStr: string[20];
+			numStrTwo: string[20];
 			exitRequested: boolean;
 
 		function BoolToString(val: boolean): string;
@@ -811,7 +812,7 @@ procedure EditorLoop;
 
 			repeat
 				state.Selectable := true;
-				state.LineCount := 11;
+				state.LineCount := 12;
 				for i := 1 to state.LineCount do
 					New(state.Lines[i]);
 
@@ -838,10 +839,16 @@ procedure EditorLoop;
 				state.Lines[9]^ := '  Time limit, 0=None: ' + numStr + ' sec.';
 
 				state.Lines[10]^ := '';
-				state.Lines[11]^ := '!;Exit';
+				Str(BoardCurrentStorageSize, numStr);
+				if DebugCompatEnabled then
+					Str(ZZT_32_BOARD_MAX_SIZE, numStrTwo)
+				else
+					Str(IO_BUFFER_MAXIMUM_SIZE, numStrTwo);
+				state.Lines[11]^ := 'Board size: ' + numStr + '/' + numStrTwo + ' bytes.';
+				state.Lines[12]^ := '!;Exit';
 
 				TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
-				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 11) then begin
+				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 12) then begin
 					wasModified := true;
 					case state.LinePos of
 						1: begin

@@ -22,6 +22,8 @@ $< ClassicZoo dev >
     in the board selection menu!
   + Stats list - Ctrl+S; use -/+
     to reoder stats.
+  + Board info menu now displays the
+    board size in bytes.
   * Board deletion is now done by
     pressing DEL in the board list.
   * The user is now prevented from
