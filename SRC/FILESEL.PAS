@@ -103,11 +103,12 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 		entryName: TFilenameString;
 		searching: boolean;
 		i, iSortStart: integer;
+		startLinePos: integer;
 {$IFDEF SUBDIRS}
 		lastDirLinePos: integer;
+		startPath: TFilenameString;
 {$ENDIF}
 		curPath: TFilenameString;
-		startPath: TFilenameString;
 		previewPath: string[PATH_PREVIEW_LENGTH + 4];
 	begin
 		searching := true;
@@ -117,6 +118,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 {$IFDEF SUBDIRS}
 		GetDir(0, startPath);
 {$ENDIF}
+		startLinePos := cachedLinePos;
 
 		TextWindowInitState(textWindow);
 		textWindow.Title := '';
@@ -242,11 +244,13 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 				{ Exit }
 				FileSelect := '';
 				searching := false;
+				cachedLinePos := startLinePos;
 {$IFDEF SUBDIRS}
 				ChDir(startPath);
 			end else if textWindow.LinePos <= lastDirLinePos then begin
 				{ Directory }
 				ChDir(textWindow.Hyperlink);
+				cachedLinePos := 1;
 {$ENDIF}
 			end else begin
 				{ File }
@@ -254,9 +258,11 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 				FileSelect := entryName;
 				searching := false;
 
+{$IFDEF SUBDIRS}
 				if startPath <> curPath then
 					ResetCachedLinePos;
 				cachedLinePos := textWindow.LinePos;
+{$ENDIF}
 			end;
 
 			TextWindowFree(textWindow);
