@@ -32,7 +32,7 @@ interface
 	{ Ensures IoTmpBuf is at least [newSize] bytes. }
 	{ Returns: 1 if IoTmpBuf was wiped, 2 if the size is too large. }
 	function EnsureIoTmpBufSize(newSize: word): integer;
-	function BoardCurrentStorageSize: word;
+	function BoardCurrentStorageSize: longint;
 	procedure BoardClose;
 	procedure BoardOpen(boardId: integer);
 
@@ -94,10 +94,13 @@ procedure BoardWriteRle(var ptr: pointer);
 		until iy > BOARD_HEIGHT;
 	end;
 
-function BoardCurrentStorageSize: word;
+function BoardCurrentStorageSize: longint;
 	var
-		ix, iy, iz, isize: word;
+		ix, iy: word;
+		iz: boolean;
+		isize: longint;
 		ptr: pointer;
+	label StatFound;
 	begin
 		ptr := IoTmpBuf;
 		BoardWriteRle(ptr);
@@ -115,12 +118,15 @@ function BoardCurrentStorageSize: word;
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
 				if DataLen > 0 then begin
-					iz := 0;
+					iz := false;
 					for iy := 1 to (ix - 1) do begin
-						if Board.Stats[iy].Data = Data then
-							iz := 1;
+						if Board.Stats[iy].Data = Data then begin
+							iz := true;
+							goto StatFound;
+						end;
 					end;
-					if iz = 0 then
+StatFound:
+					if not iz then
 						Inc(isize, DataLen);
 				end;
 			end;

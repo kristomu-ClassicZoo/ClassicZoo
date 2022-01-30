@@ -1626,6 +1626,16 @@ procedure EditorLoop;
 
 	procedure EditorBoardChange(boardId: integer);
 		begin
+			if BoardCurrentStorageSize > IO_BUFFER_MAXIMUM_SIZE then begin
+				SidebarClearLine(3);
+				SidebarClearLine(4);
+				SidebarClearLine(5);
+				VideoWriteText(VideoSidebarX + 2, 4, $1E, 'Board too large!');
+				PauseOnError;
+				EditorDrawSidebar;
+				exit;
+			end;
+
 			BoardChange(boardId);
 			EditorMoveCursor(Board.Stats[0].X, Board.Stats[0].Y, false);
 			if not EditorSeparateStartingBoard then
