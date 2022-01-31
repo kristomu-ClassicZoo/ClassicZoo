@@ -462,17 +462,15 @@ procedure ElementSpinningGunTick(statId: integer);
 		end;
 	end;
 
-procedure ElementConveyorTick(x, y: integer; direction: integer);
+procedure ElementConveyorTick(x, y, direction: integer);
 	var
-		i: integer;
-		iStat: integer;
-		ix, iy: integer;
+		i, j: integer;
+		ix, iy, tx, ty: integer;
 		canMove: boolean;
 		tiles: array[0..7] of TTile;
 		statIds: array[0..7] of integer;
 		iMin, iMax: integer;
 		tmpTile: TTile;
-		tx, ty: integer;
 	begin
 		if direction = 1 then begin
 			iMin := 0;
@@ -482,8 +480,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			iMax := -1;
 		end;
 
-		{ Moved from CWTick/CCWTick }
-		BoardDrawTile(X, Y);
+		BoardDrawTile(x, y);
 
 		canMove := true;
 		i := iMin;
@@ -496,8 +493,6 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 					canMove := true
 				else if not ElementDefs[Element].Pushable then
 					canMove := false;
-				{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
-				{ Pre-find stat IDs to prevent such a scenario from occuring. }
 				if ElementDefs[Element].Cycle > -1 then
 					statIds[i] := GetStatIdAt(tx, ty);
 			end;
@@ -508,9 +503,10 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 		repeat
 			with tiles[i] do begin
 				if canMove then begin
-					if ElementDefs[Element].Pushable then begin
-						ix := x + DiagonalDeltaX[(i - direction) and 7];
-						iy := y + DiagonalDeltaY[(i - direction) and 7];
+					if (ElementDefs[Element].Pushable) or (Element = E_EMPTY) then begin
+						j := (i - direction) and 7;
+						ix := x + DiagonalDeltaX[j];
+						iy := y + DiagonalDeltaY[j];
 						tx := x + DiagonalDeltaX[i];
 						ty := y + DiagonalDeltaY[i];
 
@@ -519,14 +515,13 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 							Board.Tiles[tx][ty] := tiles[i];
 							Board.Tiles[ix][iy].Element := E_EMPTY;
 							MoveStat(statIds[i], ix, iy);
-
 							Board.Tiles[tx][ty] := tmpTile;
 							BoardDrawTile(tx, ty);
 						end else begin
 							Board.Tiles[ix][iy] := tiles[i];
 							BoardDrawTile(ix, iy);
 						end;
-						if not ElementDefs[tiles[(i + direction) and 7].Element].Pushable then begin
+						if not ElementDefs[tiles[j].Element].Pushable and (tiles[j].Element <> E_EMPTY)	then begin
 							Board.Tiles[tx][ty].Element := E_EMPTY;
 							BoardDrawTile(tx, ty);
 						end;

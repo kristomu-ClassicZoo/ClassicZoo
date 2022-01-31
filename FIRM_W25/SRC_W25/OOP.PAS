@@ -137,6 +137,14 @@ function ShortWord(s: string): boolean;
 		else if s = OopStringToWord(OOPList[19]) then
 			ShortWord := true
 		else if s = OopStringToWord(OOPList[38]) then
+			ShortWord := true
+		else if s = OopStringToWord(OOPList[40]) then
+			ShortWord := true
+		else if s = OopStringToWord(OOPList[41]) then
+			ShortWord := true
+		else if s = OopStringToWord(OOPList[42]) then
+			ShortWord := true
+		else if s = OopStringToWord(OOPList[43]) then
 			ShortWord := true;
 	end;
 
@@ -159,7 +167,16 @@ procedure OopGetShort(s: string; var cPtr: cShort);
 		else if s = OopStringToWord(OOPList[19]) then
 			cPtr := @Board.Info.IsDark
 		else if s = OopStringToWord(OOPList[38]) then
-			cPtr := @World.Info.KeySpeed;
+			cPtr := @World.Info.KeySpeed
+		else if s = OopStringToWord(OOPList[40]) then
+			cPtr := @PMouseX
+		else if s = OopStringToWord(OOPList[41]) then
+			cPtr := @PMouseY
+		else if s = OopStringToWord(OOPList[42]) then begin
+			cPtr := @PPosX
+		end else if s = OopStringToWord(OOPList[43]) then begin
+			cPtr := @PPosY
+		end;
 	end;
 
 function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
@@ -208,6 +225,7 @@ function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 					cPtr := @World.Info.CustomFlags[i];
 					OopGetCounter := true;
 				end;
+			
 		end;
 	end;
 
@@ -633,7 +651,9 @@ function FindTileOnBoard(var x, y: integer; tile: TMatchTile): boolean;
 
 procedure SwapRelative(var dx, dy: integer; x, y: integer; line: string);
 	begin
-		if line = OopStringToWord(OOPList[14]) then begin
+		if (line = OopStringToWord(OOPList[14]))
+			or (line = OopStringToWord(OOPList[39]))
+		then begin
 			Dec(dx,x);
 			Dec(dy,y);
 		end;

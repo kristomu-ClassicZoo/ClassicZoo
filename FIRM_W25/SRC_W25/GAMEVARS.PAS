@@ -48,7 +48,7 @@ interface
 		PALETTE_START = 22;
 		PARAM_FILE_COUNT = 69;
 		{.INI FILE}
-		CUSTOM_OOP_COUNT = 39;
+		CUSTOM_OOP_COUNT = 43;
 		CUSTOM_KEY_COUNT = 24;
 		CUSTOM_FLAG_COUNT = 64;
 	type
@@ -173,6 +173,7 @@ interface
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
+		PMouseX, PMouseY, PPosX, PPosY: shortint;
 
 		LoadedGameFileName: TString50;
 		SavedGameFileName: TString50;

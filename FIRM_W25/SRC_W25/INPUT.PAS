@@ -56,6 +56,7 @@ interface
 	var
 		InputDeltaX, InputDeltaY: integer;
 		InputShiftPressed: boolean;
+		RMouseX, RMouseY: shortint;
 		InputShiftAccepted: boolean;
 		InputJoystickEnabled: boolean;
 		InputMouseEnabled: boolean;
@@ -230,6 +231,7 @@ procedure InputUpdate;
 		joyXraw, joyYraw: integer;
 		joyX, joyY: integer;
 		regs: Registers;
+		s: string;
 	begin
 		InputDeltaX := 0;
 		InputDeltaY := 0;
@@ -308,9 +310,10 @@ procedure InputUpdate;
 		end else if InputMouseEnabled then begin
 			regs.AX := $0B;
 			Intr($33, regs);
-			InputMouseX := InputMouseX + Integer(regs.CX);
-			InputMouseY := InputMouseY + Integer(regs.DX);
-
+			Inc(InputMouseX, Integer(regs.CX));
+			Inc(InputMouseY, Integer(regs.DX));
+			Inc(RMouseX,Integer(regs.CX) div 16);
+			Inc(RMouseY,Integer(regs.DX) div 16);
 			if Abs(InputMouseX) > Abs(InputMouseY) then begin
 				if Abs(InputMouseX) > InputMouseActivationX then begin
 					if InputMouseX > 0 then
@@ -328,6 +331,10 @@ procedure InputUpdate;
 					InputMouseY := 0;
 				end;
 			end;
+			if RMouseX > 60 then RMouseX := 60;
+			if RMouseX < 1 then RMouseX := 1;
+			if RMouseY > 25 then RMouseY := 25;
+			if RMouseY < 1 then RMouseY := 1;
 
 			regs.AX := $03;
 			Intr($33, regs);
