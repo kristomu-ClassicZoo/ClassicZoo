@@ -1,3 +1,10 @@
+= 1/30/2022: 2.5a
+Bugs Fixed:
+* Conveyors were not working properly in either Soft or Firm weave after 2.5; this is fixed.
+
+Added Features:
+* New read-only counters for the player and mouse positions on screen: playerx, playery, mousex, mousey.
+
 = 1/28/2022: 2.5 (Release!)
 Bugs Fixed:
 * Behavior of player clones was not correct. (FirmWeave and SoftWeave)
