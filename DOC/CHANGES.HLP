@@ -8,6 +8,12 @@ Legend:
 
 $< ClassicZoo dev >
 
++ Editor improvements.
+  + Syntax highlighting can now be turned
+    on/off.
+
+$< ClassicZoo 4.30 >
+
 + Super ClassicZoo has now been merged
   into ClassicZoo! This means that many
   improvements and bugfixes from each

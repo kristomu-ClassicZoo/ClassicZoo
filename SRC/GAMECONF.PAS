@@ -52,6 +52,9 @@ interface
 	function ConfigEdLowLevelGetValue: integer;
 	procedure ConfigEdLowLevelSetValue(value: integer);
 	function ConfigEdLowLevelShowValue: string;
+	function ConfigEdSyntaxHighlightGetValue: integer;
+	procedure ConfigEdSyntaxHighlightSetValue(value: integer);
+	function ConfigEdSyntaxHighlightShowValue: string;
 	function ConfigCleenModeGetValue: integer;
 	procedure ConfigCleenModeSetValue(value: integer);
 	function ConfigCleenModeShowValue: string;
@@ -200,7 +203,23 @@ procedure ConfigEdLowLevelSetValue(value: integer);
 
 function ConfigEdLowLevelShowValue: string;
 	begin
-		ConfigEdLowLevelShowValue := ConfigShowYesNoValue(EditorLowLevelEnable);
+		ConfigEdLowLevelShowValue := ConfigShowOnOffValue(EditorLowLevelEnable);
+	end;
+
+function ConfigEdSyntaxHighlightGetValue: integer;
+	begin
+		ConfigEdSyntaxHighlightGetValue := Byte(EditorSyntaxHighlightEnable);
+	end;
+
+procedure ConfigEdSyntaxHighlightSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		EditorSyntaxHighlightEnable := Boolean(value);
+	end;
+
+function ConfigEdSyntaxHighlightShowValue: string;
+	begin
+		ConfigEdSyntaxHighlightShowValue := ConfigShowOnOffValue(EditorSyntaxHighlightEnable);
 	end;
 
 function ConfigCleenModeGetValue: integer;
@@ -633,7 +652,7 @@ function ConfigInputCustomAction: boolean;
 {$ENDIF}
 
 const
-	ConfigEntryCount = 7
+	ConfigEntryCount = 8
 	{$IFDEF MSDOS} + 3 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF DEBUGWND} + 3 {$ENDIF}
@@ -707,6 +726,17 @@ procedure GameConfigInit;
 			SetValue := ConfigEdLowLevelSetValue;
 {$IFDEF EDITOR}
 			ShowValue := ConfigEdLowLevelShowValue;
+{$ENDIF}
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCEditor;
+			Key := 'EdSyntHl';
+			Name := 'Syntax highlighting';
+			GetValue := ConfigEdSyntaxHighlightGetValue;
+			SetValue := ConfigEdSyntaxHighlightSetValue;
+{$IFDEF EDITOR}
+			ShowValue := ConfigEdSyntaxHighlightShowValue;
 {$ENDIF}
 		end;
 		Inc(i);

@@ -33,6 +33,7 @@ interface
 		EditorAutoAppendPats: boolean;
 		EditorSeparateStartingBoard: boolean;
 		EditorLowLevelEnable: boolean;
+		EditorSyntaxHighlightEnable: boolean;
 {$IFDEF EDITOR}
 	procedure EditorLoop;
 {$ENDIF}
@@ -1033,7 +1034,7 @@ procedure EditorLoop;
 					FillChar(affectedStats, Board.StatCount + 1, false);
 				end;
 
-				EditorOpenEditTextWindow(state, '.TXT', true);
+				EditorOpenEditTextWindow(state, '.TXT', EditorSyntaxHighlightEnable);
 
 				for iLine := 1 to state.LineCount do
 					Inc(DataLen, Length(state.Lines[iLine]^) + 1);
@@ -3019,4 +3020,5 @@ begin
 	EditorAutoAppendPats := false;
 	EditorSeparateStartingBoard := false;
 	EditorLowLevelEnable := false;
+	EditorSyntaxHighlightEnable := true;
 end.
