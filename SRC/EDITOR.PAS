@@ -2523,6 +2523,14 @@ PlacementDone:
 						end;
 						EditorDrawSidebar;
 					end;
+					KEY_CTRL_T: begin
+						if EditorLowLevelEnable then begin
+							i := GetStatIdAt(cursorX, cursorY);
+							EditorEditTileLowLevel(cursorX, cursorY, i);
+							TransitionDrawToBoard;
+							EditorDrawSidebar;
+						end;
+					end;
 					'I': begin
 						EditorEditBoardInfo;
 						TransitionDrawToBoard;

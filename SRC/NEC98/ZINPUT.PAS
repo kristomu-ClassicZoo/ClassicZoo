@@ -58,6 +58,7 @@ interface
 		KEY_CTRL_C = #3;
 		KEY_CTRL_O = #15;
 		KEY_CTRL_S = #19;
+		KEY_CTRL_T = #20;
 		KEY_CTRL_X = #24;
 		KEY_CTRL_V = #22;
 		KEY_CTRL_Y = #25;

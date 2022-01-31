@@ -131,8 +131,15 @@ enabled if turned on:
 - Deleting stats in the stats list,
 - Editing tile/stat low-level data by
   selecting them in the stats list,
-- [SDL2] Pressing ALT+ENTER on a tile
-  to edit its low-level data.
+- Pressing CTRL+T on a tile to edit
+  its low-level data. (ALT+ENTER on
+  SDL2)
+
+:edsynthl;[ Syntax highlighting ]
+
+This option toggles whether or not
+syntax highlighting is enabled in the
+ZZT-OOP code editor.
 
 :debugmode;=== Debug mode ===
 

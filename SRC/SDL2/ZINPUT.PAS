@@ -55,10 +55,11 @@ interface
 		KEY_CTRL_C = #212;
 		KEY_CTRL_O = #213;
 		KEY_CTRL_S = #214;
-		KEY_CTRL_V = #215;
-		KEY_CTRL_X = #216;
-		KEY_CTRL_Y = #217;
-		KEY_ALT_P = #218;
+		KEY_CTRL_T = #215;
+		KEY_CTRL_V = #216;
+		KEY_CTRL_X = #217;
+		KEY_CTRL_Y = #218;
+		KEY_ALT_P = #219;
 	var
 		InputDeltaX, InputDeltaY: integer;
 		InputShiftPressed: boolean;
@@ -355,6 +356,8 @@ procedure InputUpdate;
 						k := KEY_CTRL_O;
 					end else if KeysCtrlHeld and (Char(kcode) = 's') then begin
 						k := KEY_CTRL_S;
+					end else if KeysCtrlHeld and (Char(kcode) = 't') then begin
+						k := KEY_CTRL_T;
 					end else if KeysCtrlHeld and (Char(kcode) = 'v') then begin
 						k := KEY_CTRL_V;
 					end else if KeysCtrlHeld and (Char(kcode) = 'x') then begin
