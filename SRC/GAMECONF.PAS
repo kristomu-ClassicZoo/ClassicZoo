@@ -459,6 +459,16 @@ procedure ConfigVideoBlinkSetValue(value: integer);
 		VideoSetSDLBlinkMode(TSDLBlinkMode(value));
 	end;
 
+function ConfigVideoBlinkCustomAction: boolean;
+	begin
+		case VideoGetSDLBlinkMode of
+		BlinkModeOn: VideoSetSDLBlinkMode(BlinkModeHigh);
+		BlinkModeHigh: VideoSetSDLBlinkMode(BlinkModeOff);
+		BlinkModeOff: VideoSetSDLBlinkMode(BlinkModeOn);
+		end;
+		ConfigVideoBlinkCustomAction := true;
+	end;
+
 function ConfigVideoBlinkShowValue: string;
 	begin
 		case VideoGetSDLBlinkMode of
@@ -883,6 +893,7 @@ procedure GameConfigInit;
 			GetValue := ConfigVideoBlinkGetValue;
 			SetValue := ConfigVideoBlinkSetValue;
 			ShowValue := ConfigVideoBlinkShowValue;
+			CustomAction := ConfigVideoBlinkCustomAction;
 		end;
 		Inc(i);
 {$ENDIF}
