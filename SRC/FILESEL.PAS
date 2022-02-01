@@ -50,7 +50,7 @@ Game, ZInput, TxtWind, FileSys;
 
 const
 	PATH_PREVIEW_LENGTH = 24;
-	MAX_FILENAME_LENGTH = 20; { TODO: Increase. }
+	MAX_FILENAME_LENGTH = 42; { TODO: Increase. }
 
 function FileExists(name: TFilenameString): boolean;
 	var
@@ -101,6 +101,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 		fileSearchRec: SearchRec;
 {$ENDIF}
 		entryName: TFilenameString;
+		entryNameCropped: TFilenameString;
 		searching: boolean;
 		i, iSortStart: integer;
 		startLinePos: integer;
@@ -157,8 +158,12 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 				if (fileSearchRec.Attr and faDirectory) <> 0 then begin
 					entryName := fileSearchRec.Name;
 					if Length(entryName) <= MAX_FILENAME_LENGTH then
-						if (Length(entryName) > 0) and (entryName <> '.') and (entryName <> '..') then
-							TextWindowAppend(textWindow, '!' + entryName + ';[' + entryName + ']');
+						if (Length(entryName) > 0) and (entryName <> '.') and (entryName <> '..') then begin
+							entryNameCropped := entryName;
+							if Length(entryNameCropped) > 32 then
+								entryNameCropped := Copy(entryNameCropped, 1, 29) + '...';
+							TextWindowAppend(textWindow, '!' + entryName + ';[' + entryNameCropped + ']');
+						end;
 				end;
 			until FindNext(fileSearchRec) <> 0;
 			FindClose(fileSearchRec);
@@ -210,8 +215,12 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 				if (fileSearchRec.Attr and Directory) <> 0 then begin
 					entryName := fileSearchRec.Name;
 					if Length(entryName) <= MAX_FILENAME_LENGTH then
-						if (Length(entryName) > 0) and (entryName <> '.') and (entryName <> '..') then
-							TextWindowAppend(textWindow, '!' + entryName + ';[' + entryName + ']');
+						if (Length(entryName) > 0) and (entryName <> '.') and (entryName <> '..') then begin
+							entryNameCropped := entryName;
+							if Length(entryNameCropped) > 32 then
+								entryNameCropped := Copy(entryNameCropped, 1, 29) + '...';
+							TextWindowAppend(textWindow, '!' + entryName + ';[' + entryNameCropped + ']');
+						end;
 				end;
 				FindNext(fileSearchRec);
 			end;

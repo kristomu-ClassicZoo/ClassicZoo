@@ -11,6 +11,8 @@ $< ClassicZoo dev >
 + Editor improvements.
   + Syntax highlighting can now be turned
     on/off.
+/ Maximum filename length bumped from 20
+  to 42 characters.
 
 $< ClassicZoo 4.30 >
 

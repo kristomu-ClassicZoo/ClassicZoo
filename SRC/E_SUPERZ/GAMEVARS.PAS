@@ -72,7 +72,11 @@ interface
 		TString50 = string[50];
 		TSmallString = string[60];
 {$IFDEF SUBDIRS}
+{$IFDEF SDL2}
+		TFilenameString = string;
+{$ELSE}
 		TFilenameString = string[128];
+{$ENDIF}
 {$ELSE}
 		TFilenameString = string[20];
 {$ENDIF}

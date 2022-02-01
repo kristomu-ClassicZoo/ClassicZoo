@@ -891,6 +891,8 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 {$ELSE}
 					textLine := OopChar + OopReadLineToEnd(statId, position);					
 {$ENDIF}
+					if Length(textLine) > MAX_LINE_LENGTH then
+						textLine[0] := Chr(MAX_LINE_LENGTH);
 					TextWindowAppend(textWindow, textLine);
 				end;
 			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > 32);
