@@ -419,6 +419,7 @@ var
 		end;
 	begin
 		searchActive := false;
+		searchRequested := false;
 		detailActive := false;
 
 		WebBrowserSearch := false;

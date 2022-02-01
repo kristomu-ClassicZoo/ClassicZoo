@@ -121,6 +121,7 @@ procedure CopyPartialStatDataToTextWindow(statId: integer; var state: TTextWindo
 			if prevLinePos[1] > 0 then
 				TextWindowAppend(state, '...');
 
+			dataStrLen := 0;
 			for i := prevLinePos[1] to (DataLen - 1) do begin 
 				{$IFNDEF FPC}
 				dataChr := Data^[i];

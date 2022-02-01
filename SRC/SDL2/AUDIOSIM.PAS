@@ -174,7 +174,7 @@ procedure AudioSimNoteToBandlimit(targetNotePos: Uint32; frequency: Uint32; isDr
 		end else begin
 			freqRealFixed := frequency shr 2;
 		end;
-		posFixed := (CurrentNotePos + i) * 256;
+		posFixed := CurrentNotePos * 256;
 
 		if iMax > 0 then for i := 0 to iMax - 1 do begin
 			pos := freqRealFixed;

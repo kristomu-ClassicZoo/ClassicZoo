@@ -574,7 +574,6 @@ procedure VideoLoadPaletteFromFile(filename: string);
 		paletteData: pointer;
 		paletteDataArr: PByteArray;
 		paletteLen: word;
-	label FinishLoadPalette;
 	begin
 		if filename = '' then begin
 			VideoSetPalette(EGA_PALETTE, false);
