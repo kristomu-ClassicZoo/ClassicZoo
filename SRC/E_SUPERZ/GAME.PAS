@@ -32,8 +32,9 @@ interface
 	const
 		VIEW_TITLE = 0;
 		VIEW_PLAY = 1;
-		VIEW_EDITOR = 2;
-		VIEW_EDITOR_LARGE = 3;
+		VIEW_PLAY_LARGE = 2;
+		VIEW_EDITOR = 3;
+		VIEW_EDITOR_LARGE = 4;
 	function GameVideoInstall(videoMode, mode: integer): boolean;
 	procedure BoardChange(boardId: integer);
 	procedure BoardCreate;
@@ -61,8 +62,6 @@ interface
 	procedure BoardDamageTile(x, y: integer);
 	procedure BoardAttack(attackerStatId: integer; x, y: integer);
 	function BoardShoot(element: byte; tx, ty, deltaX, deltaY: integer; source: integer): boolean;
-	procedure CalcDirectionRnd(var deltaX, deltaY: integer);
-	procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 	procedure TransitionDrawBoardChange;
 	procedure BoardEnter;
 	procedure BoardPassageTeleport(x, y: integer);
@@ -168,11 +167,20 @@ GameVideoInstalled:
 		else if mode = VIEW_PLAY then
 			TextWindowInit((VideoColumns - 38) shr 1, (VideoRows - 21) shr 1, 38, 22);
 {$IFDEF EDITOR}
-		if mode = VIEW_EDITOR_LARGE then begin
+		if (mode = VIEW_EDITOR_LARGE) then begin
 			BOARD_DRAW_X := 2;
 			BOARD_DRAW_Y := 2;
 			BOARD_DRAW_WIDTH := VideoColumns - 24;
 			BOARD_DRAW_HEIGHT := VideoRows - 5;
+		end else if (mode = VIEW_PLAY_LARGE) then begin
+			BOARD_DRAW_WIDTH := VideoColumns - 16;
+			if BOARD_DRAW_WIDTH > BOARD_WIDTH then
+				BOARD_DRAW_WIDTH := BOARD_WIDTH;
+			BOARD_DRAW_HEIGHT := VideoRows - 5;
+			if BOARD_DRAW_HEIGHT > BOARD_HEIGHT then
+				BOARD_DRAW_HEIGHT := BOARD_HEIGHT;
+			BOARD_DRAW_X := 12 + ((VideoColumns - 12 - BOARD_DRAW_WIDTH) div 2);
+			BOARD_DRAW_Y := 2;
 		end else begin
 {$ENDIF}
 			BOARD_DRAW_WIDTH := 24;
@@ -1108,33 +1116,6 @@ function BoardShoot(element: byte; tx, ty, deltaX, deltaY: integer; source: inte
 		end;
 	end;
 
-procedure CalcDirectionRnd(var deltaX, deltaY: integer);
-	begin
-		deltaX := Random(3) - 1;
-
-		if deltaX = 0 then
-			deltaY := Random(2) * 2 - 1
-		else
-			deltaY := 0;
-	end;
-
-procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
-	begin
-		deltaX := 0;
-		deltaY := 0;
-
-		if (Random(2) < 1) or (Board.Stats[0].Y = y) then
-			deltaX := Signum(Board.Stats[0].X - x);
-
-		if deltaX = 0 then
-			deltaY := Signum(Board.Stats[0].Y - y);
-
-		if World.Info.EnergizerTicks > 0 then begin
-			deltaX := -deltaX;
-			deltaY := -deltaY;
-		end;
-	end;
-
 procedure TransitionDrawBoardChange;
 	begin
 {$IFDEF FASTVID}
@@ -1459,8 +1440,11 @@ function GameIsWorldLoaded: boolean;
 
 procedure GamePlayVideoInstall;
 	begin
-		{ if not GameVideoInstall(VIDEO_MODE_80X50, VIEW_PLAY) then
-		if not GameVideoInstall(VIDEO_MODE_80X43, VIEW_PLAY) then }
+{$IFDEF SDL2}
+{		if not GameVideoInstall(VIDEO_MODE_RESIZABLE, VIEW_PLAY_LARGE) then }
+{$ENDIF}
+{		if not GameVideoInstall(VIDEO_MODE_80X50, VIEW_PLAY_LARGE) then }
+{		if not GameVideoInstall(VIDEO_MODE_80X43, VIEW_PLAY_LARGE) then }
 		if not GameVideoInstall(VIDEO_MODE_40X25, VIEW_PLAY) then
 		if not GameVideoInstall(VIDEO_MODE_80X25, VIEW_PLAY) then begin end;
 	end;

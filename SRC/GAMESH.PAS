@@ -29,6 +29,8 @@ unit GameSh; { GameShared }
 
 interface
 	uses GameVars, TxtWind;
+	procedure CalcDirectionRnd(var deltaX, deltaY: integer);
+	procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 	function Signum(val: integer): integer;
 	function Difference(a, b: integer): integer;
 {$IFNDEF FPC}
@@ -68,6 +70,33 @@ function Difference(a, b: integer): integer;
 			Difference := a - b
 		else
 			Difference := b - a;
+	end;
+
+procedure CalcDirectionRnd(var deltaX, deltaY: integer);
+	begin
+		deltaX := Random(3) - 1;
+
+		if deltaX = 0 then
+			deltaY := Random(2) * 2 - 1
+		else
+			deltaY := 0;
+	end;
+
+procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
+	begin
+		deltaX := 0;
+		deltaY := 0;
+
+		if (Random(2) < 1) or (Board.Stats[0].Y = y) then
+			deltaX := Signum(Board.Stats[0].X - x);
+
+		if deltaX = 0 then
+			deltaY := Signum(Board.Stats[0].Y - y);
+
+		if World.Info.EnergizerTicks > 0 then begin
+			deltaX := -deltaX;
+			deltaY := -deltaY;
+		end;
 	end;
 
 {$IFDEF FPC}

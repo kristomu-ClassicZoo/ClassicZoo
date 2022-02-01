@@ -50,8 +50,6 @@ interface
 	procedure BoardDamageTile(x, y: integer);
 	procedure BoardAttack(attackerStatId: integer; x, y: integer);
 	function BoardShoot(element: byte; tx, ty, deltaX, deltaY: integer; source: integer): boolean;
-	procedure CalcDirectionRnd(var deltaX, deltaY: integer);
-	procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 	procedure TransitionDrawBoardChange;
 	procedure GameUpdateSidebar;
 	procedure GamePlayLoop(boardChanged: boolean);
@@ -905,33 +903,6 @@ function BoardShoot(element: byte; tx, ty, deltaX, deltaY: integer; source: inte
 			BoardShoot := true;
 		end else begin
 			BoardShoot := false;
-		end;
-	end;
-
-procedure CalcDirectionRnd(var deltaX, deltaY: integer);
-	begin
-		deltaX := Random(3) - 1;
-
-		if deltaX = 0 then
-			deltaY := Random(2) * 2 - 1
-		else
-			deltaY := 0;
-	end;
-
-procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
-	begin
-		deltaX := 0;
-		deltaY := 0;
-
-		if (Random(2) < 1) or (Board.Stats[0].Y = y) then
-			deltaX := Signum(Board.Stats[0].X - x);
-
-		if deltaX = 0 then
-			deltaY := Signum(Board.Stats[0].Y - y);
-
-		if World.Info.EnergizerTicks > 0 then begin
-			deltaX := -deltaX;
-			deltaY := -deltaY;
 		end;
 	end;
 
