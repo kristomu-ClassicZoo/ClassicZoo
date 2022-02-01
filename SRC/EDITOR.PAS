@@ -2142,6 +2142,10 @@ procedure EditorLoop;
 {$IFDEF E_SUPERZ}
 			if VideoScaleChanged then begin
 				if not GameVideoInstall(VIDEO_MODE_RESIZABLE, viewMode) then begin end;
+				TextWindowInitXY(
+					(VideoColumns - TextWindowWidth) div 2,
+					(VideoRows - TextWindowHeight) div 2
+				);
 				EditorMoveCursor(cursorX, cursorY, false);
 				EditorDrawRefresh;
 				VideoScaleChanged := false;

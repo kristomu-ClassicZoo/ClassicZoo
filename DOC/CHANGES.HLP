@@ -15,6 +15,7 @@ $< ClassicZoo dev >
     on/off.
 / Maximum filename length bumped from 20
   to 42 characters.
+/ Minor bugfixes throughout the engine.
 
 $< ClassicZoo 4.30 >
 

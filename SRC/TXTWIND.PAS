@@ -127,6 +127,7 @@ interface
 	procedure TextWindowSaveFile(filename: TFilenameString; var state: TTextWindowState);
 	procedure TextWindowDisplayFile(filename: TFilenameString; title: TTextWindowLine);
 	procedure TextWindowInit(x, y, width, height: integer);
+	procedure TextWindowInitXY(x, y: integer);
 
 implementation
 uses
@@ -1196,6 +1197,12 @@ procedure TextWindowInit(x, y, width, height: integer);
 		TextWindowStrInnerSep := TextWindowStrInnerEmpty;
 		for i := 1 to (TextWindowWidth div 5) do
 			TextWindowStrInnerSep[i * 5 + ((TextWindowWidth mod 5) shr 1)] := #7;
+	end;
+
+procedure TextWindowInitXY(x, y: integer);
+	begin
+		TextWindowX := x;
+		TextWindowY := y;
 	end;
 
 begin

@@ -264,7 +264,7 @@ procedure SDLResizeWindow(delta: Int32; onlyIfTooSmall: boolean; forceMinimumSiz
 		SDL_LockMutex(eventMutex);
 
 		if VideoCurrentMode = VIDEO_MODE_RESIZABLE then
-			SDL_SetWindowMinimumSize(window, 80 * charsetTexture.charWidth, 25 * charsetTexture.charHeight)
+			SDL_SetWindowMinimumSize(window, 80 * charsetTexture.charWidth, 50 * charsetTexture.charHeight)
 		else
 			SDL_SetWindowMinimumSize(window, iw, ih);
 		SDL_GetWindowSize(window, @ww, @wh);
