@@ -51,6 +51,8 @@ DEBUG       | Enable debug
 (NODEBUG)   | mode.
 SHOW [el]   | Make all tiles
 (NOSHOW)    | [el] blink.
+TOUCH [el]  | Touch all elm.
+            | of type [el].
 NOSHOW ALL  | Undo all SHOW.
 NOCLIP      | Enable noclip.
 (CLIP)      | 

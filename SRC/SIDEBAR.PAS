@@ -291,7 +291,7 @@ procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; 
 procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mode: byte; var buffer: TSmallString);
 	var
 		i, iOffs: integer;
-		oldBuffer: string;
+		oldBuffer: TSmallString;
 		firstKeyPress: boolean;
 	begin
 		oldBuffer := buffer;

@@ -43,7 +43,6 @@ interface
 	procedure TransitionDrawToBoard;
 	procedure ClearDisplayMessage;
 	procedure DrawStatusMessage(msg: string);
-	procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TSmallString);
 	function PromptYesNo(message: string; defaultReturn: boolean; color: integer): boolean;
 	procedure PauseOnError;
 	procedure WorldUnload;
@@ -67,7 +66,6 @@ interface
 	procedure TransitionDrawBoardChange;
 	procedure BoardEnter;
 	procedure BoardPassageTeleport(x, y: integer);
-	procedure GameDebugPrompt;
 	procedure DrawPlayfieldBorder(inner: boolean);
 	procedure BoardUpdateDrawOffset;
 	procedure GamePlayLoop(isTitle: boolean);
@@ -122,7 +120,7 @@ GameVSer,
 {$IFDEF WEBBROW}
 WebBrow,
 {$ENDIF}
-Dos, GameSh, GameIo,
+Dos, GameSh, Cheats, GameIo,
 GameConf, FileSys, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
 
 function GameVideoInstall(videoMode, mode: integer): boolean;
@@ -416,58 +414,6 @@ procedure DrawStatusMessage(msg: string);
 		VideoWriteText(12 + (((VideoColumns - 12) - Length(msg)) shr 1), VideoRows - 1, $1E, msg);
 	end;
 
-procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TSmallString);
-	var
-		i: integer;
-		oldBuffer: string;
-		firstKeyPress: boolean;
-	begin
-		oldBuffer := buffer;
-		firstKeyPress := true;
-
-		repeat
-			for i := 0 to (width - 1) do begin
-				VideoWriteText(x + i, y, color, ' ');
-				VideoWriteText(x + i, y - 1, arrowColor, ' ');
-			end;
-			VideoWriteText(x + width, y - 1, arrowColor, ' ');
-			VideoWriteText(x + Length(buffer), y - 1, (arrowColor and $F0) or $0F, #31);
-			VideoWriteText(x, y, color, buffer);
-
-			InputReadWaitKey;
-
-			if (Length(buffer) < width) and (InputKeyPressed >= #32) and (InputKeyPressed < #128) then begin
-				if firstKeyPress then
-					buffer := '';
-				case mode of
-					PROMPT_NUMERIC: begin
-						if (InputKeyPressed in ['0' .. '9']) then begin
-							buffer := buffer + InputKeyPressed;
-						end;
-					end;
-					PROMPT_ANY: begin
-						buffer := buffer + InputKeyPressed;
-					end;
-					PROMPT_ALPHANUM: begin
-						if (UpCase(InputKeyPressed) in ['A' .. 'Z'])
-							or (InputKeyPressed in ['0' .. '9'])
-							or (InputKeyPressed = '-') then
-						begin
-							buffer := buffer + UpCase(InputKeyPressed);
-						end;
-					end;
-				end;
-			end else if (InputKeyPressed = KEY_LEFT) or (InputKeyPressed = KEY_BACKSPACE) then begin
-				buffer := Copy(buffer, 1, Length(buffer) - 1);
-			end;
-
-			firstKeyPress := false;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE);
-		if InputKeyPressed = KEY_ESCAPE then begin
-			buffer := oldBuffer;
-		end;
-	end;
-
 function PromptYesNo(message: string; defaultReturn: boolean; color: integer): boolean;
 	begin
 		VideoWriteText(15, VideoRows - 1, color, message);
@@ -598,7 +544,7 @@ procedure BottomPromptString(prompt: string; extension: TSmallString; var filena
 		VideoWriteText(13, VideoRows - 1, $1F, prompt);
 		VideoWriteText(Length(prompt) + 13 + 2, VideoRows - 1, $0F, '        ' + extension);
 
-		PromptString(Length(prompt) + 13 + 2, VideoRows - 1, $1E, $0F, 8, promptMode, filename);
+		PromptString(Length(prompt) + 13 + 2, VideoRows - 1, $1E, $0F, 8, 8, promptMode, filename);
 
 		ClearDisplayMessage;
 	end;
@@ -1249,229 +1195,6 @@ procedure BoardPassageTeleport(x, y: integer);
 		BoardUpdateDrawOffset;
 		TransitionDrawBoardChange;
 		BoardEnter;
-	end;
-
-function DebugPromptParseInt(input: TSmallString; offset: integer; defaultValue: integer): integer;
-	var
-		substr: TSmallString;
-		result, code: integer;
-	begin
-		if Length(input) >= (offset + 2) then begin
-			substr := Copy(input, offset + 2, Length(input));
-			Val(substr, result, code);
-			DebugPromptParseInt := result;
-		end else begin
-			DebugPromptParseInt := defaultValue;
-		end;
-	end;
-
-function DebugPromptParseElem(input: TSmallString; offset: integer): integer;
-	var
-		substr: TSmallString;
-		i: integer;
-		j: byte;
-	begin
-		j := 0;
-		for i := offset + 2 to Length(input) do begin
-			Inc(j);
-			substr[j] := UpCase(input[i]);
-		end;
-		substr[0] := Chr(j);
-		if substr = 'ALL' then begin
-			DebugPromptParseElem := -1;
-			exit;
-		end;
-		for i := 0 to MAX_ELEMENT do begin
-			if substr = OopStringToWord(ElementDefs[i].Name) then begin
-				DebugPromptParseElem := i;
-				exit;
-			end;
-		end;
-		DebugPromptParseElem := E_BOARD_EDGE;
-	end;
-
-function DebugPromptParseColor(input: TSmallString; offset: integer): integer;
-	var
-		substr: TSmallString;
-		i: integer;
-		j: byte;
-	begin
-		j := 0;
-		for i := offset + 2 to Length(input) do begin
-			Inc(j);
-			substr[j] := UpCase(input[i]);
-		end;
-		substr[0] := Chr(j);
-		for i := 1 to 7 do begin
-			if substr = OopStringToWord(ColorNames[i]) then begin
-				DebugPromptParseColor := i;
-				exit;
-			end;
-		end;
-		DebugPromptParseColor := -1;
-	end;
-
-function DebugPromptStarts(input: TSmallString; cmp: TSmallString): boolean;
-	var
-		i: integer;
-	begin
-		DebugPromptStarts := Length(input) >= Length(cmp);
-		for i := 1 to Length(cmp) do begin
-			if input[i] <> cmp[i] then begin
-				DebugPromptStarts := false;
-				exit;
-			end;
-		end;
-	end;
-
-procedure DebugPromptFlagWindow;
-	var
-		i: integer;
-		flagId: string[11];
-		textWindow: TTextWindowState;
-	begin
-		textWindow.Title := 'Flags';
-		TextWindowInitState(textWindow);
-		for i := 1 to MAX_FLAG do begin
-			Str(i, flagId);
-			TextWindowAppend(textWindow, flagId + ': ' + World.Info.Flags[i]);
-		end;
-
-		TextWindowDrawOpen(textWindow);
-		TextWindowSelect(textWindow, 0);
-		TextWindowDrawClose(textWindow);
-		TextWindowFree(textWindow);
-	end;
-
-procedure GameDebugPrompt;
-	var
-		input: TSmallString;
-		i, iMin, iMax: integer;
-		btmp: byte;
-		isYes: boolean; { True if not 'NO[cheat]' }
-		isYesMultiplier: integer; { -1 if 'NO[cheat]', 1 otherwise }
-	begin
-		input := '';
-
-		ClearDisplayMessage;
-		PromptString(15, VideoRows - 1, $1E, $0F, 11, PROMPT_ANY, input);
-		ClearDisplayMessage;
-		for i := 1 to Length(input) do
-			input[i] := UpCase(input[i]);
-
-		isYes := true;
-		isYesMultiplier := 1;
-		if Length(input) <= 0 then begin
-			{ No-op. }
-		end else if input[1] = '?' then begin
-			{ Open help file. }
-			if Length(input) >= 2 then
-				input := Copy(input, 2, Length(input) - 1)
-			else
-				input := 'CHEAT';
-			TextWindowDisplayFile(input, 'View file');
-		end else if (input[1] = '+') or (input[1] = '-') then begin
-			isYes := input[1] = '+';
-			input := Copy(input, 2, Length(input) - 1);
-
-			if isYes then
-				WorldSetFlag(input)
-			else
-				WorldClearFlag(input);
-		end else begin
-			if (Length(input) >= 2) and (input[1] = 'N') and (input[2] = 'O') then begin
-				input := Copy(input, 3, Length(input) - 2);
-				isYes := false;
-				isYesMultiplier := -1;
-			end;
-
-			if DebugPromptStarts(input, 'HEALTH') then
-				Inc(World.Info.Health, DebugPromptParseInt(input, 6, 50) * isYesMultiplier)
-			else if DebugPromptStarts(input, 'AMMO') then
-				Inc(World.Info.Ammo, DebugPromptParseInt(input, 4, 20) * isYesMultiplier)
-			else if DebugPromptStarts(input, 'KEYS') then begin
-				i := DebugPromptParseColor(input, 4);
-				if i > 0 then World.Info.Keys[i] := isYes
-				else for i := 1 to 7 do World.Info.Keys[i] := isYes;
-			end else if DebugPromptStarts(input, 'Z') then begin
-				if isYes then Inc(World.Info.StonesOfPower, DebugPromptParseInt(input, 1, 1))
-				else World.Info.StonesOfPower := -1;
-			end else if DebugPromptStarts(input, 'TIME') then
-				Dec(World.Info.BoardTimeSec, DebugPromptParseInt(input, 4, 30) * isYesMultiplier)
-			else if DebugPromptStarts(input, 'GEMS') then
-				Inc(World.Info.Gems, DebugPromptParseInt(input, 4, 5) * isYesMultiplier)
-			else if input = 'BLINK' then begin
-				VideoSetBlink(isYes);
-			end else if input = 'DEBUG' then begin
-				DebugEnabled := isYes;
-{$IFDEF EXTCHEAT}
-			end else if DebugPromptStarts(input, 'SHOW') then begin
-				i := DebugPromptParseElem(input, 4);
-				if i >= 0 then begin
-					iMin := i;
-					iMax := i;
-				end else begin
-					iMin := 0;
-					if isYes then
-						iMax := -1 { Block SHOW ALL }
-					else
-						iMax := MAX_ELEMENT;
-				end;
-				for i := iMin to iMax do begin
-					btmp := Byte(isYes) shl 7;
-					if btmp <> CheatColorModifiers[i] then begin
-						CheatColorModifiers[i] := btmp;
-						btmp := Byte(CheatCharModifiers[i]);
-						CheatCharModifiers[i] := ElementDefs[i].Character;
-						ElementDefs[i].Character := Char(btmp);
-					end;
-				end;
-				TransitionDrawToBoard;
-			end else if input = 'CLIP' then begin
-				CheatNoClip := not isYes;
-			end else if input = 'FREEZE' then begin
-				CheatFreeze := isYes;
-			end else if input = 'FLAGS' then begin
-				DebugPromptFlagWindow;
-{$ENDIF}
-			end else if isYes then begin
-				{ Non-toggleables. }
-{$IFDEF EXTCHEAT}
-				if input = 'PASSAGE' then begin
-					if GameStateElement = E_PLAYER then begin
-						i := EditorSelectBoard('Teleport to', World.Info.CurrentBoard, false, false, false, false);
-						if (not TextWindowRejected) then begin
-							BoardChange(i);
-							GamePaused := true;
-							TransitionDrawBoardChange;
-							BoardEnter;
-						end;
-					end;
-				end else
-{$ENDIF}
-				{ if DebugPromptStarts(input, 'SPEED') then begin
-					i := DebugPromptParseInt(input, 5, -1);
-					if (i >= 0) and (i <= 8) then begin
-						TickSpeed := i;
-					end else begin
-						SidebarPromptSlider(true, 63, 3, 'Game speed:;FS', TickSpeed);
-						SidebarClearLine(3);
-					end;
-					TickTimeDuration := TickSpeed * 2;
-					SoundBlockQueueing := false;
-					InputKeyPressed := #0;
-				end else } if (input = 'ZAP') then begin
-					for i := 0 to 3 do begin
-						BoardDamageTile(Board.Stats[0].X + NeighborDeltaX[i], Board.Stats[0].Y + NeighborDeltaY[i]);
-						Board.Tiles[Board.Stats[0].X + NeighborDeltaX[i]][Board.Stats[0].Y + NeighborDeltaY[i]].Element := E_EMPTY;
-						BoardDrawTile(Board.Stats[0].X + NeighborDeltaX[i], Board.Stats[0].Y + NeighborDeltaY[i]);
-					end;
-				end;
-			end;
-		end;
-
-		SoundQueue(10, #39#4);
-		GameUpdateSidebar;
 	end;
 
 procedure DrawPlayfieldBorder(inner: boolean);

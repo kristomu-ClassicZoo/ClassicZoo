@@ -45,6 +45,8 @@ DEBUG       | Enable debug mode.
 (NODEBUG)   |
 SHOW [el]   | Make all tiles of type
 (NOSHOW)    | [el] blink.
+TOUCH [el]  | Touch all elements of type
+            | (and opt. color) [el].
 NOSHOW ALL  | Undo all SHOW commands.
 NOCLIP      | Enable walking through
 (CLIP)      | walls.

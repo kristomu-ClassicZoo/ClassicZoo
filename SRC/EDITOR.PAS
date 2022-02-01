@@ -58,7 +58,7 @@ interface
 {$ENDIF}
 
 implementation
-uses Dos, GameIo, GameSh, FileSel, FileSys, ExtMem,
+uses Dos, GameIo, Cheats, GameSh, FileSel, FileSys, ExtMem,
 GameConf, ZVideo, Sounds, TimerSys, Keys, ZInput, Elements, Oop, Game, Sidebar;
 
 type

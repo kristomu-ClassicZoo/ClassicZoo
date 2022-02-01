@@ -8,6 +8,8 @@ Legend:
 
 $< ClassicZoo dev >
 
++ New cheats:
+  + ?TOUCH [color] <element>
 + Editor improvements.
   + Syntax highlighting can now be turned
     on/off.

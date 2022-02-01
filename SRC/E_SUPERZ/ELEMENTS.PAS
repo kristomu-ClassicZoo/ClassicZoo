@@ -43,7 +43,7 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-GameConf, ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, GameSh, Game;
+GameConf, ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, Cheats, GameSh, Game;
 
 const
 	ForestSoundTable: array[0 .. 7] of byte = ($45, $40, $47, $50, $46, $41, $48, $51);
