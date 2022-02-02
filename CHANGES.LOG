@@ -1,3 +1,7 @@
+2/2/2022: 2.5b
+Bugs Fixed:
+* Bullets decreasing currentStatTicked twice on death is now fixed in FirmWeave as well.
+
 = 1/30/2022: 2.5a
 Bugs Fixed:
 * Conveyors were not working properly in either Soft or Firm weave after 2.5; this is fixed.
