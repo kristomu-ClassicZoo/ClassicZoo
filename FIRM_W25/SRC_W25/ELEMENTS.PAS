@@ -2048,6 +2048,8 @@ procedure InitElementDefs;
 		ElementDefs[45].TouchProc := ElementDamagingTouch;
 		ElementDefs[45].Name := 'SEGMENT';
 
+		ElementDefs[46].Name := 'CUSTOMTEXT';
+
 		ElementDefs[47].Color := $1F;
 		ElementDefs[47].Name := 'BLUETEXT';
 

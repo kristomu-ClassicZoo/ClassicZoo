@@ -584,9 +584,18 @@ procedure WorldClearFlag(name: TString50);
 			World.Info.Flags[WorldGetFlagPosition(name)] := '';
 	end;
 
+function ElementNumber(s: string): shortint;
+	var 
+		i: integer;
+	begin
+		ElementNumber := -1;
+		for i := 0 to MAX_ELEMENT do
+			if s = ElementDefs[i].Name then ElementNumber := i;
+	end;
+
 function OopParseTile(var statId, position: integer; var tile: TMatchTile): boolean;
-	var		
-		i, j: integer;
+	var
+		i, j, elem: integer;
 	label FindElement;
 	begin
 		OopParseTile := false;
@@ -595,26 +604,28 @@ function OopParseTile(var statId, position: integer; var tile: TMatchTile): bool
 		tile.setFG := false;
 
 		OopReadWord(statId, position);
+		elem := ElementNumber(OopWord);
+		if elem <> -1 then goto FindElement;
 		i := ColorNumber(OopWord, statId);
-		
-		if i = -128 then goto FindElement;
+		if i = -128 then exit;
 		if i = 0 then tile.SetFG := true;
 		tile.Color := AsColor(i,0);
+
 		OopReadWord(statId, position);
+		elem := ElementNumber(OopWord);
+		if elem <> -1 then goto FindElement;
 		j := ColorNumber(OopWord, statId);
-		if j = -128 then goto FindElement;
+		if j = -128 then exit;
 		if j = 0 then tile.SetBG := true;
 		tile.Color := AsColor(i,j);
+
 		OopReadWord(statId, position);
+		elem := ElementNumber(OopWord);
+		if elem = -1 then exit;
 
 	FindElement:
-		for i := 0 to MAX_ELEMENT do begin
-			if OopWord = OopStringToWord(ElementDefs[i].Name) then begin
-				OopParseTile := true;
-				tile.Element := i;
-				exit;
-			end;
-		end;
+		OopParseTile := true;
+		tile.Element := elem;
 	end;
 
 function MatchTiles(sourceTile: TTile; searchTile: TMatchTile): boolean;
@@ -1458,24 +1469,29 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								OopError(statId,position, 'Unknown color.');
 						end else if OopWord = 'CHANGE' then begin
 							if not OopParseTile(statId, position, argTile) then
-								OopError(statId,position, 'Bad #CHANGE');
-							if not OopParseTile(statId, position, argTile2) then
-								OopError(statId,position, 'Bad #CHANGE');
+								OopError(statId,position, 'Bad #CHANGE to ' + OopWord)
+							else begin
+								textLine := OopWord;
+								if not OopParseTile(statId, position, argTile2) then
+									OopError(statId,position, 'Bad #CHANGE from ' + textLine + ' to ' + OopWord)
+								else begin
 
-							ix := 0;
-							iy := 1;
-							if (argTile2.Color = 0) and (argtile2.SetFG = false) then
-								argTile2.Color := ElementDefs[argTile2.Element].Color;
-							replaceTile.Element := argTile2.Element;
-							replaceTile.Color := argTile2.Color;
+									ix := 0;
+									iy := 1;
+									if (argTile2.Color = 0) and (argtile2.SetFG = false) then
+										argTile2.Color := ElementDefs[argTile2.Element].Color;
+									replaceTile.Element := argTile2.Element;
+									replaceTile.Color := argTile2.Color;
 
-							while FindTileOnBoard(ix, iy, argTile) do begin
-								if ElementDefs[argTile.Element].Cycle < 0 then
-									Board.Tiles[ix][iy].Element := E_EMPTY;
-								if (argTile2.SetFG = true) or (argTile2.SetBG = true) then
-									OopForceTile(ix, iy, replaceTile)
-								else
-									OopPlaceTile(ix, iy, replaceTile);
+									while FindTileOnBoard(ix, iy, argTile) do begin
+										if ElementDefs[argTile.Element].Cycle < 0 then
+											Board.Tiles[ix][iy].Element := E_EMPTY;
+										if (argTile2.SetFG = true) or (argTile2.SetBG = true) then
+											OopForceTile(ix, iy, replaceTile)
+										else
+											OopPlaceTile(ix, iy, replaceTile);
+									end;
+								end;
 							end;
 						end else if OopWord = 'PLAY' then begin
 							OopReadChar(statId, position);

@@ -301,7 +301,7 @@ interface
 		E_TEXT_YELLOW = 52;
 		E_TEXT_WHITE = 53;
 		{}
-		E_TEXT_MIN = E_TEXT_BLUE;
+		E_TEXT_MIN = 46;
 		{}
 		CATEGORY_ITEM = 1;
 		CATEGORY_CREATURE = 2;

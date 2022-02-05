@@ -1,3 +1,13 @@
+2/5/2022: 2.5c
+Bugs Fixed:
+* Naming a counter the same name as an element (e.g. 'ammo') meant that #PUT and #CHANGE would default to element 46 unless both a foreground and background color were specified.
+
+Added:
+* Since Element 46 isn't going anywhere, decided to make it a custom text element CUSTOMTEXT that can be defined in the .CFG file and used in-game.
+
+Improved:
+* Added instructions to the .CFG files for VisibleInDark and Pushable element properties.
+
 2/2/2022: 2.5b
 Bugs Fixed:
 * Bullets decreasing currentStatTicked twice on death is now fixed in FirmWeave as well.
