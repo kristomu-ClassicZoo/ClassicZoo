@@ -447,13 +447,13 @@ procedure CustomOOPLoad;
 								if KeyLimit <= (i div 3) then
 									KeyLimit := (i div 3) + 1;
 							end;
-						for i := 69 to 75 do
+						for i := (CUSTOM_LOCAL_OFFSET + 1) to CUSTOM_OBJ_OFFSET do
+							if (OopConfigs(i + 1) = k) and (l <> '') then
+								CustomBoardList[i - CUSTOM_LOCAL_OFFSET] := UpcaseString(l);
+						for i := (CUSTOM_OBJ_OFFSET + 1) to CUSTOM_COUNTER_OFFSET do
 							if (OopConfigs(i) = k) and (l <> '') then
-								CustomBoardList[i - 64] := UpcaseString(l);
-						for i := 76 to 81 do
-							if (OopConfigs(i) = k) and (l <> '') then
-								CustomObjList[i - 71] := UpcaseString(l);
-						for i := 82 to 83 do
+								CustomObjList[i - CUSTOM_OBJ_OFFSET] := UpcaseString(l);
+						for i := CUSTOM_COUNTER_OFFSET to (CUSTOM_COUNTER_OFFSET + 1) do
 							if (OopConfigs(i) = k) and (l <> '') then begin
 								CustomFlagList[v] := UpcaseString(l);
 								Inc(v);

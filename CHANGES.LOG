@@ -1,3 +1,8 @@
+2/5/2022: 2.5d
+Bugs Fixed:
+* The offsets for custom counters were off by six. They've been replaced with const values.
+
+
 2/5/2022: 2.5c
 Bugs Fixed:
 * Naming a counter the same name as an element (e.g. 'ammo') meant that #PUT and #CHANGE would default to element 46 unless both a foreground and background color were specified.
