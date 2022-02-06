@@ -1,3 +1,9 @@
+2/6/2022: 2.5f
+Fixed:
+* Switched most file loading to use FileExists before attempting to load a given file.
+* Board local flags were still offset by 1.
+* param3 attribute description was flipped in .CFG template.
+
 2/5/2022: 2.5e
 Added:
 * Readonly THISX and THISY counters to get the object's current position.
