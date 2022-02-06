@@ -408,7 +408,7 @@ procedure CustomOOPLoad;
 			Str(i,s);
 			CustomObjList[i] := 'OBJ' + s;
 		end;
-		if World.Info.Name <> '' then begin
+		if (World.Info.Name <> '') and FileExists(World.Info.Name + '.INI') then begin
 			Assign(f, World.Info.Name + '.INI');
 			Reset(f);
 			if IOResult = 0 then begin
@@ -452,7 +452,7 @@ procedure CustomOOPLoad;
 									KeyLimit := (i div 3) + 1;
 							end;
 						for i := (CUSTOM_LOCAL_OFFSET + 1) to CUSTOM_OBJ_OFFSET do
-							if (OopConfigs(i + 1) = k) and (l <> '') then
+							if (OopConfigs(i) = k) and (l <> '') then
 								CustomBoardList[i - CUSTOM_LOCAL_OFFSET] := UpcaseString(l);
 						for i := (CUSTOM_OBJ_OFFSET + 1) to CUSTOM_COUNTER_OFFSET do
 							if (OopConfigs(i) = k) and (l <> '') then
@@ -1343,45 +1343,45 @@ function FileLoadStatData(s: TString8; statId: integer): boolean;
 		NumRead: word;
 		TmpPtr: pointer;
 	begin
+		FileLoadStatData := false;
+		if not FileExists(s + '.OBJ') then exit;
 		FileLoadStatData := true;
 		Assign(f, s + '.OBJ');
 		Reset(f);
-		if IOResult = 0 then begin
-			with Board.Stats[statId] do begin
-				FreeStatDataMem(statId);
-				NumRead := 0;
-				k := 0;
-				TmpPtr := ObjTmpBuf;
+		with Board.Stats[statId] do begin
+			FreeStatDataMem(statId);
+			NumRead := 0;
+			k := 0;
+			TmpPtr := ObjTmpBuf;
 
-				for i := 1 to 1024 do begin
-					TmpString := '';
-					ReadLn(f, TmpString);
-					if NumRead < (LOAD_OBJ_LENGTH - 255) then begin
-						if TmpString <> '' then begin
-							k := 0;
-							TmpString := TmpString + KEY_ENTER;
-							NumRead := NumRead + Length(TmpString);						
-							for j := 1 to Length(TmpString) do begin
-								Char(TmpPtr^) := TmpString[j];
-								AdvancePointer(TmpPtr, 1);
-							end;
-						end else begin
-							Inc(NumRead);
-							Inc(k);
-							Char(TmpPtr^) := KEY_ENTER;
+			for i := 1 to 1024 do begin
+				TmpString := '';
+				ReadLn(f, TmpString);
+				if NumRead < (LOAD_OBJ_LENGTH - 255) then begin
+					if TmpString <> '' then begin
+						k := 0;
+						TmpString := TmpString + KEY_ENTER;
+						NumRead := NumRead + Length(TmpString);						
+						for j := 1 to Length(TmpString) do begin
+							Char(TmpPtr^) := TmpString[j];
 							AdvancePointer(TmpPtr, 1);
 						end;
+					end else begin
+						Inc(NumRead);
+						Inc(k);
+						Char(TmpPtr^) := KEY_ENTER;
+						AdvancePointer(TmpPtr, 1);
 					end;
 				end;
-
-				GetMem(Data, NumRead - k);
-				Move(ObjTmpBuf^, Data^, NumRead - k);
-				DataLen := NumRead - k;
-				DataPos := 0;
 			end;
-		end else
-			FileLoadStatData := false;
+
+			GetMem(Data, NumRead - k);
+			Move(ObjTmpBuf^, Data^, NumRead - k);
+			DataLen := NumRead - k;
+			DataPos := 0;
+		end;
 		Close(f);
+		if IOResult <> 0 then begin end;
 	end;
 
 function FileAppendStatData(s: TString8; statId: integer): boolean;
@@ -1392,49 +1392,49 @@ function FileAppendStatData(s: TString8; statId: integer): boolean;
 		NumRead: word;
 		TmpPtr: pointer;
 	begin
+		FileAppendStatData := false;
+		if not FileExists(s + '.OBJ') then exit;
 		FileAppendStatData := true;
 		Assign(f, s + '.OBJ');
 		Reset(f);
-		if IOResult = 0 then begin
-			with Board.Stats[statId] do begin
-				TmpPtr := ObjTmpBuf;
-				Move(Data^, TmpPtr^, DataLen);
-				AdvancePointer(TmpPtr, DataLen);
-				NumRead := DataLen;
-				FreeStatDataMem(statId);
-				k := 0;
-				i := 0;
+		with Board.Stats[statId] do begin
+			TmpPtr := ObjTmpBuf;
+			Move(Data^, TmpPtr^, DataLen);
+			AdvancePointer(TmpPtr, DataLen);
+			NumRead := DataLen;
+			FreeStatDataMem(statId);
+			k := 0;
+			i := 0;
 
-				while i < 1024 do begin
-					Inc(i);
-					TmpString := '';
-					ReadLn(f, TmpString);
-					if NumRead < (LOAD_OBJ_LENGTH - 255) then begin
-						if TmpString <> '' then begin
-							k := 0;
-							TmpString := TmpString + KEY_ENTER;
-							NumRead := NumRead + Length(TmpString);						
-							for j := 1 to Length(TmpString) do begin
-								Char(TmpPtr^) := TmpString[j];
-								AdvancePointer(TmpPtr, 1);
-							end;
-						end else begin
-							Inc(NumRead);
-							Inc(k);
-							if k > 5 then i := 1024;
-							Char(TmpPtr^) := KEY_ENTER;
+			while i < 1024 do begin
+				Inc(i);
+				TmpString := '';
+				ReadLn(f, TmpString);
+				if NumRead < (LOAD_OBJ_LENGTH - 255) then begin
+					if TmpString <> '' then begin
+						k := 0;
+						TmpString := TmpString + KEY_ENTER;
+						NumRead := NumRead + Length(TmpString);						
+						for j := 1 to Length(TmpString) do begin
+							Char(TmpPtr^) := TmpString[j];
 							AdvancePointer(TmpPtr, 1);
 						end;
+					end else begin
+						Inc(NumRead);
+						Inc(k);
+						if k > 5 then i := 1024;
+						Char(TmpPtr^) := KEY_ENTER;
+						AdvancePointer(TmpPtr, 1);
 					end;
 				end;
-
-				GetMem(Data, NumRead - k);
-				Move(ObjTmpBuf^, Data^, NumRead - k);
-				DataLen := NumRead - k;
 			end;
-		end else
-			FileAppendStatData := false;
+
+			GetMem(Data, NumRead - k);
+			Move(ObjTmpBuf^, Data^, NumRead - k);
+			DataLen := NumRead - k;
+		end;
 		Close(f);
+		if IOResult <> 0 then begin end;
 	end;
 
 procedure RemoveStat(statId: integer);

@@ -47,6 +47,20 @@ const
 	TransporterEWChars: string = '(<('#179')>)'#179;
 	StarAnimChars: string = #179'/'#196'\';
 
+function FileExists(name: TFilenameString): boolean;
+	var
+		f: file;
+	begin
+		Assign(f, name);
+		Reset(f);
+		if IOResult = 0 then begin
+			Close(f);
+			FileExists := true;
+		end else begin
+			FileExists := false;
+		end;
+	end;
+
 function AsColor(fg, bg: integer): byte;
 	begin
 		AsColor := ((bg * 16) + fg) + $00;
@@ -1882,6 +1896,7 @@ procedure InitElementDefs;
 		ElementDefs[18].TouchProc := ElementDamagingTouch;
 		ElementDefs[18].Name := 'BULLET';
 		ElementDefs[18].Param2 := 100;
+		ElementDefs[18].Param3 := 1;
 
 		ElementDefs[19].Character := #176;
 		ElementDefs[19].PlaceableOnTop := true;
@@ -2115,6 +2130,7 @@ procedure InitElementsGame;
 	begin
 		InitElementDefs;
 		if World.Info.Name <> '' then begin
+			if not FileExists(World.Info.Name + '.CFG') then exit;
 			Assign(f, World.Info.Name + '.CFG');
 			Reset(f);
 			if IOResult = 0 then begin
@@ -2450,7 +2466,7 @@ procedure ConfigStringsLoad;
 	begin
 		for i := 1 to CONFIG_FILE_COUNT do
 			ConfigList[i] := DefaultConfigList(i);
-		if World.Info.Name <> '' then begin
+		if (World.Info.Name <> '') and (FileExists(World.Info.Name + '.CFG')) then begin
 			Assign(f, World.Info.Name + '.CFG');
 			Reset(f);
 			if IOResult = 0 then begin
