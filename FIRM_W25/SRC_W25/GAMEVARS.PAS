@@ -48,7 +48,7 @@ interface
 		PALETTE_START = 22;
 		PARAM_FILE_COUNT = 69;
 		{.INI FILE}
-		CUSTOM_OOP_COUNT = 43;
+		CUSTOM_OOP_COUNT = 45;
 		CUSTOM_KEY_COUNT = 24;
 		CUSTOM_LOCAL_OFFSET = CUSTOM_OOP_COUNT + CUSTOM_KEY_COUNT + 1;
 		CUSTOM_OBJ_OFFSET = CUSTOM_LOCAL_OFFSET + 7;
@@ -176,7 +176,7 @@ interface
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
-		PMouseX, PMouseY, PPosX, PPosY: shortint;
+		PMouseX, PMouseY, PPosX, PPosY, OPosX, OPosY: shortint;
 
 		LoadedGameFileName: TString50;
 		SavedGameFileName: TString50;

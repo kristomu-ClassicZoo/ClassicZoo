@@ -286,46 +286,48 @@ function OopConfigs (i: integer): string;
 			41: OopConfigs := 'COUNTER.MOUSEY';
 			42: OopConfigs := 'COUNTER.PLAYERX';
 			43: OopConfigs := 'COUNTER.PLAYERY';
-			44: OopConfigs := 'INPUT.TERMINAL';
-			45: OopConfigs := 'INPUT.1.KEYBIND';
-			46: OopConfigs := 'INPUT.1.LABEL';
-			47: OopConfigs := 'INPUT.1.SIDEBAR.ROW';
-			48: OopConfigs := 'INPUT.2.KEYBIND';
-			49: OopConfigs := 'INPUT.2.LABEL';
-			50: OopConfigs := 'INPUT.2.SIDEBAR.ROW';
-			51: OopConfigs := 'INPUT.3.KEYBIND';
-			52: OopConfigs := 'INPUT.3.LABEL';
-			53: OopConfigs := 'INPUT.3.SIDEBAR.ROW';
-			54: OopConfigs := 'INPUT.4.KEYBIND';
-			55: OopConfigs := 'INPUT.4.LABEL';
-			56: OopConfigs := 'INPUT.4.SIDEBAR.ROW';
-			57: OopConfigs := 'INPUT.5.KEYBIND';
-			58: OopConfigs := 'INPUT.5.LABEL';
-			59: OopConfigs := 'INPUT.5.SIDEBAR.ROW';
-			60: OopConfigs := 'INPUT.6.KEYBIND';
-			61: OopConfigs := 'INPUT.6.LABEL';
-			62: OopConfigs := 'INPUT.6.SIDEBAR.ROW';
-			63: OopConfigs := 'INPUT.7.KEYBIND';
-			64: OopConfigs := 'INPUT.7.LABEL';
-			65: OopConfigs := 'INPUT.7.SIDEBAR.ROW';
-			66: OopConfigs := 'INPUT.8.KEYBIND';
-			67: OopConfigs := 'INPUT.8.LABEL';
-			68: OopConfigs := 'INPUT.8.SIDEBAR.ROW';
-			69: OopConfigs := 'FLAG.BOARD.1';
-			70: OopConfigs := 'FLAG.BOARD.2';
-			71: OopConfigs := 'FLAG.BOARD.3';
-			72: OopConfigs := 'FLAG.BOARD.4';
-			73: OopConfigs := 'FLAG.BOARD.5';
-			74: OopConfigs := 'FLAG.BOARD.6';
-			75: OopConfigs := 'FLAG.BOARD.7';
-			76: OopConfigs := 'FLAG.OBJ.1';
-			77: OopConfigs := 'FLAG.OBJ.2';
-			78: OopConfigs := 'FLAG.OBJ.3';
-			79: OopConfigs := 'FLAG.OBJ.4';
-			80: OopConfigs := 'FLAG.OBJ.5';
-			81: OopConfigs := 'FLAG.OBJ.6';
-			82: OopConfigs := 'WORLD.FLAG';
-			83: OopConfigs := 'WORLD.COUNTER';
+			44: OopConfigs := 'COUNTER.THISX';
+			45: OopConfigs := 'COUNTER.THISY';
+			46: OopConfigs := 'INPUT.TERMINAL';
+			47: OopConfigs := 'INPUT.1.KEYBIND';
+			48: OopConfigs := 'INPUT.1.LABEL';
+			49: OopConfigs := 'INPUT.1.SIDEBAR.ROW';
+			50: OopConfigs := 'INPUT.2.KEYBIND';
+			51: OopConfigs := 'INPUT.2.LABEL';
+			52: OopConfigs := 'INPUT.2.SIDEBAR.ROW';
+			53: OopConfigs := 'INPUT.3.KEYBIND';
+			54: OopConfigs := 'INPUT.3.LABEL';
+			55: OopConfigs := 'INPUT.3.SIDEBAR.ROW';
+			56: OopConfigs := 'INPUT.4.KEYBIND';
+			57: OopConfigs := 'INPUT.4.LABEL';
+			58: OopConfigs := 'INPUT.4.SIDEBAR.ROW';
+			59: OopConfigs := 'INPUT.5.KEYBIND';
+			60: OopConfigs := 'INPUT.5.LABEL';
+			61: OopConfigs := 'INPUT.5.SIDEBAR.ROW';
+			62: OopConfigs := 'INPUT.6.KEYBIND';
+			63: OopConfigs := 'INPUT.6.LABEL';
+			64: OopConfigs := 'INPUT.6.SIDEBAR.ROW';
+			65: OopConfigs := 'INPUT.7.KEYBIND';
+			66: OopConfigs := 'INPUT.7.LABEL';
+			67: OopConfigs := 'INPUT.7.SIDEBAR.ROW';
+			68: OopConfigs := 'INPUT.8.KEYBIND';
+			69: OopConfigs := 'INPUT.8.LABEL';
+			70: OopConfigs := 'INPUT.8.SIDEBAR.ROW';
+			71: OopConfigs := 'FLAG.BOARD.1';
+			72: OopConfigs := 'FLAG.BOARD.2';
+			73: OopConfigs := 'FLAG.BOARD.3';
+			74: OopConfigs := 'FLAG.BOARD.4';
+			75: OopConfigs := 'FLAG.BOARD.5';
+			76: OopConfigs := 'FLAG.BOARD.6';
+			77: OopConfigs := 'FLAG.BOARD.7';
+			78: OopConfigs := 'FLAG.OBJ.1';
+			79: OopConfigs := 'FLAG.OBJ.2';
+			80: OopConfigs := 'FLAG.OBJ.3';
+			81: OopConfigs := 'FLAG.OBJ.4';
+			82: OopConfigs := 'FLAG.OBJ.5';
+			83: OopConfigs := 'FLAG.OBJ.6';
+			84: OopConfigs := 'WORLD.FLAG';
+			85: OopConfigs := 'WORLD.COUNTER';
 		else OopConfigs := '_nil' end;
 	end;
 
@@ -375,6 +377,8 @@ function DefaultOopList (i: integer): string;
 			41: DefaultOopList := 'MOUSEY';
 			42: DefaultOopList := 'PLAYERX';
 			43: DefaultOopList := 'PLAYERY';
+			44: DefaultOopList := 'THISX';
+			45: DefaultOopList := 'THISY';
 		else DefaultOopList := '_nil' end;
 	end;
 
@@ -2176,12 +2180,12 @@ procedure GameDrawCustomSidebar;
 					VideoWriteText(62, y,
 						AsColor(ParamList[THEME_START + 3],
 						ParamList[THEME_START + 4]),
-						' ' + UpCase(KeyList[i * 3][1]) + ' ')
+						' ' + KeyList[i * 3][1] + ' ')
 				else
 					VideoWriteText(62, y,
 						AsColor(ParamList[THEME_START + 3],
 						ParamList[THEME_START + 5]),
-						' ' + UpCase(KeyList[i * 3][1]) + ' ');
+						' ' + KeyList[i * 3][1] + ' ');
 				VideoWriteText(65, y,
 					AsColor(ParamList[THEME_START + 1],
 					ParamList[THEME_START]), ' '+ KeyList[(i * 3) + 1]);

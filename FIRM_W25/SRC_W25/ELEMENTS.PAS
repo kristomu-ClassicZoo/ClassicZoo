@@ -983,6 +983,8 @@ procedure ElementObjectTick(statId: integer);
 		retVal: boolean;
 	begin
 		with Board.Stats[statId] do begin
+			OPosX := X;
+			OPosY := Y;
 			if DataPos >= 0 then
 				retVal := OopExecute(statId, DataPos, ConfigList[84])
 			else

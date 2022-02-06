@@ -1,3 +1,10 @@
+2/5/2022: 2.5e
+Added:
+* Readonly THISX and THISY counters to get the object's current position.
+* #SEND /dir label to direct a label at a particular location
+* bullet.param3 to allow objects to shoot player bullets, if desired.
+
+
 2/5/2022: 2.5d
 Bugs Fixed:
 * The offsets for custom counters were off by six. They've been replaced with const values.

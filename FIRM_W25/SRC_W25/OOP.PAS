@@ -145,6 +145,10 @@ function ShortWord(s: string): boolean;
 		else if s = OopStringToWord(OOPList[42]) then
 			ShortWord := true
 		else if s = OopStringToWord(OOPList[43]) then
+			ShortWord := true
+		else if s = OopStringToWord(OOPList[44]) then
+			ShortWord := true
+		else if s = OopStringToWord(OOPList[45]) then
 			ShortWord := true;
 	end;
 
@@ -172,11 +176,14 @@ procedure OopGetShort(s: string; var cPtr: cShort);
 			cPtr := @PMouseX
 		else if s = OopStringToWord(OOPList[41]) then
 			cPtr := @PMouseY
-		else if s = OopStringToWord(OOPList[42]) then begin
+		else if s = OopStringToWord(OOPList[42]) then
 			cPtr := @PPosX
-		end else if s = OopStringToWord(OOPList[43]) then begin
+		else if s = OopStringToWord(OOPList[43]) then
 			cPtr := @PPosY
-		end;
+		else if s = OopStringToWord(OOPList[44]) then
+			cPtr := @OPosX
+		else if s = OopStringToWord(OOPList[45]) then
+			cPtr := @OPosY;
 	end;
 
 function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
@@ -1210,7 +1217,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							stopRunning := true;
 						end else if OopWord = 'SHOOT' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
-							if BoardShoot(E_BULLET, X, Y, deltaX, deltaY, SHOT_SOURCE_ENEMY) then
+							if BoardShoot(E_BULLET, X, Y, deltaX, deltaY, ElementDefs[E_BULLET].Param3) then
 								SoundQueue(2, SoundParse(ConfigList[43])); {Object shoot}
 							stopRunning := true;
 						end else if OopWord = 'THROWSTAR' then begin
@@ -1378,9 +1385,22 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									Board.Stats[ix].P2 := iy;
 							end;
 						end else if OopWord = 'SEND' then begin
-							OopReadWord(statId, position);
-							if OopSend(statId, OopWord, false) then
-								lineFinished := false;
+							repeat
+								OopReadChar(statId, position);
+							until OopChar <> ' ';
+							if OopChar = '/' then begin
+								OopReadWord(statId, position);
+								if OopParseDirection(statId, position, deltaX, deltaY) then begin
+									OopReadWord(statId, position);
+									ix := GetStatIdAt(X + deltaX, Y + deltaY);
+									if ix > 0 then
+										if OopSend(-ix, OopWord, false) then lineFinished := false;
+								end;
+							end else begin
+								Dec(position);
+								OopReadWord(statId, position);
+								if OopSend(statId, OopWord, false) then lineFinished := false;
+							end;
 						end else if OopWord = 'BECOME' then begin
 							if OopParseTile(statId, position, argTile) then begin
 								replaceStat := true;
