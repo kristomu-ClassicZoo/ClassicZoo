@@ -975,7 +975,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 		namePosition: integer;
 		lastPosition: integer;
 		repeatInsNextTick: boolean;
-		replaceStat, dieItem: boolean;
+		replaceStat, replaceForce, dieItem: boolean;
 		MatchFG, MatchBG: boolean;
 		lineFinished: boolean;
 		labelPtr: pointer;
@@ -1000,6 +1000,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 			stopRunning := false;
 			repeatInsNextTick := false;
 			replaceStat := false;
+			replaceForce := false;
 			dieItem := false;
 			endOfProgram := false;
 			insCount := 1;
@@ -1404,6 +1405,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = 'BECOME' then begin
 							if OopParseTile(statId, position, argTile) then begin
 								replaceStat := true;
+								if (argTile.SetFG = true) or (argTile.SetBG = true) then
+									replaceForce := true;
 								replaceTile.Element := argTile.Element;
 								replaceTile.Color := argTile.Color;
 							end else begin
@@ -1618,7 +1621,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 				ix := X;
 				iy := Y;
 				DamageStat(statId);
-				OopPlaceTile(ix, iy, replaceTile);
+				if replaceForce then
+					OopForceTile(ix, iy, replaceTile)
+				else
+					OopPlaceTile(ix, iy, replaceTile);
 				if dieItem then
 					MoveStat(0, ix, iy);
 			end;

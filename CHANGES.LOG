@@ -1,3 +1,8 @@
+2/7/2022: 2.5g
+Fixed:
+* FIRMDEMO still had multiple references to .PAR files.
+* #BECOME <color> black <element> was not correctly setting the black background.
+
 2/6/2022: 2.5f
 Fixed:
 * Switched most file loading to use FileExists before attempting to load a given file.
