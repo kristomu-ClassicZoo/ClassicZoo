@@ -1507,9 +1507,11 @@ procedure ElementTruePlayerTick;
 			end;
 
 			inputC := UpCase(InputKeyPressed);
-			if ((P2 = 1) and (inputC <> #27)) {Locked players only save, quit or debug prompt}
-				and ((inputC <> UpCase(ConfigList[83][1]))
-				and (inputC <> UpCase(ConfigList[77][1])))
+			if (P2 = 1) {Locked players have limited input options}
+				and (inputC <> #27) and (inputC <> 'Q')
+				and (inputC <> UpCase(ConfigList[72][1]))
+				and (inputC <> UpCase(ConfigList[77][1]))
+				and (inputC <> UpCase(ConfigList[83][1]))
 			then
 				inputC := #0;
 			if inputC =	UpCase(ConfigList[70][1]) then begin {'T' Torch hotkey}
