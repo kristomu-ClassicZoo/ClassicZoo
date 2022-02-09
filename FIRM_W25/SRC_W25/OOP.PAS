@@ -1142,9 +1142,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 											goto ReadCommand
 										else
 											OopError(statId,position, 'File not found ' + OopWord + '.OBJ');
-									end else if FileLoadStatData(OopWord,bindStatId) then
-										Board.Stats[bindStatId].DataPos := 0
-									else
+									end else if FileLoadStatData(OopWord,bindStatId) then begin
+										Board.Stats[bindStatId].DataPos := 0;
+										goto ReadCommand;
+									end else
 										OopError(statId,position, 'File not found ' + OopWord + '.OBJ');
 								end else
 									OopError(statId,position, OOPList[29] + ' needs a filename');

@@ -1,3 +1,13 @@
+2/8/2022: 2.5i
+Bugs Fixed:
+* When executing #load i <file>, the first line of code would be skipped.
+
+
+2/8/2022: 2.5h
+Bugs Fixed:
+
+* Uploaded the wrong ElementPlayerTick code back when creating #lock player and an older version of that code survived. This verison now correctly allows the player to mute music and still use 'Q' to quit, in addition to Escape.
+
 2/7/2022: 2.5g
 Fixed:
 * FIRMDEMO still had multiple references to .PAR files.
