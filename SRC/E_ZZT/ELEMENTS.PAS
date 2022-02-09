@@ -40,9 +40,8 @@ interface
 
 implementation
 uses
-{$IFDEF DEBUGWND}
-DebugWnd,
-{$ENDIF}
+{$IFDEF DEBUGWND} DebugWnd, {$ENDIF}
+{$IFDEF UISCBACK} UiScBack, {$ENDIF}
 ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, GameConf, Sidebar, Cheats, GameSh, Game;
 
 const
@@ -1538,6 +1537,11 @@ procedure ElementPlayerTick(statId: integer);
 				'H': begin
 					TextWindowDisplayFile('GAME.HLP', 'Playing ZZT');
 				end;
+{$IFDEF UISCBACK}
+				'M': begin
+					ScrollbackDisplay;
+				end;
+{$ENDIF}
 				'?': begin
 					GameDebugPrompt;
 					InputKeyPressed := #0;

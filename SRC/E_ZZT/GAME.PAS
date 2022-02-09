@@ -89,15 +89,10 @@ const
 
 implementation
 uses
-{$IFDEF DEBUGWND}
-DebugWnd,
-{$ENDIF}
-{$IFNDEF RAWSTRUCTS}
-GameVSer,
-{$ENDIF}
-{$IFDEF WEBBROW}
-WebBrow,
-{$ENDIF}
+{$IFDEF DEBUGWND} DebugWnd, {$ENDIF}
+{$IFNDEF RAWSTRUCTS} GameVSer, {$ENDIF}
+{$IFDEF WEBBROW} WebBrow, {$ENDIF}
+{$IFDEF UISCBACK} UiScBack, {$ENDIF}
 Dos, GameSh, Cheats, GameIo,
 FileSel, FileSys, GameConf, ExtMem, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
 
@@ -792,6 +787,9 @@ procedure DisplayMessage(time: integer; message: string);
 			AddStat(0, 0, E_MESSAGE_TIMER, 0, 1, StatTemplateDefault);
 			Board.Stats[Board.StatCount].P2 := Time div (TickTimeDuration + 1);
 			Board.Info.Message := message;
+{$IFDEF UISCBACK}
+			ScrollbackAppend(message);
+{$ENDIF}
 		end;
 	end;
 
@@ -1228,6 +1226,9 @@ procedure GameTitleLoop;
 		ReturnBoardId := 0;
 		boardChanged := true;
 		repeat
+{$IFDEF UISCBACK}
+			ScrollbackClear(SCROLLBACK_MAX_SIZE);
+{$ENDIF}
 			BoardChange(0);
 			repeat
 				GameStateElement := E_MONITOR;

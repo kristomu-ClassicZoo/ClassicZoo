@@ -40,9 +40,8 @@ interface
 
 implementation
 uses
-{$IFDEF DEBUGWND}
-DebugWnd,
-{$ENDIF}
+{$IFDEF DEBUGWND} DebugWnd, {$ENDIF}
+{$IFDEF UISCBACK} UiScBack, {$ENDIF}
 GameConf, ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, Cheats, GameSh, Game;
 
 const
@@ -1653,9 +1652,11 @@ procedure ElementPlayerTick(statId: integer);
 					if not OopSend(0, 'ALL:HINT', false) then begin
 					end;
 				end;
-				'F': begin
-					TextWindowDisplayFile('ORDER.HLP', 'Order form');
+{$IFDEF UISCBACK}
+				'M': begin
+					ScrollbackDisplay;
 				end;
+{$ENDIF}
 				'?': begin
 					GameDebugPrompt;
 					InputKeyPressed := #0;

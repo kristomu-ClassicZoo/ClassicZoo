@@ -110,15 +110,10 @@ const
 
 implementation
 uses
-{$IFDEF DEBUGWND}
-DebugWnd,
-{$ENDIF}
-{$IFNDEF RAWSTRUCTS}
-GameVSer,
-{$ENDIF}
-{$IFDEF WEBBROW}
-WebBrow,
-{$ENDIF}
+{$IFDEF DEBUGWND} DebugWnd, {$ENDIF}
+{$IFNDEF RAWSTRUCTS} GameVSer, {$ENDIF}
+{$IFDEF WEBBROW} WebBrow, {$ENDIF}
+{$IFDEF UISCBACK} UiScBack, {$ENDIF}
 Dos, GameSh, Cheats, GameIo,
 GameConf, FileSys, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
 
@@ -1003,6 +998,9 @@ procedure DisplayMessage(time: integer; line1, line2: TSmallString);
 			Board.Stats[Board.StatCount].P2 := Time div (TickTimeDuration + 1);
 			MessageLine1 := line1;
 			MessageLine2 := line2;
+{$IFDEF UISCBACK}
+			ScrollbackAppend(line1 + ' ' + line2);
+{$ENDIF}
 		end;
 		ClearDisplayMessage;
 	end;
@@ -1561,6 +1559,9 @@ LoadWorldSelect:
 {$ENDIF}
 				end;
 			end;
+{$IFDEF UISCBACK}
+			ScrollbackClear(SCROLLBACK_MAX_SIZE);
+{$ENDIF}
 			if runTitle then begin
 				GamePlayVideoInstall;
 				GameStateElement := E_MONITOR;
