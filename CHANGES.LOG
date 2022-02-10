@@ -1,3 +1,11 @@
+2/10/2022: 2.5j
+Bugs Fixed:
+* Removed another reference to .PAR files in FIRMDEMO.
+
+Improved:
+* Merged Asie's improved Classiczoo video rendering code.
+* Updated the README.
+
 2/8/2022: 2.5i
 Bugs Fixed:
 * When executing #load i <file>, the first line of code would be skipped.

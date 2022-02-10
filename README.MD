@@ -1,4 +1,4 @@
-# Weave ZZT 2.2c
+# Weave ZZT 2.5
 
 Unlike previous versions of Weave, this version really is meant to be the forever version.
 
@@ -22,16 +22,16 @@ There are a few different kinds of files found in this project:
 
 * PAS files
     * These are Turbo Pascal 5.5 source files for Weave.
-* CFG files
-    * These are custom string and sound files for ZZT worlds.
-* PAR files
-    * These are custom color and parameter files for ZZT worlds.
-* OOP files
-    * These are custom command files for ZZT worlds.
-* FLG files
-    * These list custom flags and counters for ZZT worlds.
-* KB files
-    * These list custom keybinds for ZZT worlds.
+* CFG files contain:
+    * Custom strings.
+    * Custom sounds.
+    * Custom colors.
+    * Custom element parameters.
+    * Custom game settings.
+* INI files contain:
+    * Custom commands.
+    * Custom flags and counters.
+    * Custom keybinds.
 * BAT files
     * These are used to compile Weave in DOS or DOSBox.
 * TXT and DOC files
@@ -39,7 +39,7 @@ There are a few different kinds of files found in this project:
 * OBJ files
     * These are ZZT-OOP code to be loaded into objects.
 * ZZT files
-    * These are the demonstrative ZZT worlds for Weave./
+    * These are the demonstrative ZZT worlds for Weave.
 * EXE files
     * SWEAVE20 and FWEAVE20 are the Weave ZZT executables.
     * LZEXE is the tool used to compress the weave EXEs.
@@ -48,7 +48,7 @@ There are a few different kinds of files found in this project:
 
 Below are listed the files in the various folders of the project.
 
-### SOFT_W20 directory
+### SOFT_W25 directory
 
 * DOC
     * ABOUT.HLP
@@ -56,22 +56,20 @@ Below are listed the files in the various folders of the project.
 * TOOLS
     * DATPACK.PAS, etc.
         * For making ZZT.DAT and shrinking ZZT.EXE.
-* SRC_W20
+* SRC_W25
     * ALL .PAS FILES (ELEMENTS.PAS, EXTMEM.PAS, etc.)
         * Forked from the ZZT Reconstruction and ClassicZoo.
         * Reconstruction: github.com/asiekierka/reconstruction-of-zzt
         * ClassicZoo: github.com/OpenZoo/ClassicZoo
-    * BLUEDRGN.PAR
+    * BLUEDRGN.CFG
         * "Blue Dragon Mode" parameters file.
     * SOFTDEMO.CFG
-        * Strings and sounds for the SoftWeave demo.
-    * SOFTDEMO.PAR
-        * Colors and parameters for the SoftWeave demo.
+        * Parameters for the SoftWeave demo.
     * TEMPLATE.CFG
-        * Base string and sound file for new Weavers.
-    * TEMPLATE.PAR
-        * Base color and parameter file for new Weavers.
-* BUILDW20.BAT
+        * Basic parameters file with common options.
+    * EXTENDED.CFG
+        * Extended parameters file with more options.
+* BUILDW25.BAT
     * Used in DOS or DOSBox to build SoftWeave from source.
 * LICENSE.TXT
     * MIT License, required by reconstruction-of-zzt.
@@ -80,44 +78,35 @@ Below are listed the files in the various folders of the project.
 * SOFTDEMO.ZZT
     * The SoftWeave demo file.
 
-### FIRM_W20 directory
+### FIRM_W25 directory
 
-* DOC
-    * ABOUT.HLP
-        * for a minimal ZZT.DAT.
 * TOOLS
-    * DATPACK.PAS, etc.
-        * For making ZZT.DAT and shrinking ZZT.EXE.
-* SRC_W20
+    * LZEXE.EXE, LZEXE.DOC
+        * For shrinking ZZT.EXE.
+* SRC_W25
     * ALL .PAS FILES (ELEMENTS.PAS, EXTMEM.PAS, etc.)
         * Forked from the ZZT Reconstruction and ClassicZoo.
         * Reconstruction: github.com/asiekierka/reconstruction-of-zzt
         * ClassicZoo: github.com/OpenZoo/ClassicZoo
     * EXAMPLE.OBJ
         * Example object used in the FirmWeave demo.
-    * WONKY.OBJ
-        * Example custom bullet from the FirmWeave demo.
+    * ANGRY.OBJ, GREET.OBJ
+        * Appended code used in the FirmWeave demo.
+    * BEARBUL.OBJ, WONKY.OBJ
+        * Custom bullets from the FirmWeave demo.
     * FIRMDEMO.CFG
-        * Strings and sounds for the FirmWeave demo.
-    * FIRMDEMO.PAR
-        * Colors and parameters for the FirmWeave demo.
-    * FIRMDEMO.KB
-        * Custom keybinds for the FirmWeave demo.
-    * FIRMDEMO.FLG
-        * Custom flags and counters for the FirmWeave demo.
+        * Element parameters for the FirmWeave demo.
+    * FIRMDEMO.INI
+        * Command and key definitions for the FirmWeave demo.
     * TEMPLATE.CFG
-        * Base string and sound file for new Weavers.
-    * TEMPLATE.PAR
-        * Base color and parameter file for new Weavers.
-    * TEMPLATE.OOP
-        * Base custom command file for new Weavers.
-    * EXTENDED.OOP
-        * Fully enabled commands for confident Weavers.
-    * TEMPLATE.KB
-        * Base Keybinds file for new Weavers.
-    * TEMPLATE.FLG
-        * Base flags and counters file for new Weavers.
-* BUILDW20.BAT
+        * Basic parameters file with common options.
+    * TEMPLATE.INI
+        * Code and Keybinds file with few enabled options.
+    * EXTENDED.CFG
+        * Extended parameters file with more options.
+    * EXTENDED.INI
+        * Code and Keybinds file with all options provided.
+* BUILDW25.BAT
     * Used in DOS or DOSBox to build FirmWeave from source.
 * LICENSE.TXT
     * MIT License, required by reconstruction-of-zzt.
