@@ -80,6 +80,7 @@ interface
 implementation
 uses
 {$IFDEF SDL2} AudioSim, {$ENDIF}
+{$IFDEF UISCBACK} UiScBack, {$ENDIF}
 Editor, Game, Sounds, ZVideo, ZInput, FileSys, TxtWind;
 
 type
@@ -428,6 +429,32 @@ function ConfigTransitionTextWindowDelayCustomAction: boolean;
 	end;
 {$ENDIF}
 
+{$IFDEF UISCBACK}
+function ConfigScrollbackSizeGetValue: integer;
+	begin
+		ConfigScrollbackSizeGetValue := ScrollbackSize;
+	end;
+
+procedure ConfigScrollbackSizeSetValue(value: integer);
+	begin
+		ScrollbackClear(value);
+	end;
+
+function ConfigScrollbackSizeShowValue: string;
+	begin
+		ConfigScrollbackSizeShowValue := ConfigShowOnOffValue(ScrollbackSize > 0);
+	end;
+
+function ConfigScrollbackSizeCustomAction: boolean;
+	begin
+		if ScrollbackSize = 0 then
+			ScrollbackClear(SCROLLBACK_MAX_SIZE)
+		else
+			ScrollbackClear(0);
+		ConfigScrollbackSizeCustomAction := true;
+	end;
+{$ENDIF}
+
 {$IFDEF DEBUGWND}
 function ConfigDebugShowValue: string;
 	begin
@@ -661,6 +688,7 @@ const
 	{$IFDEF MSDOS} + 3 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF DEBUGWND} + 3 {$ENDIF}
+	{$IFDEF UISCBACK} + 1 {$ENDIF}
 	{$IFDEF SDL2} + 7 {$IFNDEF WINDOWS} + 1 {$ENDIF} {$ENDIF}
 	;
 	ConfigHiddenEntryCount = 0
@@ -772,6 +800,18 @@ procedure GameConfigInit;
 			ShowValue := ConfigVidColorShowValue;
 		end;
 		Inc(i);
+{$IFDEF UISCBACK}
+		with ConfigEntries[i] do begin
+			Category := CCEngine;
+			Key := 'AMsgScB';
+			Name := 'Message scrollback';
+			GetValue := ConfigScrollbackSizeGetValue;
+			SetValue := ConfigScrollbackSizeSetValue;
+			ShowValue := ConfigScrollbackSizeShowValue;
+			CustomAction := ConfigScrollbackSizeCustomAction;
+		end;
+		Inc(i);
+{$ENDIF}
 {$IFDEF MSDOS}
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;

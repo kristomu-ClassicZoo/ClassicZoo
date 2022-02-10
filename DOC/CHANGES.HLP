@@ -6,10 +6,12 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
-$< ClassicZoo dev >
+$< ClassicZoo 4.31 >
 
-+ New cheats:
-  + ?TOUCH [color] <element>
++ Added HTML5 "port" - a Zeta bundle.
++ Added cheat: ?TOUCH [color] <element>
++ [SDL2] Added message scrollback - shows
+  up to the last 256 displayed messages.
 + Editor improvements.
   + Syntax highlighting can now be turned
     on/off.

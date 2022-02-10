@@ -1560,7 +1560,7 @@ LoadWorldSelect:
 				end;
 			end;
 {$IFDEF UISCBACK}
-			ScrollbackClear(SCROLLBACK_MAX_SIZE);
+			ScrollbackClear(-1);
 {$ENDIF}
 			if runTitle then begin
 				GamePlayVideoInstall;

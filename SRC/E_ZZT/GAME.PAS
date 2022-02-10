@@ -1227,7 +1227,7 @@ procedure GameTitleLoop;
 		boardChanged := true;
 		repeat
 {$IFDEF UISCBACK}
-			ScrollbackClear(SCROLLBACK_MAX_SIZE);
+			ScrollbackClear(-1);
 {$ENDIF}
 			BoardChange(0);
 			repeat

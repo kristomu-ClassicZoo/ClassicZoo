@@ -54,6 +54,14 @@ In addition, the "P" key changes function
 from "Pause" to "Proceed", allowing the
 player to tick the board without moving.
 
+:amsgscb;[ Message scrollback ]
+
+This option, if enabled, enables the
+message scrollback, available under the
+[M] key while playing. It displays a list
+of the most recent (up to 256) one-line
+messages displayed.
+
 :etrblkfr;[ Board transition speed ]
 
 This option controls how quickly the
