@@ -19,7 +19,7 @@ echo.
 echo [ Compressing ZZT.EXE ]
 echo.
 cd BIN
-..\TOOLS\LZEXE.EXE ZZT.EXE
+..\TOOLS\UPX.EXE --8086 ZZT.EXE
 cd ..
 
 echo.
