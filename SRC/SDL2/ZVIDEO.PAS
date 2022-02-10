@@ -69,6 +69,7 @@ interface
 	function VideoIsCharsetCustom: boolean;
 	function VideoIsPaletteCustom: boolean;
 	function VideoSetCharset(data: pointer; height: integer): boolean;
+	function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
 	procedure VideoLoadCharsetDialog;
 	procedure VideoLoadCharsetFromFile(filename: string);
 	procedure VideoLoadPaletteDialog;
@@ -539,7 +540,7 @@ FinishLoadCharset:
 	end;
 
 const
-	PLD_EGA_PALETTE_LUT: array[0 .. 15] of byte = (
+	EGA_PALETTE_LUT: array[0 .. 15] of byte = (
 		0, 1, 2, 3, 4, 5, 20, 7,
 		56, 57, 58, 59, 60, 61, 62, 63
 	);
@@ -555,6 +556,7 @@ procedure VideoSetPalette(data: array of Uint32; custom: boolean);
 		usingCustomPalette := custom;
 
 		SDL_UnlockMutex(eventMutex);
+		VideoForcePlayfieldRedraw;
 	end;
 
 procedure VideoLoadPaletteDialog;
@@ -586,9 +588,9 @@ procedure VideoLoadPaletteFromFile(filename: string);
 			{ .PLD file }
 			for i := 0 to 15 do
 				palette[i] :=
-					(((paletteDataArr^[(PLD_EGA_PALETTE_LUT[i] * 3)] and $3F) * 255 div 63) shl 16)
-					or (((paletteDataArr^[(PLD_EGA_PALETTE_LUT[i] * 3) + 1] and $3F) * 255 div 63) shl 8)
-					or (((paletteDataArr^[(PLD_EGA_PALETTE_LUT[i] * 3) + 2] and $3F) * 255 div 63));
+					(((paletteDataArr^[(EGA_PALETTE_LUT[i] * 3)] and $3F) * 255 div 63) shl 16)
+					or (((paletteDataArr^[(EGA_PALETTE_LUT[i] * 3) + 1] and $3F) * 255 div 63) shl 8)
+					or (((paletteDataArr^[(EGA_PALETTE_LUT[i] * 3) + 2] and $3F) * 255 div 63));
 			VideoSetPalette(palette, true);
 		end else if paletteLen = 48 then begin
 			{ .PAL file }
@@ -802,6 +804,19 @@ function VideoIsCharsetCustom: boolean;
 function VideoIsPaletteCustom: boolean;
 	begin
 		VideoIsPaletteCustom := usingCustomPalette;
+	end;
+
+function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
+	begin
+		SDL_LockMutex(eventMutex);
+		palette[idx] :=
+			((Uint32(r) * 255 div 63) shl 16)
+			or ((Uint32(g) * 255 div 63) shl 8)
+			or (Uint32(b) * 255 div 63);
+		usingCustomPalette := true;
+		SDL_UnlockMutex(eventMutex);
+		VideoForcePlayfieldRedraw;
+		VideoSetPaletteColor := true;
 	end;
 
 function VideoSetCharset(data: pointer; height: integer): boolean;

@@ -59,6 +59,7 @@ interface
 	procedure VideoLockScreenUpdate;
 	procedure VideoUnlockScreenUpdate(x1, y1, x2, y2: integer);
 	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
+	function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
 	function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
 		borderColor: integer): boolean;
 	procedure VideoUninstall;
@@ -143,6 +144,11 @@ procedure VideoWriteTextBufBW(x, y, color: byte; text: TVideoLine);
 function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 	begin
 		VideoSetCharset := false;
+	end;
+
+function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
+	begin
+		VIdeoSetPaletteColor := false;
 	end;
 
 procedure VideoPreInstall;

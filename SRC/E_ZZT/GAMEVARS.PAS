@@ -330,11 +330,6 @@ interface
 		JustStarted: boolean;
 
 		WorldExt: TWorldExt;
-		HighCompat: boolean;
-		HighCompatAuto: boolean;
-		CleenMode: boolean;
-		CleenModeAuto: boolean;
-		NeuromotorAssist: boolean;
 
 {$IFDEF EXTCHEAT}
 		CheatColorModifiers: array[0 .. MAX_ELEMENT] of byte;

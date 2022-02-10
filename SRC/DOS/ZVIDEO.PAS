@@ -67,6 +67,7 @@ interface
 	procedure VideoSetBorderColor(value: integer);
 	procedure VideoSetBlink(value: boolean);
 	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
+	function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
 	procedure VideoClear(bgColor: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
@@ -76,6 +77,11 @@ implementation
 uses Crt, Dos, TimerSys;
 var
 	InitialTextAttr: byte;
+const
+	EGA_PALETTE_LUT: array[0 .. 15] of byte = (
+		0, 1, 2, 3, 4, 5, 20, 7,
+		56, 57, 58, 59, 60, 61, 62, 63
+	);
 
 {$F+}
 
@@ -558,6 +564,28 @@ function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 
 		VideoHideCursor;
 		VideoSetCharset := true;
+	end;
+
+function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
+	var
+		colorArray: array[0 .. 2] of byte;
+		regs: Registers;
+	begin
+		VideoSetPaletteColor := false;
+		if not VideoEGAInstalled then exit;
+
+		colorArray[0] := r;
+		colorArray[1] := g;
+		colorArray[2] := b;
+
+		regs.ax := $1012;
+		regs.bx := EGA_PALETTE_LUT[idx];
+		regs.cx := 1;
+		regs.es := Seg(colorArray);
+		regs.dx := Ofs(colorArray);
+		Intr($10, regs);
+
+		VideoSetPaletteColor := true;
 	end;
 
 procedure VideoClear(bgColor: integer);

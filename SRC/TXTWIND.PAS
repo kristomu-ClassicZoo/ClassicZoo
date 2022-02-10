@@ -162,10 +162,7 @@ procedure TextWindowPromptFilename(title: TString50; var filename: TFilenameStri
 		VideoWriteText(63, 5, $0F, '            ');
 
 		filename := '';
-		{ TODO MERGE }
-{$IFDEF E_ZZT}
 		PromptString(63, 5, $1E, $0F, 12, 128, PROMPT_ANY, filename);
-{$ENDIF}
 
 		SidebarClearLine(3);
 		SidebarClearLine(4);

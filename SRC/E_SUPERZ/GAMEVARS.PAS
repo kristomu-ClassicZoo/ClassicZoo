@@ -324,11 +324,6 @@ interface
 		WorldFileMenuScrLens: array[-1 .. WORLD_FILE_DESC_COUNT] of word; }
 		MenuScrPointer: pointer;
 		MenuScrLen: word;
-		HighCompat: boolean;
-		HighCompatAuto: boolean;
-		CleenMode: boolean;
-		CleenModeAuto: boolean;
-		NeuromotorAssist: boolean;
 		UseCustomFont: boolean;
 
 {$IFDEF DEBUGWND}

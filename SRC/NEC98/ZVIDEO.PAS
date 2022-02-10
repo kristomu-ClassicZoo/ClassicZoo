@@ -58,6 +58,7 @@ interface
 	procedure VideoSetBlink(value: boolean);
 	function VideoBlink: boolean;
 	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
+	function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
 	procedure VideoClear(bgColor: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
@@ -153,6 +154,11 @@ function VideoBlink: boolean;
 function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 	begin
 		VideoSetCharset := false;
+	end;
+
+function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
+	begin
+		VideoSetPaletteColor := false;
 	end;
 
 procedure VideoClear(bgColor: integer);

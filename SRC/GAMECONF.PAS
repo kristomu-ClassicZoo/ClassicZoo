@@ -32,6 +32,11 @@ interface
 	uses GameVars;
 	var
 		ConfigFileName: TFilenameString;
+		HighCompat: boolean;
+		HighCompatAuto: boolean;
+		CleenMode: boolean;
+		CleenModeAuto: boolean;
+		NeuromotorAssist: boolean;
 	procedure GameConfigInit;
 	function GameConfigLoad: boolean;
 	function GameConfigSave: boolean;
