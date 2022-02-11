@@ -70,7 +70,7 @@ type
 
 const
 	COPIED_TILES_COUNT = 10;
-	NeighborBoardStrs: array[0 .. 3] of string[20] =
+	NeighborBoardStrs: array[0 .. 3] of string[14] =
 		('       Board '#24, '       Board '#25, '       Board '#27, '       Board '#26);
 {	ColorNames: array[0 .. 15] of string[7] =
 		('Black  ', 'DBlue  ', 'DGreen ', 'DCyan  ', 'DRed   ', 'DPurple', 'Brown  ', 'LGray  ',

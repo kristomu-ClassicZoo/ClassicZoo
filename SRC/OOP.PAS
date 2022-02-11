@@ -406,7 +406,11 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 
 		OopReadWord(statId, position);
 		for i := 1 to 7 do begin
+{$IFDEF RUNTINY}
+			if OopWord = ColorNamesOOP[i] then begin
+{$ELSE}
 			if OopWord = OopStringToWord(ColorNames[i]) then begin
+{$ENDIF}
 				tile.Color := i + $08;
 				OopReadWord(statId, position);
 				goto ColorFound;
@@ -415,7 +419,11 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 	ColorFound:
 
 		for i := 0 to MAX_ELEMENT do begin
+{$IFDEF RUNTINY}
+			if OopWord = ElementNames[i] then begin
+{$ELSE}
 			if OopWord = OopStringToWord(ElementDefs[i].Name) then begin
+{$ENDIF}
 				OopParseTile := true;
 				tile.Element := i;
 				exit;

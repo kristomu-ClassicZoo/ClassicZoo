@@ -105,7 +105,13 @@ const
 	ProgressAnimColors: array[0 .. 7] of byte = ($14, $1C, $15, $1D, $16, $1E, $17, $1F);
 	ProgressAnimStrings: array[0 .. 7] of string[5] =
 		('....|', '...*/', '..*.-', '.*..\', '*...|', '..../', '....-', '....\');
+{$IFDEF RUNTINY}
+	ColorNamesOOP: array[1 .. 7] of string[6] =
+		('BLUE', 'GREEN', 'CYAN', 'RED', 'PURPLE', 'YELLOW', 'WHITE');
+	ColorNames: array[1 .. 7] of string[6] =
+{$ELSE}
 	ColorNames: array[1 .. 7] of string[8] =
+{$ENDIF}
 		('Blue', 'Green', 'Cyan', 'Red', 'Purple', 'Yellow', 'White');
 	{}
 	DiagonalDeltaX: array[0 .. 7] of integer = (-1, 0, 1, 1, 1, 0, -1, -1);
@@ -891,7 +897,7 @@ procedure WorldUnload;
 procedure SidebarAnimateLoading(var loadProgress: integer);
 	begin
 		VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
-		loadProgress := (loadProgress + 1) mod 8;
+		loadProgress := (loadProgress + 1) and 7;
 	end;
 
 function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
@@ -1725,7 +1731,11 @@ function DebugPromptParseElem(input: TString50; offset: integer): integer;
 			exit;
 		end;
 		for i := 0 to MAX_ELEMENT do begin
+{$IFDEF RUNTINY}
+			if substr = ElementNames[i] then begin
+{$ELSE}
 			if substr = OopStringToWord(ElementDefs[i].Name) then begin
+{$ENDIF}
 				DebugPromptParseElem := i;
 				exit;
 			end;
@@ -1746,7 +1756,11 @@ function DebugPromptParseColor(input: TString50; offset: integer): integer;
 		end;
 		substr[0] := Chr(j);
 		for i := 1 to 7 do begin
+{$IFDEF RUNTINY}
+			if substr = ColorNamesOOP[i] then begin
+{$ELSE}
 			if substr = OopStringToWord(ColorNames[i]) then begin
+{$ENDIF}
 				DebugPromptParseColor := i;
 				exit;
 			end;
@@ -2007,15 +2021,17 @@ procedure GameOnStart;
 	begin
 		GameAboutScreen;
 		if Length(StartupWorldFileName) <> 0 then begin
-			if FileExists(StartupWorldFileName + '.ZZT') and WorldLoad(StartupWorldFileName, '.ZZT', true) then begin
-				SidebarClearLine(8);
-				VideoWriteText(69, 8, $1F, StartupWorldFileName);
-			end else begin
-				WorldCreate;
+			if FileExists(StartupWorldFileName + '.ZZT') then begin
+				if WorldLoad(StartupWorldFileName, '.ZZT', true) then begin
+					SidebarClearLine(8);
+					VideoWriteText(69, 8, $1F, StartupWorldFileName);
+				end else begin
+					WorldCreate;
+				end;
 			end;
 		end;
 		ReturnBoardId := World.Info.CurrentBoard;
-		BoardChange(0);
+		{ BoardChange(0); - called in GameTitleLoop }
 	end;
 
 procedure GamePlayLoop(boardChanged: boolean);
@@ -2091,11 +2107,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 	begin
 		GameDrawSidebar;
 		GameUpdateSidebar;
-
-		if JustStarted then begin
-			GameOnStart;
-			JustStarted := false;
-		end;
 
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := GameStateElement;
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[GameStateElement].Color;
@@ -2230,9 +2241,15 @@ procedure GameTitleLoop;
 		startPlay: boolean;
 	begin
 		GameTitleExitRequested := false;
-		JustStarted := true;
+		{ JustStarted := true; }
 		ReturnBoardId := 0;
 		boardChanged := true;
+
+		{ if JustStarted then begin }
+		GameOnStart;
+		JustStarted := false;
+		{ end; }
+
 		repeat
 			BoardChange(0);
 			repeat

@@ -42,9 +42,53 @@ interface
 		TWS_HYPERLINK_AS_SELECT = $01;
 		TWS_VIEWING_FILE = $02;
 		TWS_IGNORE_HYPERLINKS = $04;
+		{ }
+		TextWindowStrInnerEmpty: string[45] = '                                             ';
+		TextWindowStrInnerLine: string[45] =
+			#205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205;
+		TextWindowStrTop: string[49] = #198#209
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #209#181;
+		TextWindowStrBottom: string[49] = #198#207
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #207#181;
+		TextWindowStrSep: string[49] = ' '#198 
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #205#205#205#205#205#205#205#205#205
+			+ #181' ';
+		TextWindowStrText: string[49] = ' '#179
+			+ '                                             '
+			+ #179' ';
+		TextWindowStrInnerArrows: string[45] = #175'                                           '#174;
+		TextWindowStrInnerSep: string[45] =
+			'    '#7
+			+ '    '#7
+			+ '    '#7
+			+ '    '#7
+			+ '    '#7
+			+ '    '#7
+			+ '    '#7
+			+ '    '#7
+			+ '    '#7;
 	type
 		TExtensionString = string[4];
 		TTextWindowLine = string[MAX_LINE_LENGTH_EDIT];
+		TTextWindowVideoLine = string[TextWindowWidth];
 		TTextWindowState = record
 			Selectable: boolean;
 			LineCount: integer;
@@ -52,7 +96,9 @@ interface
 			Lines: array[1 .. MAX_TEXT_WINDOW_LINES] of ^TTextWindowLine;
 			Hyperlink: string[20];
 			Title: TTextWindowLine;
+{$IFNDEF RUNTINY}
 			LoadedFilename: string[50];
+{$ENDIF}
 			{ This used to be 25. This messes with the stack layout, but hopefully
 			  nothing decides to exploit it. }
 			ScreenCopy: array[1 .. (TextWindowHeight + 1)] of TScreenCopyLine;
@@ -64,14 +110,6 @@ interface
 			FileOffset: array[1 .. MAX_RESOURCE_DATA_FILES] of longint;
 		end;
 	var
-		TextWindowStrInnerEmpty: TVideoLine;
-		TextWindowStrText: TVideoLine;
-		TextWindowStrInnerLine: TVideoLine;
-		TextWindowStrTop: TVideoLine;
-		TextWindowStrBottom: TVideoLine;
-		TextWindowStrSep: TVideoLine;
-		TextWindowStrInnerSep: TVideoLine;
-		TextWindowStrInnerArrows: TVideoLine;
 		TextWindowRejected: boolean;
 		ResourceDataFileName: TFilenameString;
 		ResourceDataHeader: TResourceDataHeader;
@@ -93,7 +131,6 @@ interface
 	procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowState; editing, showError: boolean);
 	procedure TextWindowSaveFile(filename: TFilenameString; var state: TTextWindowState);
 	procedure TextWindowDisplayFile(filename: TFilenameString; title: TTextWindowLine);
-	procedure TextWindowInit;
 
 implementation
 {$IFDEF PRINTTXT}
@@ -135,7 +172,9 @@ procedure TextWindowInitState(var state: TTextWindowState);
 		with state do begin
 			LineCount := 0;
 			LinePos := 1;
+{$IFNDEF RUNTINY}
 			LoadedFilename := '';
+{$ENDIF}
 		end;
 	end;
 
@@ -288,7 +327,9 @@ procedure TextWindowFree(var state: TTextWindowState);
 				FreeMem(Lines[LineCount], Ord(Lines[LineCount]^[0]) + 1);
 				Dec(LineCount);
 			end;
+{$IFNDEF RUNTINY}
 			LoadedFilename := '';
+{$ENDIF}
 		end;
 	end;
 
@@ -299,7 +340,9 @@ procedure TextWindowFreeEdit(var state: TTextWindowState);
 				Dispose(Lines[LineCount]);
 				Dec(LineCount);
 			end;
+{$IFNDEF RUNTINY}
 			LoadedFilename := '';
+{$ENDIF}
 		end;
 	end;
 
@@ -842,7 +885,9 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 			end;
 
 			TextWindowInitState(state);
+{$IFNDEF RUNTINY}
 			LoadedFilename := UpCaseString(filename);
+{$ENDIF}
 			if ResourceDataHeader.EntryCount = 0 then begin
 				Assign(f, ResourceDataFileName);
 				Reset(f, 1);
@@ -855,8 +900,12 @@ procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowSt
 
 			if entryPos = 0 then begin
 				for i := 1 to ResourceDataHeader.EntryCount do begin
+{$IFDEF RUNTINY}
+					if ResourceDataHeader.Name[i] = UpCaseString(filename) then begin
+{$ELSE}
 					{ assumption: LoadedFilename is UpCaseString(filename) }
-					if UpCaseString(ResourceDataHeader.Name[i]) = LoadedFilename then begin
+					if ResourceDataHeader.Name[i] = LoadedFilename then begin
+{$ENDIF}
 						entryPos := i;
 						goto EntryPosFoundResData;
 					end;
@@ -947,28 +996,6 @@ procedure TextWindowDisplayFile(filename: TFilenameString; title: TTextWindowLin
 			TextWindowDrawClose(state);
 		end;
 		TextWindowFree(state);
-	end;
-
-procedure TextWindowInit;
-	var
-		i: integer;
-	begin
-		TextWindowStrInnerEmpty[0] := Chr(TextWindowWidth - 5);
-		TextWindowStrInnerLine[0] := Chr(TextWindowWidth - 5);
-		for i := 1 to (TextWindowWidth - 5) do begin
-			TextWindowStrInnerEmpty[i] := ' ';
-			TextWindowStrInnerLine[i] := #205;
-		end;
-		TextWindowStrTop    := #198#209 + TextWindowStrInnerLine  + #209#181;
-		TextWindowStrBottom := #198#207 + TextWindowStrInnerLine  + #207#181;
-		TextWindowStrSep    :=  ' '#198 + TextWindowStrInnerLine  + #181' ';
-		TextWindowStrText   :=  ' '#179 + TextWindowStrInnerEmpty + #179' ';
-		TextWindowStrInnerArrows := TextWindowStrInnerEmpty;
-		TextWindowStrInnerArrows[1] := #175;
-		TextWindowStrInnerArrows[Length(TextWindowStrInnerArrows)] := #174;
-		TextWindowStrInnerSep := TextWindowStrInnerEmpty;
-		for i := 1 to (TextWindowWidth div 5) do
-			TextWindowStrInnerSep[i * 5 + ((TextWindowWidth mod 5) shr 1)] := #7;
 	end;
 
 begin

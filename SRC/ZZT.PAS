@@ -26,9 +26,9 @@
 {$I-}
 {$IFNDEF FPC}
 {$IFDEF NEC98}
-{$M 24576,163840,655360}
+{$M 24576,131072,655360}
 {$ELSE}
-{$M 20480,163840,655360}
+{$M 20480,131072,655360}
 {$ENDIF}
 {$ENDIF}
 program ZZT;
@@ -92,6 +92,9 @@ procedure GameConfigure;
 		unk1: integer;
 		joystickEnabled, mouseEnabled: boolean;
 		cfgFile: text;
+{$IFDEF RUNTINY}
+		ConfigWorldFile: TString50;
+{$ENDIF}
 	begin
 		ParsingConfigFile := true;
 		EditorEnabled := true;
@@ -99,7 +102,9 @@ procedure GameConfigure;
 		ConfigRegistration := '';
 {$ENDIF}
 		ConfigWorldFile := '';
+{$IFNDEF RUNTINY}
 		GameVersion := '%VERSION%';
+{$ENDIF}
 
 		Assign(cfgFile, 'zzt.cfg');
 		Reset(cfgFile);
@@ -214,8 +219,6 @@ begin
 
 	if not GameTitleExitRequested then begin
 		VideoInstall(Blue);
-		{ OrderPrintId := @GameVersion; }
-		TextWindowInit; { (5, 3, 50, 18) }
 		GetMem(IoTmpBuf, IoTmpBufSize);
 
 		VideoHideCursor;
@@ -234,7 +237,9 @@ begin
 		DebugUndefEnabled := false;
 {$ENDIF}
 		SavedGameFileName := 'SAVED';
+{$IFNDEF RUNTINY}
 		SavedBoardFileName := 'TEMP';
+{$ENDIF}
 		ResetCachedLinePos;
 		WorldCreate;
 

@@ -50,6 +50,9 @@ interface
 		MAX_HIGH_SCORE_NAME_LENGTH = 34;
 		EditorPatternCount = 6;
 	type
+{$IFDEF RUNTINY}
+		TString11 = string[11];
+{$ENDIF}
 		TString50 = string[50];
 		TFilenameString = string[128];
 		TCoord = record
@@ -76,12 +79,12 @@ interface
 			Cycle: integer;
 			TickProc: TElementTickProc;
 			TouchProc: TElementTouchProc;
-{$IFNDEF RUNTINY}
+{$IFDEF RUNTINY}
+			HasText: boolean;
+{$ELSE}
 			EditorCategory: integer;
 			EditorShortcut: char;
-{$ENDIF}
 			Name: string[20];
-{$IFNDEF RUNTINY}
 			CategoryName: string[20];
 			Param1Name: string[20];
 			Param2Name: string[20];
@@ -89,8 +92,6 @@ interface
 			ParamBoardName: string[20];
 			ParamDirName: string[20];
 			ParamTextName: string[20];
-{$ELSE}
-			HasText: boolean;
 {$ENDIF}
 			ScoreValue: integer;
 		end;
@@ -186,10 +187,16 @@ interface
 		unkVar_0478: integer;
 {$ENDIF}
 
+{$IFNDEF RUNTINY}
 		LoadedGameFileName: TString50;
 		SavedGameFileName: TString50;
 		SavedBoardFileName: TString50;
 		StartupWorldFileName: TString50;
+{$ELSE}
+		LoadedGameFileName: string[20];
+		SavedGameFileName: string[20];
+		StartupWorldFileName: string[20];
+{$ENDIF}
 		Board: TBoard;
 		World: TWorld;
 		MessageAmmoNotShown: boolean;
@@ -246,9 +253,13 @@ interface
 {$IFDEF CONFREGI}
 		ConfigRegistration: string;
 {$ENDIF}
+{$IFNDEF RUNTINY}
 		ConfigWorldFile: TString50;
+{$ENDIF}
 		EditorEnabled: boolean;
+{$IFNDEF RUNTINY}
 		GameVersion: TString50;
+{$ENDIF}
 		ParsingConfigFile: boolean;
 		ResetConfig: boolean; { This flag is a remnant from ZZT 3.0. }
 		JustStarted: boolean;
