@@ -84,6 +84,16 @@ interface
 {$ELSE}
 			EditorCategory: integer;
 			EditorShortcut: char;
+{$IFDEF EDITONLY}
+			Name: string[12];
+			CategoryName: string[11];
+			Param1Name: string[13];
+			Param2Name: string[20];
+			ParamBulletTypeName: string[12];
+			ParamBoardName: string[18];
+			ParamDirName: string[15];
+			ParamTextName: string[19];
+{$ELSE}
 			Name: string[20];
 			CategoryName: string[20];
 			Param1Name: string[20];
@@ -92,6 +102,7 @@ interface
 			ParamBoardName: string[20];
 			ParamDirName: string[20];
 			ParamTextName: string[20];
+{$ENDIF}
 {$ENDIF}
 			ScoreValue: integer;
 		end;

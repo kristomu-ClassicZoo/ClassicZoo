@@ -1918,6 +1918,7 @@ procedure GameDebugPrompt;
 					end;
 				end else
 {$ENDIF}
+{$IFNDEF EDITONLY}
 				if DebugPromptStarts(input, 'SPEED') then begin
 					i := DebugPromptParseInt(input, 5, -1);
 					if (i >= 0) and (i <= 8) then begin
@@ -1936,6 +1937,7 @@ procedure GameDebugPrompt;
 						BoardDrawTile(Board.Stats[0].X + NeighborDeltaX[i], Board.Stats[0].Y + NeighborDeltaY[i]);
 					end;
 				end;
+{$ENDIF}
 			end;
 		end;
 
