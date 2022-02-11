@@ -33,52 +33,52 @@ interface
 {$IFDEF RUNTINY}
 const
 	ElementNames: array[0 .. MAX_ELEMENT] of TString11 = (
-		'EMPTY',
+		'EMPTY', {0}
+		'', {1}
+		'', {2}
+		'MONITOR', {3}
+		'PLAYER', {4}
+		'AMMO', {5}
+		'TORCH', {6}
+		'GEM', {7}
+		'KEY', {8}
+		'DOOR', {9}
+		'SCROLL', {10}
+		'PASSAGE', {11}
+		'DUPLICATOR', {12}
+		'BOMB', {13}
+		'ENERGIZER', {14}
+		'STAR', {15}
+		'CLOCKWISE', {16}
+		'COUNTER', {17}
+		'BULLET', {18}
+		'WATER', {19}
+		'FOREST', {20}
+		'SOLID', {21}
+		'NORMAL', {22}
+		'BREAKABLE', {23}
+		'BOULDER', {24}
+		'SLIDERNS', {25}
+		'SLIDEREW', {26}
+		'FAKE', {27}
+		'INVISIBLE', {28}
+		'BLINKWALL', {29}
+		'TRANSPORTER', {30}
+		'LINE', {31}
+		'RICOCHET', {32}
+		'', {33}
+		'BEAR', {34}
+		'RUFFIAN', {35}
+		'OBJECT', {36}
+		'SLIME', {37}
+		'SHARK', {38}
+		'SPINNINGGUN', {39}
+		'PUSHER', {40}
+		'LION', {41}
+		'TIGER', {42}
 		'',
-		'',
-		'MONITOR',
-		'PLAYER',
-		'AMMO',
-		'TORCH',
-		'GEM',
-		'KEY',
-		'DOOR',
-		'SCROLL',
-		'PASSAGE',
-		'DUPLICATOR',
-		'BOMB',
-		'ENERGIZER',
-		'STAR',
-		'CLOCKWISE',
-		'COUNTER',
-		'BULLET',
-		'WATER',
-		'SOLID',
-		'NORMAL',
-		'BREAKABLE',
-		'BOULDER',
-		'SLIDERNS',
-		'SLIDEREW',
-		'FAKE',
-		'INVISIBLE',
-		'BLINKWALL',
-		'TRANSPORTER',
-		'LINE',
-		'RICOCHET',
-		'',
-		'BEAR',
-		'RUFFIAN',
-		'OBJECT',
-		'SLIME',
-		'SHARK',
-		'SPINNINGGUN',
-		'PUSHER',
-		'LION',
-		'TIGER',
-		'',
-		'HEAD',
-		'SEGMENT',
-		'',
+		'HEAD', {44}
+		'SEGMENT', {45}
 		'',
 		'',
 		'',
