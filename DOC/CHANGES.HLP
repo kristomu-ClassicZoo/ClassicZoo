@@ -6,6 +6,10 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
+$< ClassicZoo dev >
+
+/ Minor bugfixes throughout the engine.
+
 $< ClassicZoo 4.31 >
 
 + Added HTML5 "port" - a Zeta bundle.

@@ -1456,7 +1456,6 @@ procedure GameTitleLoop;
 	label LoadWorldSelect;
 	begin
 		GameTitleExitRequested := false;
-		JustStarted := true;
 		GamePlayStartRequested := false;
 		returningFromGame := false;
 		needsTitleRefresh := true;
