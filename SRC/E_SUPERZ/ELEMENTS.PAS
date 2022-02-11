@@ -788,10 +788,23 @@ procedure ElementTransporterDraw(x, y: integer; var ch: byte);
 				i := 0
 			else
 				i := (CurrentTick div Cycle) and 3;
+{$IFDEF MEMBOUND}
+			ch := 0;
+			if StepX = 0 then begin
+				i := StepY * 2 + 3 + i;
+				if (i >= 1) and (i <= 8) then
+					ch := Ord(TransporterNSChars[i]);
+			end else begin
+				i := StepX * 2 + 3 + i;
+				if (i >= 1) and (i <= 8) then
+					ch := Ord(TransporterEWChars[i]);
+			end;
+{$ELSE}
 			if StepX = 0 then
 				ch := Ord(TransporterNSChars[StepY * 2 + 3 + i])
 			else
 				ch := Ord(TransporterEWChars[StepX * 2 + 3 + i]);
+{$ENDIF}
 		end;
 	end;
 
