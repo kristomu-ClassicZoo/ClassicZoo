@@ -51,7 +51,7 @@ procedure OopReadChar(statId: integer; var position: integer);
 	begin
 		with Board.Stats[statId] do begin
 			if (position >= 0) and (position < DataLen) then begin
-				Move(Ptr(Seg(Data^), Ofs(Data^) + position)^, OopChar, 1);
+				OopChar := Data^[position];
 				Inc(position);
 			end else begin
 				OopChar := #0
@@ -183,18 +183,23 @@ procedure OopReadDirection(statId: integer; var position: integer; var dx, dy: i
 function OopFindString(statId: integer; s: string): integer;
 	var
 		pos, wordPos, cmpPos: integer;
+		maxPos: integer;
 	label NoMatch;
 	begin
+		for pos := 1 to Length(s) do
+			s[pos] := UpCase(s[pos]);
 		with Board.Stats[statId] do begin
 			pos := 0;
-			while pos <= DataLen do begin
+			maxPos := DataLen - Length(s);
+			while pos <= maxPos do begin
 				wordPos := 1;
 				cmpPos := pos;
 				repeat
-					OopReadChar(statId, cmpPos);
-					if UpCase(s[wordPos]) <> UpCase(OopChar) then
+					OopChar := Data^[cmpPos];
+					if s[wordPos] <> UpCase(OopChar) then
 						goto NoMatch;
-					wordPos := wordPos + 1;
+					Inc(wordPos);
+					Inc(cmpPos);
 				until wordPos > Length(s);
 
 				{ string matches }
@@ -209,7 +214,7 @@ function OopFindString(statId: integer; s: string): integer;
 				end;
 
 			NoMatch:
-				pos := pos + 1;
+				Inc(pos);
 			end;
 			OopFindString := -1;
 		end;
