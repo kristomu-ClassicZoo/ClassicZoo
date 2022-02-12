@@ -86,7 +86,7 @@ implementation
 uses Dos, Keys, TimerSys;
 
 const
-	INPUT_KEY_BUFFER_MAX_LEN = 4;
+	INPUT_KEY_BUFFER_MAX_LEN = 64;
 var
 	InputKeyBuffer: array[1 .. INPUT_KEY_BUFFER_MAX_LEN] of word;
 	InputKeyBufferLen: byte;
@@ -133,6 +133,7 @@ function KeySjisToZzt(k: word): char;
 
 procedure InputUpdate;
 	var
+		i: integer;
 		regs: Registers;
 	begin
 		KeysUpdateModifiers;
@@ -152,8 +153,11 @@ procedure InputUpdate;
 			if InputKeyBufferLen = 1 then
 				InputKeyBufferLen := 0
 			else begin
-				InputKeyBuffer[1] := InputKeyBuffer[InputKeyBufferLen];
-				InputKeyBufferLen := 1;
+				{ TODO: This replicates the ZZT 2.0 issue where a key buffer
+				  queues up too many arrow movements e t c. }
+				for i := 2 to InputKeyBufferLen do
+					InputKeyBuffer[i - 1] := InputKeyBuffer[i];
+				Dec(InputKeyBufferLen);
 			end;
 
 			InputKeyPressed := KeySjisToZzt(InputKeyPressedJis);
