@@ -1006,7 +1006,11 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					end;
 {$ENDIF}
 				else
-					if (InputKeyPressed >= #32) and (InputKeyPressed < #127) then
+					if ((InputKeyPressed >= #32) and (InputKeyPressed < #127))
+{$IFDEF SHIFTJIS}
+						or ((InputKeyPressed >= #$A1) and (InputKeyPressed <= #$DF))
+{$ENDIF}
+					then
 						InsertCharacter(InputKeyPressed);
 				end;
 
