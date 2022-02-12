@@ -63,11 +63,13 @@ interface
 		KEY_CTRL_V = #22;
 		KEY_CTRL_Y = #25;
 		{}
+		KEY_SJIS = #254;
 		KEY_ALT_P = #255;
 	var
 		InputDeltaX, InputDeltaY: integer;
 		InputShiftPressed: boolean;
 		InputShiftAccepted: boolean;
+		InputKeyPressedJis: word;
 		InputKeyPressed: char;
 		InputMouseX, InputMouseY: integer;
 		InputMouseActivationX, InputMouseActivationY: integer;
@@ -83,8 +85,11 @@ interface
 implementation
 uses Dos, Keys, TimerSys;
 
+const
+	INPUT_KEY_BUFFER_MAX_LEN = 4;
 var
-	InputKeyBuffer: string;
+	InputKeyBuffer: array[1 .. INPUT_KEY_BUFFER_MAX_LEN] of word;
+	InputKeyBufferLen: byte;
 
 function KeyPressed: boolean;
 	var
@@ -96,16 +101,34 @@ function KeyPressed: boolean;
 		KeyPressed := regs.BH <> 0;
 	end;
 
-function ReadKey: char;
+function ReadKey: word;
 	var
 		regs: Registers;
+		k: byte;
 	begin
 		regs.AH := $00;
 		Intr($18, regs);
-		if (regs.AL <= $02) and (regs.AH <= $80) then
-			ReadKey := Chr(regs.AH or $80)
+		if ((regs.AL >= $81) and (regs.AL <= $9F)) or ((regs.AL and $F0) = $E0) then begin 
+			k := regs.AL;
+			regs.AH := $00;
+			Intr($18, regs);
+			ReadKey := (k shl 8) or regs.AL;			
+		end else if (regs.AL = $00) then
+			ReadKey := regs.AH or $FF00
 		else
-			ReadKey := Chr(regs.AL);
+			ReadKey := regs.AL;
+	end;
+
+function KeySjisToZzt(k: word): char;
+	begin
+		if (k >= $FF00) then
+			KeySjisToZzt := Chr(k or $80)
+		else if ((k >= $8100) and (k <= $9FFF)) or ((k and $F000) = $E000) then
+			KeySjisToZzt := KEY_SJIS
+		else if (k < $80) then
+			KeySjisToZzt := Chr(k)
+		else
+			KeySjisToZzt := Chr(0);
 	end;
 
 procedure InputUpdate;
@@ -119,17 +142,23 @@ procedure InputUpdate;
 		InputShiftPressed := false;
 		InputJoystickMoved := false;
 		while KeyPressed do begin
-			InputKeyPressed := ReadKey;
+			InputKeyPressedJis := ReadKey;
+			if InputKeyBufferLen < INPUT_KEY_BUFFER_MAX_LEN then
+				Inc(InputKeyBufferLen);
+			InputKeyBuffer[InputKeyBufferLen] := InputKeyPressedJis;
+		end;
+		if InputKeyBufferLen > 0 then begin
+			InputKeyPressedJis := InputKeyBuffer[1];
+			if InputKeyBufferLen = 1 then
+				InputKeyBufferLen := 0
+			else begin
+				InputKeyBuffer[1] := InputKeyBuffer[InputKeyBufferLen];
+				InputKeyBufferLen := 1;
+			end;
+
+			InputKeyPressed := KeySjisToZzt(InputKeyPressedJis);
 			if (UpCase(InputKeyPressed) = 'P') and KeysAltHeld then
 				InputKeyPressed := KEY_ALT_P;
-			InputKeyBuffer := InputKeyBuffer + InputKeyPressed;
-		end;
-		if Length(InputKeyBuffer) <> 0 then begin
-			InputKeyPressed := InputKeyBuffer[1];
-			if Length(InputKeyBuffer) = 1 then
-				InputKeyBuffer := ''
-			else
-				InputKeyBuffer := Copy(InputKeyBuffer, Length(InputKeyBuffer) - 1, 1);
 
 			case InputKeyPressed of
 				KEY_UP, '8': begin
@@ -150,6 +179,7 @@ procedure InputUpdate;
 				end;
 			end;
 		end else begin
+			InputKeyPressedJis := 0;
 			InputKeyPressed := #0;
 		end;
 
@@ -254,6 +284,6 @@ begin
 	InputMouseActivationY := 60;
 	InputMouseButtonX := 0;
 	InputMouseButtonY := 0;
-	InputKeyBuffer := '';
+	InputKeyBufferLen := 0;
 	InputMode := IMKeyboard;
 end.

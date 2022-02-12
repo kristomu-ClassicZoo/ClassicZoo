@@ -49,6 +49,7 @@ interface
 		VideoBlinkMask: byte;
 		VideoCurrentMode: integer;
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
+	procedure VideoWriteTextSJIS(x, y, color: byte; text: TVideoLine);
 	function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
 		borderColor: integer): boolean;
 	procedure VideoUninstall;
@@ -68,7 +69,7 @@ implementation
 uses Dos, PC98, TimerSys;
 
 {$I VIDCONST.INC}
-		
+
 procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	var
 		attr: word;
@@ -87,6 +88,70 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 			attr := ATTR_MAP[color and $7F] or (((color and $80) shr 6) and VideoBlinkMask);
 			for i := 1 to Length(text) do begin
 				MemW[$A000:offset] := CP437_MAP[Ord(text[i])];
+				MemW[$A200:offset] := attr;
+				Inc(offset, 2);
+			end;
+		end;
+	end;
+
+procedure VideoWriteTextSJIS(x, y, color: byte; text: TVideoLine);
+	var
+		attr: word;
+		doubleByte: boolean;
+		i, offset: integer;
+		s1, s2: byte; { FetchPC98Word }
+	function FetchPC98Word: word;
+		label DepackS2;
+		begin
+			if doubleByte then begin
+				FetchPC98Word := (s2 shl 8) or s1;
+				doubleByte := false;
+				exit;
+			end;
+
+			s1 := Byte(text[i]);
+			Inc(i);
+			if (s1 >= $81) and (s1 <= $9F) then begin
+				{ s1 := ((s1 - $70) shl 1); }
+				s1 := ((s1 - $80) shl 1);
+				s2 := Byte(text[i]);
+				Inc(i);
+				goto DepackS2;
+			end else if ((s1 and $F0) = $E0) then begin
+				{ s1 := ((s1 - $B0) shl 1); }
+				s1 := ((s1 - $C0) shl 1);
+				s2 := Byte(text[i]);
+				Inc(i);
+	DepackS2:
+				if s2 >= 159 then begin
+					s2 := s2 - 126;
+				end else begin
+					Dec(s1);
+					if s2 >= 128 then
+						s2 := s2 - 32
+					else
+						s2 := s2 - 31;
+				end;
+				doubleByte := true;
+				FetchPC98Word := (s2 shl 8) or s1;
+			end else FetchPC98Word := s1;
+		end;
+	begin
+		i := 1;
+		doubleByte := false;
+		offset := (y * VideoColumns + x) * 2;
+		if ((color and $70) shr 4) = (color and $0F) then begin
+			{ Same color. }
+			attr := ATTR_MAP[color and $70];
+			while i <= Length(text) do begin
+				MemW[$A000:offset] := FetchPC98Word;
+				MemW[$A200:offset] := attr;
+				Inc(offset, 2);
+			end;
+		end else begin
+			attr := ATTR_MAP[color and $7F] or (((color and $80) shr 6) and VideoBlinkMask);
+			while i <= Length(text) do begin
+				MemW[$A000:offset] := FetchPC98Word;
 				MemW[$A200:offset] := attr;
 				Inc(offset, 2);
 			end;

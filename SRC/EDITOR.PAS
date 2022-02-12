@@ -2678,8 +2678,10 @@ procedure EditorOpenEditTextWindow(var state: TTextWindowState; extension: TExte
 		VideoWriteText(VideoSidebarX + 6, 12, $1F, ' Insert: ');
 		VideoWriteText(VideoSidebarX + 1, 13, $30, ' Del ');
 		VideoWriteText(VideoSidebarX + 6, 13, $1F, ' Delete char');
+{$IFNDEF SHIFTJIS}
 		VideoWriteText(VideoSidebarX + 1, 14, $70, ' f10 ');
 		VideoWriteText(VideoSidebarX + 6, 14, $1F, ' Custom char');
+{$ENDIF}
 		VideoWriteText(VideoSidebarX + 1, 16, $30, ' Shift  ');
 		VideoWriteText(VideoSidebarX + 9, 16, $1F, ' Select');
 		VideoWriteText(VideoSidebarX + 1, 17, $70, ' Ctrl-X ');

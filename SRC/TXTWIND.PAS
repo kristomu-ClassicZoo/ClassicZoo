@@ -44,7 +44,12 @@ interface
 {$ENDIF}
 		MAX_RESOURCE_DATA_FILES = 24;
 		RESOURCE_DATA_VERSION = -3;
+{$IFDEF SHIFTJIS}
+		{ TODO: Implement SJIS scrolling. }
+		MAX_LINE_LENGTH_EDIT = 42;
+{$ELSE}
 		MAX_LINE_LENGTH_EDIT = 58;
+{$ENDIF}
 		MAX_LINE_LENGTH = 50;
 		{ TextWindowSelect flags }
 		TWS_HYPERLINK_AS_SELECT = $01;
@@ -180,7 +185,11 @@ procedure TextWindowInitState(var state: TTextWindowState);
 procedure TextWindowDrawTitle(color: integer; title: TTextWindowLine);
 	begin
 		VideoWriteText(TextWindowX + 2, TextWindowY + 1, color, TextWindowStrInnerEmpty);
+{$IFDEF SHIFTJIS}
+		VideoWriteTextSJIS(TextWindowX + ((TextWindowWidth - Length(title)) div 2), TextWindowY + 1, color, title);
+{$ELSE}
 		VideoWriteText(TextWindowX + ((TextWindowWidth - Length(title)) div 2), TextWindowY + 1, color, title);
+{$ENDIF}
 	end;
 
 procedure TextWindowDrawOpen(var state: TTextWindowState);
@@ -268,7 +277,11 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 				VideoWriteText(TextWindowX + 2, lineY, $1E, TextWindowStrInnerEmpty);
 			if (lpos > 0) and (lpos <= LineCount) then begin
 				if withoutFormatting then begin
+{$IFDEF SHIFTJIS}
+					VideoWriteTextSJIS(TextWindowX + 4, lineY, $1E, Lines[lpos]^);
+{$ELSE}
 					VideoWriteText(TextWindowX + 4, lineY, $1E, Lines[lpos]^);
+{$ENDIF}
 				end else begin
 					textOffset := 1;
 					textColor := $1E;
@@ -293,8 +306,13 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 						end;
 					end;
 					if textOffset > 0 then begin
+{$IFDEF SHIFTJIS}
+						VideoWriteTextSJIS(textX, lineY, textColor,
+							Copy(Lines[lpos]^, textOffset,Length(Lines[lpos]^) - textOffset + 1));
+{$ELSE}
 						VideoWriteText(textX, lineY, textColor,
 							Copy(Lines[lpos]^, textOffset,Length(Lines[lpos]^) - textOffset + 1));
+{$ENDIF}
 					end;
 				end;
 			end else if (lpos = 0) or (lpos = (state.LineCount + 1)) then begin
@@ -632,6 +650,12 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 						end;
 					end;
 					lineX := xOffset + 1;
+{$IFDEF SHIFTJIS}
+					VideoWriteTextSJIS(TextWindowX + 4, lineY, textColor, Lines[lpos]^);
+					for i := (Length(Lines[lpos]^) + 1) to (TextWindowWidth - 8) do begin
+						VideoWriteText(TextWindowX + 3 + i, lineY, $1E, ' ');
+					end;
+{$ELSE}
 					for i := 1 to (TextWindowWidth - 8) do begin
 						if lineX > Length(Lines[lpos]^) then
 							VideoWriteText(TextWindowX + 3 + i, lineY, $1E, ' ')
@@ -639,6 +663,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 							VideoWriteText(TextWindowX + 3 + i, lineY, textColor, Lines[lpos]^[lineX]);
 						Inc(lineX);
 					end;
+{$ENDIF}
 				end else if (lpos = 0) or (lpos = (state.LineCount + 1)) then begin
 					VideoWriteText(TextWindowX + 2, lineY, $1E, TextWindowStrInnerSep);
 				end else begin
@@ -816,6 +841,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 							forceFullRedraw := true;
 						end;
 					end;
+{$IFNDEF SHIFTJIS}
 					KEY_F10: begin
 						SidebarPromptCharacter(true, 63, 3, 'Character?', inputByte);
 						InsertCharacter(Chr(inputByte));
@@ -823,6 +849,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 						SidebarClearLine(4);
 						SidebarClearLine(5);
 					end;
+{$ENDIF}
 					KEY_UP: begin
 						newLinePos := LinePos - 1;
 						if shiftHeld and (newLinePos >= 1) then AddLinePosToHighlight(newLinePos);
@@ -927,6 +954,12 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 						end;
 						InputKeyPressed := #0;
 					end;
+{$IFDEF SHIFTJIS}
+					KEY_SJIS: begin
+						InsertCharacter(Chr(InputKeyPressedJis shr 8));
+						InsertCharacter(Chr(InputKeyPressedJis));
+					end;
+{$ENDIF}
 				else
 					if (InputKeyPressed >= #32) and (InputKeyPressed < #127) then
 						InsertCharacter(InputKeyPressed);
