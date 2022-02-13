@@ -505,8 +505,8 @@ procedure GameDisplayResourceImage(name: TString50; x, y, width, height: integer
 			k := 0;
 			for i := 1 to height do
 				for j := 1 to width do begin
-					VideoWriteText(x + j - 1, y + i - 1, TScreenBinArray(fileData^)[k],
-						Chr(TScreenBinArray(fileData^)[k + 1]));
+					VideoWriteText(x + j - 1, y + i - 1, TScreenBinArray(fileData^)[k + 1],
+						Chr(TScreenBinArray(fileData^)[k]));
 					Inc(k, 2);
 				end;
 {$ELSE}
