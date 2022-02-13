@@ -22,43 +22,55 @@
 
 {$I-}
 {$V-}
-unit ShiftJis;
+unit ZWideChr;
 
 interface
-	function SjisIsFirstByte(s1: byte): boolean;
-	{ Assumes the position is on the first byte of a double-byte character. }
-	function SjisGetCharLength(var s: string; pos: integer): integer;
+{$IFDEF SHIFTJIS}
+	const
+		WIDE_CHAR_MAX_LENGTH = 2;
+{$ENDIF}
+	function WideIsFirstByte(s1: byte): boolean;
+	{ Assumes the position is on the first byte of a wide character. }
+	function WideGetCharWidth(var s: string; pos: integer): integer;
+	{ Assumes the position is on the first byte of a wide character. }
+	function WideGetCharLength(var s: string; pos: integer): integer;
 	{ Note: this one is O(n). }
-	procedure SjisAdjustCursor(var s: string; var pos: integer; direction: integer);
+	procedure WideAdjustCursor(var s: string; var pos: integer; direction: integer);
 
 implementation
 
-function SjisIsFirstByte(s1: byte): boolean;
+{$IFDEF SHIFTJIS}
+function WideIsFirstByte(s1: byte): boolean;
 	begin
-		SjisIsFirstByte := ((s1 >= $81) and (s1 <= $9F)) or ((s1 and $F0) = $E0);
+		WideIsFirstByte := ((s1 >= $81) and (s1 <= $9F)) or ((s1 and $F0) = $E0);
 	end;
 
-{ Assumes the position is on the first byte of a double-byte character. }
-function SjisGetCharLength(var s: string; pos: integer): integer;
+function WideGetCharWidth(var s: string; pos: integer): integer;
 	begin
-		if SjisIsFirstByte(Byte(s[pos])) then
-			SjisGetCharLength := 2
+		{ TODO: This is WRONG }
+		if WideIsFirstByte(Byte(s[pos])) then
+			WideGetCharWidth := 2
 		else
-			SjisGetCharLength := 1;
+			WideGetCharWidth := 1;
 	end;
 
-procedure SjisAdjustCursor(var s: string; var pos: integer; direction: integer);
+function WideGetCharLength(var s: string; pos: integer): integer;
+	begin
+		if WideIsFirstByte(Byte(s[pos])) then
+			WideGetCharLength := 2
+		else
+			WideGetCharLength := 1;
+	end;
+{$ENDIF}
+
+procedure WideAdjustCursor(var s: string; var pos: integer; direction: integer);
 	var
 		i: integer;
 	begin
 		if pos > Length(s) then exit;
 		i := 1;
-		while i < pos do begin
-			if SjisIsFirstByte(Byte(s[i])) then	
-				Inc(i, 2)
-			else
-				Inc(i, 1);
-		end;
+		while i < pos do
+			Inc(i, WideGetCharLength(s, i));
 		{ If we skipped the character at pos, that means it's the second byte. }
 		if i = (pos + 1) then begin
 			Inc(pos, direction);

@@ -72,6 +72,7 @@ interface
 		InputMouseButtonX, InputMouseButtonY: integer;
 		InputJoystickMoved: boolean;
 		InputLastDeltaX, InputLastDeltaY: integer;
+		InputKeyBuffering: boolean;
 	procedure InputUpdate;
 	procedure InputInitDevices;
 	procedure InputReadWaitKey;

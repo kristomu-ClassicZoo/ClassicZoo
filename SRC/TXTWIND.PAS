@@ -44,12 +44,7 @@ interface
 {$ENDIF}
 		MAX_RESOURCE_DATA_FILES = 24;
 		RESOURCE_DATA_VERSION = -3;
-{$IFDEF SHIFTJIS}
-		{ TODO: Implement SJIS scrolling. }
-		MAX_LINE_LENGTH_EDIT = 42;
-{$ELSE}
 		MAX_LINE_LENGTH_EDIT = 58;
-{$ENDIF}
 		MAX_LINE_LENGTH = 50;
 		{ TextWindowSelect flags }
 		TWS_HYPERLINK_AS_SELECT = $01;
@@ -137,7 +132,7 @@ interface
 implementation
 uses
 {$IFDEF PRINTTXT} Printer, {$ENDIF}
-{$IFDEF SHIFTJIS} ShiftJis, {$ENDIF}
+{$IFDEF WIDECHAR} ZWideChr, {$ENDIF}
 Sounds, TimerSys, FileSys, ZInput, Keys, FileSel, Game, Sidebar;
 
 type
@@ -623,6 +618,9 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 	procedure DrawLineEdit(lpos: integer);
 		var
 			i, lineX, lineY: integer;
+{$IFDEF WIDECHAR}
+			localXOffset, lineXLen, lineXEnd: integer;
+{$ENDIF}
 			textColor: byte;
 		begin
 			with state do begin
@@ -649,11 +647,23 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 						end;
 					end;
 					lineX := xOffset + 1;
-{$IFDEF SHIFTJIS}
-					VideoWriteTextSJIS(TextWindowX + 4, lineY, textColor, Lines[lpos]^);
-					for i := (Length(Lines[lpos]^) + 1) to (TextWindowWidth - 8) do begin
-						VideoWriteText(TextWindowX + 3 + i, lineY, $1E, ' ');
+{$IFDEF WIDECHAR}
+					WideAdjustCursor(Lines[lpos]^, lineX, 1);
+					localXOffset := (lineX - 1) - xOffset;
+					lineXLen := Length(Lines[lpos]^) - (lineX - 1);
+					if lineXLen > (TextWindowWidth - 8 - localXOffset) then begin
+						lineXEnd := lineX + (TextWindowWidth - 8 - localXOffset);
+						WideAdjustCursor(Lines[lpos]^, lineXEnd, -1);
+						lineXLen := lineXEnd - lineX;
 					end;
+{$IFDEF SHIFTJIS}
+					for i := 1 to localXOffset do
+						VideoWriteText(TextWindowX + 3 + i, lineY, $1E, ' ');
+					VideoWriteTextSJIS(TextWindowX + 4 + localXOffset, lineY, textColor,
+						Copy(Lines[lpos]^, lineX, lineXLen));
+					for i := (lineXLen + 1) to (TextWindowWidth - 8 - localXOffset) do
+						VideoWriteText(TextWindowX + 3 + localXOffset + i, lineY, $1E, ' ');
+{$ENDIF}
 {$ELSE}
 					for i := 1 to (TextWindowWidth - 8) do begin
 						if lineX > Length(Lines[lpos]^) then
@@ -677,16 +687,16 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 			with state do begin
 				i := Length(Lines[LinePos]^) + 1;
 				if charPos > i then charPos := i;
-{$IFDEF SHIFTJIS}
-				SjisAdjustCursor(Lines[LinePos]^, charPos, -1);
+{$IFDEF WIDECHAR}
+				WideAdjustCursor(Lines[LinePos]^, charPos, -1);
 {$ENDIF}
 			end;
 		end;
 	procedure Redraw(line: integer);
 		var
 			i: integer;
-{$IFDEF SHIFTJIS}
-			promptChar: string[2];
+{$IFDEF WIDECHAR}
+			promptChar: string[WIDE_CHAR_MAX_LENGTH];
 {$ELSE}
 			promptChar: char;
 {$ENDIF}
@@ -708,17 +718,19 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 			end;
 			{ draw prompt }
 			with state do begin
-{$IFDEF SHIFTJIS}
+{$IFDEF WIDECHAR}
 				if charPos > Length(Lines[LinePos]^) then
 					promptChar := ' '
-				else if SjisGetCharLength(Lines[LinePos]^, charPos) > 1 then
-					promptChar := state.Lines[state.LinePos]^[charPos]					
-						+ state.Lines[state.LinePos]^[charPos + 1]
-				else
-					promptChar := state.Lines[state.LinePos]^[charPos];
+				else begin
+					promptChar[0] := Chr(WideGetCharLength(Lines[LinePos]^, charPos));
+					for i := 1 to Ord(promptChar[0]) do
+						promptChar[i] := Lines[LinePos]^[charPos + i - 1];
+				end;
+{$IFDEF SHIFTJIS}
 				VideoWriteTextSJIS(charPos - xOffset + TextWindowX + 3,
 					TextWindowY + (TextWindowHeight div 2) + 1,
 					$70, promptChar);
+{$ENDIF}
 {$ELSE}
 				if charPos > Length(Lines[LinePos]^) then
 					promptChar := ' '
@@ -824,6 +836,8 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 			end;
 		end;
 	begin
+		InputKeyBuffering := true;
+
 		with state do begin
 			if LineCount = 0 then
 				TextWindowAppendEdit(state, '');
@@ -860,7 +874,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 							forceFullRedraw := true;
 						end;
 					end;
-{$IFNDEF SHIFTJIS}
+{$IFNDEF WIDECHAR}
 					KEY_F10: begin
 						SidebarPromptCharacter(true, 63, 3, 'Character?', inputByte);
 						InsertCharacter(Chr(inputByte));
@@ -880,8 +894,8 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					KEY_PAGE_UP: newLinePos := LinePos - TextWindowHeight + 4;
 					KEY_PAGE_DOWN: newLinePos := LinePos + TextWindowHeight - 4;
 					KEY_RIGHT: begin
-{$IFDEF SHIFTJIS}
-						Inc(charPos, SjisGetCharLength(Lines[LinePos]^, charPos));
+{$IFDEF WIDECHAR}
+						Inc(charPos, WideGetCharLength(Lines[LinePos]^, charPos));
 {$ELSE}
 						Inc(charPos);
 {$ENDIF}
@@ -893,8 +907,8 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					end;
 					KEY_LEFT: begin
 						Dec(charPos);
-{$IFDEF SHIFTJIS}
-						SjisAdjustCursor(Lines[LinePos]^, charPos, -1);
+{$IFDEF WIDECHAR}
+						WideAdjustCursor(Lines[LinePos]^, charPos, -1);
 {$ENDIF}
 						if charPos < 1 then begin
 							charPos := 255;
@@ -919,13 +933,13 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					end;
 					KEY_BACKSPACE: begin
 						if charPos > 1 then begin
-{$IFDEF SHIFTJIS}
+{$IFDEF WIDECHAR}
 							Dec(charPos);
-							SjisAdjustCursor(Lines[LinePos]^, charPos, -1);
+							WideAdjustCursor(Lines[LinePos]^, charPos, -1);
 							Lines[LinePos]^ :=
 								Copy(Lines[LinePos]^, 1, charPos - 1)
 								+ Copy(Lines[LinePos]^,
-									charPos + SjisGetCharLength(Lines[LinePos]^, charPos),
+									charPos + WideGetCharLength(Lines[LinePos]^, charPos),
 									Length(Lines[LinePos]^) - charPos);
 {$ELSE}
 							Lines[LinePos]^ :=
@@ -946,9 +960,9 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					KEY_DELETE: begin
 						Lines[LinePos]^ :=
 							Copy(Lines[LinePos]^, 1, charPos - 1)
-{$IFDEF SHIFTJIS}
+{$IFDEF WIDECHAR}
 							+ Copy(Lines[LinePos]^,
-								charPos + SjisGetCharLength(Lines[LinePos]^, charPos),
+								charPos + WideGetCharLength(Lines[LinePos]^, charPos),
 								Length(Lines[LinePos]^) - charPos);
 {$ELSE}
 							+ Copy(Lines[LinePos]^,
@@ -1040,6 +1054,8 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 			end;
 		end;
 		FreeCopyBuffer;
+
+		InputKeyBuffering := false;
 	end;
 {$ENDIF}
 

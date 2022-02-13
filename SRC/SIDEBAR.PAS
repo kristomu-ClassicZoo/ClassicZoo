@@ -53,7 +53,7 @@ interface
 
 implementation
 uses
-{$IFDEF SHIFTJIS} ShiftJis, {$ENDIF}
+{$IFDEF WIDECHAR} ZWideChr, {$ENDIF}
 ZInput, TimerSys, Sounds, ZVideo, TxtWind, Game;
 
 {$IFDEF NEC98}
@@ -296,14 +296,16 @@ procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mo
 		oldBuffer: TSmallString;
 		firstKeyPress: boolean;
 	begin
+		InputKeyBuffering := true;
+
 		oldBuffer := buffer;
 		firstKeyPress := true;
 
 		repeat
 			iOffs := Length(buffer) - width + 1;
 			if iOffs < 1 then iOffs := 1;
-{$IFDEF SHIFTJIS}
-			SjisAdjustCursor(buffer, iOffs, 1);
+{$IFDEF WIDECHAR}
+			WideAdjustCursor(buffer, iOffs, 1);
 {$ENDIF}
 			for i := 0 to (width - 1) do begin
 				VideoWriteText(x + i, y, color, ' ');
@@ -321,9 +323,9 @@ procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mo
 
 			if (InputKeyPressed = KEY_LEFT) or (InputKeyPressed = KEY_BACKSPACE) then begin
 				if (Length(buffer) > 0) then begin
-{$IFDEF SHIFTJIS}
+{$IFDEF WIDECHAR}
 					i := Length(buffer);
-					SjisAdjustCursor(buffer, i, -1);
+					WideAdjustCursor(buffer, i, -1);
 					buffer := Copy(buffer, 1, i - 1);
 {$ELSE}
 					buffer := Copy(buffer, 1, Length(buffer) - 1);
@@ -368,9 +370,12 @@ procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mo
 
 			firstKeyPress := false;
 		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE);
+
 		if InputKeyPressed = KEY_ESCAPE then begin
 			buffer := oldBuffer;
 		end;
+
+		InputKeyBuffering := false;
 	end;
 
 function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;

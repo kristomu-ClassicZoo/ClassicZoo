@@ -91,6 +91,7 @@ interface
 		InputJoystickMoved: boolean;
 		JoystickXMin, JoystickXCenter, JoystickXMax: integer;
 		JoystickYMin, JoystickYCenter, JoystickYMax: integer;
+		InputKeyBuffering: boolean;
 	procedure InputUpdate;
 	procedure InputInitDevices;
 	procedure InputReadWaitKey;
@@ -145,6 +146,8 @@ procedure InputUpdate;
 			InputKeyPressed := InputKeyBuffer[1];
 			if Length(InputKeyBuffer) = 1 then
 				InputKeyBuffer := ''
+			else if InputKeyBuffering then
+				InputKeyBuffer := Copy(InputKeyBuffer, 2, Length(InputKeyBuffer) - 1);
 			else
 				InputKeyBuffer := Copy(InputKeyBuffer, Length(InputKeyBuffer) - 1, 1);
 
@@ -210,4 +213,5 @@ begin
 	JoystickYMin := 0;
 	JoystickYCenter := 0;
 	JoystickYMax := 0;
+	InputKeyBuffering := false;
 end.

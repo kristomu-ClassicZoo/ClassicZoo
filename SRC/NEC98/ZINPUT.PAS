@@ -66,6 +66,7 @@ interface
 		KEY_SJIS = #254;
 		KEY_ALT_P = #255;
 	var
+		InputKeyBuffering: boolean;
 		InputDeltaX, InputDeltaY: integer;
 		InputShiftPressed: boolean;
 		InputShiftAccepted: boolean;
@@ -152,12 +153,13 @@ procedure InputUpdate;
 			InputKeyPressedJis := InputKeyBuffer[1];
 			if InputKeyBufferLen = 1 then
 				InputKeyBufferLen := 0
-			else begin
-				{ TODO: This replicates the ZZT 2.0 issue where a key buffer
-				  queues up too many arrow movements e t c. }
+			else if InputKeyBuffering then begin
 				for i := 2 to InputKeyBufferLen do
 					InputKeyBuffer[i - 1] := InputKeyBuffer[i];
 				Dec(InputKeyBufferLen);
+			end else begin
+				InputKeyBuffer[1] := InputKeyBuffer[InputKeyBufferLen];
+				InputKeyBufferLen := 1;
 			end;
 
 			InputKeyPressed := KeySjisToZzt(InputKeyPressedJis);
@@ -289,5 +291,6 @@ begin
 	InputMouseButtonX := 0;
 	InputMouseButtonY := 0;
 	InputKeyBufferLen := 0;
+	InputKeyBuffering := false;
 	InputMode := IMKeyboard;
 end.
