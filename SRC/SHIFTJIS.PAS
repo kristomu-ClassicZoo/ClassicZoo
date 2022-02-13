@@ -29,7 +29,7 @@ interface
 	{ Assumes the position is on the first byte of a double-byte character. }
 	function SjisGetCharLength(var s: string; pos: integer): integer;
 	{ Note: this one is O(n). }
-	procedure SjisAdjustCursor(var s: string; var pos: integer);
+	procedure SjisAdjustCursor(var s: string; var pos: integer; direction: integer);
 
 implementation
 
@@ -47,7 +47,7 @@ function SjisGetCharLength(var s: string; pos: integer): integer;
 			SjisGetCharLength := 1;
 	end;
 
-procedure SjisAdjustCursor(var s: string; var pos: integer);
+procedure SjisAdjustCursor(var s: string; var pos: integer; direction: integer);
 	var
 		i: integer;
 	begin
@@ -61,7 +61,7 @@ procedure SjisAdjustCursor(var s: string; var pos: integer);
 		end;
 		{ If we skipped the character at pos, that means it's the second byte. }
 		if i = (pos + 1) then begin
-			Dec(pos);
+			Inc(pos, direction);
 		end;
 	end;
 

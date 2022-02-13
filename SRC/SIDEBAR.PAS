@@ -52,7 +52,9 @@ interface
 	procedure GameDisplayResourceImage(name: TString50; x, y, width, height: integer);
 
 implementation
-uses ZInput, TimerSys, Sounds, ZVideo, TxtWind, Game;
+uses
+{$IFDEF SHIFTJIS} ShiftJis, {$ENDIF}
+ZInput, TimerSys, Sounds, ZVideo, TxtWind, Game;
 
 {$IFDEF NEC98}
 {$DEFINE SAFEVID}
@@ -298,41 +300,70 @@ procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mo
 		firstKeyPress := true;
 
 		repeat
-			iOffs := Length(buffer) - width;
-			if iOffs < 0 then iOffs := 0;
+			iOffs := Length(buffer) - width + 1;
+			if iOffs < 1 then iOffs := 1;
+{$IFDEF SHIFTJIS}
+			SjisAdjustCursor(buffer, iOffs, 1);
+{$ENDIF}
 			for i := 0 to (width - 1) do begin
 				VideoWriteText(x + i, y, color, ' ');
 				VideoWriteText(x + i, y - 1, arrowColor, ' ');
 			end;
 			VideoWriteText(x + width, y - 1, arrowColor, ' ');
-			VideoWriteText(x + Length(buffer) - iOffs, y - 1, (arrowColor and $F0) + $0F, #31);
-			VideoWriteText(x, y, color, Copy(buffer, iOffs + 1, width));
+			VideoWriteText(x + Length(buffer) - iOffs + 1, y - 1, (arrowColor and $F0) + $0F, #31);
+{$IFDEF SHIFTJIS}
+			VideoWriteTextSJIS(x, y, color, Copy(buffer, iOffs, width));
+{$ELSE}
+			VideoWriteText(x, y, color, Copy(buffer, iOffs, width));
+{$ENDIF}
 
 			InputReadWaitKey;
 
-			if (Length(buffer) < stringLength) and (InputKeyPressed >= #32) and (InputKeyPressed < #128) then begin
-				if firstKeyPress then
-					buffer := '';
+			if (InputKeyPressed = KEY_LEFT) or (InputKeyPressed = KEY_BACKSPACE) then begin
+				if (Length(buffer) > 0) then begin
+{$IFDEF SHIFTJIS}
+					i := Length(buffer);
+					SjisAdjustCursor(buffer, i, -1);
+					buffer := Copy(buffer, 1, i - 1);
+{$ELSE}
+					buffer := Copy(buffer, 1, Length(buffer) - 1);
+{$ENDIF}
+				end;
+			end else if (Length(buffer) < stringLength) then begin
 				case mode of
 					PROMPT_NUMERIC: begin
 						if (InputKeyPressed in ['0' .. '9']) then begin
+							if firstKeyPress then
+								buffer := '';
 							buffer := buffer + InputKeyPressed;
 						end;
 					end;
 					PROMPT_ANY: begin
-						buffer := buffer + InputKeyPressed;
+{$IFDEF SHIFTJIS}
+						if InputKeyPressed = KEY_SJIS then begin
+							if firstKeyPress then
+								buffer := '';
+							buffer := buffer + Chr(InputKeyPressedJis shr 8)
+								+ Chr(InputKeyPressedJis);
+						end else
+{$ENDIF}
+						if (InputKeyPressed >= #32) and (InputKeyPressed < #128) then begin
+							if firstKeyPress then
+								buffer := '';
+							buffer := buffer + InputKeyPressed;
+						end;
 					end;
 					PROMPT_ALPHANUM: begin
 						if (UpCase(InputKeyPressed) in ['A' .. 'Z'])
 							or (InputKeyPressed in ['0' .. '9'])
 							or (InputKeyPressed = '-') then
 						begin
+							if firstKeyPress then
+								buffer := '';
 							buffer := buffer + UpCase(InputKeyPressed);
 						end;
 					end;
 				end;
-			end else if (InputKeyPressed = KEY_LEFT) or (InputKeyPressed = KEY_BACKSPACE) then begin
-				buffer := Copy(buffer, 1, Length(buffer) - 1);
 			end;
 
 			firstKeyPress := false;

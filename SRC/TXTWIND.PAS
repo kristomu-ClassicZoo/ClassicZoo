@@ -678,7 +678,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 				i := Length(Lines[LinePos]^) + 1;
 				if charPos > i then charPos := i;
 {$IFDEF SHIFTJIS}
-				SjisAdjustCursor(Lines[LinePos]^, charPos);
+				SjisAdjustCursor(Lines[LinePos]^, charPos, -1);
 {$ENDIF}
 			end;
 		end;
@@ -894,7 +894,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					KEY_LEFT: begin
 						Dec(charPos);
 {$IFDEF SHIFTJIS}
-						SjisAdjustCursor(Lines[LinePos]^, charPos);
+						SjisAdjustCursor(Lines[LinePos]^, charPos, -1);
 {$ENDIF}
 						if charPos < 1 then begin
 							charPos := 255;
@@ -921,7 +921,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 						if charPos > 1 then begin
 {$IFDEF SHIFTJIS}
 							Dec(charPos);
-							SjisAdjustCursor(Lines[LinePos]^, charPos);
+							SjisAdjustCursor(Lines[LinePos]^, charPos, -1);
 							Lines[LinePos]^ :=
 								Copy(Lines[LinePos]^, 1, charPos - 1)
 								+ Copy(Lines[LinePos]^,

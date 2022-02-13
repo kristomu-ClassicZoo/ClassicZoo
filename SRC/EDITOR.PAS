@@ -738,7 +738,11 @@ procedure EditorLoop;
 {$ENDIF}
 
 			if Length(Board.Name) <> 0 then
+{$IFDEF SHIFTJIS}
+				VideoWriteTextSJIS(((VideoSidebarX - 1) - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
+{$ELSE}
 				VideoWriteText(((VideoSidebarX - 1) - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
+{$ENDIF}
 			else
 				VideoWriteText((VideoSidebarX - 34), 0, $70, ' Untitled ');
 		end;
