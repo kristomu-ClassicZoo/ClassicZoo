@@ -408,9 +408,7 @@ function DisplayIOError: boolean;
 	var
 		ioResValue: word;
 		errorNumStr: TSmallString;
-{$IFDEF E_SUPERZ}
 		statusMsg: TSmallString;
-{$ENDIF}
 		textWindow: TTextWindowState;
 	begin
 		ioResValue := IOResult;
@@ -419,8 +417,7 @@ function DisplayIOError: boolean;
 			exit;
 		end;
 
-{$IFDEF E_SUPERZ}
-		case IOResult of
+		case ioResValue of
 			2: statusMsg := 'File not found!';
 			3: statusMsg := 'Path not found!';
 			101: statusMsg := 'Disk full!';
@@ -428,6 +425,7 @@ function DisplayIOError: boolean;
 			statusMsg := 'DOS Error!';
 		end;
 
+{$IFDEF E_SUPERZ}
 		DrawStatusMessage(statusMsg);
 		PauseOnError;
 		ClearDisplayMessage;
@@ -437,7 +435,7 @@ function DisplayIOError: boolean;
 		Str(ioResValue, textWindow.Title);
 		textWindow.Title := 'Error # ' + textWindow.Title;
 		TextWindowInitState(textWindow);
-		TextWindowAppend(textWindow, '$DOS Error: ');
+		TextWindowAppend(textWindow, '$' + statusMsg);
 		TextWindowAppend(textWindow, '');
 		TextWindowAppend(textWindow, 'This may be caused by missing');
 		TextWindowAppend(textWindow, 'ZZT files or a bad disk.  If');
