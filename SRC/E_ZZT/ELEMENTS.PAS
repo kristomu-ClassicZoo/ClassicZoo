@@ -25,6 +25,7 @@
 
 {$F+}
 {$I-}
+{$V-}
 unit Elements;
 
 interface
@@ -45,9 +46,20 @@ uses
 ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, GameConf, Sidebar, Cheats, GameSh, Game;
 
 const
+{$IFDEF RAWSTRUCTS}
 	TransporterNSChars: string = '^~^-v_v-';
 	TransporterEWChars: string = '(<('#179')>)'#179;
 	StarAnimChars: string = #179'/'#196'\';
+{$ELSE}
+{$IFDEF MEMBOUND}
+	TransporterNSChars: string[8] = '^~^-v_v-';
+	TransporterEWChars: string[8] = '(<('#179')>)'#179;
+{$ELSE}
+	TransporterNSChars: string = '^~^-v_v-';
+	TransporterEWChars: string = '(<('#179')>)'#179;
+{$ENDIF}
+	StarAnimChars: string[4] = #179'/'#196'\';
+{$ENDIF}
 
 procedure ElementDefaultTick(statId: integer);
 	begin

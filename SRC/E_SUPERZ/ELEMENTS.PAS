@@ -25,6 +25,7 @@
 
 {$F+}
 {$I-}
+{$V-}
 unit Elements;
 
 interface
@@ -46,9 +47,20 @@ GameConf, ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, Cheats, GameSh, Game;
 
 const
 	ForestSoundTable: array[0 .. 7] of byte = ($45, $40, $47, $50, $46, $41, $48, $51);
+{$IFDEF RAWSTRUCTS}
 	TransporterNSChars: string = '^~^-v_v-';
 	TransporterEWChars: string = '(<('#179')>)'#179;
 	StarAnimChars: string = #179'/'#196'\';
+{$ELSE}
+{$IFDEF MEMBOUND}
+	TransporterNSChars: string[8] = '^~^-v_v-';
+	TransporterEWChars: string[8] = '(<('#179')>)'#179;
+{$ELSE}
+	TransporterNSChars: string = '^~^-v_v-';
+	TransporterEWChars: string = '(<('#179')>)'#179;
+{$ENDIF}
+	StarAnimChars: string[4] = #179'/'#196'\';
+{$ENDIF}
 
 procedure ElementDefaultTick(statId: integer);
 	begin

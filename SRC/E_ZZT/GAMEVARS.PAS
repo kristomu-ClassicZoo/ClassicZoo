@@ -264,10 +264,19 @@ interface
 		unkVar_0478: integer;
 {$ENDIF}
 
+{$IFDEF RAWSTRUCTS}
 		LoadedGameFileName: TString50;
 		SavedGameFileName: TString50;
 		SavedBoardFileName: TString50;
 		StartupWorldFileName: TString50;
+{$ELSE}
+		LoadedGameFileName: string[20];
+		SavedGameFileName: string[20];
+{$IFDEF EDITOR}
+		SavedBoardFileName: string[20];
+		StartupWorldFileName: string[20];
+{$ENDIF}
+{$ENDIF}
 		Board: TBoard;
 		World: TWorld;
 		MessageAmmoNotShown: boolean;
