@@ -251,10 +251,19 @@ interface
 	var
 		ForestSoundTableIdx: integer;
 
+{$IFDEF RAWSTRUCTS}
 		LoadedGameFileName: TSmallString;
 		SavedGameFileName: TSmallString;
 		SavedBoardFileName: TSmallString;
 		StartupWorldFileName: TSmallString;
+{$ELSE}
+		LoadedGameFileName: string[20];
+		SavedGameFileName: string[20];
+{$IFDEF EDITOR}
+		SavedBoardFileName: string[20];
+		StartupWorldFileName: string[20];
+{$ENDIF}
+{$ENDIF}
 
 		Board: TBoard;
 		World: TWorld;
@@ -321,9 +330,9 @@ interface
 {$ENDIF}
 
 		{ WorldFileMenuScrPtrs: array[-1 .. WORLD_FILE_DESC_COUNT] of pointer;
-		WorldFileMenuScrLens: array[-1 .. WORLD_FILE_DESC_COUNT] of word; }
+		WorldFileMenuScrLens: array[-1 .. WORLD_FILE_DESC_COUNT] of word;
 		MenuScrPointer: pointer;
-		MenuScrLen: word;
+		MenuScrLen: word; }
 		UseCustomFont: boolean;
 
 {$IFDEF DEBUGWND}

@@ -56,16 +56,16 @@ uses
 {$IFDEF WIDECHAR} ZWideChr, {$ENDIF}
 ZInput, TimerSys, Sounds, ZVideo, TxtWind, Game;
 
+{$IFNDEF MSDOS}
+{$DEFINE SAFEVID}
+{$ELSE}
 {$IFDEF NEC98}
 {$DEFINE SAFEVID}
 {$ENDIF}
-{$IFDEF HASAMIGA}
-{$DEFINE SAFEVID}
 {$ENDIF}
 
 type
-	{ TODO: Used on Amiga only - fix this for non-80-wide ResourceImages }
-	TScreenBinArray = array[0 .. 24] of array[0 .. 159] of byte;
+	TScreenBinArray = array[0 .. ((160*25)-1)] of byte;
 const
 {$IFDEF E_SUPERZ}
 	ProgressAnimColors: array[0 .. 7] of byte = ($18, $1C, $19, $1D, $1A, $1E, $1B, $1F);
@@ -532,17 +532,21 @@ procedure GameDisplayResourceImage(name: TString50; x, y, width, height: integer
 	var
 		fileData: pointer;
 		fileDataLen: word;
-		i, j: integer;
+		i, j, k: integer;
 	begin
 		fileDataLen := ResourceDataReadBinaryFile(name + '.BIN', fileData, 0, width * height * 2);
 		if fileDataLen > 0 then begin
 			{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
-			for i := 1 to height do
 {$IFDEF SAFEVID}
-				for j := 1 to width do
-					VideoWriteText(x + j - 1, y + i - 1, TScreenBinArray(fileData^)[i - 1][j * 2 - 1],
-						Chr(TScreenBinArray(fileData^)[i - 1][j * 2 - 2]));
+			k := 0;
+			for i := 1 to height do
+				for j := 1 to width do begin
+					VideoWriteText(x + j - 1, y + i - 1, TScreenBinArray(fileData^)[k + 1],
+						Chr(TScreenBinArray(fileData^)[k]));
+					Inc(k, 2);
+				end;
 {$ELSE}
+			for i := 1 to height do
 {$IFDEF FPC}
 				VideoMove(x, y + i - 1, width, fileData + ((i - 1) * width * 2), true);
 {$ELSE}
