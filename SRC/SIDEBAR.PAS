@@ -297,6 +297,9 @@ procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mo
 		firstKeyPress: boolean;
 	begin
 		InputKeyBuffering := true;
+{$IFDEF SDL2}
+		VideoSetTextInputArea(x, y, width, 1);
+{$ENDIF}
 
 		oldBuffer := buffer;
 		firstKeyPress := true;

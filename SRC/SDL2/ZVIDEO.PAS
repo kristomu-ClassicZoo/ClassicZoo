@@ -88,6 +88,7 @@ interface
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
 	procedure VideoScroll(x, y, width, height, dx, dy: integer);
+	procedure VideoSetTextInputArea(x, y, width, height: integer);
 
 implementation
 uses
@@ -632,6 +633,18 @@ procedure VideoLoadPaletteFromFile(filename: string);
 
 		if paletteLen > 0 then
 			FreeMem(paletteData, paletteLen);
+	end;
+
+procedure VideoSetTextInputArea(x, y, width, height: integer);
+	var
+		inRect: TSDL_Rect;
+	begin
+		inRect.x := x * charsetTexture.charWidth;
+		inRect.y := y * charsetTexture.charHeight;
+		inRect.w := width * charsetTexture.charWidth;
+		inRect.h := height * charsetTexture.charHeight;
+
+		SDL_SetTextInputRect(@inRect);
 	end;
 
 { Video drawing }

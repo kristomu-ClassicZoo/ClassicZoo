@@ -832,6 +832,9 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 		end;
 	begin
 		InputKeyBuffering := true;
+{$IFDEF SDL2}
+		VideoSetTextInputArea(TextWindowX + 4, TextWindowY + (TextWindowHeight div 2) + 1, TextWindowWidth - 8, 1);
+{$ENDIF}
 
 		with state do begin
 			if LineCount = 0 then
@@ -1010,7 +1013,8 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					end;
 {$IFDEF SHIFTJIS}
 					KEY_SJIS: begin
-						InsertCharacter(Chr(InputKeyPressedJis shr 8));
+						if InputKeyPressedJis >= $100 then
+							InsertCharacter(Chr(InputKeyPressedJis shr 8));
 						InsertCharacter(Chr(InputKeyPressedJis));
 					end;
 {$ENDIF}
