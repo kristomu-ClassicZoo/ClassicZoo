@@ -54,11 +54,12 @@ interface
 implementation
 uses ZInput, TimerSys, Sounds, ZVideo, TxtWind, Game;
 
+{$IFNDEF MSDOS}
+{$DEFINE SAFEVID}
+{$ELSE}
 {$IFDEF NEC98}
 {$DEFINE SAFEVID}
 {$ENDIF}
-{$IFDEF HASAMIGA}
-{$DEFINE SAFEVID}
 {$ENDIF}
 
 type

@@ -31,7 +31,7 @@ interface
 		TSDLBlinkMode = (BlinkModeHigh, BlinkModeOn, BlinkModeOff);
 		TSDLScalingMode = (SMNone, SM2x, SM3x, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
 		TVideoLine = string[80];
-		TScreenCopyLine = string[160];		
+		TScreenCopyLine = string[255];
 		TCharsetData = array[0 .. 31999] of byte;
 		PTCharsetData = ^TCharsetData;
 	const
@@ -122,7 +122,6 @@ const
 	MAX_VIDEO_WIDTH = 96 + 24;
 	MAX_VIDEO_HEIGHT = 80 + 5;
 	MAX_VIDEO_BUFFER_SIZE_CHARS = (MAX_VIDEO_WIDTH * MAX_VIDEO_HEIGHT);
-	MAX_VIDEO_BUFFER_SIZE_BYTES = (MAX_VIDEO_BUFFER_SIZE_CHARS * 2);
 var
 	window: PSDL_Window;
 	renderer: PSDL_Renderer;
@@ -133,8 +132,9 @@ var
 	charsetTexture: TCharsetTexture;
 	renderThread: PSDL_Thread;
 	renderThreadRunning: boolean;
-	screenBuffer: array[0 .. (MAX_VIDEO_BUFFER_SIZE_BYTES - 1)] of byte;
-	screenBufferChange: array[0 .. (MAX_VIDEO_BUFFER_SIZE_BYTES - 1)] of boolean; { we only use the even ones }
+	screenChars: array[0 .. (MAX_VIDEO_BUFFER_SIZE_CHARS - 1)] of Uint32;
+	screenColors: array[0 .. (MAX_VIDEO_BUFFER_SIZE_CHARS - 1)] of byte;
+	screenChanged: array[0 .. (MAX_VIDEO_BUFFER_SIZE_CHARS - 1)] of boolean;
 	blinkMode: TSDLBlinkMode;
 	scalingMode: TSDLScalingMode;
 	windowed: boolean;
@@ -154,7 +154,7 @@ function VideoGetActiveScalingMode: TSDLScalingMode;
 procedure VideoForcePlayfieldRedraw;
 	begin
 		SDL_LockMutex(playfieldMutex);
-		FillChar(screenBufferChange, MAX_VIDEO_BUFFER_SIZE_BYTES, true);
+		FillChar(screenChanged, MAX_VIDEO_BUFFER_SIZE_CHARS, true);
 		SDL_UnlockMutex(playfieldMutex);
 	end;
 
@@ -390,7 +390,7 @@ procedure FreeCharsetTexture(var tex: TCharsetTexture);
 		end;
 	end;
 
-procedure LoadCharsetFromBMP(var tex: TCharsetTexture; path: string);
+procedure LoadCharsetFromBMP(var tex: TCharsetTexture; path: string; totalTiles: Uint32);
 	var
 		surfaceOld, surface: PSDL_Surface;
 		texWidth, texHeight: Int32;
@@ -415,7 +415,7 @@ procedure LoadCharsetFromBMP(var tex: TCharsetTexture; path: string);
 		tex.surface := surface;
 		tex.texture := nil;
 
-		if (texWidth * texHeight) < 256 then begin
+		if (texWidth * texHeight) < totalTiles then begin
 			FreeCharsetTexture(tex);
 			exit;
 		end;
@@ -424,13 +424,13 @@ procedure LoadCharsetFromBMP(var tex: TCharsetTexture; path: string);
 
 		{ Try to figure out character width and height }
 		tex.charsetPitch := 1;
-		while tex.charsetPitch <= 256 do begin
-			if ((texWidth mod tex.charsetPitch) = 0) and ((texHeight mod (256 div tex.charsetPitch)) = 0) then begin
-				{ Proper divisors, 256 tiles }
+		while tex.charsetPitch <= totalTiles do begin
+			if ((texWidth mod tex.charsetPitch) = 0) and ((texHeight mod (totalTiles div tex.charsetPitch)) = 0) then begin
+				{ Proper divisors, matching tiles }
 				{ say, 8x16 will lead to 16x8 in the next iteration }
 				{ so, clamping between 1:1 and 1:2 aspect ratios should work }
 				tex.charWidth := (texWidth div tex.charsetPitch);
-				tex.charHeight := (texHeight div (256 div tex.charsetPitch));
+				tex.charHeight := (texHeight div (totalTiles div tex.charsetPitch));
 
 				{ We go from highest to lowest aspect ratio, so just pick the first one which works. }
 				{ aspectRatio := Single(LongInt(tex.charWidth)) / Single(LongInt(tex.charHeight)); }
@@ -637,15 +637,16 @@ function ColorToBW(color: byte): byte;
 procedure VideoDrawCharBg(x, y: integer);
 	var
 		offset: integer;
-		chr, col: byte;
+		chr: Uint32;
+		col: byte;
 		bgCol: Uint32;
 		outRect: TSDL_Rect;
 	begin
-		offset := (y * MAX_VIDEO_WIDTH + x) shl 1;
-		chr := screenBuffer[offset];
-		col := screenBuffer[offset + 1];
+		offset := y * MAX_VIDEO_WIDTH + x;
+		chr := screenChars[offset];
+		col := screenColors[offset];
 
-		if ((col < $80) or (blinkMode <> BlinkModeOn)) and (not screenBufferChange[offset]) then exit;
+		if ((col < $80) or (blinkMode <> BlinkModeOn)) and (not screenChanged[offset]) then exit;
 
 		if blinkMode <> BlinkModeHigh then col := col and $7F;
 		if VideoMonochrome then
@@ -669,12 +670,12 @@ procedure VideoDrawCharFg(x, y: integer; blink: boolean);
 		fgCol: Uint32;
 		inRect, outRect: TSDL_Rect;
 	begin
-		offset := (y * MAX_VIDEO_WIDTH + x) shl 1;
-		chr := screenBuffer[offset];
-		col := screenBuffer[offset + 1];
+		offset := y * MAX_VIDEO_WIDTH + x;
+		chr := screenChars[offset];
+		col := screenColors[offset];
 
 		if (chr = 0) or (chr = 32) then exit;
-		if ((col < $80) or (blinkMode <> BlinkModeOn)) and (not screenBufferChange[offset]) then exit;
+		if ((col < $80) or (blinkMode <> BlinkModeOn)) and (not screenChanged[offset]) then exit;
 
 		if (blinkMode = BlinkModeOn) then begin
 			blink := blink and (col >= $80);
@@ -762,7 +763,7 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 				for ix := 0 to (VideoColumns - 1) do
 					VideoDrawCharFg(ix, iy, blink);
 
-			FillChar(screenBufferChange, MAX_VIDEO_BUFFER_SIZE_BYTES, false);
+			FillChar(screenChanged, MAX_VIDEO_BUFFER_SIZE_CHARS, false);
 			SDL_UnlockMutex(playfieldMutex);
 
 			SDL_SetRenderTarget(renderer, nil);
@@ -784,13 +785,12 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	var
 		i, offset: integer;
 	begin
-		offset := (y * MAX_VIDEO_WIDTH + x) shl 1;
+		offset := y * MAX_VIDEO_WIDTH + x;
 		SDL_LockMutex(playfieldMutex);
 		for i := 1 to Length(text) do begin
-			screenBuffer[offset] := Byte(text[i]);
-			screenBufferChange[offset] := true;
-			Inc(offset);
-			screenBuffer[offset] := color;
+			screenChars[offset] := Byte(text[i]);
+			screenColors[offset] := color;
+			screenChanged[offset] := true;
 			Inc(offset);
 		end;
 		SDL_UnlockMutex(playfieldMutex);
@@ -978,8 +978,9 @@ procedure VideoSetBlink(value: boolean);
 procedure VideoClear(bgColor: integer);
 	begin
 		if installed then SDL_LockMutex(playfieldMutex);
-		FillWord(screenBuffer, MAX_VIDEO_BUFFER_SIZE_BYTES shr 1, Word((bgColor * $11) shl 8));
-		FillChar(screenBufferChange, MAX_VIDEO_BUFFER_SIZE_BYTES, true);
+		FillDWord(screenChars, MAX_VIDEO_BUFFER_SIZE_CHARS, 0);
+		FillChar(screenColors, MAX_VIDEO_BUFFER_SIZE_CHARS, bgColor * $11);
+		FillChar(screenChanged, MAX_VIDEO_BUFFER_SIZE_CHARS, true);
 		if installed then SDL_UnlockMutex(playfieldMutex);
 	end;
 
@@ -987,15 +988,17 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	var
 		i, offset: integer;
 	begin
-		offset := (y * MAX_VIDEO_WIDTH + x) shl 1;
+		offset := y * MAX_VIDEO_WIDTH + x;
 		if toVideo then begin
 			SDL_LockMutex(playfieldMutex);
-			Move(data^, screenBuffer[offset], chars shl 1);
+			Move(data^, screenChars[offset], chars * 4);
+			Move((data + (chars * 4))^, screenColors[offset], chars);
 			for i := 0 to chars - 1 do
-				screenBufferChange[offset + (i shl 1)] := true;
+				screenChanged[offset + i] := true;
 			SDL_UnlockMutex(playfieldMutex);
 		end else begin
-			Move(screenBuffer[offset], data^, chars shl 1);
+			Move(screenChars[offset], data^, chars * 4);
+			Move(screenColors[offset], (data + (chars * 4))^, chars);
 		end;
 	end;
 
@@ -1015,11 +1018,11 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 		end;
 		SDL_LockMutex(playfieldMutex);
 		for iy := y1 to y2 do begin
-			offset := (((iy * MAX_VIDEO_WIDTH) + x1) shl 1);
+			offset := (iy * MAX_VIDEO_WIDTH) + x1;
 			for ix := x1 to x2 do begin
-				screenBuffer[offset + 1] := screenBuffer[offset + 1] xor $7F;
-				screenBufferChange[offset] := true;
-				Inc(offset, 2);
+				screenColors[offset] := screenColors[offset] xor $7F;
+				screenChanged[offset] := true;
+				Inc(offset);
 			end;
 		end;
 		SDL_UnlockMutex(playfieldMutex);
@@ -1034,65 +1037,65 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 		if dy = 0 then begin
 			if dx >= 0 then begin
 				{ move right }
-				srcOfs := (y * MAX_VIDEO_WIDTH + x) * 2;
-				destOfs := srcOfs + (dx * 2);
+				srcOfs := (y * MAX_VIDEO_WIDTH + x);
+				destOfs := srcOfs + (dx);
 				for iy := 1 to height do begin
-					xOfs := ((width - dx) - 1) shl 1;
+					xOfs := ((width - dx) - 1);
 					for ix := 1 to (width - dx) do begin
-						screenBuffer[destOfs + xOfs] := screenBuffer[srcOfs + xOfs];
-						screenBuffer[destOfs + xOfs + 1] := screenBuffer[srcOfs + xOfs + 1];
-						screenBufferChange[destOfs + xOfs] := true;
-						Dec(xOfs, 2);
+						screenChars[destOfs + xOfs] := screenChars[srcOfs + xOfs];
+						screenColors[destOfs + xOfs] := screenColors[srcOfs + xOfs];
+						screenChanged[destOfs + xOfs] := true;
+						Dec(xOfs);
 					end;
-					srcOfs := srcOfs + (MAX_VIDEO_WIDTH * 2);
-					destOfs := destOfs + (MAX_VIDEO_WIDTH * 2);
+					srcOfs := srcOfs + (MAX_VIDEO_WIDTH);
+					destOfs := destOfs + (MAX_VIDEO_WIDTH);
 				end;
 			end else begin
 				{ move left }
-				destOfs := (y * MAX_VIDEO_WIDTH + x) * 2;
-				srcOfs := destOfs - (dx * 2);
+				destOfs := (y * MAX_VIDEO_WIDTH + x);
+				srcOfs := destOfs - (dx);
 				for iy := 1 to height do begin					
 					xOfs := 0;
 					for ix := 1 to (width + dx) do begin
-						screenBuffer[destOfs + xOfs] := screenBuffer[srcOfs + xOfs];
-						screenBuffer[destOfs + xOfs + 1] := screenBuffer[srcOfs + xOfs + 1];
-						screenBufferChange[destOfs + xOfs] := true;
-						Inc(xOfs, 2);
+						screenChars[destOfs + xOfs] := screenChars[srcOfs + xOfs];
+						screenColors[destOfs + xOfs] := screenColors[srcOfs + xOfs];
+						screenChanged[destOfs + xOfs] := true;
+						Inc(xOfs);
 					end;
-					srcOfs := srcOfs + (MAX_VIDEO_WIDTH * 2);
-					destOfs := destOfs + (MAX_VIDEO_WIDTH * 2);
+					srcOfs := srcOfs + (MAX_VIDEO_WIDTH);
+					destOfs := destOfs + (MAX_VIDEO_WIDTH);
 				end;
 			end;
 		end else begin
 			if dy > 0 then begin
 				{ move down }
-				srcOfs := ((y + height - 2) * MAX_VIDEO_WIDTH + x) * 2;
-				destOfs := MAX_VIDEO_WIDTH * 2 + srcOfs;
+				srcOfs := ((y + height - 2) * MAX_VIDEO_WIDTH + x);
+				destOfs := MAX_VIDEO_WIDTH + srcOfs;
 				for iy := 1 to (height - 1) do begin
 					xOfs := 0;
 					for ix := 1 to width do begin
-						screenBuffer[destOfs + xOfs] := screenBuffer[srcOfs + xOfs];
-						screenBuffer[destOfs + xOfs + 1] := screenBuffer[srcOfs + xOfs + 1];
-						screenBufferChange[destOfs + xOfs] := true;
-						Inc(xOfs, 2);
+						screenChars[destOfs + xOfs] := screenChars[srcOfs + xOfs];
+						screenColors[destOfs + xOfs] := screenColors[srcOfs + xOfs];
+						screenChanged[destOfs + xOfs] := true;
+						Inc(xOfs);
 					end;
-					srcOfs := srcOfs - (MAX_VIDEO_WIDTH * 2);
-					destOfs := destOfs - (MAX_VIDEO_WIDTH * 2);
+					srcOfs := srcOfs - (MAX_VIDEO_WIDTH);
+					destOfs := destOfs - (MAX_VIDEO_WIDTH);
 				end;
 			end else begin
 				{ move up }
-				destOfs := (y * MAX_VIDEO_WIDTH + x) * 2;
-				srcOfs := MAX_VIDEO_WIDTH * 2 + destOfs;
+				destOfs := (y * MAX_VIDEO_WIDTH + x);
+				srcOfs := MAX_VIDEO_WIDTH + destOfs;
 				for iy := 1 to (height - 1) do begin
 					xOfs := 0;
 					for ix := 1 to width do begin
-						screenBuffer[destOfs + xOfs] := screenBuffer[srcOfs + xOfs];
-						screenBuffer[destOfs + xOfs + 1] := screenBuffer[srcOfs + xOfs + 1];
-						screenBufferChange[destOfs + xOfs] := true;
-						Inc(xOfs, 2);
+						screenChars[destOfs + xOfs] := screenChars[srcOfs + xOfs];
+						screenColors[destOfs + xOfs] := screenColors[srcOfs + xOfs];
+						screenChanged[destOfs + xOfs] := true;
+						Inc(xOfs);
 					end;
-					srcOfs := srcOfs + (MAX_VIDEO_WIDTH * 2);
-					destOfs := destOfs + (MAX_VIDEO_WIDTH * 2);
+					srcOfs := srcOfs + (MAX_VIDEO_WIDTH);
+					destOfs := destOfs + (MAX_VIDEO_WIDTH);
 				end;
 			end;
 		end;
