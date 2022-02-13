@@ -314,7 +314,7 @@ procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mo
 			VideoWriteText(x + width, y - 1, arrowColor, ' ');
 			VideoWriteText(x + Length(buffer) - iOffs + 1, y - 1, (arrowColor and $F0) + $0F, #31);
 {$IFDEF SHIFTJIS}
-			VideoWriteTextSJIS(x, y, color, Copy(buffer, iOffs, width));
+			VideoWriteTextSJIS(x, y, color, Copy(buffer, iOffs, WideGetStringLength(buffer, iOffs, width)));
 {$ELSE}
 			VideoWriteText(x, y, color, Copy(buffer, iOffs, width));
 {$ENDIF}

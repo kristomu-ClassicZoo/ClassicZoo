@@ -28,12 +28,13 @@ interface
 {$IFDEF SHIFTJIS}
 	const
 		WIDE_CHAR_MAX_LENGTH = 2;
+		WIDE_STRING_MAX = 32767;
 {$ENDIF}
 	function WideIsFirstByte(s1: byte): boolean;
-	{ Assumes the position is on the first byte of a wide character. }
+	{ The following assume the position is on the first byte of a wide character. }
 	function WideGetCharWidth(var s: string; pos: integer): integer;
-	{ Assumes the position is on the first byte of a wide character. }
 	function WideGetCharLength(var s: string; pos: integer): integer;
+	function WideGetStringLength(var s: string; pos, maxWidth: integer): integer;
 	{ Note: this one is O(n). }
 	procedure WideAdjustCursor(var s: string; var pos: integer; direction: integer);
 
@@ -62,6 +63,23 @@ function WideGetCharLength(var s: string; pos: integer): integer;
 			WideGetCharLength := 1;
 	end;
 {$ENDIF}
+
+function WideGetStringLength(var s: string; pos, maxWidth: integer): integer;
+	var
+		i, iw, t: integer;
+	label WGSLFinished;
+	begin
+		i := pos;
+		iw := 0;
+		while i <= Length(s) do begin
+			t := WideGetCharWidth(s, i);
+			if (iw + t) > maxWidth then goto WGSLFinished;
+			Inc(iw, t);
+			Inc(i, WideGetCharLength(s, i));
+		end;
+WGSLFinished:
+		WideGetStringLength := i - pos;
+	end;
 
 procedure WideAdjustCursor(var s: string; var pos: integer; direction: integer);
 	var

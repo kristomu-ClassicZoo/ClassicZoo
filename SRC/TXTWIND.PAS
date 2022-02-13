@@ -619,7 +619,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 		var
 			i, lineX, lineY: integer;
 {$IFDEF WIDECHAR}
-			localXOffset, lineXLen, lineXEnd: integer;
+			localXOffset, lineXLen: integer;
 {$ENDIF}
 			textColor: byte;
 		begin
@@ -650,12 +650,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 {$IFDEF WIDECHAR}
 					WideAdjustCursor(Lines[lpos]^, lineX, 1);
 					localXOffset := (lineX - 1) - xOffset;
-					lineXLen := Length(Lines[lpos]^) - (lineX - 1);
-					if lineXLen > (TextWindowWidth - 8 - localXOffset) then begin
-						lineXEnd := lineX + (TextWindowWidth - 8 - localXOffset);
-						WideAdjustCursor(Lines[lpos]^, lineXEnd, -1);
-						lineXLen := lineXEnd - lineX;
-					end;
+					lineXLen := WideGetStringLength(Lines[lpos]^, lineX, TextWindowWidth - 8 - localXOffset);
 {$IFDEF SHIFTJIS}
 					for i := 1 to localXOffset do
 						VideoWriteText(TextWindowX + 3 + i, lineY, $1E, ' ');
