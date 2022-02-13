@@ -1009,7 +1009,7 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 
 			window := SDL_CreateWindow('%NAME% %VERSION%',
 				SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-				640, {$IFDEF E_SUPERZ}400{$ELSE}350{$ENDIF},
+				640, {$IFDEF E_SUPERZ}400{$ELSE}{$IFDEF SHIFTJIS}400{$ELSE}350{$ENDIF}{$ENDIF},
 				SDL_WINDOW_RESIZABLE or SDL_WINDOW_ALLOW_HIGHDPI);
 		end;
 

@@ -371,6 +371,7 @@ procedure EditorLoop;
 		cursorBlinker: integer;
 		inputByte: byte;
 		viewMode: integer;
+		showingBoardName: boolean;
 		copyBuffer: TEditorCopyBuffer;
 
 	procedure EditorOnWorldOpen;
@@ -745,6 +746,7 @@ procedure EditorLoop;
 {$ENDIF}
 			else
 				VideoWriteText((VideoSidebarX - 34), 0, $70, ' Untitled ');
+			showingBoardName := true;
 		end;
 
 	procedure EditorSetTile(x, y, newElement, newColor: byte);
@@ -1575,6 +1577,8 @@ procedure EditorLoop;
 		end;
 
 	procedure EditorMoveCursor(newX, newY: integer; redraw: boolean);
+		var
+			i: integer;
 		begin
 			if newX < 1 then
 				newX := 1
@@ -1617,6 +1621,15 @@ procedure EditorLoop;
 			cursorY := newY;
 			if redraw then begin
 				TransitionDrawToBoard;
+				showingBoardName := false;
+			end else begin
+{$IFDEF E_ZZT}
+				if showingBoardName and (cursorY = 1) then begin
+					for i := 1 to BOARD_WIDTH do
+						BoardDrawTile(i, 1);
+					showingBoardName := false;
+				end;
+{$ENDIF}
 			end;
 
 			EditorDrawCursorPos;

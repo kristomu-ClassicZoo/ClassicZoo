@@ -148,4 +148,4 @@ if len(sys.argv) >= 4:
 			for ix in range(0, 8):
 				if ((sjis_line >> ix) & 1) != 0:
 					sjis_im.putpixel((sjis_x+7-ix, sjis_y+iy), (0, 0, 0))
-	sjis_im.save(sys.argv[4])
+	sjis_im.convert("1").save(sys.argv[4])
