@@ -60,6 +60,9 @@ interface
 		KEY_CTRL_X = #217;
 		KEY_CTRL_Y = #218;
 		KEY_ALT_P = #219;
+{$IFDEF SHIFTJIS}
+		KEY_SJIS = #220;
+{$ENDIF}
 	var
 		InputDeltaX, InputDeltaY: integer;
 		InputShiftPressed: boolean;
@@ -67,6 +70,9 @@ interface
 		InputJoystickEnabled: boolean;
 		InputMouseEnabled: boolean;
 		InputKeyPressed: char;
+{$IFDEF SHIFTJIS}
+		InputKeyPressedJis: word;
+{$ENDIF}
 		InputMouseX, InputMouseY: integer;
 		InputMouseActivationX, InputMouseActivationY: integer;
 		InputMouseButtonX, InputMouseButtonY: integer;

@@ -47,11 +47,16 @@ function WideIsFirstByte(s1: byte): boolean;
 	end;
 
 function WideGetCharWidth(var s: string; pos: integer): integer;
+	var
+		w: word;
 	begin
-		{ TODO: This is WRONG }
-		if WideIsFirstByte(Byte(s[pos])) then
-			WideGetCharWidth := 2
-		else
+		if WideIsFirstByte(Byte(s[pos])) then begin
+			w := (Byte(s[pos]) shl 8) or Byte(s[pos + 1]);
+			if (w >= $8540) and (w <= $869D) then { JIS X 0208 rows 9, 10, 11 on PC-9801 }
+				WideGetCharWidth := 1
+			else
+				WideGetCharWidth := 2;
+		end else
 			WideGetCharWidth := 1;
 	end;
 

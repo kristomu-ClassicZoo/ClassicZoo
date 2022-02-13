@@ -23,6 +23,9 @@
 # format:
 # 16-byte 1-bit 8x8 bitmaps for each tile
 
+# usage:
+# python3 mkfont.py [font.png] [font.bin] [FREECG98.BMP] [SJISFONT.BMP]
+
 from PIL import Image
 import struct, sys
 
@@ -133,3 +136,16 @@ for c in range(0, 256):
 with open(sys.argv[2], "wb") as fp:
 	for i in range(len(tiles)):
 		write_tile(fp, tiles[i])
+
+if len(sys.argv) >= 4:
+	sjis_im = Image.open(sys.argv[3]).convert("RGBA")
+	for i in range(len(tiles)):
+		c_pos = i
+		sjis_x = (0x56 | (c_pos & 1)) * 16
+		sjis_y = ((c_pos >> 1) + 1) * 16
+		for iy in range(0, 16):
+			sjis_line = tiles[i][iy]
+			for ix in range(0, 8):
+				if ((sjis_line >> ix) & 1) != 0:
+					sjis_im.putpixel((sjis_x+7-ix, sjis_y+iy), (0, 0, 0))
+	sjis_im.save(sys.argv[4])

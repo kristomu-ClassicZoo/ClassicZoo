@@ -68,6 +68,7 @@ interface
 implementation
 uses Dos, PC98, TimerSys;
 
+const
 {$I VIDCONST.INC}
 
 procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
@@ -78,16 +79,16 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 		offset := (y * VideoColumns + x) * 2;
 		if ((color and $70) shr 4) = (color and $0F) then begin
 			{ Same color. }
-			attr := ATTR_MAP[color and $70];
+			attr := ATTR_NEC98_MAP[color and $70];
 			for i := 1 to Length(text) do begin
 				MemW[$A000:offset] := $0020;
 				MemW[$A200:offset] := attr;
 				Inc(offset, 2);
 			end;
 		end else begin
-			attr := ATTR_MAP[color and $7F] or (((color and $80) shr 6) and VideoBlinkMask);
+			attr := ATTR_NEC98_MAP[color and $7F] or (((color and $80) shr 6) and VideoBlinkMask);
 			for i := 1 to Length(text) do begin
-				MemW[$A000:offset] := CP437_MAP[Ord(text[i])];
+				MemW[$A000:offset] := CP437_NEC98_MAP[Ord(text[i])];
 				MemW[$A200:offset] := attr;
 				Inc(offset, 2);
 			end;
@@ -142,14 +143,14 @@ procedure VideoWriteTextSJIS(x, y, color: byte; text: TVideoLine);
 		offset := (y * VideoColumns + x) * 2;
 		if ((color and $70) shr 4) = (color and $0F) then begin
 			{ Same color. }
-			attr := ATTR_MAP[color and $70];
+			attr := ATTR_NEC98_MAP[color and $70];
 			while i <= Length(text) do begin
 				MemW[$A000:offset] := FetchPC98Word;
 				MemW[$A200:offset] := attr;
 				Inc(offset, 2);
 			end;
 		end else begin
-			attr := ATTR_MAP[color and $7F] or (((color and $80) shr 6) and VideoBlinkMask);
+			attr := ATTR_NEC98_MAP[color and $7F] or (((color and $80) shr 6) and VideoBlinkMask);
 			while i <= Length(text) do begin
 				MemW[$A000:offset] := FetchPC98Word;
 				MemW[$A200:offset] := attr;

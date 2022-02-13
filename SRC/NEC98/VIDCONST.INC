@@ -1,7 +1,5 @@
-const
-
-{ CP437->JIS conversion map, using a custom font for the unavailable symbols }
-CP437_MAP: array[0 .. 255] of word = (
+{ CP437->NEC98 conversion map, using a custom font for the unavailable symbols }
+CP437_NEC98_MAP: array[0 .. 255] of word = (
 { TODO: Include this from mkfont.py's output. }
 $0020, $0156, $0157, $0256, $0257, $0356, $0357, $0456, $0457, $0556, $0557, $0656, $0657, $0756, $0757, $0856, 
 $0857, $0956, $0957, $0A56, $0A57, $0B56, $0B57, $0C56, $001E, $001F, $001C, $001D, $0C57, $0D56, $0D57, $0E56, 
@@ -21,7 +19,7 @@ $2B57, $2C56, $2C57, $2D56, $2D57, $2E56, $2E57, $2F56, $2F57, $3056, $3057, $31
 $3357, $3456, $3457, $3556, $3557, $3656, $3657, $3756, $3757, $3856, $3857, $3956, $3957, $3A56, $3A57, $0020
 );
 
-ATTR_MAP: array[0 .. 127] of byte = (
+ATTR_NEC98_MAP: array[0 .. 127] of byte = (
 $01, $21, $81, $A1, $41, $61, $C1, $E1, $E1, $21, $81, $A1, $41, $61, $C1, $E1, 
 $25, $21, $81, $A1, $41, $61, $C1, $E1, $E1, $21, $81, $A1, $41, $61, $C1, $E1, 
 $85, $21, $81, $A1, $41, $61, $C1, $E1, $E1, $21, $81, $A1, $41, $61, $C1, $E1, 
