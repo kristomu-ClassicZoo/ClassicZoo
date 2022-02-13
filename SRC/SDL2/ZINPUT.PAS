@@ -60,8 +60,8 @@ interface
 		KEY_CTRL_X = #217;
 		KEY_CTRL_Y = #218;
 		KEY_ALT_P = #219;
-{$IFDEF SHIFTJIS}
-		KEY_SJIS = #220;
+{$IFDEF WIDECHAR}
+		KEY_WIDESTRING = #220;
 {$ENDIF}
 	var
 		InputDeltaX, InputDeltaY: integer;
@@ -70,8 +70,8 @@ interface
 		InputJoystickEnabled: boolean;
 		InputMouseEnabled: boolean;
 		InputKeyPressed: char;
-{$IFDEF SHIFTJIS}
-		InputKeyPressedJis: word;
+{$IFDEF WIDECHAR}
+		InputKeyPressedWide: string[4];
 {$ENDIF}
 		InputMouseX, InputMouseY: integer;
 		InputMouseActivationX, InputMouseActivationY: integer;
@@ -489,8 +489,15 @@ procedure InputUpdate;
 {$ENDIF}
 {$IFDEF SHIFTJIS}
 					if (Value and KV_JIS) <> 0 then begin
-						InputKeyPressed := KEY_SJIS;
-						InputKeyPressedJis := Value;
+						InputKeyPressed := KEY_WIDESTRING;
+						if (Value and $FFFF) >= $100 then begin
+							InputKeyPressedWide[0] := Chr(2);
+							InputKeyPressedWide[1] := Chr((Value shr 8) and $FF);
+							InputKeyPressedWide[2] := Chr(Value and $FF);
+						end else begin
+							InputKeyPressedWide[0] := Chr(1);
+							InputKeyPressedWide[1] := Chr(Value and $FF);
+						end;
 					end else
 {$ENDIF}
 					InputKeyPressed := Char(Value and $FF);

@@ -79,8 +79,8 @@ procedure ElementMessageTimerTick(statId: integer);
 		with Board.Stats[statId] do begin
 			case X of
 				0: begin
-{$IFDEF SHIFTJIS}
-					VideoWriteTextSJIS((60 - Length(Board.Info.Message)) div 2, 24, 9 + (P2 mod 7), ' '+Board.Info.Message+' ');
+{$IFDEF WIDECHAR}
+					VideoWriteTextWide((60 - Length(Board.Info.Message)) div 2, 24, 9 + (P2 mod 7), ' '+Board.Info.Message+' ');
 {$ELSE}
 					VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, 9 + (P2 mod 7), ' '+Board.Info.Message+' ');
 {$ENDIF}

@@ -316,8 +316,8 @@ procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mo
 			end;
 			VideoWriteText(x + width, y - 1, arrowColor, ' ');
 			VideoWriteText(x + Length(buffer) - iOffs + 1, y - 1, (arrowColor and $F0) + $0F, #31);
-{$IFDEF SHIFTJIS}
-			VideoWriteTextSJIS(x, y, color, Copy(buffer, iOffs, WideGetStringLength(buffer, iOffs, width)));
+{$IFDEF WIDECHAR}
+			VideoWriteTextWide(x, y, color, Copy(buffer, iOffs, WideGetStringLength(buffer, iOffs, width)));
 {$ELSE}
 			VideoWriteText(x, y, color, Copy(buffer, iOffs, width));
 {$ENDIF}
@@ -344,12 +344,12 @@ procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mo
 						end;
 					end;
 					PROMPT_ANY: begin
-{$IFDEF SHIFTJIS}
-						if InputKeyPressed = KEY_SJIS then begin
+{$IFDEF WIDECHAR}
+						if InputKeyPressed = KEY_WIDESTRING then begin
 							if firstKeyPress then
 								buffer := '';
-							buffer := buffer + Chr(InputKeyPressedJis shr 8)
-								+ Chr(InputKeyPressedJis);
+							if (Length(buffer) + Length(InputKeyPressedWide)) <= stringLength then
+								buffer := buffer + InputKeyPressedWide;
 						end else
 {$ENDIF}
 						if (InputKeyPressed >= #32) and (InputKeyPressed < #128) then begin

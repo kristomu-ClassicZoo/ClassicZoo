@@ -179,8 +179,8 @@ procedure TextWindowInitState(var state: TTextWindowState);
 procedure TextWindowDrawTitle(color: integer; title: TTextWindowLine);
 	begin
 		VideoWriteText(TextWindowX + 2, TextWindowY + 1, color, TextWindowStrInnerEmpty);
-{$IFDEF SHIFTJIS}
-		VideoWriteTextSJIS(TextWindowX + ((TextWindowWidth - Length(title)) div 2), TextWindowY + 1, color, title);
+{$IFDEF WIDECHAR}
+		VideoWriteTextWide(TextWindowX + ((TextWindowWidth - Length(title)) div 2), TextWindowY + 1, color, title);
 {$ELSE}
 		VideoWriteText(TextWindowX + ((TextWindowWidth - Length(title)) div 2), TextWindowY + 1, color, title);
 {$ENDIF}
@@ -271,8 +271,8 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 				VideoWriteText(TextWindowX + 2, lineY, $1E, TextWindowStrInnerEmpty);
 			if (lpos > 0) and (lpos <= LineCount) then begin
 				if withoutFormatting then begin
-{$IFDEF SHIFTJIS}
-					VideoWriteTextSJIS(TextWindowX + 4, lineY, $1E, Lines[lpos]^);
+{$IFDEF WIDECHAR}
+					VideoWriteTextWide(TextWindowX + 4, lineY, $1E, Lines[lpos]^);
 {$ELSE}
 					VideoWriteText(TextWindowX + 4, lineY, $1E, Lines[lpos]^);
 {$ENDIF}
@@ -300,8 +300,8 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 						end;
 					end;
 					if textOffset > 0 then begin
-{$IFDEF SHIFTJIS}
-						VideoWriteTextSJIS(textX, lineY, textColor,
+{$IFDEF WIDECHAR}
+						VideoWriteTextWide(textX, lineY, textColor,
 							Copy(Lines[lpos]^, textOffset,Length(Lines[lpos]^) - textOffset + 1));
 {$ELSE}
 						VideoWriteText(textX, lineY, textColor,
@@ -651,14 +651,12 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					WideAdjustCursor(Lines[lpos]^, lineX, 1);
 					localXOffset := (lineX - 1) - xOffset;
 					lineXLen := WideGetStringLength(Lines[lpos]^, lineX, TextWindowWidth - 8 - localXOffset);
-{$IFDEF SHIFTJIS}
 					for i := 1 to localXOffset do
 						VideoWriteText(TextWindowX + 3 + i, lineY, $1E, ' ');
-					VideoWriteTextSJIS(TextWindowX + 4 + localXOffset, lineY, textColor,
+					VideoWriteTextWide(TextWindowX + 4 + localXOffset, lineY, textColor,
 						Copy(Lines[lpos]^, lineX, lineXLen));
 					for i := (lineXLen + 1) to (TextWindowWidth - 8 - localXOffset) do
 						VideoWriteText(TextWindowX + 3 + localXOffset + i, lineY, $1E, ' ');
-{$ENDIF}
 {$ELSE}
 					for i := 1 to (TextWindowWidth - 8) do begin
 						if lineX > Length(Lines[lpos]^) then
@@ -721,11 +719,9 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					for i := 1 to Ord(promptChar[0]) do
 						promptChar[i] := Lines[LinePos]^[charPos + i - 1];
 				end;
-{$IFDEF SHIFTJIS}
-				VideoWriteTextSJIS(charPos - xOffset + TextWindowX + 3,
+				VideoWriteTextWide(charPos - xOffset + TextWindowX + 3,
 					TextWindowY + (TextWindowHeight div 2) + 1,
 					$70, promptChar);
-{$ENDIF}
 {$ELSE}
 				if charPos > Length(Lines[LinePos]^) then
 					promptChar := ' '
@@ -772,6 +768,14 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					end;
 				end;
 			end;
+		end;
+	procedure InsertString(var s: string);
+		var
+			i: integer;
+		begin
+			{ TODO: Bounds checks }
+			for i := 1 to Length(s) do
+				InsertCharacter(s[i]);
 		end;
 	procedure ClearHighlight;
 		begin
@@ -1011,11 +1015,9 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 						end;
 						InputKeyPressed := #0;
 					end;
-{$IFDEF SHIFTJIS}
-					KEY_SJIS: begin
-						if InputKeyPressedJis >= $100 then
-							InsertCharacter(Chr(InputKeyPressedJis shr 8));
-						InsertCharacter(Chr(InputKeyPressedJis));
+{$IFDEF WIDECHAR}
+					KEY_WIDESTRING: begin
+						InsertString(InputKeyPressedWide);
 					end;
 {$ENDIF}
 				else

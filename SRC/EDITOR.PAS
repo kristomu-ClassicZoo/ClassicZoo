@@ -739,8 +739,8 @@ procedure EditorLoop;
 {$ENDIF}
 
 			if Length(Board.Name) <> 0 then
-{$IFDEF SHIFTJIS}
-				VideoWriteTextSJIS(((VideoSidebarX - 1) - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
+{$IFDEF WIDECHAR}
+				VideoWriteTextWide(((VideoSidebarX - 1) - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
 {$ELSE}
 				VideoWriteText(((VideoSidebarX - 1) - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
 {$ENDIF}

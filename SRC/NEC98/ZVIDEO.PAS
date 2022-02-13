@@ -49,7 +49,7 @@ interface
 		VideoBlinkMask: byte;
 		VideoCurrentMode: integer;
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
-	procedure VideoWriteTextSJIS(x, y, color: byte; text: TVideoLine);
+	procedure VideoWriteTextWide(x, y, color: byte; text: TVideoLine);
 	function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
 		borderColor: integer): boolean;
 	procedure VideoUninstall;
@@ -95,7 +95,7 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 		end;
 	end;
 
-procedure VideoWriteTextSJIS(x, y, color: byte; text: TVideoLine);
+procedure VideoWriteTextWide(x, y, color: byte; text: TVideoLine);
 	var
 		attr: word;
 		doubleByte: boolean;

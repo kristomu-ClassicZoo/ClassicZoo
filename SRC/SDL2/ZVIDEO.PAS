@@ -66,8 +66,8 @@ interface
 	procedure VideoSetSDLWindowed(value: boolean);
 	{ }
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
-{$IFDEF SHIFTJIS}
-	procedure VideoWriteTextSJIS(x, y, color: byte; text: TVideoLine);
+{$IFDEF WIDECHAR}
+	procedure VideoWriteTextWide(x, y, color: byte; text: TVideoLine);
 {$ENDIF}
 	function VideoIsCharsetCustom: boolean;
 	function VideoIsPaletteCustom: boolean;
@@ -869,7 +869,7 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	end;
 
 {$IFDEF SHIFTJIS}
-procedure VideoWriteTextSJIS(x, y, color: byte; text: TVideoLine);
+procedure VideoWriteTextWide(x, y, color: byte; text: TVideoLine);
 	var
 		i, j, offset: integer;
 		doubleByte: boolean;

@@ -63,7 +63,7 @@ interface
 		KEY_CTRL_V = #22;
 		KEY_CTRL_Y = #25;
 		{}
-		KEY_SJIS = #254;
+		KEY_WIDESTRING = #254;
 		KEY_ALT_P = #255;
 	var
 		InputKeyBuffering: boolean;
@@ -71,6 +71,7 @@ interface
 		InputShiftPressed: boolean;
 		InputShiftAccepted: boolean;
 		InputKeyPressedJis: word;
+		InputKeyPressedWide: string[2];
 		InputKeyPressed: char;
 		InputMouseX, InputMouseY: integer;
 		InputMouseActivationX, InputMouseActivationY: integer;
@@ -125,7 +126,7 @@ function KeySjisToZzt(k: word): char;
 		if (k >= $FF00) then
 			KeySjisToZzt := Chr(k or $80)
 		else if ((k >= $8100) and (k <= $9FFF)) or ((k and $F000) = $E000) then
-			KeySjisToZzt := KEY_SJIS
+			KeySjisToZzt := KEY_WIDESTRING
 		else if (k < $80) then
 			KeySjisToZzt := Chr(k)
 		else
@@ -163,6 +164,11 @@ procedure InputUpdate;
 			end;
 
 			InputKeyPressed := KeySjisToZzt(InputKeyPressedJis);
+			if InputKeyPressed = KEY_WIDESTRING then begin
+				InputKeyPressedWide[0] := Chr(2);
+				InputKeyPressedWide[1] := Chr(InputKeyPressedJis shr 8);
+				InputKeyPressedWide[2] := Chr(InputKeyPressedJis);
+			end;
 			if (UpCase(InputKeyPressed) = 'P') and KeysAltHeld then
 				InputKeyPressed := KEY_ALT_P;
 
