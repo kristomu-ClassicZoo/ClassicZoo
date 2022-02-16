@@ -378,7 +378,7 @@ procedure ElementBulletTick(statId: integer);
 				end;
 			end;
 			RemoveStat(statId);
-			{ CurrentStatTicked := CurrentStatTicked - 1; }
+			{ Dec(CurrentStatTicked); }
 		end;
 	end;
 

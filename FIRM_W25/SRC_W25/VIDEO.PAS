@@ -44,7 +44,7 @@ interface
 		VideoEGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
 		VideoUseFastPath: boolean;
-	function VideoConfigure: boolean;
+	function VideoConfigure(SkipToTitle: boolean): boolean;
 	procedure VideoInstall(columns, borderColor: integer);
 	procedure VideoUninstall;
 	procedure VideoShowCursor;
@@ -191,10 +191,19 @@ procedure VideoWriteTextFastBW(x, y, color: byte; text: TVideoLine);
 
 {$F-}
 
-function VideoConfigure: boolean;
+function VideoConfigure(SkipToTitle: boolean): boolean;
 	var
 		charTyped: Char;
 	begin
+		if SkipToTitle then begin
+			if LastMode = 7 then begin
+				VideoWriteText := VideoWriteTextFastBW;
+				VideoMonochrome := true;
+			end else
+				VideoMonochrome := false;
+			VideoConfigure := true;
+			exit;
+		end;	
 		charTyped := ' ';
 		if LastMode = 7 then begin
 			VideoWriteText := VideoWriteTextFastBW;

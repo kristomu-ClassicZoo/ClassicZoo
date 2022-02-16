@@ -1,3 +1,10 @@
+2/15/2022: 2.5k
+Added:
+* SKIPTOTITLE accessibility option in zzt.cfg skips directly to the title screen of the given zzt file.
+
+Improved:
+* Merged asie's UPX code so UPX is now being used to compress ZZT.EXE.
+
 2/10/2022: 2.5j
 Bugs Fixed:
 * Removed another reference to .PAR files in FIRMDEMO.

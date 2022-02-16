@@ -46,7 +46,7 @@ procedure GameConfigure;
         Reset(cfgFile);
         if IOResult = 0 then begin
             ReadLn(cfgFile, ConfigWorldFile);
-			for i := 1 to 4 do
+			for i := 1 to 5 do
 				ReadLn(cfgFile, Accessibility[i]);
 		end;
         if Length(ConfigWorldFile) <> 0 then begin
@@ -65,7 +65,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                                <=-  Weave  -=>');
 		TextColor(Yellow);
-		Writeln('                                 Version   2.5j [firm]');
+		Writeln('                                 Version   2.5k [firm]');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -89,27 +89,30 @@ procedure GameConfigure;
 		NeuromotorAssist := false;
 		HearingImpaired := false;
 		Diffkeys := false;
+		SkipToTitle := false;
 		if Accessibility[1] = 'ACCESSIBLE' then begin
 			if Accessibility[2] = '' then begin
 				NeuromotorAssist :=	NeuromotorConfigure;
 				HearingImpaired :=	HearingConfigure;
 				Diffkeys := KeydiffConfigure;
 			end else begin
-				for i := 2 to 4 do begin
+				for i := 2 to 5 do begin
 					if Accessibility[i] = 'NEUROMOTORASSIST' then
 						NeuromotorAssist :=	true;
 					if Accessibility[i] = 'VISUALSOUND' then
 						HearingImpaired :=	true;
 					if Accessibility[i] = 'KEYSHAPES' then
 						Diffkeys :=	true;
+					if Accessibility[i] = 'SKIPTOTITLE' then
+						SkipToTitle :=	true;
 				end;
 			end;
 		end;
-		if not InputConfigure then
+		if not InputConfigure(SkipToTitle) then
 			GameTitleExitRequested := true
 		else begin
 			TextColor(LightGreen);
-			if not VideoConfigure then
+			if not VideoConfigure(SkipToTitle) then
 				GameTitleExitRequested := true;
 		end;
 		Window(1, 1, 80, 25);

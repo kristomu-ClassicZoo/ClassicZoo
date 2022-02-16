@@ -1699,7 +1699,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 		GameUpdateSidebar;
 
 		if JustStarted then begin
-			GameAboutScreen;
 			if Length(StartupWorldFileName) <> 0 then begin
 				if (FileExists(StartupWorldFileName + '.ZZT')
 					and WorldLoad(StartupWorldFileName, '.ZZT'))
@@ -1708,12 +1707,14 @@ procedure GamePlayLoop(boardChanged: boolean);
 				then begin
 					GameDrawSidebar;
 					GameUpdateSidebar;
-					GameAboutScreen;
+					if not SkipToTitle then GameAboutScreen;
 					VideoWriteText(69, 8, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), World.Info.Name);
 				end else begin
 					WorldCreate;
 				end;
 			end;
+			if (ParamStr(1) = '') and not SkipToTitle then
+				GameAboutScreen;
 			ReturnBoardId := World.Info.CurrentBoard;
 			BoardChange(0);
 			JustStarted := false;

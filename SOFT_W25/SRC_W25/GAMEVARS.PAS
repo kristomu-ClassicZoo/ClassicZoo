@@ -171,6 +171,7 @@ interface
 		NeuromotorAssist: boolean;
 		HearingImpaired: boolean;
 		Diffkeys: boolean;
+		SkipToTitle: boolean;
 		GameMove: boolean;
 		IoTmpBufSize: word;
 		FileWorldCachedLinePos: integer; 
@@ -206,7 +207,7 @@ interface
 		HighScoreList: THighScoreList;
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
-		Accessibility: array[1..4] of TString50;
+		Accessibility: array[1..5] of TString50;
 
 		WorldFileDescCount: integer;
 		WorldFileDescKeys: array[1 .. 10] of TString50;

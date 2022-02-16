@@ -74,7 +74,7 @@ interface
 	function NeuromotorConfigure: boolean;
 	function HearingConfigure: boolean;
 	function KeydiffConfigure: boolean;
-	function InputConfigure: boolean;
+	function InputConfigure(SkipToTitle: boolean): boolean;
 	procedure RepeatSpeed(speed: shortint);
 
 implementation
@@ -438,10 +438,16 @@ function KeydiffConfigure: boolean;
 		KeydiffConfigure := (charTyped = 'D');
 	end;
 
-function InputConfigure: boolean;
+function InputConfigure(SkipToTitle: boolean): boolean;
 	var
 		charTyped: char;
 	begin
+		if SkipToTitle then begin
+			InputJoystickEnabled := false;
+			InputMouseEnabled := true;
+			InputConfigure := true;
+			exit;
+		end;
 		charTyped := ' ';
 		if InputJoystickEnabled or InputMouseEnabled then begin
 			Writeln;

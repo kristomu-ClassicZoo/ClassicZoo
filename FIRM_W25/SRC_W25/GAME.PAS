@@ -2296,7 +2296,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 					WorldCreate;
 				end;
 			end;
-			if ParamStr(1) = '' then
+			if (ParamStr(1) = '') and not SkipToTitle then
 				GameAboutScreen;
 			ReturnBoardId := World.Info.CurrentBoard;
 			BoardChange(0);

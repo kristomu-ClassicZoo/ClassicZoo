@@ -198,6 +198,7 @@ interface
 		NeuromotorAssist: boolean;
 		HearingImpaired: boolean;
 		Diffkeys: boolean;
+		SkipToTitle: boolean;
 		GameMove: boolean;
 		IoTmpBufSize: word;
 		FileWorldCachedLinePos: integer; 
