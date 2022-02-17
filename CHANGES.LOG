@@ -1,3 +1,8 @@
+2/17/2022: 2.5m
+Improved:
+* The mousex and mousey read-only counters are collected whether or not mouse movement is enabled.
+* SkipToTitle no longer automatically enables mouse movement.
+
 2/15/2022: 2.5k
 Added:
 * SKIPTOTITLE accessibility option in zzt.cfg skips directly to the title screen of the given zzt file.

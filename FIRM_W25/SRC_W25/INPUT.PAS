@@ -307,58 +307,62 @@ procedure InputUpdate;
 			end else begin
 				InputShiftAccepted := false;
 			end;
-		end else if InputMouseEnabled then begin
+		end else begin
 			regs.AX := $0B;
 			Intr($33, regs);
 			Inc(InputMouseX, Integer(regs.CX));
 			Inc(InputMouseY, Integer(regs.DX));
+
 			Inc(RMouseX,Integer(regs.CX) div 16);
 			Inc(RMouseY,Integer(regs.DX) div 16);
-			if Abs(InputMouseX) > Abs(InputMouseY) then begin
-				if Abs(InputMouseX) > InputMouseActivationX then begin
-					if InputMouseX > 0 then
-						InputDeltaX := 1
-					else
-						InputDeltaX := -1;
-					InputMouseX := 0;
-				end;
-			end else if Abs(InputMouseY) > Abs(InputMouseX) then begin
-				if Abs(InputMouseY) > InputMouseActivationY then begin
-					if InputMouseY > 0 then
-						InputDeltaY := 1
-					else
-						InputDeltaY := -1;
-					InputMouseY := 0;
-				end;
-			end;
 			if RMouseX > 60 then RMouseX := 60;
 			if RMouseX < 1 then RMouseX := 1;
 			if RMouseY > 25 then RMouseY := 25;
 			if RMouseY < 1 then RMouseY := 1;
 
-			regs.AX := $03;
-			Intr($33, regs);
-
-			{ left mouse button }
-			if (regs.BX and 1) <> 0 then begin
-				if not InputShiftAccepted then
-					InputShiftPressed := true;
-			end else begin
-				InputShiftAccepted := false;
-			end;
-
-			{ right/middle mouse button }
-			if (regs.BX and 6) <> 0 then begin
-				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					InputMouseButtonX := InputDeltaX;
-					InputMouseButtonY := InputDeltaY;
-				end else begin
-					InputDeltaX := InputMouseButtonX;
-					InputDeltaY := InputMouseButtonY;
+			if InputMouseEnabled then begin
+				if Abs(InputMouseX) > Abs(InputMouseY) then begin
+					if Abs(InputMouseX) > InputMouseActivationX then begin
+						if InputMouseX > 0 then
+							InputDeltaX := 1
+						else
+							InputDeltaX := -1;
+						InputMouseX := 0;
+					end;
+				end else if Abs(InputMouseY) > Abs(InputMouseX) then begin
+					if Abs(InputMouseY) > InputMouseActivationY then begin
+						if InputMouseY > 0 then
+							InputDeltaY := 1
+						else
+							InputDeltaY := -1;
+						InputMouseY := 0;
+					end;
 				end;
-			end else begin
-				InputMouseButtonX := 0;
-				InputMouseButtonY := 0;
+
+				regs.AX := $03;
+				Intr($33, regs);
+
+				{ left mouse button }
+				if (regs.BX and 1) <> 0 then begin
+					if not InputShiftAccepted then
+						InputShiftPressed := true;
+				end else begin
+					InputShiftAccepted := false;
+				end;
+
+				{ right/middle mouse button }
+				if (regs.BX and 6) <> 0 then begin
+					if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+						InputMouseButtonX := InputDeltaX;
+						InputMouseButtonY := InputDeltaY;
+					end else begin
+						InputDeltaX := InputMouseButtonX;
+						InputDeltaY := InputMouseButtonY;
+					end;
+				end else begin
+					InputMouseButtonX := 0;
+					InputMouseButtonY := 0;
+				end;
 			end;
 		end;
 
@@ -444,7 +448,7 @@ function InputConfigure(SkipToTitle: boolean): boolean;
 	begin
 		if SkipToTitle then begin
 			InputJoystickEnabled := false;
-			InputMouseEnabled := true;
+			InputMouseEnabled := false;
 			InputConfigure := true;
 			exit;
 		end;
