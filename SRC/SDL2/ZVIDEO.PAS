@@ -1013,14 +1013,15 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 				SDL_WINDOW_RESIZABLE or SDL_WINDOW_ALLOW_HIGHDPI);
 		end;
 
+{$IFDEF SHIFTJIS}
+		if (not charsetTexture.valid) or (not installed) then begin
+			LoadCharsetFromBMP(charsetTexture, 'SJISFONT.BMP', 16384);
+			charsetTexture.charWidth := charsetTexture.charWidth div 2;
+		end;
+{$ELSE}
 		if installed then begin
 			FreeCharsetTexture(charsetTexture);
 		end;
-
-{$IFDEF SHIFTJIS}
-		LoadCharsetFromBMP(charsetTexture, 'SJISFONT.BMP', 16384);
-		charsetTexture.charWidth := charsetTexture.charWidth div 2;
-{$ELSE}
 		if charsetHeight > 0 then begin
 			LoadCharsetFromByteArray(charsetTexture, PByteArray(charsetData)^, charsetHeight * 256);
 			usingCustomCharset := false;

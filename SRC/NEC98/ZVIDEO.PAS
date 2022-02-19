@@ -101,7 +101,6 @@ const
 	GDC2_MODE2_16COL = $01;
 	TILE_ARRAY: array[0 .. 15] of byte = (
 		$00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF);
-	{ TODO: ?????? }
 	PALETTE_GREEN_ARRAY: array[0 .. 15] of byte = (
 		$00, $00, $00, $00, $28, $28, $14, $28, $14, $14, $14, $14, $3C, $3C, $3C, $3C
 	);
@@ -136,17 +135,17 @@ procedure VideoDrawFromBackingBuffer(x, y: byte; textLength: integer);
 			gmOffset := initGmOffset;
 			Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_TDW;
 			for i := 1 to textLength do begin
-				color := VideoBackingBuffer^[tmOffset] shr 4;
+				color := VideoBackingBuffer^[tmOffset];
 				if (VideoPc98DrawingMode = 1) and ((color and $0F) = 0) then
 					color := 0;
 
 				Inc(tmOffset, 2);
 
-				Port[PORT_GRCG_TILE] := TILE_ARRAY[color];
-				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 2];
-				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 1];
+				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 4];
+				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 6];
+				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 5];
 				if not VideoBlink then begin
-					Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 3];
+					Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 7];
 				end else begin
 					Port[PORT_GRCG_TILE] := 0;
 				end;
@@ -160,9 +159,9 @@ procedure VideoDrawFromBackingBuffer(x, y: byte; textLength: integer);
 			end;
 		end;
 
+		tmOffset := initTmOffset;
 		if VideoPc98DrawingMode > 1 then begin
 			{ Draw foreground (graphics mode). }
-			tmOffset := initTmOffset;
 			gmOffset := initGmOffset;
 			Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_RMW;
 			for i := 1 to textLength do begin
@@ -227,8 +226,6 @@ NextGlyph:
 			end;
 		end else begin
 			{ Draw foreground (text mode). }
-			tmOffset := initTmOffset;
-
 			for i := 1 to textLength do begin
 				color := VideoBackingBuffer^[tmOffset + 1];
 				if (VideoPc98DrawingMode = 1) and ((color and $0F) <> 0) then begin
@@ -386,6 +383,7 @@ procedure VideoReinit(force: boolean);
 			Port[$AC] := $26;
 			Port[$AE] := $04;
 		end else if force then begin
+			{ TODO: Do not reset palette on video mode change. }
 			for i := 0 to 15 do begin
 				if VideoSetPaletteColor(i, PALETTE_RED_ARRAY[i], PALETTE_GREEN_ARRAY[i], PALETTE_BLUE_ARRAY[i]) then
 					begin end;
@@ -399,7 +397,7 @@ procedure VideoRedraw;
 	begin
 {$IFDEF PC98VBUF}
 		if VideoBackingBufferPresent then begin
-			VideoReinit(false);
+			VideoReinit(true);
 			VideoPc98Clear(0);
 
 			for i := 0 to (VideoRows-1) do begin
@@ -441,6 +439,8 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 			{ enable graphics }
 			regs.AH := $40;
 			Intr($18, regs);
+		end else begin
+			VideoReinit(true);
 		end;
 {$ENDIF}
 
@@ -532,6 +532,8 @@ procedure VideoPc98Clear(bgColor: integer);
 {$IFDEF PC98VBUF}
 		{ Clear graphics display }
 		if VideoPc98MaxDrawingMode > 0 then begin
+			if VideoPc98DrawingMode = 0 then
+				bgColor := 0;
 			Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_TDW;
 			Port[PORT_GRCG_TILE] := TILE_ARRAY[bgColor];
 			Port[PORT_GRCG_TILE] := TILE_ARRAY[bgColor shr 2];
@@ -545,12 +547,20 @@ procedure VideoPc98Clear(bgColor: integer);
 
 procedure VideoClear(bgColor: integer);
 	var
+		offset: word;
 		regs: Registers;
 	begin
 		VideoPc98Clear(bgColor);
 {$IFDEF PC98VBUF}
 		if VideoBackingBufferPresent then begin
-			FillChar(VideoBackingBuffer^, SizeOf(VideoBackingBuffer^), 0);
+			offset := 0;
+			bgColor := bgColor shl 4;
+			while offset < 4000 do begin
+				VideoBackingBuffer^[offset] := $20;
+				Inc(offset);
+				VideoBackingBuffer^[offset] := bgColor;
+				Inc(offset);
+			end;
 		end;
 {$ENDIF}
 	end;
@@ -596,7 +606,17 @@ procedure VideoInvert(x1, y1, x2, y2: integer);
 		end;
 		for iy := y1 to y2 do begin
 			offset := ((iy * VideoColumns) + x1) shl 1;
+{$IFDEF PC98VBUF}
+			if VideoBackingBufferPresent then begin
+				Inc(offset);
 				for ix := x1 to x2 do begin
+					VideoBackingBuffer^[offset] := VideoBackingBuffer^[offset] xor $04;
+					Inc(offset, 2);
+				end;
+				VideoDrawFromBackingBuffer(x1, iy, x2 - x1 + 1);
+			end else
+{$ENDIF}
+			for ix := x1 to x2 do begin
 				MemW[$A200:offset] := MemW[$A200:offset] xor $04;
 				Inc(offset, 2);
 			end;
@@ -608,6 +628,54 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 		iy: integer;
 		srcOfs, destOfs: integer;
 	begin
+{$IFDEF PC98VBUF}
+		if VideoBackingBufferPresent then begin
+		if dy = 0 then begin
+			if dx >= 0 then begin
+				{ move right }
+				srcOfs := (y * VideoColumns + x) * 2;
+				destOfs := srcOfs + (dx * 2);
+				for iy := 1 to height do begin
+					Move(VideoBackingBuffer^[srcOfs], VideoBackingBuffer^[destOfs], (width - dx) * 4);
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end else begin
+				{ move left }
+				destOfs := (y * VideoColumns + x) * 2;
+				srcOfs := destOfs - (dx * 2);
+				for iy := 1 to height do begin
+					Move(VideoBackingBuffer^[srcOfs], VideoBackingBuffer^[destOfs], (width + dx) * 4);
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end;
+		end else begin
+			if dy > 0 then begin
+				{ move down }
+				srcOfs := ((y + height - 2) * VideoColumns + x) * 2;
+				destOfs := VideoColumns * 2 + srcOfs;
+				for iy := 1 to (height - 1) do begin
+					Move(VideoBackingBuffer^[srcOfs], VideoBackingBuffer^[destOfs], width * 4);
+					srcOfs := srcOfs - (VideoColumns * 2);
+					destOfs := destOfs - (VideoColumns * 2);
+				end;
+			end else begin
+				{ move up }
+				destOfs := (y * VideoColumns + x) * 2;
+				srcOfs := VideoColumns * 2 + destOfs;
+				for iy := 1 to (height - 1) do begin
+					Move(VideoBackingBuffer^[srcOfs], VideoBackingBuffer^[destOfs], width * 4);
+					srcOfs := srcOfs + (VideoColumns * 2);
+					destOfs := destOfs + (VideoColumns * 2);
+				end;
+			end;
+		end;
+			for iy := 1 to height do
+				VideoDrawFromBackingBuffer(x, y + iy - 1, width);
+		end else begin
+{$ENDIF}
+
 		if dy = 0 then begin
 			if dx >= 0 then begin
 				{ move right }
@@ -653,6 +721,9 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 				end;
 			end;
 		end;
+{$IFDEF PC98VBUF}
+		end;
+{$ENDIF}
 	end;
 
 begin
