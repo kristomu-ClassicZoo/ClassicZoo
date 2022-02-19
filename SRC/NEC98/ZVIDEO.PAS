@@ -24,11 +24,13 @@
 }
 
 {$I-}
+{$DEFINE PC98VBUF}
 unit ZVideo;
 
 interface
 	type
 		TVideoLine = string[80];
+		TVideoWriteTextProc = procedure(x, y, color: byte; text: TVideoLine);
 		TScreenCopyLine = string[200];
 		TCharsetData = array[0 .. 31999] of byte;
 		PTCharsetData = ^TCharsetData;
@@ -42,12 +44,14 @@ interface
 		VIDEO_MODE_80X50 = 3;
 		VIDEO_CHARSET_UNCHANGED = -1;
 	var
-		VideoEightColor: boolean;
 		VideoForceSafe: boolean;
 		VideoForceNoSnow: boolean;
 		VideoMonochrome: boolean;
+		VideoBlink: boolean;
 		VideoBlinkMask: byte;
 		VideoCurrentMode: integer;
+		VideoPc98DrawingMode: integer;
+		VideoPc98MaxDrawingMode: integer;
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	procedure VideoWriteTextWide(x, y, color: byte; text: TVideoLine);
 	function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
@@ -57,9 +61,10 @@ interface
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
 	procedure VideoSetBlink(value: boolean);
-	function VideoBlink: boolean;
 	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 	function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
+	procedure VideoRedraw;
+	procedure VideoPc98Clear(bgColor: integer);
 	procedure VideoClear(bgColor: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
@@ -68,8 +73,180 @@ interface
 implementation
 uses Dos, PC98, TimerSys;
 
+type
+	TVideoBackingBuffer = array[0 .. 3999] of word;
 const
 {$I VIDCONST.INC}
+	MEM_GRCG_SEGMENT = $A800;
+	GRCG_CONTROL_OFF = $00;
+	GRCG_CONTROL_TDW = $80;
+	GRCG_CONTROL_RMW = $C0;
+	GRCG_CONTROL_DISABLE_I = $08;
+	GRCG_CONTROL_DISABLE_G = $04;
+	GRCG_CONTROL_DISABLE_R = $02;
+	GRCG_CONTROL_DISABLE_B = $01;
+	PORT_GDC2_MODE2 = $6A;
+	PORT_GRCG_CONTROL = $7C;
+	PORT_GRCG_TILE = $7E;
+	PORT_GDC2_STATUS = $A0;
+	PORT_GDC2_DATA = $A2;
+	PORT_GDC2_PAGE = $A4;
+	PORT_GDC2_PAGE_ACCESS = $A6;
+	PORT_GDC2_PALETTE_INDEX = $A8;
+	PORT_GDC2_PALETTE_GREEN = $AA;
+	PORT_GDC2_PALETTE_RED = $AC;
+	PORT_GDC2_PALETTE_BLUE = $AE;
+	GDC2_STATUS_VSYNC = $20;
+	GDC2_MODE2_8COL = $00;
+	GDC2_MODE2_16COL = $01;
+	TILE_ARRAY: array[0 .. 15] of byte = (
+		$00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF);
+	{ TODO: ?????? }
+	PALETTE_GREEN_ARRAY: array[0 .. 15] of byte = (
+		$00, $00, $00, $00, $28, $28, $14, $28, $14, $14, $14, $14, $3C, $3C, $3C, $3C
+	);
+	PALETTE_RED_ARRAY: array[0 .. 15] of byte = (
+		$00, $00, $28, $28, $00, $00, $28, $28, $14, $14, $3C, $3C, $14, $14, $3C, $3C
+	);
+	PALETTE_BLUE_ARRAY: array[0 .. 15] of byte = (
+		$00, $28, $00, $28, $00, $28, $00, $28, $14, $3C, $14, $3C, $14, $3C, $14, $3C
+	);
+{$IFDEF PC98VBUF}
+var
+	VideoBackingBuffer: ^TVideoBackingBuffer;
+	VideoBackingBufferPresent: boolean;
+
+procedure VideoDrawFromBackingBuffer(x, y: byte; textLength: integer);
+	var
+		i: word;
+		regs: Registers;
+		glyphData: array[0 .. 33] of byte;
+		glyphCode, newGlyphCode, attr: word;
+		doubleWideGlyph, startNewGlyph: boolean;
+		initTmOffset, initGmOffset, tmOffset, gmOffset: word;
+		iy, color: byte;
+	label NextGlyph;
+	begin
+		initTmOffset := (y * VideoColumns + x) * 2;
+		initGmOffset := (Word(y) * 1280) + Word(x);
+
+		if VideoPc98DrawingMode > 0 then begin
+			{ Draw background (graphics mode). }
+			tmOffset := initTmOffset + 1;
+			gmOffset := initGmOffset;
+			Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_TDW;
+			for i := 1 to textLength do begin
+				color := VideoBackingBuffer^[tmOffset] shr 4;
+				if (VideoPc98DrawingMode = 1) and ((color and $0F) = 0) then
+					color := 0;
+
+				Inc(tmOffset, 2);
+
+				Port[PORT_GRCG_TILE] := TILE_ARRAY[color];
+				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 2];
+				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 1];
+				if not VideoBlink then begin
+					Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 3];
+				end else begin
+					Port[PORT_GRCG_TILE] := 0;
+				end;
+
+				for iy := 0 to 14 do begin
+					Mem[MEM_GRCG_SEGMENT:gmOffset] := $FF;
+					Inc(gmOffset, 80);
+				end;
+				Mem[MEM_GRCG_SEGMENT:gmOffset] := $FF;
+				Dec(gmOffset, (80 * 15) - 1);
+			end;
+		end;
+
+		if VideoPc98DrawingMode > 1 then begin
+			{ Draw foreground (graphics mode). }
+			tmOffset := initTmOffset;
+			gmOffset := initGmOffset;
+			Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_RMW;
+			for i := 1 to textLength do begin
+				newGlyphCode := VideoBackingBuffer^[tmOffset];
+				if (newGlyphCode = $20) then begin
+					Inc(tmOffset, 2);
+					Inc(gmOffset, 1);
+					goto NextGlyph;
+				end;
+				Inc(tmOffset);
+				color := VideoBackingBuffer^[tmOffset] and $0F;
+				Inc(tmOffset);
+
+				Port[PORT_GRCG_TILE] := TILE_ARRAY[color];
+				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 2];
+				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 1];
+				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 3];
+
+				doubleWideGlyph := false;
+				if (newGlyphCode < $100) then
+					newGlyphCode := (newGlyphCode or $8000)
+				else if ((newGlyphCode and $8056) = $56) then begin
+					newGlyphCode := $7600 or ((newGlyphCode and 1) shl 8) or (newGlyphCode shr 8);
+					doubleWideGlyph := true;
+				end else if ((newGlyphCode and $FC) = $08) then
+					newGlyphCode := (newGlyphCode shl 8) or (newGlyphCode shr 8) or $2000
+				else
+					doubleWideGlyph := true;
+
+				if (i = 1) or (glyphCode <> newGlyphCode) then begin
+					startNewGlyph := true;
+					glyphCode := newGlyphCode;
+					regs.AH := $14;
+					regs.BX := Seg(glyphData);
+					regs.CX := Ofs(glyphData);
+					regs.DX := newGlyphCode;
+					Intr($18, regs);
+				end;
+
+				if not doubleWideGlyph then begin
+					for iy := 2 to 16 do begin
+						Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[iy];
+						Inc(gmOffset, 80);
+					end;
+					Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[15 + 2];
+				end else if not startNewGlyph then begin
+					for iy := 1 to 15 do begin
+						Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[(iy shl 1) + 1];
+						Inc(gmOffset, 80);
+					end;
+					Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[30 + 2 + 1];
+				end else begin
+					for iy := 1 to 15 do begin
+						Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[iy shl 1];
+						Inc(gmOffset, 80);
+					end;
+					Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[30 + 2];
+				end;
+				Dec(gmOffset, (80 * 15) - 1);
+				startNewGlyph := not startNewGlyph;
+NextGlyph:
+			end;
+		end else begin
+			{ Draw foreground (text mode). }
+			tmOffset := initTmOffset;
+
+			for i := 1 to textLength do begin
+				color := VideoBackingBuffer^[tmOffset + 1];
+				if (VideoPc98DrawingMode = 1) and ((color and $0F) <> 0) then begin
+					attr := ATTR_NEC98_MAP[color and $0F];
+				end else if ((color and $70) shr 4) = (color and $0F) then begin
+					attr := ATTR_NEC98_MAP[color and $70];
+				end else begin
+					attr := ATTR_NEC98_MAP[color];
+				end;
+				MemW[$A000:tmOffset] := VideoBackingBuffer^[tmOffset];
+				MemW[$A200:tmOffset] := attr;
+				Inc(tmOffset, 2);
+			end;
+		end;
+
+		Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_OFF;
+	end;
+{$ENDIF}
 
 procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	var
@@ -77,6 +254,20 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 		i, offset: integer;
 	begin
 		offset := (y * VideoColumns + x) * 2;
+{$IFDEF PC98VBUF}
+		if VideoBackingBufferPresent then begin
+			for i := 1 to Length(text) do begin
+				VideoBackingBuffer^[offset] := CP437_NEC98_MAP[Ord(text[i])];
+				Inc(offset);
+				VideoBackingBuffer^[offset] := color;
+				Inc(offset);
+			end;
+
+			VideoDrawFromBackingBuffer(x, y, Length(text));
+			exit;
+		end;
+{$ENDIF}
+
 		if ((color and $70) shr 4) = (color and $0F) then begin
 			{ Same color. }
 			attr := ATTR_NEC98_MAP[color and $70];
@@ -98,8 +289,8 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 procedure VideoWriteTextWide(x, y, color: byte; text: TVideoLine);
 	var
 		attr: word;
-		doubleByte: boolean;
 		i, offset: integer;
+		doubleByte: boolean; { FetchPC98Word }
 		s1, s2: byte; { FetchPC98Word }
 	function FetchPC98Word: word;
 		label DepackS2;
@@ -141,6 +332,20 @@ procedure VideoWriteTextWide(x, y, color: byte; text: TVideoLine);
 		i := 1;
 		doubleByte := false;
 		offset := (y * VideoColumns + x) * 2;
+{$IFDEF PC98VBUF}
+		if VideoBackingBufferPresent then begin
+			while i <= Length(text) do begin
+				VideoBackingBuffer^[offset] := FetchPC98Word;
+				Inc(offset);
+				VideoBackingBuffer^[offset] := color;
+				Inc(offset);
+			end;
+
+			VideoDrawFromBackingBuffer(x, y, Length(text));
+			exit;
+		end;
+{$ENDIF}
+
 		if ((color and $70) shr 4) = (color and $0F) then begin
 			{ Same color. }
 			attr := ATTR_NEC98_MAP[color and $70];
@@ -159,16 +364,87 @@ procedure VideoWriteTextWide(x, y, color: byte; text: TVideoLine);
 		end;
 	end;
 
+procedure VideoPc98Sync;
+	begin
+		while (Port[PORT_GDC2_STATUS] and GDC2_STATUS_VSYNC) <> 0 do begin end;
+		while (Port[PORT_GDC2_STATUS] and GDC2_STATUS_VSYNC) = 0 do begin end;
+	end;
+
+procedure VideoReinit(force: boolean);
+	var
+		i: integer;
+	begin
+		if VideoPc98DrawingMode < 2 then
+			Port[PORT_GDC2_MODE2] := GDC2_MODE2_8COL
+		else
+			Port[PORT_GDC2_MODE2] := GDC2_MODE2_16COL;
+		VideoPc98Sync;
+
+		if VideoPc98DrawingMode < 2 then begin
+			Port[$A8] := $37;
+			Port[$AA] := $15;
+			Port[$AC] := $26;
+			Port[$AE] := $04;
+		end else if force then begin
+			for i := 0 to 15 do begin
+				if VideoSetPaletteColor(i, PALETTE_RED_ARRAY[i], PALETTE_GREEN_ARRAY[i], PALETTE_BLUE_ARRAY[i]) then
+					begin end;
+			end;
+		end;
+	end;
+
+procedure VideoRedraw;
+	var
+		i: integer;
+	begin
+{$IFDEF PC98VBUF}
+		if VideoBackingBufferPresent then begin
+			VideoReinit(false);
+			VideoPc98Clear(0);
+
+			for i := 0 to (VideoRows-1) do begin
+				VideoDrawFromBackingBuffer(0, i, VideoColumns);
+			end;
+		end;
+{$ENDIF}
+	end;
+
 function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
 	borderColor: integer): boolean;
 	var
+		i: integer;
 		regs: Registers;
 	begin
 		VideoInstall := false;
 		if mode <> VIDEO_MODE_80X25 then exit;
 
-		{ TODO }
-		ClrScr;
+{$IFDEF PC98VBUF}
+		if VideoPc98MaxDrawingMode > 0 then begin
+			if not VideoBackingBufferPresent then begin
+				New(VideoBackingBuffer);
+				VideoBackingBufferPresent := true;
+			end;
+		end;
+
+		if VideoPc98DrawingMode > 0 then begin
+			{ disable graphics }
+			regs.AH := $41;
+			Intr($18, regs);
+	
+			{ init graphics }
+			regs.AH := $42;
+			regs.CH := $C0;
+			Intr($18, regs);
+
+			VideoReinit(true);
+	
+			{ enable graphics }
+			regs.AH := $40;
+			Intr($18, regs);
+		end;
+{$ENDIF}
+
+		VideoClear(0);
 		VideoHideCursor;
 		VideoInstall := true;
 	end;
@@ -177,9 +453,15 @@ procedure VideoUninstall;
 	var
 		regs: Registers;
 	begin
-		{ TODO }
-		ClrScr;
+		VideoClear(0);
 		VideoShowCursor;
+
+{$IFDEF PC98VBUF}
+		if VideoBackingBufferPresent then begin
+			Dispose(VideoBackingBuffer);
+			VideoBackingBufferPresent := false;
+		end;
+{$ENDIF}
 	end;
 
 procedure VideoShowCursor;
@@ -205,16 +487,18 @@ procedure VideoSetBorderColor(value: integer);
 
 { TODO: This doesn't update existing characters. }
 procedure VideoSetBlink(value: boolean);
+	var
+		i: integer;
 	begin
-		if value then
+		if VideoBlink = value then exit;
+
+		VideoBlink := value;
+		if VideoBlink then
 			VideoBlinkMask := $FF
 		else
 			VideoBlinkMask := $00;
-	end;
 
-function VideoBlink: boolean;
-	begin
-		VideoBlink := (VideoBlinkMask <> 0);
+		VideoRedraw;
 	end;
 
 function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
@@ -225,12 +509,50 @@ function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
 	begin
 		VideoSetPaletteColor := false;
+{$IFDEF PC98VBUF}
+		if VideoPc98DrawingMode >= 2 then begin
+			Port[PORT_GDC2_PALETTE_INDEX] := idx;
+			Port[PORT_GDC2_PALETTE_RED] := r shr 2;
+			Port[PORT_GDC2_PALETTE_GREEN] := g shr 2;
+			Port[PORT_GDC2_PALETTE_BLUE] := b shr 2;
+			VideoSetPaletteColor := true;
+		end;
+{$ENDIF}
+	end;
+
+procedure VideoPc98Clear(bgColor: integer);
+	var
+		regs: Registers;
+	begin
+		{ Clear text display }
+		regs.AH := $16;
+		regs.DX := $0020;
+		Intr($18, regs);
+
+{$IFDEF PC98VBUF}
+		{ Clear graphics display }
+		if VideoPc98MaxDrawingMode > 0 then begin
+			Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_TDW;
+			Port[PORT_GRCG_TILE] := TILE_ARRAY[bgColor];
+			Port[PORT_GRCG_TILE] := TILE_ARRAY[bgColor shr 2];
+			Port[PORT_GRCG_TILE] := TILE_ARRAY[bgColor shr 1];
+			Port[PORT_GRCG_TILE] := TILE_ARRAY[bgColor shr 3];
+			FillChar(Ptr(MEM_GRCG_SEGMENT, 0)^, 32000, $FF);
+			Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_OFF;
+		end;
+{$ENDIF}
 	end;
 
 procedure VideoClear(bgColor: integer);
+	var
+		regs: Registers;
 	begin
-		{ stub }
-		ClrScr;
+		VideoPc98Clear(bgColor);
+{$IFDEF PC98VBUF}
+		if VideoBackingBufferPresent then begin
+			FillChar(VideoBackingBuffer^, SizeOf(VideoBackingBuffer^), 0);
+		end;
+{$ENDIF}
 	end;
 
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
@@ -238,6 +560,17 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 		offset: integer;
 	begin
 		offset := (y * VideoColumns + x) * 2;
+{$IFDEF PC98VBUF}
+		if VideoBackingBufferPresent then begin
+			if toVideo then
+				Move(data^, VideoBackingBuffer^[offset], chars * 4)
+			else
+				Move(VideoBackingBuffer^[offset], data^, chars * 4);
+			VideoDrawFromBackingBuffer(x, y, chars);
+			exit;
+		end;
+{$ENDIF}
+
 		if toVideo then begin
 			Move(data^, Ptr($A000, offset)^, chars * 2);
 			Move(Ptr(Seg(data^), Ofs(data^) + (chars * 2))^, Ptr($A200, offset)^, chars * 2);
@@ -323,10 +656,15 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 	end;
 
 begin
-	VideoEightColor := true;
 	VideoMonochrome := false;
+	VideoBlink := true;
 	VideoBlinkMask := $FF;
 	VideoCurrentMode := VIDEO_MODE_80X25;
+	VideoPc98MaxDrawingMode := 2;
+	VideoPc98DrawingMode := 2;
+{$IFDEF PC98VBUF}
+	VideoBackingBufferPresent := false;
+{$ENDIF}
 
 	SetCBreak(false);
 end.

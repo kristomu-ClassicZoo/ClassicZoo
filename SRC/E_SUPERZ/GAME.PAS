@@ -353,10 +353,14 @@ procedure BoardDrawTile(x, y: integer);
 				drawnChar := Color;
 				if Element = E_TEXT_WHITE then
 					drawnColor := $0F
+{$IFDEF NEC98}
+				else if (VideoPc98DrawingMode < 2) then
+					drawnColor := (((Element - E_TEXT_MIN) + 1) shl 4);
+{$ENDIF}
 				else if VideoMonochrome then
 					drawnColor := $F0
 				else
-					drawnColor := (((Element - E_TEXT_MIN) + 1) * 16) + $F;
+					drawnColor := (((Element - E_TEXT_MIN) + 1) shl 4) + $F;
 			end;
 {$IFDEF EXTCHEAT}
 			drawnColor := drawnColor xor CheatColorModifiers[Element];

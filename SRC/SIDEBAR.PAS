@@ -78,7 +78,7 @@ const
 procedure SidebarClearLine(y: integer);
 	begin
 {$IFDEF NEC98}
-		if VideoEightColor then
+		if VideoPc98DrawingMode = 0 then
 			VideoWriteText(VideoSidebarX + 0, y, $01,
 				{$IFDEF E_SUPERZ}'                   '
 				{$ELSE}#179'                   '{$ENDIF})
