@@ -96,7 +96,7 @@ procedure CopyBoardInfoFromLocal(var ptr: pointer);
 		s.DrawXOffset := NtoLE(Board.Info.DrawXOffset);
 		s.DrawYOffset := NtoLE(Board.Info.DrawYOffset);
 		s.TimeLimitSec := NtoLE(Board.Info.TimeLimitSec);
-		FillChar(s.unk1, 0, SizeOf(s.unk1));
+		FillChar(s.unk1, SizeOf(s.unk1), 0);
 
 		Move(s, ptr^, SizeOf(s));
 		AdvancePointer(ptr, SizeOf(s));
@@ -143,7 +143,7 @@ procedure CopyWorldInfoFromLocal(var ptr: pointer);
 		s.BoardTimeHsec := NtoLE(World.Info.BoardTimeHsec);
 		s.IsSave := World.Info.IsSave;
 		s.StonesOfPower := NtoLE(World.Info.StonesOfPower);
-		FillChar(s.unk3, 0, SizeOf(s.unk3));
+		FillChar(s.unk3, SizeOf(s.unk3), 0);
 
 		Move(s, ptr^, SizeOf(s));
 		AdvancePointer(ptr, SizeOf(s));
