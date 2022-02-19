@@ -181,16 +181,16 @@ procedure VideoDrawFromBackingBuffer(x, y: byte; textLength: integer);
 				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 1];
 				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 3];
 
-				doubleWideGlyph := false;
-				if (newGlyphCode < $100) then
-					newGlyphCode := (newGlyphCode or $8000)
-				else if ((newGlyphCode and $8056) = $56) then begin
+				doubleWideGlyph := true;
+				if (newGlyphCode < $100) then begin
+					newGlyphCode := (newGlyphCode or $8000);
+					doubleWideGlyph := false;
+				end else if ((newGlyphCode and $8056) = $56) then begin
 					newGlyphCode := $7600 or ((newGlyphCode and 1) shl 8) or (newGlyphCode shr 8);
-					doubleWideGlyph := true;
-				end else if ((newGlyphCode and $FC) = $08) then
-					newGlyphCode := (newGlyphCode shl 8) or (newGlyphCode shr 8) or $2000
-				else
-					doubleWideGlyph := true;
+				end else if ((newGlyphCode and $F0) = $00) then begin
+					doubleWideGlyph := not ((newGlyphCode and $FC) = $08);
+					newGlyphCode := (newGlyphCode shl 8) or (newGlyphCode shr 8) or $2000;
+				end;
 
 				if (i = 1) or (glyphCode <> newGlyphCode) then begin
 					startNewGlyph := true;
