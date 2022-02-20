@@ -370,6 +370,7 @@ procedure EditorLoop;
 		cursorBlinker: integer;
 		inputByte: byte;
 		viewMode: integer;
+		showingBoardName: boolean;
 		copyBuffer: TEditorCopyBuffer;
 
 	procedure EditorOnWorldOpen;
@@ -741,9 +742,14 @@ procedure EditorLoop;
 {$ENDIF}
 
 			if Length(Board.Name) <> 0 then
+{$IFDEF WIDECHAR}
+				VideoWriteTextWide(((VideoSidebarX - 1) - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
+{$ELSE}
 				VideoWriteText(((VideoSidebarX - 1) - Length(Board.Name)) shr 1, 0, $70, ' ' + Board.Name + ' ')
+{$ENDIF}
 			else
 				VideoWriteText((VideoSidebarX - 34), 0, $70, ' Untitled ');
+			showingBoardName := true;
 		end;
 
 	procedure EditorSetTile(x, y, newElement, newColor: byte);
@@ -1574,6 +1580,8 @@ procedure EditorLoop;
 		end;
 
 	procedure EditorMoveCursor(newX, newY: integer; redraw: boolean);
+		var
+			i: integer;
 		begin
 			if newX < 1 then
 				newX := 1
@@ -1616,6 +1624,15 @@ procedure EditorLoop;
 			cursorY := newY;
 			if redraw then begin
 				TransitionDrawToBoard;
+				showingBoardName := false;
+			end else begin
+{$IFDEF E_ZZT}
+				if showingBoardName and (cursorY = 1) then begin
+					for i := 1 to BOARD_WIDTH do
+						BoardDrawTile(i, 1);
+					showingBoardName := false;
+				end;
+{$ENDIF}
 			end;
 
 			EditorDrawCursorPos;
@@ -2691,8 +2708,10 @@ procedure EditorOpenEditTextWindow(var state: TTextWindowState; extension: TExte
 		VideoWriteText(VideoSidebarX + 6, 12, $1F, ' Insert: ');
 		VideoWriteText(VideoSidebarX + 1, 13, $30, ' Del ');
 		VideoWriteText(VideoSidebarX + 6, 13, $1F, ' Delete char');
+{$IFNDEF WIDECHAR}
 		VideoWriteText(VideoSidebarX + 1, 14, $70, ' f10 ');
 		VideoWriteText(VideoSidebarX + 6, 14, $1F, ' Custom char');
+{$ENDIF}
 		VideoWriteText(VideoSidebarX + 1, 16, $30, ' Shift  ');
 		VideoWriteText(VideoSidebarX + 9, 16, $1F, ' Select');
 		VideoWriteText(VideoSidebarX + 1, 17, $70, ' Ctrl-X ');

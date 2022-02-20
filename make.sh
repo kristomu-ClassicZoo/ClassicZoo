@@ -128,7 +128,8 @@ if [ -z "$DEBUG_BUILD" ]; then
 	TPC_ARGS='/$D- /$L- /$S-'
 fi
 if [ -n "$TPC_DEFINES" ]; then
-	TPC_ARGS="$TPC_ARGS"' /D'"$TPC_DEFINES"
+	# Defines are handled elsewhere.
+	TPC_ARGS="$TPC_ARGS"
 	FPC_ARGS="$FPC_ARGS"' '"$FPC_DEFINES"
 fi
 
@@ -283,6 +284,11 @@ else
 	if [ "$EXTMEM_STUB" = "true" ]; then
 		cp SRC/EXTMEM_S.PAS SRC/EXTMEM.PAS 2>/dev/null
 	fi
+
+	touch TPC.CFG
+	echo "$TPC_DEFINES" | tr ',' '\n' | while read def; do
+		echo -n -e "/D"$def\\r\\n >> TPC.CFG
+	done
 
 	touch BUILD.LOG
 	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &

@@ -80,10 +80,17 @@ procedure ElementMessageTimerTick(statId: integer);
 		with Board.Stats[statId] do begin
 			case X of
 				0: begin
+{$IFDEF WIDECHAR}
+					VideoWriteTextWide(12 + (((VideoColumns - 12) - Length(MessageLine1)) shr 1),
+						VideoRows - 2, $19 + (P2 mod 7), ' '+MessageLine1+' ');
+					VideoWriteTextWide(12 + (((VideoColumns - 12) - Length(MessageLine2)) shr 1),
+						VideoRows - 1, $19 + (P2 mod 7), ' '+MessageLine2+' ');
+{$ELSE}
 					VideoWriteText(12 + (((VideoColumns - 12) - Length(MessageLine1)) shr 1),
 						VideoRows - 2, $19 + (P2 mod 7), ' '+MessageLine1+' ');
 					VideoWriteText(12 + (((VideoColumns - 12) - Length(MessageLine2)) shr 1),
 						VideoRows - 1, $19 + (P2 mod 7), ' '+MessageLine2+' ');
+{$ENDIF}
 					Dec(P2);
 					if P2 <= 0 then begin
 						RemoveStat(statId);

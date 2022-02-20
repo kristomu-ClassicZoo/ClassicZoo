@@ -289,6 +289,29 @@ function ConfigNeuromotorAssistShowValue: string;
 		ConfigNeuromotorAssistShowValue := ConfigShowYesNoValue(NeuromotorAssist);
 	end;
 
+{$IFDEF NEC98}
+function ConfigVidColorGetValue: integer;
+	begin
+		ConfigVidColorGetValue := VideoPc98DrawingMode;
+	end;
+
+procedure ConfigVidColorSetValue(value: integer);
+	begin
+		if value > VideoPc98MaxDrawingMode then value := 0;
+		VideoPc98DrawingMode := value;
+		VideoRedraw;
+	end;
+
+function ConfigVidColorShowValue: string;
+	begin
+		if VideoPc98DrawingMode = 2 then
+			ConfigVidColorShowValue := 'EGC (16-color)'
+		else if VideoPc98DrawingMode = 1 then
+			ConfigVidColorShowValue := 'GRCG (8-color)'
+		else
+			ConfigVidColorShowValue := 'Text';
+	end;
+{$ELSE}
 function ConfigVidColorGetValue: integer;
 	begin
 		ConfigVidColorGetValue := Byte(VideoMonochrome);
@@ -307,6 +330,7 @@ function ConfigVidColorShowValue: string;
 		else
 			ConfigVidColorShowValue := 'Color';
 	end;
+{$ENDIF}
 
 {$IFDEF MSDOS}
 function ConfigInputGetValue: integer;
@@ -834,7 +858,11 @@ procedure GameConfigInit;
 		Inc(i);
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;
+{$IFDEF NEC98}
+			Key := 'FVidRend';
+{$ELSE}
 			Key := 'FVidMono';
+{$ENDIF}
 			Name := 'Video';
 			GetValue := ConfigVidColorGetValue;
 			SetValue := ConfigVidColorSetValue;
@@ -1219,6 +1247,7 @@ procedure GameOptionsScreen(playingGame: boolean);
 							SetValue(GetValue + 1);
 						Changed := true;
 {$IFDEF MSDOS}
+{$IFNDEF NEC98}
 						if Key = 'FVidMono' then begin
 							i := VideoCurrentMode;
 							VideoUninstall;
@@ -1226,6 +1255,7 @@ procedure GameOptionsScreen(playingGame: boolean);
 								VIDEO_CHARSET_UNCHANGED, 1) then begin end;
 							HardEscapeHack := true;
 						end;
+{$ENDIF}
 {$ENDIF}
 					end;
 				end;

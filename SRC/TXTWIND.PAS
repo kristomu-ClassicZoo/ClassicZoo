@@ -131,9 +131,8 @@ interface
 
 implementation
 uses
-{$IFDEF PRINTTXT}
-Printer,
-{$ENDIF}
+{$IFDEF PRINTTXT} Printer, {$ENDIF}
+{$IFDEF WIDECHAR} ZWideChr, {$ENDIF}
 Sounds, TimerSys, FileSys, ZInput, Keys, FileSel, Game, Sidebar;
 
 type
@@ -180,7 +179,11 @@ procedure TextWindowInitState(var state: TTextWindowState);
 procedure TextWindowDrawTitle(color: integer; title: TTextWindowLine);
 	begin
 		VideoWriteText(TextWindowX + 2, TextWindowY + 1, color, TextWindowStrInnerEmpty);
+{$IFDEF WIDECHAR}
+		VideoWriteTextWide(TextWindowX + ((TextWindowWidth - Length(title)) div 2), TextWindowY + 1, color, title);
+{$ELSE}
 		VideoWriteText(TextWindowX + ((TextWindowWidth - Length(title)) div 2), TextWindowY + 1, color, title);
+{$ENDIF}
 	end;
 
 procedure TextWindowDrawOpen(var state: TTextWindowState);
@@ -268,7 +271,11 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 				VideoWriteText(TextWindowX + 2, lineY, $1E, TextWindowStrInnerEmpty);
 			if (lpos > 0) and (lpos <= LineCount) then begin
 				if withoutFormatting then begin
+{$IFDEF WIDECHAR}
+					VideoWriteTextWide(TextWindowX + 4, lineY, $1E, Lines[lpos]^);
+{$ELSE}
 					VideoWriteText(TextWindowX + 4, lineY, $1E, Lines[lpos]^);
+{$ENDIF}
 				end else begin
 					textOffset := 1;
 					textColor := $1E;
@@ -293,8 +300,13 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 						end;
 					end;
 					if textOffset > 0 then begin
+{$IFDEF WIDECHAR}
+						VideoWriteTextWide(textX, lineY, textColor,
+							Copy(Lines[lpos]^, textOffset,Length(Lines[lpos]^) - textOffset + 1));
+{$ELSE}
 						VideoWriteText(textX, lineY, textColor,
 							Copy(Lines[lpos]^, textOffset,Length(Lines[lpos]^) - textOffset + 1));
+{$ENDIF}
 					end;
 				end;
 			end else if (lpos = 0) or (lpos = (state.LineCount + 1)) then begin
@@ -606,6 +618,9 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 	procedure DrawLineEdit(lpos: integer);
 		var
 			i, lineX, lineY: integer;
+{$IFDEF WIDECHAR}
+			localXOffset, lineXLen: integer;
+{$ENDIF}
 			textColor: byte;
 		begin
 			with state do begin
@@ -632,6 +647,17 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 						end;
 					end;
 					lineX := xOffset + 1;
+{$IFDEF WIDECHAR}
+					WideAdjustCursor(Lines[lpos]^, lineX, 1);
+					localXOffset := (lineX - 1) - xOffset;
+					lineXLen := WideGetStringLength(Lines[lpos]^, lineX, TextWindowWidth - 8 - localXOffset);
+					for i := 1 to localXOffset do
+						VideoWriteText(TextWindowX + 3 + i, lineY, $1E, ' ');
+					VideoWriteTextWide(TextWindowX + 4 + localXOffset, lineY, textColor,
+						Copy(Lines[lpos]^, lineX, lineXLen));
+					for i := (lineXLen + 1) to (TextWindowWidth - 8 - localXOffset) do
+						VideoWriteText(TextWindowX + 3 + localXOffset + i, lineY, $1E, ' ');
+{$ELSE}
 					for i := 1 to (TextWindowWidth - 8) do begin
 						if lineX > Length(Lines[lpos]^) then
 							VideoWriteText(TextWindowX + 3 + i, lineY, $1E, ' ')
@@ -639,6 +665,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 							VideoWriteText(TextWindowX + 3 + i, lineY, textColor, Lines[lpos]^[lineX]);
 						Inc(lineX);
 					end;
+{$ENDIF}
 				end else if (lpos = 0) or (lpos = (state.LineCount + 1)) then begin
 					VideoWriteText(TextWindowX + 2, lineY, $1E, TextWindowStrInnerSep);
 				end else begin
@@ -653,12 +680,19 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 			with state do begin
 				i := Length(Lines[LinePos]^) + 1;
 				if charPos > i then charPos := i;
+{$IFDEF WIDECHAR}
+				WideAdjustCursor(Lines[LinePos]^, charPos, -1);
+{$ENDIF}
 			end;
 		end;
 	procedure Redraw(line: integer);
 		var
 			i: integer;
+{$IFDEF WIDECHAR}
+			promptChar: string[WIDE_CHAR_MAX_LENGTH];
+{$ELSE}
 			promptChar: char;
+{$ENDIF}
 			newXOffset: integer;
 			fullRedraw: boolean;
 		begin
@@ -677,6 +711,18 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 			end;
 			{ draw prompt }
 			with state do begin
+{$IFDEF WIDECHAR}
+				if charPos > Length(Lines[LinePos]^) then
+					promptChar := ' '
+				else begin
+					promptChar[0] := Chr(WideGetCharLength(Lines[LinePos]^, charPos));
+					for i := 1 to Ord(promptChar[0]) do
+						promptChar[i] := Lines[LinePos]^[charPos + i - 1];
+				end;
+				VideoWriteTextWide(charPos - xOffset + TextWindowX + 3,
+					TextWindowY + (TextWindowHeight div 2) + 1,
+					$70, promptChar);
+{$ELSE}
 				if charPos > Length(Lines[LinePos]^) then
 					promptChar := ' '
 				else
@@ -684,6 +730,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 				VideoWriteText(charPos - xOffset + TextWindowX + 3,
 					TextWindowY + (TextWindowHeight div 2) + 1,
 					$70, promptChar);
+{$ENDIF}
 			end;
 		end;
 	procedure DeleteLine(lpos: integer);
@@ -721,6 +768,14 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					end;
 				end;
 			end;
+		end;
+	procedure InsertString(var s: string);
+		var
+			i: integer;
+		begin
+			{ TODO: Bounds checks }
+			for i := 1 to Length(s) do
+				InsertCharacter(s[i]);
 		end;
 	procedure ClearHighlight;
 		begin
@@ -780,6 +835,11 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 			end;
 		end;
 	begin
+		InputKeyBuffering := true;
+{$IFDEF SDL2}
+		VideoSetTextInputArea(TextWindowX + 4, TextWindowY + (TextWindowHeight div 2) + 1, TextWindowWidth - 8, 1);
+{$ENDIF}
+
 		with state do begin
 			if LineCount = 0 then
 				TextWindowAppendEdit(state, '');
@@ -816,6 +876,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 							forceFullRedraw := true;
 						end;
 					end;
+{$IFNDEF WIDECHAR}
 					KEY_F10: begin
 						SidebarPromptCharacter(true, 63, 3, 'Character?', inputByte);
 						InsertCharacter(Chr(inputByte));
@@ -823,6 +884,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 						SidebarClearLine(4);
 						SidebarClearLine(5);
 					end;
+{$ENDIF}
 					KEY_UP: begin
 						newLinePos := LinePos - 1;
 						if shiftHeld and (newLinePos >= 1) then AddLinePosToHighlight(newLinePos);
@@ -834,14 +896,22 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					KEY_PAGE_UP: newLinePos := LinePos - TextWindowHeight + 4;
 					KEY_PAGE_DOWN: newLinePos := LinePos + TextWindowHeight - 4;
 					KEY_RIGHT: begin
+{$IFDEF WIDECHAR}
+						Inc(charPos, WideGetCharLength(Lines[LinePos]^, charPos));
+{$ELSE}
 						Inc(charPos);
+{$ENDIF}
 						if charPos > (Length(Lines[LinePos]^) + 1) then begin
 							charPos := 1;
 							newLinePos := LinePos + 1;
 						end;
+
 					end;
 					KEY_LEFT: begin
 						Dec(charPos);
+{$IFDEF WIDECHAR}
+						WideAdjustCursor(Lines[LinePos]^, charPos, -1);
+{$ENDIF}
 						if charPos < 1 then begin
 							charPos := 255;
 							newLinePos := LinePos - 1;
@@ -865,10 +935,20 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					end;
 					KEY_BACKSPACE: begin
 						if charPos > 1 then begin
+{$IFDEF WIDECHAR}
+							Dec(charPos);
+							WideAdjustCursor(Lines[LinePos]^, charPos, -1);
+							Lines[LinePos]^ :=
+								Copy(Lines[LinePos]^, 1, charPos - 1)
+								+ Copy(Lines[LinePos]^,
+									charPos + WideGetCharLength(Lines[LinePos]^, charPos),
+									Length(Lines[LinePos]^) - charPos);
+{$ELSE}
 							Lines[LinePos]^ :=
 								Copy(Lines[LinePos]^, 1, charPos - 2)
 								+ Copy(Lines[LinePos]^, charPos, Length(Lines[LinePos]^) - charPos + 1);
 							Dec(charPos);
+{$ENDIF}
 						end else if Length(Lines[LinePos]^) = 0 then begin
 							DeleteLine(LinePos);
 							newLinePos := LinePos - 1;
@@ -882,7 +962,15 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					KEY_DELETE: begin
 						Lines[LinePos]^ :=
 							Copy(Lines[LinePos]^, 1, charPos - 1)
-							+ Copy(Lines[LinePos]^, charPos + 1, Length(Lines[LinePos]^) - charPos);
+{$IFDEF WIDECHAR}
+							+ Copy(Lines[LinePos]^,
+								charPos + WideGetCharLength(Lines[LinePos]^, charPos),
+								Length(Lines[LinePos]^) - charPos);
+{$ELSE}
+							+ Copy(Lines[LinePos]^,
+								charPos + 1,
+								Length(Lines[LinePos]^) - charPos);
+{$ENDIF}
 					end;
 					KEY_CTRL_X: if highlightLineStart > 0 then begin
 						CopyHighlightToBuffer;
@@ -927,8 +1015,17 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 						end;
 						InputKeyPressed := #0;
 					end;
+{$IFDEF WIDECHAR}
+					KEY_WIDESTRING: begin
+						InsertString(InputKeyPressedWide);
+					end;
+{$ENDIF}
 				else
-					if (InputKeyPressed >= #32) and (InputKeyPressed < #127) then
+					if ((InputKeyPressed >= #32) and (InputKeyPressed < #127))
+{$IFDEF SHIFTJIS}
+						or ((InputKeyPressed >= #$A1) and (InputKeyPressed <= #$DF))
+{$ENDIF}
+					then
 						InsertCharacter(InputKeyPressed);
 				end;
 
@@ -958,6 +1055,8 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 			end;
 		end;
 		FreeCopyBuffer;
+
+		InputKeyBuffering := false;
 	end;
 {$ENDIF}
 

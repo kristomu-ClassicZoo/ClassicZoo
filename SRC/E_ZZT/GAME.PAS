@@ -251,7 +251,7 @@ procedure BoardDrawTile(x, y: integer);
 					if Element = E_TEXT_WHITE then
 						VideoWriteText(x - 1, y - 1, $0F, Chr(Color))
 {$IFDEF NEC98}
-					else if VideoEightColor or VideoMonochrome then
+					else if (VideoPc98DrawingMode < 2) or VideoMonochrome then
 {$ELSE}
 					else if VideoMonochrome then
 {$ENDIF}

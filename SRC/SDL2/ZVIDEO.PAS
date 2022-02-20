@@ -29,8 +29,8 @@ unit ZVideo;
 interface
 	type
 		TVideoBlinkMode = (BlinkModeHigh, BlinkModeOn, BlinkModeOff);
-		TVideoLine = string[80];
 		TSDLScalingMode = (SMNone, SM2x, SM3x, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
+		TVideoLine = string[160];
 		TScreenCopyLine = string[255];
 		TCharsetData = array[0 .. 31999] of byte;
 		PTCharsetData = ^TCharsetData;
@@ -66,6 +66,9 @@ interface
 	procedure VideoSetSDLWindowed(value: boolean);
 	{ }
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
+{$IFDEF WIDECHAR}
+	procedure VideoWriteTextWide(x, y, color: byte; text: TVideoLine);
+{$ENDIF}
 	function VideoIsCharsetCustom: boolean;
 	function VideoIsPaletteCustom: boolean;
 	function VideoSetCharset(data: pointer; height: integer): boolean;
@@ -85,14 +88,18 @@ interface
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
 	procedure VideoScroll(x, y, width, height, dx, dy: integer);
+	procedure VideoSetTextInputArea(x, y, width, height: integer);
 
 implementation
-uses F_ASCII, FileSel, FileSys, SysUtils, Sounds, TimerSys, ZInput, SDL2;
+uses
+{$IFDEF WIDECHAR}ZWideChr,{$ENDIF}
+F_ASCII, FileSel, FileSys, SysUtils, Sounds, TimerSys, ZInput, SDL2;
 type
 	TByteArray = array[0 .. 65535] of byte;
 	PByteArray = ^TByteArray;
 	TCharsetTexture = record
 		valid: boolean;
+		charCount: Uint32;
 		charWidth: Uint32;
 		charHeight: Uint32;
 		charsetPitch: Uint32;
@@ -122,6 +129,9 @@ const
 	MAX_VIDEO_WIDTH = 96 + 24;
 	MAX_VIDEO_HEIGHT = 80 + 5;
 	MAX_VIDEO_BUFFER_SIZE_CHARS = (MAX_VIDEO_WIDTH * MAX_VIDEO_HEIGHT);
+{$IFDEF SHIFTJIS}
+{$I NEC98/VIDCONST.INC}
+{$ENDIF}
 var
 	window: PSDL_Window;
 	renderer: PSDL_Renderer;
@@ -394,6 +404,7 @@ procedure LoadCharsetFromBMP(var tex: TCharsetTexture; path: string; totalTiles:
 	var
 		surfaceOld, surface: PSDL_Surface;
 		texWidth, texHeight: Int32;
+		ix, iy, ip: Uint32;
 		aspectRatio: Single;
 	begin
 		tex.valid := false;
@@ -403,10 +414,23 @@ procedure LoadCharsetFromBMP(var tex: TCharsetTexture; path: string; totalTiles:
 		if surface = nil then exit;
 
 		{ Ensure 32-bit color format for color key }
-		surfaceOld := surface;
-		surface := SDL_ConvertSurfaceFormat(surfaceOld, SDL_PIXELFORMAT_ARGB8888, 0);
-		SDL_FreeSurface(surfaceOld);
-		if surface = nil then exit;
+		if surface^.format^.format <> SDL_PIXELFORMAT_ARGB8888 then begin
+			surfaceOld := surface;
+			surface := SDL_ConvertSurfaceFormat(surfaceOld, SDL_PIXELFORMAT_ARGB8888, 0);
+			SDL_FreeSurface(surfaceOld);
+			if surface = nil then exit;
+		end;
+
+		if (PUint32(surface^.pixels)^ and $00FFFFFF) = $FFFFFF then begin
+			{ black on white, invert }
+			for iy := 0 to (surface^.h-1) do begin
+				ip := iy * surface^.pitch div 4;
+				for ix := 0 to (surface^.w-1) do begin
+					(PUint32(surface^.pixels) + ip)^ := (PUint32(surface^.pixels) + ip)^ xor $FFFFFF;
+					Inc(ip);
+				end;
+			end;
+		end;
 
 		SDL_SetColorKey(surface, 1, PUint32(surface^.pixels)^ and $00FFFFFF);
 		texWidth := surface^.w;
@@ -420,6 +444,7 @@ procedure LoadCharsetFromBMP(var tex: TCharsetTexture; path: string; totalTiles:
 			exit;
 		end;
 
+		tex.charCount := totalTiles;
 		tex.valid := true;
 
 		{ Try to figure out character width and height }
@@ -494,6 +519,7 @@ procedure LoadCharsetFromByteArray(var tex: TCharsetTexture; chByteArray: array 
 
 		tex.surface := surface;
 		tex.texture := nil;
+		tex.charCount := 256;
 		tex.valid := true;
 	end;
 
@@ -609,6 +635,18 @@ procedure VideoLoadPaletteFromFile(filename: string);
 			FreeMem(paletteData, paletteLen);
 	end;
 
+procedure VideoSetTextInputArea(x, y, width, height: integer);
+	var
+		inRect: TSDL_Rect;
+	begin
+		inRect.x := x * charsetTexture.charWidth;
+		inRect.y := y * charsetTexture.charHeight;
+		inRect.w := width * charsetTexture.charWidth;
+		inRect.h := height * charsetTexture.charHeight;
+
+		SDL_SetTextInputRect(@inRect);
+	end;
+
 { Video drawing }
 
 function ColorToBW(color: byte): byte;
@@ -637,13 +675,11 @@ function ColorToBW(color: byte): byte;
 procedure VideoDrawCharBg(x, y: integer);
 	var
 		offset: integer;
-		chr: Uint32;
 		col: byte;
 		bgCol: Uint32;
 		outRect: TSDL_Rect;
 	begin
 		offset := y * MAX_VIDEO_WIDTH + x;
-		chr := screenChars[offset];
 		col := screenColors[offset];
 
 		if ((col < $80) or (blinkMode <> BlinkModeOn)) and (not screenChanged[offset]) then exit;
@@ -663,17 +699,29 @@ procedure VideoDrawCharBg(x, y: integer);
 		SDL_RenderFillRect(renderer, @outRect);
 	end;
 
-procedure VideoDrawCharFg(x, y: integer; blink: boolean);
+function VideoDrawCharFg(x, y: integer; blink: boolean): integer;
 	var
 		offset: integer;
-		chr, col: byte;
+		chr: Uint32;
+		col: byte;
 		fgCol: Uint32;
 		inRect, outRect: TSDL_Rect;
+		doubleWide: boolean;
 	begin
+		VideoDrawCharFg := 0;
+		doubleWide := false;
+
 		offset := y * MAX_VIDEO_WIDTH + x;
 		chr := screenChars[offset];
 		col := screenColors[offset];
 
+{$IFDEF SHIFTJIS}
+		if (chr >= $100) and ((chr and $FE) <> $56) then begin
+			doubleWide := not ((chr and $FF) in [9, 10, 11]);
+		end;
+{$ENDIF}
+
+		if doubleWide then VideoDrawCharFg := 1;
 		if (chr = 0) or (chr = 32) then exit;
 		if ((col < $80) or (blinkMode <> BlinkModeOn)) and (not screenChanged[offset]) then exit;
 
@@ -688,8 +736,18 @@ procedure VideoDrawCharFg(x, y: integer; blink: boolean);
 
 		fgCol := palette[col and 15];
 
+{$IFDEF SHIFTJIS}
+		if chr < $100 then begin
+			inRect.x := chr * charsetTexture.charWidth;
+			inRect.y := 0;
+		end else begin
+			inRect.x := (chr and $FF) * charsetTexture.charWidth * 2;
+			inRect.y := ((chr shr 8) and $FF) * charsetTexture.charHeight;
+		end;
+{$ELSE}
 		inRect.x := (chr mod charsetTexture.charsetPitch) * charsetTexture.charWidth;
 		inRect.y := (chr div charsetTexture.charsetPitch) * charsetTexture.charHeight;
+{$ENDIF}
 		inRect.w := charsetTexture.charWidth;
 		inRect.h := charsetTexture.charHeight;
 
@@ -697,6 +755,11 @@ procedure VideoDrawCharFg(x, y: integer; blink: boolean);
 		outRect.y := y * charsetTexture.charHeight;
 		outRect.w := charsetTexture.charWidth;
 		outRect.h := charsetTexture.charHeight;
+
+		if doubleWide then begin
+			inRect.w := inRect.w * 2;
+			outRect.w := outRect.w * 2;
+		end;
 
 		SDL_SetTextureColorMod(charsetTexture.texture, (fgCol shr 16), (fgCol shr 8), (fgCol shr 0));
 		SDL_RenderCopy(renderer, charsetTexture.texture, @inRect, @outRect);
@@ -761,7 +824,7 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 
 			for iy := 0 to (VideoRows - 1) do
 				for ix := 0 to (VideoColumns - 1) do
-					VideoDrawCharFg(ix, iy, blink);
+					ix := ix + VideoDrawCharFg(ix, iy, blink);
 
 			FillChar(screenChanged, MAX_VIDEO_BUFFER_SIZE_CHARS, false);
 			SDL_UnlockMutex(playfieldMutex);
@@ -784,17 +847,83 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	var
 		i, offset: integer;
+		oldChar: Uint32;
+		oldColor: byte;
 	begin
 		offset := y * MAX_VIDEO_WIDTH + x;
 		SDL_LockMutex(playfieldMutex);
 		for i := 1 to Length(text) do begin
+			oldChar := screenChars[offset];
+			oldColor := screenColors[offset];
+{$IFDEF SHIFTJIS}
+			screenChars[offset] := CP437_NEC98_MAP[Byte(text[i])];
+{$ELSE}
 			screenChars[offset] := Byte(text[i]);
+{$ENDIF}
+			screenColors[offset] := color;
+			if (oldChar <> screenChars[offset]) or (oldColor <> color) then
+				screenChanged[offset] := true;
+			Inc(offset);
+		end;
+		SDL_UnlockMutex(playfieldMutex);
+	end;
+
+{$IFDEF SHIFTJIS}
+procedure VideoWriteTextWide(x, y, color: byte; text: TVideoLine);
+	var
+		i, j, offset: integer;
+		doubleByte: boolean;
+		s1, s2: byte; { FetchPC98Word }
+	function FetchPC98Word: word;
+		label DepackS2;
+		begin
+			if doubleByte then begin
+				FetchPC98Word := (s2 shl 8) or s1;
+				doubleByte := false;
+				exit;
+			end;
+
+			s1 := Byte(text[i]);
+			Inc(i);
+			if (s1 >= $81) and (s1 <= $9F) then begin
+				{ s1 := ((s1 - $70) shl 1); }
+				s1 := ((s1 - $80) shl 1);
+				s2 := Byte(text[i]);
+				Inc(i);
+				goto DepackS2;
+			end else if ((s1 and $F0) = $E0) then begin
+				{ s1 := ((s1 - $B0) shl 1); }
+				s1 := ((s1 - $C0) shl 1);
+				s2 := Byte(text[i]);
+				Inc(i);
+	DepackS2:
+				if s2 >= 159 then begin
+					s2 := s2 - 126;
+				end else begin
+					Dec(s1);
+					if s2 >= 128 then
+						s2 := s2 - 32
+					else
+						s2 := s2 - 31;
+				end;
+				doubleByte := true;
+				FetchPC98Word := (s2 shl 8) or s1;
+			end else FetchPC98Word := s1;
+		end;
+	begin
+		i := 1;
+		doubleByte := false;
+		offset := y * MAX_VIDEO_WIDTH + x;
+		SDL_LockMutex(playfieldMutex);
+		for j := 1 to Length(text) do begin
+			screenChars[offset] := FetchPC98Word;
 			screenColors[offset] := color;
 			screenChanged[offset] := true;
 			Inc(offset);
 		end;
 		SDL_UnlockMutex(playfieldMutex);
 	end;
+{$ENDIF}
 
 function VideoIsCharsetCustom: boolean;
 	begin
@@ -880,14 +1009,19 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 
 			window := SDL_CreateWindow('%NAME% %VERSION%',
 				SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-				640, {$IFDEF E_SUPERZ}400{$ELSE}350{$ENDIF},
+				640, {$IFDEF E_SUPERZ}400{$ELSE}{$IFDEF SHIFTJIS}400{$ELSE}350{$ENDIF}{$ENDIF},
 				SDL_WINDOW_RESIZABLE or SDL_WINDOW_ALLOW_HIGHDPI);
 		end;
 
+{$IFDEF SHIFTJIS}
+		if (not charsetTexture.valid) or (not installed) then begin
+			LoadCharsetFromBMP(charsetTexture, 'SJISFONT.BMP', 16384);
+			charsetTexture.charWidth := charsetTexture.charWidth div 2;
+		end;
+{$ELSE}
 		if installed then begin
 			FreeCharsetTexture(charsetTexture);
 		end;
-
 		if charsetHeight > 0 then begin
 			LoadCharsetFromByteArray(charsetTexture, PByteArray(charsetData)^, charsetHeight * 256);
 			usingCustomCharset := false;
@@ -896,6 +1030,7 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 			LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);
 			usingCustomCharset := false;
 		end;
+{$ENDIF}
 		if not charsetTexture.valid then
 			RunError(217);
 	

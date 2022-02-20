@@ -77,13 +77,15 @@ procedure LoadFontData;
 		chr: array[0 .. 33] of byte;
 		cPtr: pointer;
 		i, j: integer;
+		t: byte;
 		regs: Registers;
 	begin
 		cPtr := Ptr(Seg(chr), Ofs(chr) + 2);
 		for i := 0 to (PC98FONTSize shr 4) do begin
 			for j := 0 to 15 do begin
-				chr[(j shl 1) + 2] := PC98FONTData[(i shl 4) or j];
-				chr[(j shl 1) + 3] := PC98FONTData[(i shl 4) or j];
+				t := PC98FONTData[(i shl 4) or j];
+				chr[(j shl 1) + 2] := t;
+				chr[(j shl 1) + 3] := t;
 			end;
 			regs.AH := $1A;
 			regs.BX := Seg(chr);

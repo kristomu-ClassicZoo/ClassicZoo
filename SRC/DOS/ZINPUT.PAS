@@ -76,6 +76,7 @@ interface
 		JoystickXMin, JoystickXCenter, JoystickXMax: integer;
 		JoystickYMin, JoystickYCenter, JoystickYMax: integer;
 		InputMode: TInputMode;
+		InputKeyBuffering: boolean;
 	function InputCalibrateJoystick: boolean;
 	procedure InputUpdate;
 	procedure InputInitDevices;
@@ -218,6 +219,8 @@ procedure InputUpdate;
 			InputKeyPressed := InputKeyBuffer[1];
 			if Length(InputKeyBuffer) = 1 then
 				InputKeyBuffer := ''
+			else if InputKeyBuffering then
+				InputKeyBuffer := Copy(InputKeyBuffer, 2, Length(InputKeyBuffer) - 1)
 			else
 				InputKeyBuffer := Copy(InputKeyBuffer, Length(InputKeyBuffer) - 1, 1);
 
@@ -382,4 +385,5 @@ begin
 	JoystickYCenter := 0;
 	JoystickYMax := 0;
 	InputMode := IMKeyboard;
+	InputKeyBuffering := false;
 end.

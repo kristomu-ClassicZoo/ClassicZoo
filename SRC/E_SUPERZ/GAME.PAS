@@ -353,10 +353,15 @@ procedure BoardDrawTile(x, y: integer);
 				drawnChar := Color;
 				if Element = E_TEXT_WHITE then
 					drawnColor := $0F
+{$IFDEF NEC98}
+				else if (VideoPc98DrawingMode < 2) then
+					drawnColor := (((Element - E_TEXT_MIN) + 1) shl 4)
+{$ELSE}
 				else if VideoMonochrome then
 					drawnColor := $F0
+{$ENDIF}
 				else
-					drawnColor := (((Element - E_TEXT_MIN) + 1) * 16) + $F;
+					drawnColor := (((Element - E_TEXT_MIN) + 1) shl 4) + $F;
 			end;
 {$IFDEF EXTCHEAT}
 			drawnColor := drawnColor xor CheatColorModifiers[Element];
@@ -1192,9 +1197,10 @@ procedure DrawPlayfieldBorder(inner: boolean);
 			if inner then
 				for j := BOARD_DRAW_X to (BOARD_DRAW_X + BOARD_DRAW_WIDTH - 1) do
 					VideoWriteText(j, i, $0F,' ');
-{$IFNDEF NEC98}
-			VideoWriteText(BOARD_DRAW_X + BOARD_DRAW_WIDTH + 1, i + 1, $17, #221);
+{$IFDEF NEC98}
+			if VideoPc98DrawingMode > 0 then
 {$ENDIF}
+			VideoWriteText(BOARD_DRAW_X + BOARD_DRAW_WIDTH + 1, i + 1, $17, #221);
 		end;
 	end;
 
