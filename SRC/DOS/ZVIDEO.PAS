@@ -28,6 +28,7 @@ unit ZVideo;
 
 interface
 	type
+		TVideoBlinkMode = (BlinkModeHigh, BlinkModeOn, BlinkModeOff);
 		TVideoLine = string[80];
 		{ Was 160 in ZZT 3.2. }
 		TScreenCopyLine = string[100];
@@ -59,6 +60,7 @@ interface
 		VideoVGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
 		VideoLastMode: word;
+	function VideoGetBlinkMode: TVideoBlinkMode;
 	function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
 		borderColor: integer): boolean;
 	procedure VideoUninstall;
@@ -82,6 +84,14 @@ const
 		0, 1, 2, 3, 4, 5, 20, 7,
 		56, 57, 58, 59, 60, 61, 62, 63
 	);
+
+function VideoGetBlinkMode: TVideoBlinkMode;
+	begin
+		if VideoBlink then
+			VideoGetBlinkMode := BlinkModeOn
+		else
+			VideoGetBlinkMode := BlinkModeHigh;
+	end;
 
 {$F+}
 

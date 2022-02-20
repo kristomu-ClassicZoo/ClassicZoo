@@ -6,8 +6,17 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
-$< ClassicZoo dev >
+$< ClassicZoo 4.32 >
 
++ Editor improvements.
+  + Added support for toggling between
+    blinking and non-blinking background
+    colors.
+  + Added "Show data sizes" option for
+    displaying byte sizes of boards and
+    stat data.
+  + Added binding information to the 
+    short low-level stat list.
 / Minor bugfixes throughout the engine.
 
 $< ClassicZoo 4.31 >

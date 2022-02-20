@@ -29,6 +29,7 @@ unit ZVideo;
 
 interface
 	type
+		TVideoBlinkMode = (BlinkModeHigh, BlinkModeOn, BlinkModeOff);
 		TVideoLine = string[80];
 		{ Was 160 in ZZT 3.2. }
 		TScreenCopyLine = string[100];
@@ -56,6 +57,7 @@ interface
 		VideoColumns: integer;
 		VideoRows: integer;
 		VideoCurrentMode: integer;
+	function VideoGetBlinkMode: TVideoBlinkMode;
 	procedure VideoLockScreenUpdate;
 	procedure VideoUnlockScreenUpdate(x1, y1, x2, y2: integer);
 	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
@@ -77,6 +79,11 @@ uses Dos, Video, Keyboard, Mouse, SysUtils, TimerSys;
 
 var
 	VSULocked: boolean;
+
+function VideoGetBlinkMode: TVideoBlinkMode;
+	begin
+		VideoGetBlinkMode := BlinkModeOff; { TODO }
+	end;
 
 procedure VideoLockScreenUpdate;
 	begin

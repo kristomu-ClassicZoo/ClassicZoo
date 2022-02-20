@@ -60,6 +60,9 @@ interface
 	function ConfigEdSyntaxHighlightGetValue: integer;
 	procedure ConfigEdSyntaxHighlightSetValue(value: integer);
 	function ConfigEdSyntaxHighlightShowValue: string;
+	function ConfigEdShowSizesGetValue: integer;
+	procedure ConfigEdShowSizesSetValue(value: integer);
+	function ConfigEdShowSizesShowValue: string;
 	function ConfigCleenModeGetValue: integer;
 	procedure ConfigCleenModeSetValue(value: integer);
 	function ConfigCleenModeShowValue: string;
@@ -226,6 +229,22 @@ procedure ConfigEdSyntaxHighlightSetValue(value: integer);
 function ConfigEdSyntaxHighlightShowValue: string;
 	begin
 		ConfigEdSyntaxHighlightShowValue := ConfigShowOnOffValue(EditorSyntaxHighlightEnable);
+	end;
+
+function ConfigEdShowSizesGetValue: integer;
+	begin
+		ConfigEdShowSizesGetValue := Byte(EditorShowDataSizes);
+	end;
+
+procedure ConfigEdShowSizesSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		EditorShowDataSizes := Boolean(value);
+	end;
+
+function ConfigEdShowSizesShowValue: string;
+	begin
+		ConfigEdShowSizesShowValue := ConfigShowOnOffValue(EditorShowDataSizes);
 	end;
 
 function ConfigCleenModeGetValue: integer;
@@ -501,18 +520,18 @@ function ConfigDUndefCustomAction: boolean;
 {$IFDEF SDL2}
 function ConfigVideoBlinkGetValue: integer;
 	begin
-		ConfigVideoBlinkGetValue := Byte(Ord(VideoGetSDLBlinkMode));
+		ConfigVideoBlinkGetValue := Byte(Ord(VideoGetBlinkMode));
 	end;
 
 procedure ConfigVideoBlinkSetValue(value: integer);
 	begin
-		if value > Ord(High(TSDLBlinkMode)) then value := 0;
-		VideoSetSDLBlinkMode(TSDLBlinkMode(value));
+		if value > Ord(High(TVideoBlinkMode)) then value := 0;
+		VideoSetSDLBlinkMode(TVideoBlinkMode(value));
 	end;
 
 function ConfigVideoBlinkCustomAction: boolean;
 	begin
-		case VideoGetSDLBlinkMode of
+		case VideoGetBlinkMode of
 		BlinkModeOn: VideoSetSDLBlinkMode(BlinkModeHigh);
 		BlinkModeHigh: VideoSetSDLBlinkMode(BlinkModeOff);
 		BlinkModeOff: VideoSetSDLBlinkMode(BlinkModeOn);
@@ -522,7 +541,7 @@ function ConfigVideoBlinkCustomAction: boolean;
 
 function ConfigVideoBlinkShowValue: string;
 	begin
-		case VideoGetSDLBlinkMode of
+		case VideoGetBlinkMode of
 			BlinkModeOff: ConfigVideoBlinkShowValue := 'Disabled';
 			BlinkModeOn: ConfigVideoBlinkShowValue := 'Enabled';
 			BlinkModeHigh: ConfigVideoBlinkShowValue := 'Disabled (High Colors)';
@@ -709,6 +728,7 @@ procedure GameConfigInit;
 		for i := 1 to ConfigEntryCount do
 			with ConfigEntries[i] do begin
 				Key := '';
+				Name := '';
 				HideWhilePlaying := false;
 {$IFDEF FPC}
 				GetValue := nil;
@@ -732,7 +752,9 @@ procedure GameConfigInit;
 		with ConfigEntries[i] do begin
 			Category := CCEditor;
 			Key := 'EdApPats';
+{$IFDEF EDITOR}
 			Name := 'Auto-Append';
+{$ENDIF}
 			GetValue := ConfigEdAutoAppendGetValue;
 			SetValue := ConfigEdAutoAppendSetValue;
 {$IFDEF EDITOR}
@@ -743,7 +765,9 @@ procedure GameConfigInit;
 		with ConfigEntries[i] do begin
 			Category := CCEditor;
 			Key := 'EdSepStB';
+{$IFDEF EDITOR}
 			Name := 'Separate start board';
+{$ENDIF}
 			GetValue := ConfigEdSepStartBoardGetValue;
 			SetValue := ConfigEdSepStartBoardSetValue;
 {$IFDEF EDITOR}
@@ -754,7 +778,9 @@ procedure GameConfigInit;
 		with ConfigEntries[i] do begin
 			Category := CCEditor;
 			Key := 'EdLowLvl';
+{$IFDEF EDITOR}
 			Name := 'Low-level tile edit';
+{$ENDIF}
 			GetValue := ConfigEdLowLevelGetValue;
 			SetValue := ConfigEdLowLevelSetValue;
 {$IFDEF EDITOR}
@@ -765,11 +791,26 @@ procedure GameConfigInit;
 		with ConfigEntries[i] do begin
 			Category := CCEditor;
 			Key := 'EdSyntHl';
+{$IFDEF EDITOR}
 			Name := 'Syntax highlighting';
+{$ENDIF}
 			GetValue := ConfigEdSyntaxHighlightGetValue;
 			SetValue := ConfigEdSyntaxHighlightSetValue;
 {$IFDEF EDITOR}
 			ShowValue := ConfigEdSyntaxHighlightShowValue;
+{$ENDIF}
+		end;
+		Inc(i);
+		with ConfigEntries[i] do begin
+			Category := CCEditor;
+			Key := 'EdShSize';
+{$IFDEF EDITOR}
+			Name := 'Show data sizes';
+{$ENDIF}
+			GetValue := ConfigEdShowSizesGetValue;
+			SetValue := ConfigEdShowSizesSetValue;
+{$IFDEF EDITOR}
+			ShowValue := ConfigEdShowSizesShowValue;
 {$ENDIF}
 		end;
 		Inc(i);

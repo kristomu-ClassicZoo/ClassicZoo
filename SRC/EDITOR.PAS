@@ -34,18 +34,17 @@ interface
 		EditorSeparateStartingBoard: boolean;
 		EditorLowLevelEnable: boolean;
 		EditorSyntaxHighlightEnable: boolean;
-{$IFDEF EDITOR}
-	procedure EditorLoop;
-{$ENDIF}
+		EditorShowDataSizes: boolean;
 	procedure HighScoresLoad;
 	procedure HighScoresSave;
+	procedure HighScoresAdd(score: integer);
 	procedure HighScoresDisplay(linePos: integer);
 {$IFDEF EDITOR}
+	procedure EditorLoop;
 	procedure EditorOpenEditTextWindow(var state: TTextWindowState; extension: TExtensionString;
 		syntaxHighlighting: boolean);
 	procedure EditorEditTextFile;
 {$ENDIF}
-	procedure HighScoresAdd(score: integer);
 	function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TSmallString;
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean;
 		windowAlreadyOpen: boolean; showAddNewBoard: boolean; editable: boolean): integer;
@@ -445,7 +444,11 @@ procedure EditorLoop;
 			colorBg, colorFg: byte;
 		begin
 			VideoWriteText(VideoSidebarX + 12, 19, $1E, ColorNames[cursorColor and $0F]);
-			VideoWriteText(VideoSidebarX + 16, 19, $1E, ColorNames[cursorColor shr 4]);
+			if VideoGetBlinkMode = BlinkModeOn then
+				VideoWriteText(VideoSidebarX + 16, 19, $1E or (cursorColor shr 7),
+					ColorNames[(cursorColor shr 4) and 7])
+			else
+				VideoWriteText(VideoSidebarX + 16, 19, $1E, ColorNames[cursorColor shr 4]);
 
 			VideoWriteText(VideoSidebarX + 1, VideoRows - 1, $1F, '                ');
 
@@ -684,7 +687,7 @@ procedure EditorLoop;
 					VideoWriteText(VideoSidebarX + 4, 40, $1F, ' Clear all');
 {$IFDEF E_SUPERZ}
 					VideoWriteText(VideoSidebarX + 1, 41, $30, ' V ');
-					VideoWriteText(VideoSidebarX + 4, 41, $1F, ' View Change');
+					VideoWriteText(VideoSidebarX + 4, 41, $1F, ' Blink/View');
 {$ENDIF}
 				end;
 			end;
@@ -1135,8 +1138,8 @@ procedure EditorLoop;
 				actionMap[state.LineCount] := action;
 				New(state.Lines[state.LineCount]);
 				ccStr := name + value;
-				if Length(ccStr) > 42 then
-					ccStr := Copy(ccStr, 1, 39) + '...';
+				if Length(ccStr) > (TextWindowWidth - 9) then
+					ccStr := Copy(ccStr, 1, (TextWindowWidth - 12)) + '...';
 				state.Lines[state.LineCount]^ := ccStr;
 			end;
 		begin
@@ -2231,9 +2234,12 @@ procedure EditorLoop;
 						EditorUpdateCursorPattern;
 					end;
 					'C': begin
-						if InputKeyPressed = 'C' then
-							cursorColor := (cursorColor and $8F) or ((cursorColor + 16) and $70)
-						else
+						if InputKeyPressed = 'C' then begin
+							if VideoGetBlinkMode = BlinkModeHigh then
+								cursorColor := ((cursorColor + 16) and $FF)
+							else
+								cursorColor := (cursorColor and $8F) or ((cursorColor + 16) and $70);
+						end else
 							cursorColor := (cursorColor and $F0) or ((cursorColor + 1) and $0F);
 						EditorUpdateCursorColor;
 					end;
@@ -2316,16 +2322,23 @@ procedure EditorLoop;
 							EditorDrawSidebar;
 						end;
 					end;
-{$IFDEF E_SUPERZ}
 					'V': begin
-						if viewMode = VIEW_EDITOR then
-							EditorSetViewMode(VIEW_EDITOR_LARGE)
-						else
-							EditorSetViewMode(VIEW_EDITOR);
-						EditorMoveCursor(cursorX, cursorY, false);
-						EditorDrawRefresh;
-					end;
+{$IFDEF E_SUPERZ}
+						if InputKeyPressed = 'V' then begin
+							if viewMode = VIEW_EDITOR then
+								EditorSetViewMode(VIEW_EDITOR_LARGE)
+							else
+								EditorSetViewMode(VIEW_EDITOR);
+							EditorMoveCursor(cursorX, cursorY, false);
+							EditorDrawRefresh;
+						end else begin
 {$ENDIF}
+							cursorColor := cursorColor xor $80;
+							EditorUpdateCursorColor;
+{$IFDEF E_SUPERZ}
+						end;
+{$ENDIF}
+					end;
 					'?': begin
 						GameDebugPrompt;
 						EditorDrawSidebar;
@@ -2779,6 +2792,25 @@ procedure HighScoresAdd(score: integer);
 		end;
 	end;
 
+function EditorAppendSizeToLine(s: TSmallString; dl: word): TSmallString;
+	var
+		s1, s2: string[20];
+		s3: TSmallString;
+		i, mw: integer;
+	begin
+		Str(dl, s1);
+		s2 := ' (' + s1 + ' b.)';
+		mw := TextWindowWidth - 9 - Length(s2);
+		if Length(s) > mw then
+			EditorAppendSizeToLine := Copy(s, 1, mw - 3) + '...' + s2
+		else begin
+			s3[0] := Chr(mw - Length(s));
+			for i := 1 to Ord(s3[0]) do
+				s3[i] := ' ';
+			EditorAppendSizeToLine := s + s3 + s2;
+		end
+	end;
+
 function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TSmallString;
 	var
 		copiedName: TSmallString;
@@ -2803,10 +2835,20 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 	procedure PopulateBoards;
 		var
 			j: integer;
+			bs: word;
 		begin
 			TextWindowFree(textWindow);
 			for j := 0 to World.BoardCount do begin
-				TextWindowAppend(textWindow, EditorGetBoardName(j, titleScreenIsNone));
+				if (EditorShowDataSizes) and (not (titleScreenIsNone and (j = 0))) then begin
+					if j = World.Info.CurrentBoard then
+						bs := BoardCurrentStorageSize
+					else
+						bs := WorldExt.BoardLen[j];
+					TextWindowAppend(textWindow, EditorAppendSizeToLine(
+						EditorGetBoardName(j, titleScreenIsNone), bs));
+				end else begin
+					TextWindowAppend(textWindow, EditorGetBoardName(j, titleScreenIsNone));
+				end;
 			end;
 			if showAddNewBoard then begin
 				if World.BoardCount < MAX_BOARD then begin
@@ -2942,7 +2984,9 @@ function EditorSelectStat(title: string; currentStat: integer; showNone: boolean
 		var
 			j, k: integer;
 			statStr: string;
+			bound: boolean;
 			xStr, yStr, idStr: string[20];
+		label AppendedName;
 		begin
 			TextWindowFree(textWindow);
 			if showNone then
@@ -2956,15 +3000,29 @@ function EditorSelectStat(title: string; currentStat: integer; showNone: boolean
 				EditorPadSpaces(idStr, 3);
 				statStr := idStr + ' ( ' + xStr + ', ' + yStr + ') '
 					+ EditorGetElementName(Board.Tiles[X][Y].Element);
+				bound := false;
 				if (Data <> nil) and (DataLen > 0) then begin
+					for k := 0 to (j - 1) do begin
+						if Board.Stats[k].Data = Data then begin
+							Str(k, idStr);
+							statStr := statStr + ' <- ' + idStr;
+							bound := true;
+							goto AppendedName;
+						end;
+					end;
+	AppendedName:
 					k := 0;
 					OopReadChar(j, k);
 					if OopChar = '@' then
 						statStr := statStr + ': ' + OopReadLineToEnd(j, k);
 				end;
-				if Length(statStr) >= 42 then
-					statStr := Copy(statStr, 1, 39) + '...';
-				TextWindowAppend(textWindow, statStr);
+				if (EditorShowDataSizes) and (DataLen > 0) and (not bound) then begin
+					TextWindowAppend(textWindow, EditorAppendSizeToLine(statStr, DataLen));
+				end else begin
+					if Length(statStr) >= (TextWindowWidth - 9) then
+						statStr := Copy(statStr, 1, (TextWindowWidth - 12)) + '...';
+					TextWindowAppend(textWindow, statStr);
+				end;
 			end;
 			if showAddNewStat then begin
 				if Board.StatCount < MAX_STAT then begin
@@ -3033,4 +3091,5 @@ begin
 	EditorSeparateStartingBoard := false;
 	EditorLowLevelEnable := false;
 	EditorSyntaxHighlightEnable := true;
+	EditorShowDataSizes := false;
 end.

@@ -28,9 +28,9 @@ unit ZVideo;
 
 interface
 	type
-		TSDLBlinkMode = (BlinkModeHigh, BlinkModeOn, BlinkModeOff);
-		TSDLScalingMode = (SMNone, SM2x, SM3x, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
+		TVideoBlinkMode = (BlinkModeHigh, BlinkModeOn, BlinkModeOff);
 		TVideoLine = string[80];
+		TSDLScalingMode = (SMNone, SM2x, SM3x, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
 		TScreenCopyLine = string[255];
 		TCharsetData = array[0 .. 31999] of byte;
 		PTCharsetData = ^TCharsetData;
@@ -58,8 +58,8 @@ interface
 		VideoScaleChanged: boolean;
 	procedure VideoForcePlayfieldRedraw;
 	procedure VideoOnSizeChanged;
-	function VideoGetSDLBlinkMode: TSDLBlinkMode;
-	procedure VideoSetSDLBlinkMode(value: TSDLBlinkMode);
+	function VideoGetBlinkMode: TVideoBlinkMode;
+	procedure VideoSetSDLBlinkMode(value: TVideoBlinkMode);
 	function VideoGetSDLScalingMode: TSDLScalingMode;
 	procedure VideoSetSDLScalingMode(value: TSDLScalingMode);
 	function VideoGetSDLWindowed: boolean;
@@ -135,7 +135,7 @@ var
 	screenChars: array[0 .. (MAX_VIDEO_BUFFER_SIZE_CHARS - 1)] of Uint32;
 	screenColors: array[0 .. (MAX_VIDEO_BUFFER_SIZE_CHARS - 1)] of byte;
 	screenChanged: array[0 .. (MAX_VIDEO_BUFFER_SIZE_CHARS - 1)] of boolean;
-	blinkMode: TSDLBlinkMode;
+	blinkMode: TVideoBlinkMode;
 	scalingMode: TSDLScalingMode;
 	windowed: boolean;
 	installed: boolean;
@@ -317,12 +317,12 @@ procedure VideoOnSizeChanged;
 		VideoForcePlayfieldRedraw;
 	end;
 
-function VideoGetSDLBlinkMode: TSDLBlinkMode;
+function VideoGetBlinkMode: TVideoBlinkMode;
 	begin
-		VideoGetSDLBlinkMode := blinkMode;
+		VideoGetBlinkMode := blinkMode;
 	end;
 
-procedure VideoSetSDLBlinkMode(value: TSDLBlinkMode);
+procedure VideoSetSDLBlinkMode(value: TVideoBlinkMode);
 	begin
 		SDL_LockMutex(mainThreadSdlChangesMutex);
 		blinkMode := value;

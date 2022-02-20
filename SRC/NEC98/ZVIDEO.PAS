@@ -28,6 +28,7 @@ unit ZVideo;
 
 interface
 	type
+		TVideoBlinkMode = (BlinkModeHigh, BlinkModeOn, BlinkModeOff);
 		TVideoLine = string[80];
 		TScreenCopyLine = string[200];
 		TCharsetData = array[0 .. 31999] of byte;
@@ -48,6 +49,7 @@ interface
 		VideoMonochrome: boolean;
 		VideoBlinkMask: byte;
 		VideoCurrentMode: integer;
+	function VideoGetBlinkMode: TVideoBlinkMode;
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: integer;
 		borderColor: integer): boolean;
@@ -68,6 +70,11 @@ implementation
 uses Dos, PC98, TimerSys;
 
 {$I VIDCONST.INC}
+
+function VideoGetBlinkMode: TVideoBlinkMode;
+	begin
+		VideoGetBlinkMode := BlinkModeOn;
+	end;
 		
 procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	var
