@@ -147,7 +147,7 @@ procedure InputUpdate;
 			if Length(InputKeyBuffer) = 1 then
 				InputKeyBuffer := ''
 			else if InputKeyBuffering then
-				InputKeyBuffer := Copy(InputKeyBuffer, 2, Length(InputKeyBuffer) - 1);
+				InputKeyBuffer := Copy(InputKeyBuffer, 2, Length(InputKeyBuffer) - 1)
 			else
 				InputKeyBuffer := Copy(InputKeyBuffer, Length(InputKeyBuffer) - 1, 1);
 

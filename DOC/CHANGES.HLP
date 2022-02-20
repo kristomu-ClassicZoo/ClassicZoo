@@ -8,10 +8,6 @@ Legend:
 
 $< ClassicZoo 4.32 >
 
-+ PC-9801 port improvements.
-  + Added new GRCG/EGC-accelerated video
-    renderers, allowing more accurate
-    color reproduction.
 + Editor improvements.
   + Added support for toggling between
     blinking and non-blinking background
@@ -21,6 +17,10 @@ $< ClassicZoo 4.32 >
     stat data.
   + Added binding information to the 
     short low-level stat list.
++ [PC-9801] Port improvements.
+  + Added new GRCG/EGC-accelerated video
+    renderers, allowing more accurate
+    color reproduction.
 / The reliability of string input has
   been improved.
 / Minor bugfixes throughout the engine.
