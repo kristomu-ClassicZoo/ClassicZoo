@@ -79,7 +79,7 @@ type
 	TVideoBackingBuffer = array[0 .. 3999] of word;
 const
 {$I VIDCONST.INC}
-	MEM_GRCG_SEGMENT = $A800;
+	MEM_GRAPH_SEGMENT = $A800;
 	GRCG_CONTROL_OFF = $00;
 	GRCG_CONTROL_TDW = $80;
 	GRCG_CONTROL_RMW = $C0;
@@ -88,6 +88,11 @@ const
 	GRCG_CONTROL_DISABLE_R = $02;
 	GRCG_CONTROL_DISABLE_B = $01;
 	PORT_GDC2_MODE2 = $6A;
+	MEM_GRCG_CONTROL = $0495;
+	MEM_GRCG_TILE0 = $0496;
+	MEM_GRCG_TILE1 = $0497;
+	MEM_GRCG_TILE2 = $0498;
+	MEM_GRCG_TILE3 = $0499;
 	PORT_GRCG_CONTROL = $7C;
 	PORT_GRCG_TILE = $7E;
 	PORT_GDC2_STATUS = $A0;
@@ -103,15 +108,23 @@ const
 	GDC2_MODE2_16COL = $01;
 	TILE_ARRAY: array[0 .. 15] of byte = (
 		$00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF, $00, $FF);
-	PALETTE_GREEN_ARRAY: array[0 .. 15] of byte = (
-		$00, $00, $00, $00, $28, $28, $14, $28, $14, $14, $14, $14, $3C, $3C, $3C, $3C
-	);
 	PALETTE_RED_ARRAY: array[0 .. 15] of byte = (
-		$00, $00, $28, $28, $00, $00, $28, $28, $14, $14, $3C, $3C, $14, $14, $3C, $3C
+		$00, $00, $00, $00, $28, $28, $28, $28, $14, $14, $14, $14, $3C, $3C, $3C, $3C
+	);
+	PALETTE_GREEN_ARRAY: array[0 .. 15] of byte = (
+		$00, $00, $28, $28, $00, $00, $14, $28, $14, $14, $3C, $3C, $14, $14, $3C, $3C
 	);
 	PALETTE_BLUE_ARRAY: array[0 .. 15] of byte = (
 		$00, $28, $00, $28, $00, $28, $00, $28, $14, $3C, $14, $3C, $14, $3C, $14, $3C
 	);
+	PALETTE_OFFSET_ARRAY: array[0 .. 15] of byte = (
+		0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15
+	);
+	MEM_PRXCRT = $054C;
+	PRXCRT_EXT_CHARS = $08;
+	PRXCRT_16COL = $04;
+	PRXCRT_GRCG = $02;
+
 {$IFDEF PC98VBUF}
 var
 	VideoBackingBuffer: ^TVideoBackingBuffer;
@@ -135,6 +148,7 @@ procedure VideoDrawFromBackingBuffer(x, y: byte; textLength: integer);
 			{ Draw background (graphics mode). }
 			tmOffset := initTmOffset + 1;
 			gmOffset := initGmOffset;
+			Mem[0:MEM_GRCG_CONTROL] := GRCG_CONTROL_TDW;
 			Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_TDW;
 			for i := 1 to textLength do begin
 				color := VideoBackingBuffer^[tmOffset];
@@ -143,20 +157,25 @@ procedure VideoDrawFromBackingBuffer(x, y: byte; textLength: integer);
 
 				Inc(tmOffset, 2);
 
+				Mem[0:MEM_GRCG_TILE0] := TILE_ARRAY[color shr 4];
 				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 4];
+				Mem[0:MEM_GRCG_TILE1] := TILE_ARRAY[color shr 6];
 				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 6];
+				Mem[0:MEM_GRCG_TILE2] := TILE_ARRAY[color shr 5];
 				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 5];
 				if not VideoBlink then begin
+					Mem[0:MEM_GRCG_TILE3] := TILE_ARRAY[color shr 7];
 					Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 7];
 				end else begin
+					Mem[0:MEM_GRCG_TILE3] := 0;
 					Port[PORT_GRCG_TILE] := 0;
 				end;
 
 				for iy := 0 to 14 do begin
-					Mem[MEM_GRCG_SEGMENT:gmOffset] := $FF;
+					Mem[MEM_GRAPH_SEGMENT:gmOffset] := $FF;
 					Inc(gmOffset, 80);
 				end;
-				Mem[MEM_GRCG_SEGMENT:gmOffset] := $FF;
+				Mem[MEM_GRAPH_SEGMENT:gmOffset] := $FF;
 				Dec(gmOffset, (80 * 15) - 1);
 			end;
 		end;
@@ -165,6 +184,7 @@ procedure VideoDrawFromBackingBuffer(x, y: byte; textLength: integer);
 		if VideoPc98DrawingMode > 1 then begin
 			{ Draw foreground (graphics mode). }
 			gmOffset := initGmOffset;
+			Mem[0:MEM_GRCG_CONTROL] := GRCG_CONTROL_RMW;
 			Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_RMW;
 			for i := 1 to textLength do begin
 				newGlyphCode := VideoBackingBuffer^[tmOffset];
@@ -177,9 +197,13 @@ procedure VideoDrawFromBackingBuffer(x, y: byte; textLength: integer);
 				color := VideoBackingBuffer^[tmOffset] and $0F;
 				Inc(tmOffset);
 
+				Mem[0:MEM_GRCG_TILE0] := TILE_ARRAY[color];
 				Port[PORT_GRCG_TILE] := TILE_ARRAY[color];
+				Mem[0:MEM_GRCG_TILE1] := TILE_ARRAY[color shr 2];
 				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 2];
+				Mem[0:MEM_GRCG_TILE2] := TILE_ARRAY[color shr 1];
 				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 1];
+				Mem[0:MEM_GRCG_TILE3] := TILE_ARRAY[color shr 3];
 				Port[PORT_GRCG_TILE] := TILE_ARRAY[color shr 3];
 
 				doubleWideGlyph := true;
@@ -205,22 +229,22 @@ procedure VideoDrawFromBackingBuffer(x, y: byte; textLength: integer);
 
 				if not doubleWideGlyph then begin
 					for iy := 2 to 16 do begin
-						Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[iy];
+						Mem[MEM_GRAPH_SEGMENT:gmOffset] := glyphData[iy];
 						Inc(gmOffset, 80);
 					end;
-					Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[15 + 2];
+					Mem[MEM_GRAPH_SEGMENT:gmOffset] := glyphData[15 + 2];
 				end else if not startNewGlyph then begin
 					for iy := 1 to 15 do begin
-						Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[(iy shl 1) + 1];
+						Mem[MEM_GRAPH_SEGMENT:gmOffset] := glyphData[(iy shl 1) + 1];
 						Inc(gmOffset, 80);
 					end;
-					Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[30 + 2 + 1];
+					Mem[MEM_GRAPH_SEGMENT:gmOffset] := glyphData[30 + 2 + 1];
 				end else begin
 					for iy := 1 to 15 do begin
-						Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[iy shl 1];
+						Mem[MEM_GRAPH_SEGMENT:gmOffset] := glyphData[iy shl 1];
 						Inc(gmOffset, 80);
 					end;
-					Mem[MEM_GRCG_SEGMENT:gmOffset] := glyphData[30 + 2];
+					Mem[MEM_GRAPH_SEGMENT:gmOffset] := glyphData[30 + 2];
 				end;
 				Dec(gmOffset, (80 * 15) - 1);
 				startNewGlyph := not startNewGlyph;
@@ -243,6 +267,7 @@ NextGlyph:
 			end;
 		end;
 
+		Mem[0:MEM_GRCG_CONTROL] := GRCG_CONTROL_OFF;
 		Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_OFF;
 	end;
 {$ENDIF}
@@ -523,7 +548,7 @@ function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
 		VideoSetPaletteColor := false;
 {$IFDEF PC98VBUF}
 		if VideoPc98DrawingMode >= 2 then begin
-			Port[PORT_GDC2_PALETTE_INDEX] := idx;
+			Port[PORT_GDC2_PALETTE_INDEX] := PALETTE_OFFSET_ARRAY[idx];
 			Port[PORT_GDC2_PALETTE_RED] := r shr 2;
 			Port[PORT_GDC2_PALETTE_GREEN] := g shr 2;
 			Port[PORT_GDC2_PALETTE_BLUE] := b shr 2;
@@ -546,12 +571,18 @@ procedure VideoPc98Clear(bgColor: integer);
 		if VideoPc98MaxDrawingMode > 0 then begin
 			if VideoPc98DrawingMode = 0 then
 				bgColor := 0;
+			Mem[0:MEM_GRCG_CONTROL] := GRCG_CONTROL_TDW;
 			Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_TDW;
+			Mem[0:MEM_GRCG_TILE0] := TILE_ARRAY[bgColor];
 			Port[PORT_GRCG_TILE] := TILE_ARRAY[bgColor];
+			Mem[0:MEM_GRCG_TILE1] := TILE_ARRAY[bgColor shr 2];
 			Port[PORT_GRCG_TILE] := TILE_ARRAY[bgColor shr 2];
+			Mem[0:MEM_GRCG_TILE2] := TILE_ARRAY[bgColor shr 1];
 			Port[PORT_GRCG_TILE] := TILE_ARRAY[bgColor shr 1];
+			Mem[0:MEM_GRCG_TILE3] := TILE_ARRAY[bgColor shr 3];
 			Port[PORT_GRCG_TILE] := TILE_ARRAY[bgColor shr 3];
-			FillChar(Ptr(MEM_GRCG_SEGMENT, 0)^, 32000, $FF);
+			FillChar(Ptr(MEM_GRAPH_SEGMENT, 0)^, 32000, $FF);
+			Mem[0:MEM_GRCG_CONTROL] := GRCG_CONTROL_OFF;
 			Port[PORT_GRCG_CONTROL] := GRCG_CONTROL_OFF;
 		end;
 {$ENDIF}
@@ -743,11 +774,21 @@ begin
 	VideoBlink := true;
 	VideoBlinkMask := $FF;
 	VideoCurrentMode := VIDEO_MODE_80X25;
-	VideoPc98MaxDrawingMode := 2;
-	VideoPc98DrawingMode := 2;
+	VideoPc98MaxDrawingMode := 0;
+	if (Mem[0:MEM_PRXCRT] and PRXCRT_EXT_CHARS) <> 0 then begin
+		if (Mem[0:MEM_PRXCRT] and PRXCRT_GRCG) <> 0 then begin
+			VideoPc98MaxDrawingMode := 1;
+			if (Mem[0:MEM_PRXCRT] and PRXCRT_16COL) <> 0 then begin
+				VideoPc98MaxDrawingMode := 2;
+			end;
+		end;
+	end else begin
+		WriteLn('Extended characters not supported!');
+		Halt(0);
+	end;
+	VideoPc98DrawingMode := VideoPc98MaxDrawingMode;
 {$IFDEF PC98VBUF}
 	VideoBackingBufferPresent := false;
 {$ENDIF}
-
 	SetCBreak(false);
 end.

@@ -67,13 +67,15 @@ effort.
 [P]  Select pattern. Hold Shift to move
      backwards.
 [C]  Select foreground color.
-[Shift+C] Select background color.
+[Shift-C] Select background color.
 
    Some useful commands are not listed on
 the screen.  These are:
 
 [0-9] Pick a memorized pattern slot,
      from the first to the tenth.
+[V]  Toggle between blinking and non-
+     blinking background colors.
 [Z]  Clear board.
 [X]  Fill in bounded region with
      current pattern - just draw the
@@ -104,16 +106,18 @@ the screen.  These are:
      world being edited.
 [!]  Edit text file. Useful for planning
      the layout of text windows.
+[Shift-V] In Super ZZT's editor, toggle
+          the maximum board window size.
 [f5] Place advanced elements on the
      board.
 !-editadve;What are advanced elements?
 
-[Ctrl+X] Cut board area; use ENTER to
+[Ctrl-X] Cut board area; use ENTER to
          mark the second point.
-[Ctrl+C] Copy board area; see above.
-[Ctrl+V] Paste board area; the cursor
+[Ctrl-C] Copy board area; see above.
+[Ctrl-V] Paste board area; the cursor
          location is treated as the
          top-left corner.
 
-[Ctrl+S] View stats list. From there:
+[Ctrl-S] View stats list. From there:
   -  Change stat order: Use [-] and [+]
