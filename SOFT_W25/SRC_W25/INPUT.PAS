@@ -415,7 +415,7 @@ function InputConfigure(SkipToTitle: boolean): boolean;
 	begin
 		if SkipToTitle then begin
 			InputJoystickEnabled := false;
-			InputMouseEnabled := true;
+			InputMouseEnabled := false;
 			InputConfigure := true;
 			exit;
 		end;

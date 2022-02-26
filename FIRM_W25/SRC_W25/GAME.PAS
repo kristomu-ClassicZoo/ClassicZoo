@@ -1525,7 +1525,16 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			if (newY < 1) or (newY > BOARD_HEIGHT) then exit;
 		end;
 		with Board.Stats[statId] do begin
-			oldBgColor := Board.Tiles[newX][newY].Color and $F0;
+			with Board.Tiles[newX][newY] do begin
+				if Element = E_EMPTY then
+					oldBgColor := 0
+				else if Element >= E_TEXT_MIN then
+					oldBgColor := ElementDefs[Element].Color and $F0
+				else
+					oldBgColor := Color and $F0;
+			end;
+			if ParamList[THEME_START + 7] = 0 then
+				oldBgColor := oldBgColor and $70;
 
 			iUnder := Under;
 			Under := Board.Tiles[newX][newY];
@@ -1533,11 +1542,8 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			with Board.Tiles[X][Y] do begin
 				if (Element = E_PLAYER) or ((ElementDefs[Element].Color and $F0) > 0) then
 					Board.Tiles[newX][newY].Color := Color
-				else if Board.Tiles[newX][newY].Element = E_EMPTY then
-					Board.Tiles[newX][newY].Color := Color and $0F
 				else
-					Board.Tiles[newX][newY].Color := (Color and $0F) + (Board.Tiles[newX][newY].Color and $F0);
-
+					Board.Tiles[newX][newY].Color := (Color and $0F) + oldBgColor;
 				Board.Tiles[newX][newY].Element := Element;
 			end;
 			Board.Tiles[X][Y] := iUnder;
