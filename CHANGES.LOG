@@ -1,3 +1,13 @@
+2/26/2022: 2.5p
+Added:
+* ?PATH cheat that shows where the player has been and approximately the time the player has taken (by acquiring the leftmost bit of the board's "Tick" value).
+
+
+2/24/2022: 2.5n
+Improved:
+* Stats passing over walkable text will now acquire the text's background color and not a random one based on the text character.
+
+
 2/17/2022: 2.5m
 Improved:
 * The mousex and mousey read-only counters are collected whether or not mouse movement is enabled.

@@ -216,6 +216,7 @@ interface
 
 		IoTmpBuf: pointer;
 		ObjTmpBuf: pointer;
+		PathTmpBuf: ^string;
 
 		ElementDefs: array[0 .. MAX_ELEMENT] of TElementDef;
 
@@ -247,7 +248,8 @@ interface
 		HighScoreList: THighScoreList;
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
-		Accessibility: array[1..4] of TString50;
+		Accessibility: array[1..4] of TString50;		
+
 
 		BoardNames: array[0 .. MAX_BOARD] of TString50;
 	const

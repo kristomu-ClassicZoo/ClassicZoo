@@ -65,7 +65,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                                <=-  Weave  -=>');
 		TextColor(Yellow);
-		Writeln('                                 Version   2.5n [firm]');
+		Writeln('                                 Version   2.5p [firm]');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -135,6 +135,7 @@ begin
 		TextWindowInit;
 		GetMem(IoTmpBuf, IoTmpBufSize);
 		GetMem(ObjTmpBuf, LOAD_OBJ_LENGTH);
+		GetMem(PathTmpBuf, 1500);
 		CurrentSave := '';
 
 		VideoHideCursor;

@@ -1516,10 +1516,15 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 		ix, iy: integer;
 		oldX, oldY: integer;
 		oldBgColor: integer;
+		ptr: pointer;
 	begin
 		if statId = 0 then begin
 			if (newX < 0) or (newX > (BOARD_WIDTH + 1)) then exit;
 			if (newY < 0) or (newY > (BOARD_HEIGHT + 1)) then exit;
+			ptr := PathTmpBuf;
+			AdvancePointer(ptr, (newY - 1) * 60);
+			AdvancePointer(ptr, newX - 1);
+			Char(ptr^) := Chr(Board.Info.BoardTicks mod 255);
 		end else begin
 			if (newX < 1) or (newX > BOARD_WIDTH) then exit;
 			if (newY < 1) or (newY > BOARD_HEIGHT) then exit;
@@ -1997,6 +2002,8 @@ procedure TransitionDrawBoardChange;
 
 procedure BoardEnter;
 	begin
+		FillChar(PathTmpBuf^, 1500, 0);
+
 		Board.Info.StartPlayerX := Board.Stats[0].X;
 		Board.Info.StartPlayerY := Board.Stats[0].Y;
 
@@ -2049,10 +2056,11 @@ procedure BoardPassageTeleport(x, y: integer);
 procedure GameDebugPrompt;
 	var
 		input: TString50;
-		i: integer;
+		i, j: integer;
 		toggle: boolean;
 		textWindow: TTextWindowState;
 		s: string;
+		ptr: pointer;
 	begin
 		input := '';
 		SidebarClearLine(4);
@@ -2102,6 +2110,15 @@ procedure GameDebugPrompt;
 		else if (input = 'NOCLIP') or (input = 'CLIP') then begin
 			GamePaused := true;
 			NoClip := not NoClip;
+		end else if input = 'PATH'then begin
+			ptr := PathTmpBuf;
+			for j := 0 to 24 do begin
+				for i := 0 to 59 do begin
+					if Byte(ptr^) <> 0 then
+						VideoWriteText(i,j,ElementDefs[E_PLAYER].Color, Chr(Byte(ptr^)));
+					AdvancePointer(ptr,1);
+				end;
+			end;
 		end else if input = 'SPEED' then begin
 			SidebarPromptSlider(true, 64, 4, 'Game speed:;FS', TickSpeed);
 			TickTimeDuration := TickSpeed * 2;
