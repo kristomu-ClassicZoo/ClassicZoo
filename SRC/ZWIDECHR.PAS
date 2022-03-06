@@ -25,11 +25,15 @@
 unit ZWideChr;
 
 interface
-{$IFDEF SHIFTJIS}
 	const
-		WIDE_CHAR_MAX_LENGTH = 2;
 		WIDE_STRING_MAX = 32767;
+{$IFDEF SHIFTJIS}
+		WIDE_CHAR_MAX_LENGTH = 2;
 {$ENDIF}
+{$IFDEF UTF8}
+		WIDE_CHAR_MAX_LENGTH = 4;
+{$ENDIF}
+	{ Returns true if a byte is the first byte of a multi-byte char. }
 	function WideIsFirstByte(s1: byte): boolean;
 	{ The following assume the position is on the first byte of a wide character. }
 	function WideGetCharWidth(var s: string; pos: integer): integer;
@@ -39,6 +43,30 @@ interface
 	procedure WideAdjustCursor(var s: string; var pos: integer; direction: integer);
 
 implementation
+
+{$IFDEF UTF8}
+function WideIsFirstByte(s1: byte): boolean;
+	begin
+		WideIsFirstByte := (s1 >= $C0);
+	end;
+
+function WideGetCharWidth(var s: string; pos: integer): integer;
+	begin
+		WideGetCharWidth := 1;
+	end;
+
+function WideGetCharLength(var s: string; pos: integer): integer;
+	begin
+		if Byte(s[pos]) >= $F0 then
+			WideGetCharLength := 4
+		else if Byte(s[pos]) >= $E0 then
+			WideGetCharLength := 3
+		else if Byte(s[pos]) >= $C0 then
+			WideGetCharLength := 2
+		else
+			WideGetCharLength := 1;
+	end;
+{$ENDIF}
 
 {$IFDEF SHIFTJIS}
 function WideIsFirstByte(s1: byte): boolean;

@@ -6,6 +6,14 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
+$< ClassicZoo dev >
+
++ Editor improvements.
+  + The unused stat/board/world bytes are
+    now preserved on save/load.
+  + Low-level stat information now shows
+    the unused byte values.
+
 $< ClassicZoo 4.32 >
 
 + Editor improvements.

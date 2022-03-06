@@ -158,6 +158,10 @@ interface
 			{$ENDIF}
 			DataPos: integer;
 			DataLen: integer;
+{$IFDEF SDL2}
+			UnusedData: longint;
+			Unused1, Unused2: longint;
+{$ENDIF}
 		end;
 {$ENDIF}
 		TRleTile = record
@@ -204,6 +208,9 @@ interface
 			StartPlayerX: byte;
 			StartPlayerY: byte;
 			TimeLimitSec: integer;
+{$IFDEF SDL2}
+			unk1: array[70 .. 85] of byte;
+{$ENDIF}
 		end;
 		TWorldInfo = record
 			Ammo: integer;
@@ -220,6 +227,10 @@ interface
 			BoardTimeSec: integer;
 			BoardTimeHsec: integer;
 			IsSave: boolean;
+{$IFDEF SDL2}
+			unk1: integer;
+			unkPad: array[0 .. 13] of byte;
+{$ENDIF}
 		end;
 {$ENDIF}
 		TEditorStatSetting = record

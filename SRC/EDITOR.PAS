@@ -1094,6 +1094,7 @@ procedure EditorLoop;
 			state: TTextWindowState;
 			i: integer;
 			numStr: string[20];
+			numStr2: string[20];
 			actionMap: array[1 .. 32] of TLLEditAction;
 			exitRequested: boolean;
 			choiceResult: byte;
@@ -1148,6 +1149,26 @@ procedure EditorLoop;
 					ccStr := Copy(ccStr, 1, (TextWindowWidth - 12)) + '...';
 				state.Lines[state.LineCount]^ := ccStr;
 			end;
+{$IFDEF SDL2}
+		procedure LongIntToHex(v: longint; var ns: string);
+			const
+				HEX_STR: array[0 .. 15] of char =
+					('0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F');
+			begin
+				ns[0] := Chr(11);
+				ns[1] := HEX_STR[(v shr 4) and 15];
+				ns[2] := HEX_STR[(v shr 0) and 15];
+				ns[3] := ' ';
+				ns[4] := HEX_STR[(v shr 12) and 15];
+				ns[5] := HEX_STR[(v shr 8) and 15];
+				ns[6] := ' ';
+				ns[7] := HEX_STR[(v shr 20) and 15];
+				ns[8] := HEX_STR[(v shr 16) and 15];
+				ns[9] := ' ';
+				ns[10] := HEX_STR[(v shr 28) and 15];
+				ns[11] := HEX_STR[(v shr 24) and 15];
+			end;
+{$ENDIF}
 		begin
 			state.Title := 'Low-Level Tile Info';
 			TextWindowDrawOpen(state);
@@ -1207,6 +1228,14 @@ procedure EditorLoop;
 					AppendAction(LLEditDataPos, '       Pos: ', numStr);
 					AppendAction(LLEditDataBound, '  Bound to: ', GetStatName(GetStatBoundToId));
 					AppendAction(LLEditNone, '', '');
+{$IFDEF SDL2}
+					LongIntToHex(UnusedData, numStr);
+					AppendAction(LLEditNone, ' Ptr bytes: ', numStr);
+					LongIntToHex(Unused1, numStr);
+					LongIntToHex(Unused2, numStr2);
+					AppendAction(LLEditNone, ' Ext bytes: ', numStr + ' ' + numStr2);
+					AppendAction(LLEditNone, '', '');
+{$ENDIF}
 					if Board.StatCount > 0 then begin
 						AppendAction(LLEditDeleteStat, '!;Delete', '');
 					end;

@@ -96,7 +96,12 @@ procedure CopyBoardInfoFromLocal(var ptr: pointer);
 		s.DrawXOffset := NtoLE(Board.Info.DrawXOffset);
 		s.DrawYOffset := NtoLE(Board.Info.DrawYOffset);
 		s.TimeLimitSec := NtoLE(Board.Info.TimeLimitSec);
+{$IFDEF SDL2}
+		for i := Low(Board.Info.unk1) to High(Board.Info.unk1) do
+			s.unk1[i] := Board.Info.unk1[i];
+{$ELSE}
 		FillChar(s.unk1, SizeOf(s.unk1), 0);
+{$ENDIF}
 
 		Move(s, ptr^, SizeOf(s));
 		AdvancePointer(ptr, SizeOf(s));
@@ -119,6 +124,10 @@ procedure CopyBoardInfoToLocal(var ptr: pointer);
 		Board.Info.DrawXOffset := LEtoN(s.DrawXOffset);
 		Board.Info.DrawYOffset := LEtoN(s.DrawYOffset);
 		Board.Info.TimeLimitSec := LEtoN(s.TimeLimitSec);
+{$IFDEF SDL2}
+		for i := Low(Board.Info.unk1) to High(Board.Info.unk1) do
+			Board.Info.unk1[i] := s.unk1[i];
+{$ENDIF}
 	end;
 
 procedure CopyWorldInfoFromLocal(var ptr: pointer);
@@ -132,9 +141,7 @@ procedure CopyWorldInfoFromLocal(var ptr: pointer);
 			s.Keys[i] := World.Info.Keys[i];
 		s.Health := NtoLE(World.Info.Health);
 		s.CurrentBoard := NtoLE(World.Info.CurrentBoard);
-		s.unk1 := 0;
 		s.EnergizerTicks := NtoLE(World.Info.EnergizerTicks);
-		s.unk2 := 0;
 		s.Score := NtoLE(World.Info.Score);
 		s.Name := World.Info.Name;
 		for i := 1 to 10 do
@@ -143,7 +150,16 @@ procedure CopyWorldInfoFromLocal(var ptr: pointer);
 		s.BoardTimeHsec := NtoLE(World.Info.BoardTimeHsec);
 		s.IsSave := World.Info.IsSave;
 		s.StonesOfPower := NtoLE(World.Info.StonesOfPower);
+{$IFDEF SDL2}
+		s.unk1 := NtoLE(World.Info.unk1);
+		s.unk2 := NtoLE(World.Info.unk2);
+		for i := Low(World.Info.unk3) to High(World.Info.unk3) do
+			s.unk3[i] := World.Info.unk3[i];
+{$ELSE}
+		s.unk1 := 0;
+		s.unk2 := 0;
 		FillChar(s.unk3, SizeOf(s.unk3), 0);
+{$ENDIF}
 
 		Move(s, ptr^, SizeOf(s));
 		AdvancePointer(ptr, SizeOf(s));
@@ -176,6 +192,12 @@ procedure CopyWorldInfoToLocal(var ptr: pointer);
 		World.Info.BoardTimeHsec := LEtoN(s.BoardTimeHsec);
 		World.Info.IsSave := s.IsSave;
 		World.Info.StonesOfPower := LEtoN(s.StonesOfPower);
+{$IFDEF SDL2}
+		World.Info.unk1 := LEtoN(s.unk1);
+		World.Info.unk2 := LEtoN(s.unk2);
+		for i := Low(World.Info.unk3) to High(World.Info.unk3) do
+			World.Info.unk3[i] := s.unk3[i];
+{$ENDIF}
 	end;
 
 procedure CopyStatFromLocal(var ptr: pointer; var stat: TStat);
@@ -194,9 +216,13 @@ procedure CopyStatFromLocal(var ptr: pointer; var stat: TStat);
 		s.Follower := NtoLE(stat.Follower);
 		s.Leader := NtoLE(stat.Leader);
 		s.Under := stat.Under;
-		s.UnusedData := 0;
 		s.DataPos := NtoLE(stat.DataPos);
 		s.DataLen := NtoLE(stat.DataLen);
+{$IFDEF SDL2}
+		s.UnusedData := NtoLE(stat.UnusedData);
+{$ELSE}
+		s.UnusedData := 0;
+{$ENDIF}
 
 		Move(s, ptr^, SizeOf(s));
 		AdvancePointer(ptr, SizeOf(s));
@@ -224,6 +250,9 @@ procedure CopyStatToLocal(var ptr: pointer; var stat: TStat);
 		{$IFDEF FPC} stat.Data := Nil; {$ENDIF}
 		stat.DataPos := LEtoN(s.DataPos);
 		stat.DataLen := LEtoN(s.DataLen);
+{$IFDEF SDL2}
+		stat.UnusedData := LEtoN(s.UnusedData);
+{$ENDIF}
 	end;
 
 end.
