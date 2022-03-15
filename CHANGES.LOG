@@ -2,6 +2,8 @@
 Bugs Fixed:
 * Some CFG element definitions (like .cycle) did not read negative numbers.
 
+Added:
+* Added Object counters 6-10 with a range of 127 to -128.
 
 
 
