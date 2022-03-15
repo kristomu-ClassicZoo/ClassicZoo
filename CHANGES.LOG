@@ -1,3 +1,10 @@
+3/9/2022: 2.6
+Bugs Fixed:
+* Some CFG element definitions (like .cycle) did not read negative numbers.
+
+
+
+
 2/26/2022: 2.5p
 Added:
 * ?PATH cheat that shows where the player has been and approximately the time the player has taken (by acquiring the leftmost bit of the board's "Tick" value).

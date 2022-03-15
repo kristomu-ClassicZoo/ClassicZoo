@@ -1591,7 +1591,7 @@ procedure ElementTruePlayerTick;
 
 			if (Board.Info.TimeLimitSec > 0) and (World.Info.Health > 0) then
 				if (GameMove) and (Board.Info.BoardTicks mod 10 = 0) then begin
-					World.Info.BoardTimeSec := World.Info.BoardTimeSec + 1;
+					Inc(World.Info.BoardTimeSec);
 
 					if (Board.Info.TimeLimitSec - 10) = World.Info.BoardTimeSec then begin
 						DisplayMessage(200, ConfigList[54]); {"Running out of time!"}
@@ -2226,6 +2226,7 @@ procedure InitElementsGame;
 									c := UpCase(s[i]);
 									if ((c >= 'A') and (c <= 'Z'))
 										or ((c >= '0') and (c <= '9'))
+										or (c = '-')
 									then
 										k := k + c;
 									Inc(i);

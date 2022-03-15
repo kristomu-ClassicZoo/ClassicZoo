@@ -152,7 +152,7 @@ function ColorNumber(s: string; statId: integer): integer;
 
 		if statId <> -1 then begin
 			if ShortWord(s) then begin
-				OopGetShort(s, shortPtr);
+				OopGetShort(statId, s, shortPtr);
 				if (shortPtr^ >= 0) and (shortPtr^ <= 15) then
 					ColorNumber := shortPtr^;
 			end else if OopGetCounter(statId, s, counterPtr) then begin
@@ -326,8 +326,12 @@ function OopConfigs (i: integer): string;
 			81: OopConfigs := 'FLAG.OBJ.4';
 			82: OopConfigs := 'FLAG.OBJ.5';
 			83: OopConfigs := 'FLAG.OBJ.6';
-			84: OopConfigs := 'WORLD.FLAG';
-			85: OopConfigs := 'WORLD.COUNTER';
+			84: OopConfigs := 'FLAG.OBJ.7';
+			85: OopConfigs := 'FLAG.OBJ.8';
+			86: OopConfigs := 'FLAG.OBJ.9';
+			87: OopConfigs := 'FLAG.OBJ.10';
+			88: OopConfigs := 'WORLD.FLAG';
+			89: OopConfigs := 'WORLD.COUNTER';
 		else OopConfigs := '_nil' end;
 	end;
 
@@ -404,7 +408,7 @@ procedure CustomOOPLoad;
 			Str(i,s);
 			CustomBoardList[i] := 'LOCAL' + s;
 		end; 
-		for i := 1 to 6 do begin
+		for i := 1 to 10 do begin
 			Str(i,s);
 			CustomObjList[i] := 'OBJ' + s;
 		end;
@@ -668,7 +672,7 @@ procedure BoardClose;
 
 		{ We will always have enough size to store the above in the default IoTmpBuf. }
 		{ From here, do size estimation. }
-		iy := (Ofs(ptr^) - Ofs(IoTmpBuf^)) + ((Board.StatCount + 1) * SizeOf(TStat));
+		iy := (Ofs(ptr^) - Ofs(IoTmpBuf^)) + ((Board.StatCount + 1) * TSTAT_OFFSET);
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
@@ -685,8 +689,8 @@ procedure BoardClose;
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
-				Move(Board.Stats[ix], ptr^, SizeOf(TStat));
-				AdvancePointer(ptr, SizeOf(TStat));
+				Move(Board.Stats[ix], ptr^, TSTAT_OFFSET);
+				AdvancePointer(ptr, TSTAT_OFFSET);
 				if DataLen > 0 then begin
 					Move(Data^, ptr^, DataLen);
 					FreeMem(Data, DataLen);
@@ -748,8 +752,8 @@ procedure BoardOpen(boardId: integer);
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
-				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
-				AdvancePointer(ptr, SizeOf(TStat));
+				Move(ptr^, Board.Stats[ix], TSTAT_OFFSET);
+				AdvancePointer(ptr, TSTAT_OFFSET);
 				if DataLen > 0 then begin
 					if MaxAvail < DataLen then begin
 					end;
@@ -1298,8 +1302,10 @@ procedure AddStat(tx, ty: integer; txelement, txcolor: byte; tcycle: integer; te
 					P1 := template.P1;
 					P2 := template.P2;
 					P3 := template.P3;
-					for i := 1 to 4 do
+					for i := 1 to 4 do begin
 						ObjLocal[i] := template.ObjLocal[i];
+						ObjTiny[i] := template.ObjTiny[i];
+					end;
 					Leader := template.Leader;
 					Follower := template.Follower;
 				end;

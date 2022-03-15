@@ -38,7 +38,7 @@ interface
 	function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
 	function OopExecute(statId: integer; var position: integer; name: TString50): boolean;
 	function ShortWord(s: string): boolean;
-	procedure OopGetShort(s: string; var cPtr: cShort);
+	procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
 	function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 	procedure GetBoardStats;
 
@@ -118,6 +118,8 @@ function OopStringToWord(input: TString50): TString50;
 	end;
 
 function ShortWord(s: string): boolean;
+	var
+		i: integer;
 	begin
 		ShortWord := false;
 		if s = OopStringToWord(OOPList[20]) then
@@ -149,10 +151,15 @@ function ShortWord(s: string): boolean;
 		else if s = OopStringToWord(OOPList[44]) then
 			ShortWord := true
 		else if s = OopStringToWord(OOPList[45]) then
-			ShortWord := true;
+			ShortWord := true
+		else
+			for i := 7 to 10 do
+				if s = CustomObjList[i] then ShortWord := true;
 	end;
 
-procedure OopGetShort(s: string; var cPtr: cShort);
+procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
+	var
+		i: integer;
 	begin
 		if s = OopStringToWord(OOPList[20]) then
 			cPtr := @World.Info.Keys[1]
@@ -183,7 +190,11 @@ procedure OopGetShort(s: string; var cPtr: cShort);
 		else if s = OopStringToWord(OOPList[44]) then
 			cPtr := @OPosX
 		else if s = OopStringToWord(OOPList[45]) then
-			cPtr := @OPosY;
+			cPtr := @OPosY
+		else
+			for i := 7 to 10 do
+				if s = CustomObjList[i] then
+					cPtr := @Board.Stats[statId].ObjTiny[i - 6];
 	end;
 
 function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
@@ -286,7 +297,7 @@ procedure OopReadValue(statId: integer; var position: integer);
 					end;
 				end;
 			end else if ShortWord(s) then begin
-				OopGetShort(s, shortPtr);
+				OopGetShort(statId, s, shortPtr);
 				OopValue := shortPtr^;
 			end else if OopGetCounter(statId, s, counterPtr) then
 				OopValue := counterPtr^
@@ -743,7 +754,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				else
 					OopError(statId,position, 'Bad condition');
 			end else if ShortWord(OopWord) then begin
-				OopGetShort(OopWord, shortPtr);
+				OopGetShort(statId, OopWord, shortPtr);
 				ix := position;
 				OopReadWord(statId, position);
 				if (OopWord = 'ABOVE') or ((OopWord = 'BELOW') or (OopWord = 'IS')) then begin
@@ -911,6 +922,10 @@ procedure InspectObjectCode(statId, PointPos: integer; ErrMsg: string);
 				TextWindowAppend(textWindow, CustomObjList[5] + ': ' + s);
 				Str(Follower,s);
 				TextWindowAppend(textWindow, CustomObjList[6] + ': ' + s);
+				for i := 7 to 10 do begin
+					Str(ObjTiny[i - 6],s);
+					TextWindowAppend(textWindow, CustomObjList[i] + ': ' + s);
+				end;
 				s := '';
 				TextWindowAppend(textWindow, '$** Object Data: **');
 			end;
@@ -1091,7 +1106,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopReadWord(statId, position);
 							textLine := OopWord;
 							if ShortWord(OopWord) then begin
-								OopGetShort(OopWord, shortPtr);
+								OopGetShort(statId, OopWord, shortPtr);
 								OopReadValue(statId, position);
 								if OopValue <> -128 then
 									shortPtr^ := OopValue
@@ -1117,7 +1132,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopReadWord(statId, position);
 							textLine := OopWord;
 							if ShortWord(OopWord) then begin
-								OopGetShort(OopWord, shortPtr);
+								OopGetShort(statId, OopWord, shortPtr);
 								shortPtr^ := 0;
 								GameUpdateSidebar;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
@@ -1262,7 +1277,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							textLine := OopWord;
 
 							if ShortWord(OopWord) then begin
-								OopGetShort(OopWord, shortPtr);
+								OopGetShort(statId, OopWord, shortPtr);
 								code := position;
 								OopReadValue(statId, position);
 								if OopValue = -128 then begin
