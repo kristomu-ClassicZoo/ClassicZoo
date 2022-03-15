@@ -1,3 +1,9 @@
+3/15/2022: 2.6
+Bugs Fixed:
+* SoftWeave: the 'Pushable' attribute in .CFG files did not lead to elements being pushable.
+* SoftWeave: Some CFG element definitions did not read negative numbers.
+
+
 3/9/2022: 2.6
 Bugs Fixed:
 * Some CFG element definitions (like .cycle) did not read negative numbers.

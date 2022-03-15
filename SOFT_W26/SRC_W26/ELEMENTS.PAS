@@ -2147,6 +2147,7 @@ procedure InitElementsGame;
 									c := UpCase(s[i]);
 									if ((c >= 'A') and (c <= 'Z'))
 										or ((c >= '0') and (c <= '9'))
+										or (c = '-')
 									then
 										k := k + c;
 									Inc(i);
@@ -2163,9 +2164,11 @@ procedure InitElementsGame;
 										ElementDefs[q].Color := AsColor(ElementDefs[q].Color and $0F, v)
 									else if l = 'DESTRUCTIBLE' then
 										ElementDefs[q].Destructible := k = 'TRUE'
-									else if l = 'PUSHABLE' then
-										ElementDefs[q].Pushable := k = 'TRUE'
-									else if l = 'VISIBLEINDARK' then
+									else if l = 'PUSHABLE' then begin
+										ElementDefs[q].Pushable := k = 'TRUE';
+										if k = 'TRUE' then
+											ElementDefs[q].TouchProc := ElementPushableTouch;
+									end else if l = 'VISIBLEINDARK' then
 										ElementDefs[q].VisibleInDark := k = 'TRUE'
 									else if l = 'PLACEABLEONTOP' then
 										ElementDefs[q].PlaceableOnTop := k = 'TRUE'
