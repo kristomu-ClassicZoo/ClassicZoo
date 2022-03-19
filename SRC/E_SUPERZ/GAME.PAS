@@ -962,6 +962,15 @@ procedure GameUpdateSidebar;
 				VideoWriteText(11 - Length(numStr), 22, $6E, numStr);
 			end;
 
+			if (not HighCompat) and (Board.Info.TimeLimitSec > 0) then begin
+				VideoWriteText(2, 23, $6F, 'Time ');
+				Str(Board.Info.TimeLimitSec - World.Info.BoardTimeSec, numStr);
+				VideoWriteText(7, 23, $6E, '   ');
+				VideoWriteText(11 - Length(numStr), 23, $6E, numStr);
+			end else begin
+				VideoWriteText(2, 23, $6E, '        ');
+			end;
+
 			for i := 1 to 7 do begin
 				if World.Info.Keys[i] then
 					drawnChar := ElementDefs[E_KEY].Character

@@ -1231,9 +1231,11 @@ procedure EditorLoop;
 {$IFDEF SDL2}
 					LongIntToHex(UnusedData, numStr);
 					AppendAction(LLEditNone, ' Ptr bytes: ', numStr);
+{$IFDEF E_ZZT}
 					LongIntToHex(Unused1, numStr);
 					LongIntToHex(Unused2, numStr2);
 					AppendAction(LLEditNone, ' Ext bytes: ', numStr + ' ' + numStr2);
+{$ENDIF}
 					AppendAction(LLEditNone, '', '');
 {$ENDIF}
 					if Board.StatCount > 0 then begin
