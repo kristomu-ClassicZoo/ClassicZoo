@@ -1,3 +1,44 @@
+3/18/2022: 2.6rc2
+Removed:
+* Object counter 10 ('OBJ10')
+* Removed the following configuration options from the INI file:
+  OOP.CMD.BOARD
+  OOP.CMD.STEP
+  OOP.CMD.COLOR
+  OOP.CMD.SHOVE
+  OOP.CMD.EDGE
+  OOP.CMD.LOAD
+  OOP.CMD.DUPLICATE
+  OOP.CMD.BGPLAY
+  OOP.CMD.QUICKLOAD
+  OOP.CMD.QUICKSAVE
+  OOP.CMD.PLAYER
+  OOP.CMD.PALETTE
+  OOP.COND.DETECT
+  OOP.COND.RND
+  OOP.COND.AT
+  OOP.COND.WITHIN
+  OOP.COND.COLOR
+  OOP.DIR.BY
+  OOP.DIR.AT
+  OOP.DIR.TOWARD
+  OOP.DIR.PLAYER
+  OOP.DIR.TO
+  OOP.DIR.FIND
+* #DROP [name:]<link> is removed.
+  It is now #ZAP ![name:]<link>
+* #LIFT [name:]<link> is removed.
+  It is now #RESTORE ![name:]<link>
+
+Improved:
+* When working with text, you can now #color <dir> <char> to change text to a specific character, or #put <dir> <char> <element> to place a specific character.
+* Updated the documentation related to local object counters.
+* Cleaned up the example .INI files.
+
+Added:
+* #ELSE command that will execute the code that follows provided the most recent #IF condition run by that object failed.
+
+
 3/15/2022: 2.6
 Bugs Fixed:
 * SoftWeave: the 'Pushable' attribute in .CFG files did not lead to elements being pushable.

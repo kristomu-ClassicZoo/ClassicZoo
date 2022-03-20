@@ -1172,7 +1172,7 @@ procedure ElementPassageTouch(x, y: integer; sourceStatId: integer; var deltaX, 
 		BoardPassageTeleport(x, y);
 		deltaX := 0;
 		deltaY := 0;
-		if OopSend(0, 'ALL:' + OOPList[28], false) then begin end;
+		if OopSend(0, 'ALL:' + Ooplist[1], false) then begin end;
 	end;
 
 procedure ElementDoorTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -1332,7 +1332,7 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 				deltaX := 0;
 				deltaY := 0;
 				BoardEnter;
-				if OopSend(0, 'ALL:' + OOPList[28], false) then begin end;
+				if OopSend(0, 'ALL:' + Ooplist[1], false) then begin end;
 			end else begin
 				BoardChange(boardId);
 			end;

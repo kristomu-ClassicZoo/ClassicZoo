@@ -1,4 +1,4 @@
-# Weave ZZT 2.5
+# Weave ZZT 2.6
 
 Unlike previous versions of Weave, this version really is meant to be the forever version.
 
@@ -6,7 +6,7 @@ Designed with the full scope of the ZZTer audience in mind, this version hopes t
 
 ## Using
 
-The DOS executables provided in BIN are already ready to take on ZZT. With your own copy of Turbo Pascal 5.5, you can compile both executables yourself using the BUILDW20.BAT files provided in the different subdirectories.
+The DOS executables provided in BIN are already ready to take on ZZT. With your own copy of Turbo Pascal 5.5, you can compile both executables yourself using the BUILDW26.BAT files provided in the different subdirectories.
 
 ## SOFT and FIRM weaves
 
@@ -29,7 +29,6 @@ There are a few different kinds of files found in this project:
     * Custom element parameters.
     * Custom game settings.
 * INI files contain:
-    * Custom commands.
     * Custom flags and counters.
     * Custom keybinds.
 * BAT files
@@ -48,7 +47,7 @@ There are a few different kinds of files found in this project:
 
 Below are listed the files in the various folders of the project.
 
-### SOFT_W25 directory
+### SOFT_W26 directory
 
 * DOC
     * ABOUT.HLP
@@ -56,7 +55,7 @@ Below are listed the files in the various folders of the project.
 * TOOLS
     * DATPACK.PAS, etc.
         * For making ZZT.DAT and shrinking ZZT.EXE.
-* SRC_W25
+* SRC_W26
     * ALL .PAS FILES (ELEMENTS.PAS, EXTMEM.PAS, etc.)
         * Forked from the ZZT Reconstruction and ClassicZoo.
         * Reconstruction: github.com/asiekierka/reconstruction-of-zzt
@@ -69,7 +68,7 @@ Below are listed the files in the various folders of the project.
         * Basic parameters file with common options.
     * EXTENDED.CFG
         * Extended parameters file with more options.
-* BUILDW25.BAT
+* BUILDW26.BAT
     * Used in DOS or DOSBox to build SoftWeave from source.
 * LICENSE.TXT
     * MIT License, required by reconstruction-of-zzt.
@@ -78,12 +77,12 @@ Below are listed the files in the various folders of the project.
 * SOFTDEMO.ZZT
     * The SoftWeave demo file.
 
-### FIRM_W25 directory
+### FIRM_W26 directory
 
 * TOOLS
     * LZEXE.EXE, LZEXE.DOC
         * For shrinking ZZT.EXE.
-* SRC_W25
+* SRC_W26
     * ALL .PAS FILES (ELEMENTS.PAS, EXTMEM.PAS, etc.)
         * Forked from the ZZT Reconstruction and ClassicZoo.
         * Reconstruction: github.com/asiekierka/reconstruction-of-zzt
@@ -96,17 +95,15 @@ Below are listed the files in the various folders of the project.
         * Custom bullets from the FirmWeave demo.
     * FIRMDEMO.CFG
         * Element parameters for the FirmWeave demo.
-    * FIRMDEMO.INI
-        * Command and key definitions for the FirmWeave demo.
     * TEMPLATE.CFG
         * Basic parameters file with common options.
-    * TEMPLATE.INI
-        * Code and Keybinds file with few enabled options.
     * EXTENDED.CFG
         * Extended parameters file with more options.
-    * EXTENDED.INI
-        * Code and Keybinds file with all options provided.
-* BUILDW25.BAT
+    * FIRMDEMO.INI
+        * Counters and Keybinds for the FirmWeave demo.
+    * TEMPLATE.INI
+        * Standard Counters and Keybinds template file.
+* BUILDW26.BAT
     * Used in DOS or DOSBox to build FirmWeave from source.
 * LICENSE.TXT
     * MIT License, required by reconstruction-of-zzt.

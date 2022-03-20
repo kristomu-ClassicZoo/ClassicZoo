@@ -49,11 +49,11 @@ interface
 		PALETTE_START = 22;
 		PARAM_FILE_COUNT = 69;
 		{.INI FILE}
-		CUSTOM_OOP_COUNT = 45;
+		CUSTOM_OOP_COUNT = 19;
 		CUSTOM_KEY_COUNT = 24;
 		CUSTOM_LOCAL_OFFSET = CUSTOM_OOP_COUNT + CUSTOM_KEY_COUNT + 1;
 		CUSTOM_OBJ_OFFSET = CUSTOM_LOCAL_OFFSET + 7;
-		CUSTOM_COUNTER_OFFSET = CUSTOM_OBJ_OFFSET + 11;
+		CUSTOM_COUNTER_OFFSET = CUSTOM_OBJ_OFFSET + 10;
 		CUSTOM_FLAG_COUNT = 64;
 	type
 		TString50 = string[50];
@@ -105,7 +105,8 @@ interface
 			Follower: integer;
 			Leader: integer;
 			Under: TTile;
-			ObjTiny: array[1 .. 4] of shortint;
+			ObjTiny: array[1 .. 3] of shortint;
+			elseCheck: boolean;
 			DataPos: integer;
 			DataLen: integer;
 			ObjLocal: array[1 .. 4] of integer;
