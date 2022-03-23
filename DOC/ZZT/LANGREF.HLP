@@ -387,13 +387,21 @@ first occurence of a label.  For example:
      "You touched me again."
      #END
 
+     Just like with #SEND, #ZAP can be
+used to disable occurences of labels
+in other programs, using a similar
+syntax:
+
+#ZAP <objectname>:<message>
 
 :restore;#RESTORE message
 
      Changes all ZAPped labels back into
 normal labels. Then, on subsequent calls
 to the label, the original one will be
-called instead of a secondary one.
+called instead of a secondary one. Just
+like with #SEND and #ZAP, #RESTORE can
+be called on a different program.
 
 
 :lock;#LOCK
