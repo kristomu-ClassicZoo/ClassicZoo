@@ -42,6 +42,7 @@ interface
 		AudioSimSoundBuffer: string;
 		AudioSimSoundBufferPos: integer;
 		AudioSimulationAllowed: boolean;
+		AudioSimPlayerStep: boolean;
 	{ Volume range: 0-127 }
 	function AudioGetVolume: byte;
 	procedure AudioSetVolume(volume: byte);
@@ -67,6 +68,7 @@ var
 	CurrentNote: Int32;
 	CurrentNotePos: Uint32;
 	CurrentNoteMax: Uint32;
+	AudioSimPlayerStepCounter: Uint8;
 
 function AudioGetVolume: byte;
 	begin
@@ -93,6 +95,7 @@ procedure AudioSetVolume(volume: byte);
 
 procedure AudioSimulateClear;
 	begin
+		AudioSimPlayerStep := false;
 		CurrentNote := -1;
 	end;
 
@@ -243,7 +246,15 @@ procedure AudioSimulate(stream: TAudioSampleArray; len: Int32);
 			CurrentNote := -1;
 			for i := 0 to len - 1 do
 				stream[i] := AudioSampleNone;
+			if AudioSimPlayerStep then begin
+				AudioSimPlayerStep := false;
+				Inc(AudioSimPlayerStepCounter);
+				if (len >= 1) and ((AudioSimPlayerStepCounter and 4) = 0) then begin
+					stream[0] := AudioSampleMin;
+				end;
+			end;
 		end else begin
+			AudioSimPlayerStep := false;
 			pos := 0;
 			while pos < len do begin
 				if CurrentNote < 0 then begin

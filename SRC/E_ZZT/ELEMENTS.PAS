@@ -45,7 +45,7 @@ uses
 {$IFDEF UISCBACK} UiScBack, {$ENDIF}
 {$IFDEF PLAYSTEP} {$IFDEF MSDOS}
 {$IFDEF NEC98} Pc98, {$ELSE} Crt, {$ENDIF}
-{$ENDIF} {$ENDIF}
+{$ENDIF} {$IFDEF SDL2} AudioSim, {$ENDIF} {$ENDIF}
 ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, GameConf, Sidebar, Cheats, GameSh, Game;
 
 const
@@ -1502,19 +1502,27 @@ procedure ElementPlayerTick(statId: integer);
 				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
 					if PlayerStepEnabled then
 						if SoundEnabled and not SoundIsPlaying then
+{$IFDEF SDL2}
+							AudioSimPlayerStep := true;
+{$ELSE}
 							Sound(110);
+{$ENDIF}
 					if (ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].Walkable)
 {$IFDEF EXTCHEAT}
 					or (CheatNoClip and (Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element <> E_BOARD_EDGE))
 {$ENDIF}
 					then begin
+{$IFNDEF SDL2}
 						if PlayerStepEnabled then
 							if SoundEnabled and not SoundIsPlaying then
 								NoSound;
+{$ENDIF}
 
 						MoveStat(0, X + InputDeltaX, Y + InputDeltaY);
+{$IFNDEF SDL2}
 					end else if PlayerStepEnabled and SoundEnabled and not SoundIsPlaying then begin
 						NoSound;
+{$ENDIF}
 					end;
 				end;
 			end;

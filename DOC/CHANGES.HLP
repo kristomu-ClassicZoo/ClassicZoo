@@ -8,8 +8,8 @@ Legend:
 
 $< ClassicZoo dev >
 
-+ [MS-DOS/PC-98] Restored the player step
-  as an opt-in configuration option.
++ Restored the player step as an opt-in
+  configuration option.
 + Editor improvements.
   + The unused stat/board/world bytes are
     now preserved on save/load.

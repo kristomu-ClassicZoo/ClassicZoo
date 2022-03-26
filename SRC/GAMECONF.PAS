@@ -382,22 +382,6 @@ function ConfigSoundShowValue: string;
 		ConfigSoundShowValue := ConfigShowOnOffValue(SoundEnabled);
 	end;
 
-function ConfigPlayStepGetValue: integer;
-	begin
-		ConfigPlayStepGetValue := Byte(PlayerStepEnabled);
-	end;
-
-procedure ConfigPlayStepSetValue(value: integer);
-	begin
-		if value > 1 then value := 0;
-		PlayerStepEnabled := Boolean(value);
-	end;
-
-function ConfigPlayStepShowValue: string;
-	begin
-		ConfigPlayStepShowValue := ConfigShowOnOffValue(PlayerStepEnabled);
-	end;
-
 function ConfigVideoBlinkGetValue: integer;
 	begin
 		ConfigVideoBlinkGetValue := Byte(VideoBlink);
@@ -419,6 +403,24 @@ function ConfigVideoBlinkShowValue: string;
 {$ELSE}
 			ConfigVideoBlinkShowValue := 'Disabled (High Colors)';
 {$ENDIF}
+	end;
+{$ENDIF}
+
+{$IFDEF PLAYSTEP}
+function ConfigPlayStepGetValue: integer;
+	begin
+		ConfigPlayStepGetValue := Byte(PlayerStepEnabled);
+	end;
+
+procedure ConfigPlayStepSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		PlayerStepEnabled := Boolean(value);
+	end;
+
+function ConfigPlayStepShowValue: string;
+	begin
+		ConfigPlayStepShowValue := ConfigShowOnOffValue(PlayerStepEnabled);
 	end;
 {$ENDIF}
 
