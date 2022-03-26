@@ -74,6 +74,11 @@ This option controls how quickly the
 animation of text windows opening and
 closing plays.
 
+:eplrstep;[ Player steps ]
+
+This option controls the sound of the
+player stepping during movement.
+
 :frontend;=== Frontend ===
 
 :fvidmono;[ Video ]

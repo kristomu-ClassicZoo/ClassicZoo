@@ -43,6 +43,9 @@ implementation
 uses
 {$IFDEF DEBUGWND} DebugWnd, {$ENDIF}
 {$IFDEF UISCBACK} UiScBack, {$ENDIF}
+{$IFDEF PLAYSTEP} {$IFDEF MSDOS}
+{$IFDEF NEC98} Pc98, {$ELSE} Crt, {$ENDIF}
+{$ENDIF} {$ENDIF}
 ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, GameConf, Sidebar, Cheats, GameSh, Game;
 
 const
@@ -1497,25 +1500,21 @@ procedure ElementPlayerTick(statId: integer);
 				ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].TouchProc(
 					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					{$IFDEF PLAYSTEP}
-					if SoundEnabled and not SoundIsPlaying then
-						Sound(110);
-					{$ENDIF}
+					if PlayerStepEnabled then
+						if SoundEnabled and not SoundIsPlaying then
+							Sound(110);
 					if (ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].Walkable)
 {$IFDEF EXTCHEAT}
 					or (CheatNoClip and (Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element <> E_BOARD_EDGE))
 {$ENDIF}
 					then begin
-						{$IFDEF PLAYSTEP}
-						if SoundEnabled and not SoundIsPlaying then
-							NoSound;
-						{$ENDIF}
+						if PlayerStepEnabled then
+							if SoundEnabled and not SoundIsPlaying then
+								NoSound;
 
 						MoveStat(0, X + InputDeltaX, Y + InputDeltaY);
-					{$IFDEF PLAYSTEP}
-					end else if SoundEnabled and not SoundIsPlaying then begin
+					end else if PlayerStepEnabled and SoundEnabled and not SoundIsPlaying then begin
 						NoSound;
-					{$ENDIF}
 					end;
 				end;
 			end;

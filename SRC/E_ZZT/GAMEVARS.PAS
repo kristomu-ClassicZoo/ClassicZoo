@@ -67,6 +67,9 @@ interface
 		MAX_BOARD_NAME_LENGTH = 42;
 		MAX_HIGH_SCORE_NAME_LENGTH = 34;
 		EditorPatternCount = 6;
+{$IFNDEF PLAYSTEP}
+		PlayerStepEnabled = false;
+{$ENDIF}
 	type
 		TString50 = string[50];
 		TSmallString = string[50];
@@ -351,6 +354,9 @@ interface
 
 		WorldExt: TWorldExt;
 
+{$IFDEF PLAYSTEP}
+		PlayerStepEnabled: boolean;
+{$ENDIF}
 {$IFDEF EXTCHEAT}
 		CheatColorModifiers: array[0 .. MAX_ELEMENT] of byte;
 		CheatCharModifiers: array[0 .. MAX_ELEMENT] of char;

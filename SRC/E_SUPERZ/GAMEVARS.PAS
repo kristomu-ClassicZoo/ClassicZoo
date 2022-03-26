@@ -68,6 +68,10 @@ interface
 		{ UI-only }
 		MAX_BOARD_NAME_LENGTH = 42;
 		MAX_HIGH_SCORE_NAME_LENGTH = 15;
+		EditorPatternCount = 6;
+{$IFNDEF PLAYSTEP}
+		PlayerStepEnabled = false;
+{$ENDIF}
 	type
 		TString50 = string[50];
 		TSmallString = string[60];
@@ -310,8 +314,7 @@ interface
 		IoTmpBuf: pointer;
 
 		ElementDefs: array[0 .. MAX_ELEMENT] of TElementDef;
-		EditorPatternCount: integer;
-		EditorPatterns: array[1 .. 10] of byte;
+		EditorPatterns: array[1 .. EditorPatternCount] of byte;
 
 		TickTimeDuration: integer;
 		CurrentTick: integer;
@@ -349,6 +352,9 @@ interface
 {$IFDEF DEBUGWND}
 		DebugCompatEnabled: boolean;
 		DebugUndefEnabled: boolean;
+{$ENDIF}
+{$IFDEF PLAYSTEP}
+		PlayerStepEnabled: boolean;
 {$ENDIF}
 {$IFDEF EXTCHEAT}
 		CheatColorModifiers: array[0 .. MAX_ELEMENT] of byte;

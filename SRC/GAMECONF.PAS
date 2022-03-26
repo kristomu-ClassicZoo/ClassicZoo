@@ -78,6 +78,11 @@ interface
 	function ConfigSoundGetValue: integer;
 	procedure ConfigSoundSetValue(value: integer);
 	function ConfigSoundShowValue: string;
+{$IFDEF PLAYSTEP}
+	function ConfigPlayStepGetValue: integer;
+	procedure ConfigPlayStepSetValue(value: integer);
+	function ConfigPlayStepShowValue: string;
+{$ENDIF}
 {$ENDIF}
 
 implementation
@@ -375,6 +380,22 @@ procedure ConfigSoundSetValue(value: integer);
 function ConfigSoundShowValue: string;
 	begin
 		ConfigSoundShowValue := ConfigShowOnOffValue(SoundEnabled);
+	end;
+
+function ConfigPlayStepGetValue: integer;
+	begin
+		ConfigPlayStepGetValue := Byte(PlayerStepEnabled);
+	end;
+
+procedure ConfigPlayStepSetValue(value: integer);
+	begin
+		if value > 1 then value := 0;
+		PlayerStepEnabled := Boolean(value);
+	end;
+
+function ConfigPlayStepShowValue: string;
+	begin
+		ConfigPlayStepShowValue := ConfigShowOnOffValue(PlayerStepEnabled);
 	end;
 
 function ConfigVideoBlinkGetValue: integer;
@@ -729,6 +750,7 @@ function ConfigInputCustomAction: boolean;
 const
 	ConfigEntryCount = 8
 	{$IFDEF MSDOS} + 3 {$ENDIF}
+	{$IFDEF PLAYSTEP} + 1 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF DEBUGWND} + 3 {$ENDIF}
 	{$IFDEF UISCBACK} + 1 {$ENDIF}
@@ -908,6 +930,17 @@ procedure GameConfigInit;
 			GetValue := ConfigVideoBlinkGetValue;
 			SetValue := ConfigVideoBlinkSetValue;
 			ShowValue := ConfigVideoBlinkShowValue;
+		end;
+		Inc(i);
+{$ENDIF}
+{$IFDEF PLAYSTEP}
+		with ConfigEntries[i] do begin
+			Category := CCEngine;
+			Key := 'EPlrStep';
+			Name := 'Player steps';
+			GetValue := ConfigPlayStepGetValue;
+			SetValue := ConfigPlayStepSetValue;
+			ShowValue := ConfigPlayStepShowValue;
 		end;
 		Inc(i);
 {$ENDIF}

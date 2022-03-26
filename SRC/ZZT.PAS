@@ -133,6 +133,9 @@ begin
 	EditorEnabled := true;
 	InputInitDevices;
 
+{$IFDEF PLAYSTEP}
+	PlayerStepEnabled := false;
+{$ENDIF}
 {$IFDEF FASTVID}
 	TransitionBlocksPerFrame := 32767;
 	TransitionTextWindowDelay := {$IFDEF HASAMIGA} 0 {$ELSE} 25 {$ENDIF};
