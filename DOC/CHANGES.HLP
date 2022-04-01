@@ -11,6 +11,8 @@ $< ClassicZoo dev >
 + Added the ?ENERGIZE cheat.
 + Restored the player step as an opt-in
   configuration option.
++ [SDL2] Add ability to sort the Museum
+  of ZZT view by new releases/additions.
 + Editor improvements.
   + The unused stat/board/world bytes are
     now preserved on save/load.

@@ -496,6 +496,8 @@ var
 			TextWindowAppend(textWindow, '!$genre;Search by genre');
 			TextWindowAppend(textWindow, '');
 			TextWindowAppend(textWindow, '!@REC_%ENGINE%;Recommended worlds');
+			TextWindowAppend(textWindow, '!$new;New releases');
+			TextWindowAppend(textWindow, '!$newpub;New additions');
 			TextWindowAppend(textWindow, '!$all;Browse all files');
 			TextWindowAppend(textWindow, '');
 			TextWindowAppend(textWindow, '       Visit the Museum of ZZT at:');
@@ -509,6 +511,16 @@ var
 					running := false;
 				end else if textWindow.Hyperlink = '$all' then begin
 					NewSearchQuery;
+					searchActive := true;
+					searchRequested := true;
+				end else if textWindow.Hyperlink = '$newpub' then begin
+					NewSearchQuery;
+					searchQuery.Sort := 'published';
+					searchActive := true;
+					searchRequested := true;
+				end else if textWindow.Hyperlink = '$new' then begin
+					NewSearchQuery;
+					searchQuery.Sort := '-release';
 					searchActive := true;
 					searchRequested := true;
 				end else if textWindow.Hyperlink = '$title' then begin
