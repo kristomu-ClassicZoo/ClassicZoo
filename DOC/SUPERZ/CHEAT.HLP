@@ -39,6 +39,8 @@ Z [x]       | Add stones.
 NOZ         | Remove stones.
 TIME [x]    | Add time.
 GEMS [x]    | Add gems.
+ENERGIZE [x]| Energize the
+            | player.
 ZAP         | Zap tiles.
 (NO)BLINK   | Toggle video
             | card blink.

@@ -207,6 +207,8 @@ procedure GameDebugPrompt;
 {$IFDEF E_ZZT}
 			end else if DebugPromptStarts(input, 'TORCHES') then begin
 				Inc(World.Info.Torches, DebugPromptParseInt(input, 7, 3) * isYesMultiplier);
+			end else if DebugPromptStarts(input, 'ENERGIZE') then begin
+				Inc(World.Info.EnergizerTicks, DebugPromptParseInt(input, 8, 75) * isYesMultiplier);
 {$ELSE}
 			end else if DebugPromptStarts(input, 'Z') then begin
 				if isYes then Inc(World.Info.StonesOfPower, DebugPromptParseInt(input, 1, 1))

@@ -29,6 +29,7 @@ AMMO [x]    | Add [x] ammo. (Def. 5)
 KEYS        | Add all keys.
 KEYS [col]  | Add a key of color [col].
 TORCHES [x] | Add [x] torches. (Def. 3)
+ENERGIZE [x]| Energize the player.
 TIME [x]    | Add [x] time. (Def. 30)
 GEMS [x]    | Add [x] gems. (Def. 5)
 ZAP         | Remove neighboring tiles.
