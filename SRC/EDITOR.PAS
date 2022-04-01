@@ -1891,9 +1891,9 @@ procedure EditorLoop;
 			end;
 		end;
 
-	procedure EditorCopyCopyBuffer(ox1, oy1, ox2, oy2: integer; doCut: boolean);
+	procedure EditorCopyCopyBuffer(ox1, oy1, ox2, oy2: integer; doCopy, doCut: boolean);
 		var
-			ix, iy, ip, ist, tx, ty: integer;
+			ix, iy, ip, ist, tx, ty, iw, ih: integer;
 		begin
 			EditorFreeCopyBuffer;
 			if ox2 < ox1 then begin
@@ -1907,12 +1907,15 @@ procedure EditorLoop;
 				oy2 := ix;
 			end;
 
-			with copyBuffer do begin
-				Dec(ox1);
-				Dec(oy1);
+			Dec(ox1);
+			Dec(oy1);
 
-				width := ox2 - ox1;
-				height := oy2 - oy1;
+			iw := ox2 - ox1;
+			ih := oy2 - oy1;
+
+			if doCopy then with copyBuffer do begin
+				width := iw;
+				height := ih;
 				statCount := 0;
 
 				{ Copy - Tiles }
@@ -1971,14 +1974,15 @@ procedure EditorLoop;
 						for ix := 1 to width do
 							EditorPlaceTile(ox1 + ix, oy1 + iy);
 				end;
-
-				EditorRefreshCopyBuffer(ox1, oy1, width, height);
 			end;
+
+			EditorRefreshCopyBuffer(ox1, oy1, iw, ih);
 		end;
 
 	procedure EditorSelectAndCopyCopyBuffer(ox1, oy1: integer; doCut: boolean);
 		var
 			ix, iy, oldCx, oldCy: integer;
+			doCopy: boolean;
 			running: boolean;
 		procedure InvertLocal;
 			begin
@@ -1986,6 +1990,7 @@ procedure EditorLoop;
 			end;
 		begin
 			running := true;
+			doCopy := false;
 
 			oldCx := cursorX;
 			oldCy := cursorY;
@@ -2006,16 +2011,17 @@ procedure EditorLoop;
 
 				case InputKeyPressed of
 					KEY_ESCAPE: begin
-						EditorDrawBufferState;
 						running := false;
 					end;
 					KEY_ENTER: begin
-						EditorCopyCopyBuffer(ox1, oy1, oldCx, oldCy, doCut);
-						EditorDrawBufferState;
+						doCopy := true;
 						running := false;
 					end;
 				end;
 			end;
+
+			EditorCopyCopyBuffer(ox1, oy1, oldCx, oldCy, doCopy, doCut);
+			EditorDrawBufferState;
 
 			if cursorX > ox1 then cursorX := ox1;
 			if cursorY > oy1 then cursorY := oy1;
@@ -2615,12 +2621,17 @@ PlacementDone:
 					end;
 					KEY_CTRL_S: begin
 						i := EditorSelectStat('Stats', 0, false, false, false, true);
-						if (not TextWindowRejected) and EditorLowLevelEnable then
+						if (not TextWindowRejected) then begin
 							with Board.Stats[i] do begin
-								EditorEditTileLowLevel(X, Y, i);
+								if EditorLowLevelEnable then begin
+									EditorEditTileLowLevel(X, Y, i);
+								end else begin
+									EditorEditStat(i);
+								end;
 								TransitionDrawToBoard;
 								EditorDrawSidebar;
 							end;
+						end;
 					end;
 					{$IFDEF E_SUPERZ}'O'{$ELSE}'A'{$ENDIF}: begin
 						GameOptionsScreen(false);

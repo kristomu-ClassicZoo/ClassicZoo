@@ -18,6 +18,11 @@ $< ClassicZoo dev >
     now preserved on save/load.
   + Low-level stat information now shows
     the unused byte values.
+  * The stat list now allows editing
+    object code even if "Low-level edit"
+    is not enabled.
+  / Fixed board not refreshing upon
+    exiting copy/cut without copying.
 + The Time counter is now shown in
   Super ZZT mode in "Normal" compat
   mode.
