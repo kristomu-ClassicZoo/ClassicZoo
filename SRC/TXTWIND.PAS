@@ -27,7 +27,7 @@
 {$V-}
 
 {$IFDEF FPC}
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 {$PACKRECORDS 1}
 {$ENDIF}
 {$ENDIF}
@@ -1069,7 +1069,7 @@ function ResourceDataCheckPresent: boolean;
 			AssignFSys(f, ResourceDataFileName);
 			Reset(f, 1);
 			if IOResult = 0 then begin
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 				BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
 {$ELSE}
 				BlockRead(f, ResourceDataHeader.Version, SizeOf(ResourceDataHeader.Version));

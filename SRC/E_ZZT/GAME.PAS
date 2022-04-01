@@ -75,7 +75,7 @@ const
 		Cycle: 0; P1: 0; P2: 0; P3: 0;
 		Follower: -1; Leader: -1;
                 Under: (Element: E_EMPTY; Color: $00);
-	{$IFDEF RAWSTRUCTS}
+	{$IFDEF RAWMEM}
         {$IFDEF CPU64}
                 UnusedData: 0; DataPos: 0; DataLen: 0; Unused1: 0; Unused2: 0; Data: nil
         {$ELSE}
@@ -90,7 +90,7 @@ const
 implementation
 uses
 {$IFDEF DEBUGWND} DebugWnd, {$ENDIF}
-{$IFNDEF RAWSTRUCTS} GameVSer, {$ENDIF}
+{$IFNDEF RAWMEM} GameVSer, {$ENDIF}
 {$IFDEF WEBBROW} WebBrow, {$ENDIF}
 {$IFDEF UISCBACK} UiScBack, {$ENDIF}
 Dos, GameSh, Cheats, GameIo,
@@ -375,7 +375,7 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 					exit;
 				end;
 
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));
 {$ELSE}
@@ -471,7 +471,7 @@ procedure WorldSave(filename, extension: TString50);
 			World.BoardCount := LEtoN(World.BoardCount);
 {$ENDIF}
 
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 			Move(World.Info, ptr^, SizeOf(World.Info));
 			AdvancePointer(ptr, SizeOf(World.Info));
 {$ELSE}

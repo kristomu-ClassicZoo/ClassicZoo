@@ -105,7 +105,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 		searching: boolean;
 		i, iSortStart: integer;
 		startLinePos: integer;
-{$IFDEF SUBDIRS}
+{$IFNDEF NODIRS}
 		lastDirLinePos: integer;
 		startPath: TFilenameString;
 {$ENDIF}
@@ -116,7 +116,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 {$IFDEF ADVFILES}
 		multiExtension := ANSIContainsText(extension, ';');
 {$ENDIF}
-{$IFDEF SUBDIRS}
+{$IFNDEF NODIRS}
 		GetDir(0, startPath);
 {$ENDIF}
 		startLinePos := cachedLinePos;
@@ -127,7 +127,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 
 		while searching do begin
 			TextWindowInitState(textWindow);
-{$IFDEF SUBDIRS}
+{$IFNDEF NODIRS}
 			GetDir(0, curPath);
 
 			i := PATH_PREVIEW_LENGTH;
@@ -146,7 +146,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 
 
 {$IFDEF ADVFILES}
-{$IFDEF SUBDIRS}
+{$IFNDEF NODIRS}
 			{ .. }
 			if ExpandFileName(curPath) <> ExpandFileName(IncludeTrailingPathDelimiter(curPath) + '..') then
 				TextWindowAppend(textWindow, '!..;[..]');
@@ -203,7 +203,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 			until FindNext(fileSearchRec) <> 0;
 			FindClose(fileSearchRec);
 {$ELSE}
-{$IFDEF SUBDIRS}
+{$IFNDEF NODIRS}
 			{ .. }
 			if Length(curPath) > 3 then
 				TextWindowAppend(textWindow, '!..;[..]');
@@ -254,7 +254,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 				FileSelect := '';
 				searching := false;
 				cachedLinePos := startLinePos;
-{$IFDEF SUBDIRS}
+{$IFNDEF NODIRS}
 				ChDir(startPath);
 			end else if textWindow.LinePos <= lastDirLinePos then begin
 				{ Directory }
@@ -267,7 +267,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 				FileSelect := entryName;
 				searching := false;
 
-{$IFDEF SUBDIRS}
+{$IFNDEF NODIRS}
 				if startPath <> curPath then
 					ResetCachedLinePos;
 				cachedLinePos := textWindow.LinePos;

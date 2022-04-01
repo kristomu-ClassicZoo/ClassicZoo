@@ -43,14 +43,14 @@ implementation
 uses
 {$IFDEF DEBUGWND} DebugWnd, {$ENDIF}
 {$IFDEF UISCBACK} UiScBack, {$ENDIF}
-{$IFDEF PLAYSTEP} {$IFDEF MSDOS}
+{$IFDEF MSDOS}
 {$IFDEF NEC98} Pc98, {$ELSE} Crt, {$ENDIF}
-{$ENDIF} {$IFDEF SDL2} AudioSim, {$ENDIF} {$ENDIF}
+{$ENDIF} {$IFDEF SDL2} AudioSim, {$ENDIF}
 GameConf, ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, Cheats, GameSh, Game;
 
 const
 	ForestSoundTable: array[0 .. 7] of byte = ($45, $40, $47, $50, $46, $41, $48, $51);
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 	TransporterNSChars: string = '^~^-v_v-';
 	TransporterEWChars: string = '(<('#179')>)'#179;
 	StarAnimChars: string = #179'/'#196'\';
@@ -1633,6 +1633,7 @@ procedure ElementPlayerTick(statId: integer);
 				ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].TouchProc(
 					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+{$IFDEF PLAYSTEP}
 					if PlayerStepEnabled then
 						if SoundEnabled and not SoundIsPlaying then
 {$IFDEF SDL2}
@@ -1640,20 +1641,25 @@ procedure ElementPlayerTick(statId: integer);
 {$ELSE}
 							Sound(110);
 {$ENDIF}
+{$ENDIF}
 					if ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].Walkable
 {$IFDEF EXTCHEAT}
 					or (CheatNoClip and (Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element <> E_BOARD_EDGE))
 {$ENDIF}
 					then begin
+{$IFDEF PLAYSTEP}
 {$IFNDEF SDL2}
 						if PlayerStepEnabled then
 							if SoundEnabled and not SoundIsPlaying then
 								NoSound;
 {$ENDIF}
+{$ENDIF}
 						MoveStat(0, X + InputDeltaX, Y + InputDeltaY);
+{$IFDEF PLAYSTEP}
 {$IFNDEF SDL2}
 					end else if PlayerStepEnabled and SoundEnabled and not SoundIsPlaying then begin
 						NoSound;
+{$ENDIF}
 {$ENDIF}
 					end;
 				end;

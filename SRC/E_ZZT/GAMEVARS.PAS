@@ -24,7 +24,7 @@
 }
 
 {$IFDEF FPC}
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 {$PACKRECORDS 1}
 {$ENDIF}
 {$ENDIF}
@@ -73,7 +73,7 @@ interface
 	type
 		TString50 = string[50];
 		TSmallString = string[50];
-{$IFDEF SUBDIRS}
+{$IFNDEF NODIRS}
 {$IFDEF SDL2}
 		TFilenameString = string;
 {$ELSE}
@@ -118,7 +118,7 @@ interface
 			ParamTextName: string[20];
 			ScoreValue: integer;
 		end;
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 		TStat = record
 			X, Y: byte;
 			StepX, StepY: integer;
@@ -171,7 +171,7 @@ interface
 			Count: byte;
 			Tile: TTile;
 		end;
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 		TBoardInfo = record
 			MaxShots: byte;
 			IsDark: boolean;
@@ -254,7 +254,7 @@ interface
 		end;
 		TWorld = record
 			BoardCount: integer;
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 			BoardDataOld: array[0 .. 100] of pointer;
 			BoardLenOld: array[0 .. 100] of word;
 {$ENDIF}
@@ -273,12 +273,12 @@ interface
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 		unkVar_0476: integer;
 		unkVar_0478: integer;
 {$ENDIF}
 
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 		LoadedGameFileName: TString50;
 		SavedGameFileName: TString50;
 		SavedBoardFileName: TString50;
@@ -308,7 +308,7 @@ interface
 		IoTmpBufSize: word; { Borrowed: unkVar_4ABA[0..1] }
 		FileWorldCachedLinePos: integer; { Borrowed: unkVar_4ABA[2..3] }
 		FileSaveCachedLinePos: integer; { Borrowed: unkVar_4ABA[4..5] }
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 		unkVar_4ABA: array[6 .. 14] of byte;
 {$ENDIF}
 

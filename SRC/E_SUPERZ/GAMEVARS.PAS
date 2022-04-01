@@ -24,7 +24,7 @@
 }
 
 {$IFDEF FPC}
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 {$PACKRECORDS 1}
 {$ENDIF}
 {$ENDIF}
@@ -75,7 +75,7 @@ interface
 	type
 		TString50 = string[50];
 		TSmallString = string[60];
-{$IFDEF SUBDIRS}
+{$IFNDEF NODIRS}
 {$IFDEF SDL2}
 		TFilenameString = string;
 {$ELSE}
@@ -119,7 +119,7 @@ interface
 			ParamTextName: string[20];
 			ScoreValue: integer;
 		end;
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 		TStat = record
 			X, Y: byte;
 			StepX, StepY: integer;
@@ -170,7 +170,7 @@ interface
 			Count: byte;
 			Tile: TTile;
 		end;
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 		TBoardInfo = record
 			MaxShots: byte;
 			NeighborBoards: array[0 .. 3] of byte;
@@ -266,7 +266,7 @@ interface
 	var
 		ForestSoundTableIdx: integer;
 
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 		LoadedGameFileName: TSmallString;
 		SavedGameFileName: TSmallString;
 		SavedBoardFileName: TSmallString;

@@ -78,10 +78,10 @@ This option ensures that the temporary directory in /tmp is not removed upon a s
 * `EXTCHEAT` - Enable additional cheats which take up more binary space.
 * `FASTVID` - Enable controlling window/board transition speed, complete with optimized short paths for when they're set to "instant".
 * `MEMBOUND` - Enable memory bound checks. Not guaranteed to be exhaustive. This is meant to be used on platforms which actually have proper memory access checks, like Windows/Linux.
+* `NODIRS` - Disable subdirectory support.
 * `PRINTTXT` - Enable printing text window contents.
-* `RAWSTRUCTS` - Read from/write to packed data structures directly. This saves binary size and CPU time, at the cost of enforcing unaligned code generation.
+* `RAWMEM` - Read from/write to packed data structures directly. This saves binary size and CPU time, at the cost of enforcing unaligned code generation.
   As such, it is primarily used on DOS.
-* `SUBDIRS` - Enable subdirectory support.
 * `ZETAEMU` - Enable custom routines for better supporting the Zeta emulator.
 
 ### User-provided, platform-specific

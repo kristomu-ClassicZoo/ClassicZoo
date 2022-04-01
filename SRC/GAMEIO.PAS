@@ -41,7 +41,7 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-{$IFNDEF RAWSTRUCTS}
+{$IFNDEF RAWMEM}
 GameVSer,
 {$ENDIF}
 GameSh, ExtMem;
@@ -162,7 +162,7 @@ procedure BoardClose;
 
 		BoardWriteRle(ptr);
 
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 		Move(Board.Info, ptr^, SizeOf(Board.Info));
 		AdvancePointer(ptr, SizeOf(Board.Info));
 {$ELSE}
@@ -208,7 +208,7 @@ procedure BoardClose;
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 				Move(Board.Stats[ix], ptr^, STAT_SIZE_BYTES);
 				AdvancePointer(ptr, STAT_SIZE_BYTES);
 {$ELSE}
@@ -267,7 +267,7 @@ procedure BoardOpen(boardId: integer);
 			Dec(rle.Count);
 		until iy > BOARD_HEIGHT;
 
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 		Move(ptr^, Board.Info, SizeOf(Board.Info));
 		AdvancePointer(ptr, SizeOf(Board.Info));
 {$ELSE}
@@ -282,7 +282,7 @@ procedure BoardOpen(boardId: integer);
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
-{$IFDEF RAWSTRUCTS}
+{$IFDEF RAWMEM}
 				Move(ptr^, Board.Stats[ix], STAT_SIZE_BYTES);
 				AdvancePointer(ptr, STAT_SIZE_BYTES);
 				{$IFDEF FPC} Data := Nil; {$ENDIF}

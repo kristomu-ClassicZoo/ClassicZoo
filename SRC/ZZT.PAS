@@ -119,7 +119,7 @@ begin
 	ResourceDataFileName := FileNameFromProgramName('.DAT', true);
 	ConfigFileName := FileNameFromProgramName('.INI', false);
 {$ELSE}
-{$IFDEF SUBDIRS}
+{$IFNDEF NODIRS}
 	ResourceDataFileName := FExpand('%ENGINE%.DAT');
 	ConfigFileName := FExpand('%ENGINE%.INI');
 {$ELSE}
