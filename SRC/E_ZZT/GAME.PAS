@@ -1,4 +1,4 @@
-{
+	{
 	Copyright (c) 2020 Adrian Siekierka
 
 	Based on a reconstruction of code from ZZT,
@@ -1094,7 +1094,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 		TickTimeDuration := TickSpeed * 2;
 		GamePlayExitRequested := false;
 
-		CurrentTick := Random(100);
+		CurrentTick := ZRandom(100);
 		CurrentStatTicked := Board.StatCount + 1;
 
 		repeat
@@ -1155,7 +1155,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 					{ Unpause }
 					GamePaused := false;
 					SidebarClearLine(5);
-					CurrentTick := Random(100);
+					CurrentTick := ZRandom(100);
 					CurrentStatTicked := Board.StatCount + 1;
 					World.Info.IsSave := true;
 				end;

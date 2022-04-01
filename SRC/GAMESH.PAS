@@ -29,6 +29,7 @@ unit GameSh; { GameShared }
 
 interface
 	uses GameVars, TxtWind;
+	function ZRandom(max: integer): integer;
 	procedure CalcDirectionRnd(var deltaX, deltaY: integer);
 	procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 	function Signum(val: integer): integer;
@@ -54,6 +55,25 @@ DebugWnd,
 {$ENDIF}
 ZInput;
 
+{$IFDEF MSDOS}
+{$IFNDEF FPC}
+{$DEFINE BUILTRN}
+{$ENDIF}
+{$ENDIF}
+
+{$IFDEF BUILTRN}
+function ZRandom(max: integer): integer;
+	begin
+		ZRandom := Random(max);
+	end;
+{$ELSE}
+function ZRandom(max: integer): integer;
+	begin
+		RandSeed := (LongInt(RandSeed) * 134775813) + 1;
+		ZRandom := (LongInt(RandSeed) shr 16) mod max;
+	end;
+{$ENDIF}
+
 function Signum(val: integer): integer;
 	begin
 		if val > 0 then
@@ -74,10 +94,10 @@ function Difference(a, b: integer): integer;
 
 procedure CalcDirectionRnd(var deltaX, deltaY: integer);
 	begin
-		deltaX := Random(3) - 1;
+		deltaX := ZRandom(3) - 1;
 
 		if deltaX = 0 then
-			deltaY := Random(2) * 2 - 1
+			deltaY := ZRandom(2) * 2 - 1
 		else
 			deltaY := 0;
 	end;
@@ -87,7 +107,7 @@ procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 		deltaX := 0;
 		deltaY := 0;
 
-		if (Random(2) < 1) or (Board.Stats[0].Y = y) then
+		if (ZRandom(2) < 1) or (Board.Stats[0].Y = y) then
 			deltaX := Signum(Board.Stats[0].X - x);
 
 		if deltaX = 0 then

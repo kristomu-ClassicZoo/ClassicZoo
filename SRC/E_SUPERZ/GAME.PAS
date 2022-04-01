@@ -1310,7 +1310,7 @@ procedure GamePlayLoop(isTitle: boolean);
 		GamePlayExitRequested := false;
 		exitLoop := false;
 
-		CurrentTick := Random(100);
+		CurrentTick := ZRandom(100);
 		CurrentStatTicked := Board.StatCount + 1;
 
 		repeat
@@ -1373,7 +1373,7 @@ procedure GamePlayLoop(isTitle: boolean);
 
 					{ Unpause }
 					GamePaused := false;
-					CurrentTick := Random(100);
+					CurrentTick := ZRandom(100);
 					CurrentStatTicked := Board.StatCount + 1;
 					World.Info.IsSave := true;
 					ClearDisplayMessage;

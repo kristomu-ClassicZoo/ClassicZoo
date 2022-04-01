@@ -170,9 +170,9 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 				CalcDirectionRnd(dx, dy)
 			end else if (OopWord = 'RNDNS') then begin
 				dx := 0;
-				dy := Random(2) * 2 - 1;
+				dy := ZRandom(2) * 2 - 1;
 			end else if (OopWord = 'RNDNE') then begin
-				dx := Random(2);
+				dx := ZRandom(2);
 				if dx = 0 then dy := -1 else dy := 0;
 			end else if (OopWord = 'CW') then begin
 				OopReadWord(statId, position);
@@ -185,7 +185,7 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 			end else if (OopWord = 'RNDP') then begin
 				OopReadWord(statId, position);
 				OopParseDirection := OopParseDirection(statId, position, dy, dx);
-				if Random(2) = 0 then
+				if ZRandom(2) = 0 then
 					dx := -dx
 				else
 					dy := -dy;
