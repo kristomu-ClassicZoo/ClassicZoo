@@ -6,7 +6,7 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
-$< ClassicZoo dev >
+$< ClassicZoo 4.33 >
 
 + Added the ?ENERGIZE cheat.
 + Restored the player step as an opt-in
@@ -23,9 +23,8 @@ $< ClassicZoo dev >
     is not enabled.
   / Fixed board not refreshing upon
     exiting copy/cut without copying.
-+ The Time counter is now shown in
-  Super ZZT mode in "Normal" compat
-  mode.
++ The Time counter is now shown in Super
+  ClassicZoo in the Normal compat mode.
 + The cheat prompt now plays a different
   note if the command wasn't understood.
 / [SDL2, Amiga] Match the random number
