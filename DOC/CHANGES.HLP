@@ -26,6 +26,8 @@ $< ClassicZoo dev >
 + The Time counter is now shown in
   Super ZZT mode in "Normal" compat
   mode.
++ The cheat prompt now plays a different
+  note if the command wasn't understood.
 / [SDL2, Amiga] Match the random number
   generator output with ZZT 3.2.
 

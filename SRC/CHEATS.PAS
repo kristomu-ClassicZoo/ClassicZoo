@@ -150,6 +150,7 @@ procedure GameDebugPrompt;
 		input: TSmallString;
 		i, iMin, iMax: integer;
 		btmp: byte;
+		failed: boolean;
 		isYes: boolean; { True if not 'NO[cheat]' }
 		isYesMultiplier: integer; { -1 if 'NO[cheat]', 1 otherwise }
 	begin
@@ -170,6 +171,7 @@ procedure GameDebugPrompt;
 
 		isYes := true;
 		isYesMultiplier := 1;
+		failed := false;
 		if Length(input) <= 0 then begin
 			{ No-op. }
 		end else if input[1] = '?' then begin
@@ -303,11 +305,12 @@ procedure GameDebugPrompt;
 						Board.Tiles[Board.Stats[0].X + NeighborDeltaX[i]][Board.Stats[0].Y + NeighborDeltaY[i]].Element := E_EMPTY;
 						BoardDrawTile(Board.Stats[0].X + NeighborDeltaX[i], Board.Stats[0].Y + NeighborDeltaY[i]);
 					end;
-				end;
-			end;
+				end else failed := true;
+			end else failed := true;
 		end;
 
-		SoundQueue(10, #39#4);
+		if failed then SoundQueue(10, #23#4)
+		else SoundQueue(10, #39#4);
 {$IFDEF E_ZZT}
 		SidebarClearLine(4);
 		SidebarClearLine(5);
