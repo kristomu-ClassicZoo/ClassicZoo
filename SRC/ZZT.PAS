@@ -58,8 +58,12 @@ function FileNameFromProgramName(const ext: string; checkExists: boolean): strin
 	var
 		s: string;
 	begin
-		s := FExpand(ChangeFileExt(ExtractFileName(ParamStr(0)), ext));
-		if checkExists and not FileExists(s) then s := FExpand('%ENGINE%' + ext);
+		if (Length(ParamStr(0)) <= 0) or (not FileExists(ParamStr(0))) then begin
+			s := FExpand('%ENGINE%' + ext);
+		end else begin
+			s := FExpand(ChangeFileExt(ExtractFileName(ParamStr(0)), ext));
+			if checkExists and not FileExists(s) then s := FExpand('%ENGINE%' + ext);
+		end;
 		FileNameFromProgramName := s;
 	end;
 {$ENDIF}
