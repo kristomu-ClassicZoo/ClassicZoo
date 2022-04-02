@@ -1044,6 +1044,8 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 			mainThreadSdlChangesMutex := SDL_CreateMutex;
 			playfieldMutex := SDL_CreateMutex;
 
+			TimerSysAudioOpen;
+
 			renderThreadRunning := true;
 			renderThread := SDL_CreateThread(VideoRenderThread, 'Render thread', nil);
 
@@ -1068,6 +1070,8 @@ procedure VideoUninstall;
 	begin
 		renderThreadRunning := false;
 		SDL_WaitThread(renderThread, nil);
+
+		TimerSysAudioClose;
 
 		SDL_DestroyMutex(playfieldMutex);
 		SDL_DestroyMutex(mainThreadSdlChangesMutex);

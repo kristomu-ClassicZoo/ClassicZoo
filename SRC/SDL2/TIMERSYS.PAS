@@ -23,6 +23,7 @@
 	SOFTWARE.
 }
 
+{$MODE OBJFPC}
 unit TimerSys;
 
 {$DEFINE NO_CONST_FREQS}
@@ -51,10 +52,12 @@ interface
 	function TimerSysGetHsecs: word;
 	procedure TimerSysInstall;
 	procedure TimerSysUninstall;
+	procedure TimerSysAudioOpen;
+	procedure TimerSysAudioClose;
 	procedure SoundInitFreqTable(highQuality: boolean);
 
 implementation
-uses AudioSim, Sounds;
+uses AudioSim, CTypes, Sounds;
 
 const
 	PIT_SPEED_MS = 55;
@@ -73,7 +76,7 @@ procedure AccurateDelay(ms: word);
 		SDL_Delay(ms);
 	end;
 
-procedure AudioCallback(userdata: pointer; stream: PUint8; len: Int32); cdecl;
+procedure AudioCallback(userdata: pointer; stream: PCUint8; len: Int32); cdecl;
 	begin
 		AudioSimulate(TAudioSampleArray(stream), len);
 	end;
@@ -170,12 +173,11 @@ function PitTimerCallback(interval: Uint32; param: Pointer): Uint32; cdecl;
 procedure TimerSysInstall;
 	var
 		mode: TIdleMode;
-		requestedAudioSpec: TSDL_AudioSpec;
 	begin
 		SDL_Init(SDL_INIT_EVERYTHING);
 		SDL_GameControllerAddMappingsFromFile('gamecontrollerdb.txt');
 		SDL_StartTextInput;
-		PitTimerId := SDL_AddTimer(PIT_SPEED_MS, PitTimerCallback, nil);
+		PitTimerId := SDL_AddTimer(PIT_SPEED_MS, @PitTimerCallback, nil);
 
 		EventMutex := SDL_CreateMutex;
 		SoundBufferMutex := SDL_CreateMutex;
@@ -183,28 +185,39 @@ procedure TimerSysInstall;
 			TimerMutexes[mode] := SDL_CreateMutex;
 			TimerConds[mode] := SDL_CreateCond;
 		end;
+	end;
 
+procedure TimerSysAudioOpen;
+	var
+		requestedAudioSpec: TSDL_AudioSpec;
+	begin
 		requestedAudioSpec := Default(TSDL_AudioSpec);
 		requestedAudioSpec.freq := 48000;
 {$IFDEF AUD16BIT}
-		requestedAudioSpec.format := AUDIO_U16SYS;
+		requestedAudioSpec.format := AUDIO_S16SYS;
 {$ELSE}
 		requestedAudioSpec.format := AUDIO_U8;
 {$ENDIF}
 		requestedAudioSpec.channels := 1;
 		requestedAudioSpec.samples := 2048;
-		requestedAudioSpec.callback := AudioCallback;
+		requestedAudioSpec.callback := @AudioCallback;
 
 		AudioDevice := SDL_OpenAudioDevice(nil, 0, @requestedAudioSpec, @AudioSpec, 0);
 		SDL_PauseAudioDevice(AudioDevice, 0);
+	end;
+
+procedure TimerSysAudioClose;
+	begin
+		if AudioDevice <> 0 then begin
+			SDL_CloseAudioDevice(AudioDevice);
+			AudioDevice := 0;
+		end;
 	end;
 
 procedure TimerSysUninstall;
 	var
 		mode: TIdleMode;
 	begin
-		if AudioDevice <> 0 then SDL_CloseAudioDevice(AudioDevice);
-
 		for mode in TIdleMode do begin
 			SDL_DestroyCond(TimerConds[mode]);
 			SDL_DestroyMutex(TimerMutexes[mode]);

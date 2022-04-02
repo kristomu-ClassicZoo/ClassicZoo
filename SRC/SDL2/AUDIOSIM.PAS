@@ -28,13 +28,14 @@
 unit AudioSim;
 
 interface
+	uses CTypes;
 	type
 {$IFDEF AUD16BIT}
-		TAudioSample = UInt16;
-		TAudioSampleArray = PUint16;
+		TAudioSample = Int16;
+		TAudioSampleArray = PCInt16;
 {$ELSE}
 		TAudioSample = UInt8;
-		TAudioSampleArray = PUint8;
+		TAudioSampleArray = PCUInt8;
 {$ENDIF}
 	var
 		AudioSimRoundSamples: boolean;
@@ -73,7 +74,7 @@ var
 function AudioGetVolume: byte;
 	begin
 {$IFDEF AUD16BIT}
-		AudioGetVolume := (AudioSampleMax - 32768) div 256;
+		AudioGetVolume := AudioSampleMax div 256;
 {$ELSE}
 		AudioGetVolume := AudioSampleMax - 128;
 {$ENDIF}
@@ -83,9 +84,9 @@ procedure AudioSetVolume(volume: byte);
 	begin
 		if volume > 127 then volume := 127;
 {$IFDEF AUD16BIT}
-		AudioSampleNone := 32768;
-		AudioSampleMin := 32768 - (volume * 256);
-		AudioSampleMax := 32768 + (volume * 256);
+		AudioSampleNone := 0;
+		AudioSampleMin := -(volume * 256);
+		AudioSampleMax := (volume * 256);
 {$ELSE}
 		AudioSampleNone := 128;
 		AudioSampleMin := 128 - volume;
