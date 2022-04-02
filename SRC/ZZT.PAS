@@ -80,7 +80,10 @@ procedure ParseArguments;
 			pArg := ParamStr(i);
 			if pArg[1] = '/' then begin
 				pArg := UpCaseString(pArg);
-
+{$IFDEF SDL2}
+				if pArg = '/SOFTWARE' then
+					VideoForceSoftware := true;
+{$ENDIF}
 {$IFDEF MSDOS}
 {$IFNDEF NEC98}
 				if pArg = '/NOSNOW' then

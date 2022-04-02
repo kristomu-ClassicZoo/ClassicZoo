@@ -53,7 +53,7 @@ interface
 		VideoCursorVisible: boolean;
 		VideoEGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
-		VideoForceNoSnow: boolean;
+		VideoForceSoftware: boolean;
 		VideoCurrentMode: integer;
 		VideoScaleChanged: boolean;
 	procedure VideoForcePlayfieldRedraw;
@@ -776,7 +776,9 @@ function VideoRenderThread(data: pointer): LongInt; cdecl;
 		SDL_LockMutex(mainThreadSdlChangesMutex);
 		SDL_LockMutex(eventMutex);
 
-		renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED or SDL_RENDERER_PRESENTVSYNC);
+		renderer := nil;
+		if not VideoForceSoftware then
+			renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED or SDL_RENDERER_PRESENTVSYNC);
 		if renderer = nil then
 			renderer := SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 
@@ -1244,6 +1246,7 @@ begin
 	VideoSidebarX := 60;
 	VideoColumns := 80;
 	VideoRows := 25;
+	VideoForceSoftware := false;
 	VideoCursorVisible := true;
 	blinkMode := BlinkModeOn;
 	scalingMode := SMInteger;
