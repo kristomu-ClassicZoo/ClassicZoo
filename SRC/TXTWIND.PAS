@@ -773,9 +773,14 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 		var
 			i: integer;
 		begin
-			{ TODO: Bounds checks }
-			for i := 1 to Length(s) do
-				InsertCharacter(s[i]);
+			with state do begin
+				if ((not insertMode) and ((charPos + Length(s)) <= MAX_LINE_LENGTH_EDIT))
+					or (insertMode and ((Length(Lines[LinePos]^) + Length(s)) <= MAX_LINE_LENGTH_EDIT))
+				then begin
+					for i := 1 to Length(s) do
+						InsertCharacter(s[i]);
+				end;
+			end;
 		end;
 	procedure ClearHighlight;
 		begin

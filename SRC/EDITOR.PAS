@@ -368,7 +368,7 @@ procedure EditorLoop;
 		canModify: boolean;
 		copiedTiles: array[1 .. COPIED_TILES_COUNT] of TEditorCopiedTile;
 		cursorBlinker: integer;
-		inputByte: byte;
+		iBg, inputByte: byte;
 		viewMode: integer;
 		showingBoardName: boolean;
 		copyBuffer: TEditorCopyBuffer;
@@ -2406,60 +2406,71 @@ procedure EditorLoop;
 					end;
 					KEY_F5: begin
 						EditorDrawCursor;
+
 						{$IFDEF BASICSYS} VideoLockScreenUpdate; {$ENDIF}
+
 						for i := 3 to (VideoRows - 5) do
 							SidebarClearLine(i);
 
 						i := 4;
+						iBg := $70;
 						VideoWriteText(VideoSidebarX + 5, i, $1E, 'Advanced:');
 						Inc(i, 1);
 
-						VideoWriteText(VideoSidebarX + 1, i, $70, ' E ');
+						VideoWriteText(VideoSidebarX + 1, i, iBg, ' E ');
 						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Board edge');
 						VideoWriteText(VideoSidebarX + 18, i, cursorColor, 'E');
 						Inc(i, 1);
+						iBg := iBg xor $40;
 
-						VideoWriteText(VideoSidebarX + 1, i, $30, ' H ');
+						VideoWriteText(VideoSidebarX + 1, i, iBg, ' H ');
 						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Hori. blink');
 						VideoWriteText(VideoSidebarX + 18, i, cursorColor, #205);
 						Inc(i, 1);
+						iBg := iBg xor $40;
 
-						VideoWriteText(VideoSidebarX + 1, i, $70, ' V ');
+						VideoWriteText(VideoSidebarX + 1, i, iBg, ' V ');
 						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Vert. blink');
 						VideoWriteText(VideoSidebarX + 18, i, cursorColor, #186);
 						Inc(i, 1);
+						iBg := iBg xor $40;
 
-						VideoWriteText(VideoSidebarX + 1, i, $30, ' C ');
+						VideoWriteText(VideoSidebarX + 1, i, iBg, ' C ');
 						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Player clone');
 						VideoWriteText(VideoSidebarX + 18, i, $1F, #2);
 						Inc(i, 1);
+						iBg := iBg xor $40;
 
-						VideoWriteText(VideoSidebarX + 1, i, $70, ' F ');
+						VideoWriteText(VideoSidebarX + 1, i, iBg, ' F ');
 						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Fake player');
 						VideoWriteText(VideoSidebarX + 18, i, cursorColor, #2);
 						Inc(i, 1);
+						iBg := iBg xor $40;
 
 {$IFDEF E_SUPERZ}
-						VideoWriteText(VideoSidebarX + 1, i, $30, ' P ');
+						VideoWriteText(VideoSidebarX + 1, i, iBg, ' P ');
 						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Pairer');
 						VideoWriteText(VideoSidebarX + 18, i, EditorGetDrawingColor(E_PAIRER), ElementDefs[E_PAIRER].Character);
 						Inc(i, 1);
+						iBg := iBg xor $40;
 {$ENDIF}
 
 						Inc(i, 1);
 						VideoWriteText(VideoSidebarX + 5, i, $1E, 'Projectiles:');
 						Inc(i, 1);
 
-						{ TODO: Fix colors given SuperZ Pairer }
-						VideoWriteText(VideoSidebarX + 1, i, $30, ' U ');
+						VideoWriteText(VideoSidebarX + 1, i, iBg, ' U ');
 						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Bullet');
 						VideoWriteText(VideoSidebarX + 18, i, cursorColor, #248);
 						Inc(i, 1);
+						iBg := iBg xor $40;
 
-						VideoWriteText(VideoSidebarX + 1, i, $70, ' A ');
+						VideoWriteText(VideoSidebarX + 1, i, iBg, ' A ');
 						VideoWriteText(VideoSidebarX + 5, i, $1F, 'Star');
 						VideoWriteText(VideoSidebarX + 18, i, cursorColor, '/');
 						Inc(i, 1);
+						iBg := iBg xor $40;
+
 						{$IFDEF BASICSYS} VideoUnlockScreenUpdate(VideoSidebarX, 3, VideoSidebarX + 19, 20); {$ENDIF}
 
 						InputReadWaitKey;
