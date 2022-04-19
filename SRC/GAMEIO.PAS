@@ -285,7 +285,7 @@ procedure BoardOpen(boardId: integer);
 {$IFDEF RAWMEM}
 				Move(ptr^, Board.Stats[ix], STAT_SIZE_BYTES);
 				AdvancePointer(ptr, STAT_SIZE_BYTES);
-				{$IFDEF FPC} Data := Nil; {$ENDIF}
+				Data := nil;
 {$ELSE}
 				CopyStatToLocal(ptr, Board.Stats[ix]);
 {$ENDIF}

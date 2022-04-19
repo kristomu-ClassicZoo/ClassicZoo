@@ -150,7 +150,7 @@ function GameVideoInstall(videoMode, mode: integer): boolean;
 {$ENDIF}
 {$ENDIF}
 
-		if not VideoInstall(videoMode, {$IFDEF FPC}Nil{$ELSE}Ptr(0, 0){$ENDIF}, -1, borderColor) then exit;
+		if not VideoInstall(videoMode, nil, -1, borderColor) then exit;
 
 GameVideoInstalled:
 		if mode = VIEW_TITLE then
@@ -670,11 +670,11 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 				Y := ty;
 				Cycle := tcycle;
 				Under := Board.Tiles[tx][ty];
+				Data := nil;
 				DataPos := 0;
 			end;
 
 			if (template.Data <> nil) and (template.DataLen > 0) then begin
-				{$IFDEF FPC} Board.Stats[Board.StatCount].Data := Nil; {$ENDIF}
 				GetMem(Board.Stats[Board.StatCount].Data, template.DataLen);
 				Move(template.Data^, Board.Stats[Board.StatCount].Data^, template.DataLen);
 			end;

@@ -559,12 +559,12 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 				Y := ty;
 				Cycle := tcycle;
 				Under := Board.Tiles[tx][ty];
+				Data := nil;
 				DataPos := 0;
 			end;
 
 			if (template.Data <> nil) and (template.DataLen > 0) then begin
 				with Board.Stats[Board.StatCount] do begin
-					{$IFDEF FPC} Data := Nil; {$ENDIF}
 					GetMem(Data, template.DataLen);
 					Move(template.Data^, Data^, template.DataLen);
 				end;

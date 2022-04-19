@@ -247,7 +247,7 @@ procedure CopyStatToLocal(var ptr: pointer; var stat: TStat);
 		stat.Follower := LEtoN(s.Follower);
 		stat.Leader := LEtoN(s.Leader);
 		stat.Under := s.Under;
-		{$IFDEF FPC} stat.Data := Nil; {$ENDIF}
+		stat.Data := nil;
 		stat.DataPos := LEtoN(s.DataPos);
 		stat.DataLen := LEtoN(s.DataLen);
 {$IFDEF SDL2}

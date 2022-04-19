@@ -164,7 +164,7 @@ begin
 {$ENDIF}
 
 {$IFDEF E_ZZT}
-	if VideoInstall(VIDEO_MODE_80X25, {$IFDEF FPC}Nil{$ELSE}Ptr(0, 0){$ENDIF}, 0, 1) then begin end;
+	if VideoInstall(VIDEO_MODE_80X25, nil, 0, 1) then begin end;
 {$ENDIF}
 
 	GameConfigInit;
