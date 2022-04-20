@@ -1197,6 +1197,8 @@ procedure EditorLoop;
 
 				if statId >= 0 then with Board.Stats[statId] do begin
 					AppendAction(LLEditNone, '$Stat', '');
+					Str(statId, numStr);
+					AppendAction(LLEditNone, '     Index: ', numStr);
 					Str(X, numStr);
 					AppendAction(LLEditX, '         X: ', numStr);
 					Str(Y, numStr);

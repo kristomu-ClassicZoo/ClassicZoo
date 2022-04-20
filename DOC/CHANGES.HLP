@@ -6,6 +6,17 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
+$< ClassicZoo dev >
+
++ Editor improvements.
+  + The low-level stat info box now
+    displays the stat index.
+
+$< ClassicZoo 4.34 >
+
+/ [SDL2] Restore missing blink option.
+/ [SDL2] Audio fixes on Ubuntu 20.04.
+
 $< ClassicZoo 4.33 >
 
 + Added the ?ENERGIZE cheat.
