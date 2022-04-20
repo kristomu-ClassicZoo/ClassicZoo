@@ -39,7 +39,7 @@ interface
 	procedure InitEditorStatSettings;
 
 implementation
-uses Crt, Video, Sounds, Input, TxtWind, Editor, Oop, Game;
+uses Crt, Video, Sounds, Input, TxtWind, Editor, Oop, Game, ObjTrack;
 
 const
 	TransporterNSChars: string = '^~^-v_v-';
@@ -933,17 +933,18 @@ procedure ElementObjectTick(statId: integer);
 	var
 		retVal: boolean;
 	begin
-		with Board.Stats[statId] do begin
-			if DataPos >= 0 then
-				OopExecute(statId, DataPos, 'Interaction');
+		with TrackPushStat(statId)^ do begin
+			if Stat^.DataPos >= 0 then
+				OopExecute(Index, Stat^.DataPos, 'Interaction');
 
-			if (StepX <> 0) or (StepY <> 0) then begin
-				if ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then
-					MoveStat(statId, X + StepX, Y + StepY)
-				else
-					retVal := OopSend(-statId, 'THUD', false);
+			if (Stat^.StepX <> 0) or (Stat^.StepY <> 0) then begin
+				if ElementDefs[Board.Tiles[Stat^.X + Stat^.StepX][Stat^.Y + Stat^.StepY].Element].Walkable then
+					MoveStat(Index, Stat^.X + Stat^.StepX, Stat^.Y + Stat^.StepY)
+				else if Index > 0 then
+					retVal := OopSend(-Index, 'THUD', false);
 			end;
 		end;
+		TrackPopStat;
 	end;
 
 procedure ElementObjectDraw(x, y: integer; var ch: byte);
@@ -1026,17 +1027,19 @@ procedure ElementScrollTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 	begin
 		statId := GetStatIdAt(x, y);
 
-		with Board.Stats[statId] do begin
+		with TrackPushStat(statId)^ do begin
 			textWindow.Selectable := false;
 			textWindow.LinePos := 1;
 
 			SoundQueue(2, SoundParse('c-c+d-d+e-e+f-f+g-g'));
 
-			DataPos := 0;
-			OopExecute(statId, DataPos, 'Scroll');
-		end;
+			Stat^.DataPos := 0;
+			OopExecute(Index, Stat^.DataPos, 'Scroll');
 
-		RemoveStat(GetStatIdAt(x, y));
+			if Index >= 0 then
+				RemoveStat(Index);
+		end;
+		TrackPopStat;
 	end;
 
 procedure ElementKeyTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);

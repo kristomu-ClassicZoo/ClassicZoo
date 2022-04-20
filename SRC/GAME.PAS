@@ -107,7 +107,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop;
+uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop, ObjTrack;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -941,6 +941,7 @@ procedure RemoveStat(statId: integer);
 		StatDataInUse:
 			if statId < CurrentStatTicked then
 				CurrentStatTicked := CurrentStatTicked - 1;
+			TrackOnRemoveStat(statId);
 
 			Board.Tiles[X][Y] := Under;
 			if Y > 0 then
