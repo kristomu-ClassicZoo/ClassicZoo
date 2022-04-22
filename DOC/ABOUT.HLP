@@ -2,7 +2,12 @@ $ _            __
 $/ `| _  _ _. _ / _  _     April 2nd, 2022
 $\_,|(_|_\_\|(_/_(_)(_)       Version 4.33
 
+$Table of Contents
+
+!-game;Help (Gameplay)
+!-editor;Help (Editor)
 !-changes;Changelog
+!about;About ClassicZoo
 
 $Distribute this program!
 
@@ -11,7 +16,7 @@ of the MIT license - for details, see:
 
 !-license;License information
 
-$About ClassicZoo...
+:about;About ClassicZoo...
 
    ClassicZoo is a fork of ZZT, the game
 creation system from 1991 originally made

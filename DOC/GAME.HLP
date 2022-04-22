@@ -48,8 +48,9 @@ to the right-hand side of the playfield.
 
 $Using a Joystick/Gamepad
 
-   ZZT fully supports joystick operation.
-To move, just point the joystick in the
+   On some platforms, ZZT supports being
+operated by a joystick or gamepad. To
+move, just point the joystick in the
 desired direction.  To shoot, hold down
 the button then move the stick in the
 direction you wish to shoot.
@@ -59,10 +60,11 @@ keyboard for more accurate maneuvers.
 
 $Using a Mouse
 
-   To move, just drag the mouse in the
-desired direction.  You will have to
-keep dragging the mouse as long as
-you want to move.
+   On some platforms, ZZT supports being
+operated by a mouse. To move, just drag
+the mouse in the desired direction. You
+will have to keep dragging the mouse as
+long as you want to move.
 
    To move continually in a certain
 direction, first hold down the right-hand
