@@ -1,3 +1,21 @@
+4/19/2022: 2.6rc4
+Bugs Fixed:
+* If you quit out and play a world again, some objects would lose their reference pointer to their code, resulting in a blank object.
+* If you #board onto a new board, any walkable tile at the same X and Y as the object that issued the #board command would turn into an empty.
+* Restoring saved games now correctly reflects the palette from when it was saved.
+
+Improved:
+* Quitting to title screen now restores the palette to the one in the .CFG file.
+
+Known bugs:
+* There may be a problem with #shove player at <x> <y>.
+
+4/2/2022: 2.6rc3
+Added:
+* sidebar.move.msg label to customize how the word 'Move' appears on the sidebar.
+* sidebar.shoot.msg label to customize how the word 'Shoot' appears on the sidebar.
+* sidebar.shift.msg label to customize how the word 'Shift' appears on the sidebar.
+
 3/18/2022: 2.6rc2
 Removed:
 * Object counter 10 ('OBJ10')

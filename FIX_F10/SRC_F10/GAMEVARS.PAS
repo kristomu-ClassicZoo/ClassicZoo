@@ -29,7 +29,6 @@ interface
 	uses ExtMem;
 	const
 		MAX_STAT = 254;
-		TSTAT_OFFSET = 33;
 		MAX_ELEMENT = 53;
 		MAX_BOARD = 250;
 		MAX_FLAG = 10;
@@ -49,11 +48,11 @@ interface
 		PALETTE_START = 22;
 		PARAM_FILE_COUNT = 69;
 		{.INI FILE}
-		CUSTOM_OOP_COUNT = 19;
+		CUSTOM_OOP_COUNT = 37;
 		CUSTOM_KEY_COUNT = 24;
 		CUSTOM_LOCAL_OFFSET = CUSTOM_OOP_COUNT + CUSTOM_KEY_COUNT + 1;
-		CUSTOM_OBJ_OFFSET = CUSTOM_LOCAL_OFFSET + 7;
-		CUSTOM_COUNTER_OFFSET = CUSTOM_OBJ_OFFSET + 10;
+		CUSTOM_OBJ_OFFSET = CUSTOM_LOCAL_OFFSET + 6;
+		CUSTOM_COUNTER_OFFSET = CUSTOM_OBJ_OFFSET + 4;
 		CUSTOM_FLAG_COUNT = 64;
 	type
 		TString50 = string[50];
@@ -105,12 +104,12 @@ interface
 			Follower: integer;
 			Leader: integer;
 			Under: TTile;
-			ObjTiny: array[1 .. 3] of shortint;
-			elseCheck: boolean;
+			Data: ^string;
 			DataPos: integer;
 			DataLen: integer;
-			ObjLocal: array[1 .. 4] of integer;
-			Data: ^string;
+			ObjLocal: array[1 .. 3] of integer;
+			elseCheck: boolean;
+			unk: boolean;
 		end;
 		TRleTile = record
 			Count: byte;
@@ -121,12 +120,14 @@ interface
 			IsDark: shortint;
 			NeighborBoards: array[0 .. 3] of byte;
 			ReenterWhenZapped: boolean;
-			Message: string[58];
+			Message: string[57];
+			boardFixed: byte;
 			StartPlayerX: byte;
 			StartPlayerY: byte;
 			TimeLimitSec: integer;
 			BoardTicks: integer;
-			Local: array[1 .. 7] of integer;
+			Local: array[1 .. 6] of integer;
+			unk1: integer;
 		end;
 		TWorldInfo = record
 			Ammo: integer;
@@ -170,8 +171,8 @@ interface
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
 		TConfigList = array[1 .. CONFIG_FILE_COUNT] of string[80];
 		TCustomFlagList = array[1 .. CUSTOM_FLAG_COUNT] of TString20;
-		TCustomBoardList = array[1 .. 7] of TString20;
-		TCustomObjList = array[1 .. 10] of TString20;
+		TCustomBoardList = array[1 .. 6] of TString20;
+		TCustomObjList = array[1 .. 3] of TString20;
 		TParamList = array[1 .. PARAM_FILE_COUNT] of integer;
 		TCustomOOPList = array[1 .. CUSTOM_OOP_COUNT] of TString20;
 		TCustomKeyList = array[0 .. CUSTOM_KEY_COUNT - 1] of TString20;

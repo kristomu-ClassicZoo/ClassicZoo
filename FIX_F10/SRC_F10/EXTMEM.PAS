@@ -801,6 +801,14 @@ procedure ExtMemInstall(useEms: boolean; useXms: boolean);
 		ReturnNilIfGrowHeapfails := false;
 {$ENDIF}
 
+		{$IFDEF EXT_MEM_DEBUG}
+		ExtMemInstalled := true;
+		Assign(ExtMemDebug, 'MEMDEBUG.LOG');
+		Append(ExtMemDebug);
+		if IOResult <> 0 then Rewrite(ExtMemDebug);
+		WriteLn(ExtMemDebug, '---------- ExtMemInstall ----------');
+		ExtMemDebugState;
+		{$ENDIF}
 	end;
 
 function ExtMemGet(var block: TExtMemBlock; size: word): boolean;

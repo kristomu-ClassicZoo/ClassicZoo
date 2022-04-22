@@ -15,11 +15,11 @@ usual functions work!
 Just like this!
 !;Neat!
 @next;Oh, very cool!
-!option;Can I lift and drop links too?
+!option;Can I zap/restore links?
 #next
 :option
-#drop option
-#lift next
+#zap !option
+#restore !next
 Sure you can!
 
 ... (shuffles some links around)

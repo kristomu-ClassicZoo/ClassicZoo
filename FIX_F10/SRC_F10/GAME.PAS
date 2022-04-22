@@ -60,6 +60,7 @@ interface
 	procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: TString50);
 	function GameWorldLoad(extension: TString50): boolean;
 	procedure AddStat(tx, ty: integer; txelement, txcolor: byte; tcycle: integer; template: TStat);
+	procedure FileLoadFix;
 	function FileLoadStatData(s: TString8; statId: integer): boolean;
 	function FileAppendStatData(s: TString8; statId: integer): boolean;
 	procedure FreeStatDataMem(statId: integer);
@@ -152,11 +153,11 @@ function ColorNumber(s: string; statId: integer): integer;
 
 		if statId <> -1 then begin
 			if ShortWord(s) then begin
-				OopGetShort(statId, s, shortPtr);
-				if (shortPtr^ >= 0) and (shortPtr^ <= 127) then
+				OopGetShort(s, shortPtr);
+				if (shortPtr^ >= 0) and (shortPtr^ <= 15) then
 					ColorNumber := shortPtr^;
 			end else if OopGetCounter(statId, s, counterPtr) then begin
-				if (counterPtr^ >= 0) and (counterPtr^ <= 255) then
+				if (counterPtr^ >= 0) and (counterPtr^ <= 15) then
 					ColorNumber := counterPtr^;
 			end;
 		end;
@@ -178,7 +179,7 @@ procedure BlockPalette(c,r,g,b: byte);
 		intr($10, regs);
 	end;
 
-procedure InitPalette(reset: boolean);
+procedure InitPalette;
 	var
 		doInit: boolean;
 		c,r,g,b: byte;
@@ -187,17 +188,16 @@ procedure InitPalette(reset: boolean);
 		for c := 0 to 47 do
 			if World.Info.CustomPalette[c] <> 0 then
 				doInit := false;
-		for c := 0 to 15 do begin
-			r := c * 3;
-			g := (c * 3) + 1;
-			b := (c * 3) + 2;			
-			if doInit or reset then begin
-				World.Info.CustomPalette[r] := ParamList[PALETTE_START + r];
-				World.Info.CustomPalette[g] := ParamList[PALETTE_START + g];
-				World.Info.CustomPalette[b] := ParamList[PALETTE_START + b];
+		if doInit then
+			for c := 0 to 15 do begin
+				r := ParamList[PALETTE_START + (c * 3)];
+				g := ParamList[PALETTE_START + (c * 3) + 1];
+				b := ParamList[PALETTE_START + (c * 3) + 2];
+				World.Info.CustomPalette[(c * 3)] := r;
+				World.Info.CustomPalette[(c * 3) + 1] := g;
+				World.Info.CustomPalette[(c * 3) + 2] := b;
+				BlockPalette(c,r,g,b);
 			end;
-			BlockPalette(c,World.Info.CustomPalette[r],World.Info.CustomPalette[g],World.Info.CustomPalette[b]);
-		end;
 	end;
 
 function DefaultParamList(i: integer): integer;
@@ -244,93 +244,126 @@ procedure ParamsLoad;
 function OopConfigs (i: integer): string;
 	begin
 		case i of
-			1: OopConfigs := 'OOP.MSG.ENTER';
-			2: OopConfigs := 'COUNTER.RANDOM';
-			3: OopConfigs := 'COUNTER.ENERGIZED';
-			4: OopConfigs := 'COUNTER.WICK';
-			5: OopConfigs := 'COUNTER.ISDARK';
-			6: OopConfigs := 'COUNTER.BLUEKEY';
-			7: OopConfigs := 'COUNTER.GREENKEY';
-			8: OopConfigs := 'COUNTER.CYANKEY';
-			9: OopConfigs := 'COUNTER.REDKEY';
-			10: OopConfigs := 'COUNTER.PURPLEKEY';
-			11: OopConfigs := 'COUNTER.YELLOWKEY';
-			12: OopConfigs := 'COUNTER.WHITEKEY';
-			13: OopConfigs := 'COUNTER.KEYSPEED';
-			14: OopConfigs := 'COUNTER.MOUSEX';
-			15: OopConfigs := 'COUNTER.MOUSEY';
-			16: OopConfigs := 'COUNTER.PLAYERX';
-			17: OopConfigs := 'COUNTER.PLAYERY';
-			18: OopConfigs := 'COUNTER.THISX';
-			19: OopConfigs := 'COUNTER.THISY';
-			20: OopConfigs := 'INPUT.TERMINAL';
-			21: OopConfigs := 'INPUT.1.KEYBIND';
-			22: OopConfigs := 'INPUT.1.LABEL';
-			23: OopConfigs := 'INPUT.1.SIDEBAR.ROW';
-			24: OopConfigs := 'INPUT.2.KEYBIND';
-			25: OopConfigs := 'INPUT.2.LABEL';
-			26: OopConfigs := 'INPUT.2.SIDEBAR.ROW';
-			27: OopConfigs := 'INPUT.3.KEYBIND';
-			28: OopConfigs := 'INPUT.3.LABEL';
-			29: OopConfigs := 'INPUT.3.SIDEBAR.ROW';
-			30: OopConfigs := 'INPUT.4.KEYBIND';
-			31: OopConfigs := 'INPUT.4.LABEL';
-			32: OopConfigs := 'INPUT.4.SIDEBAR.ROW';
-			33: OopConfigs := 'INPUT.5.KEYBIND';
-			34: OopConfigs := 'INPUT.5.LABEL';
-			35: OopConfigs := 'INPUT.5.SIDEBAR.ROW';
-			36: OopConfigs := 'INPUT.6.KEYBIND';
-			37: OopConfigs := 'INPUT.6.LABEL';
-			38: OopConfigs := 'INPUT.6.SIDEBAR.ROW';
-			39: OopConfigs := 'INPUT.7.KEYBIND';
-			40: OopConfigs := 'INPUT.7.LABEL';
-			41: OopConfigs := 'INPUT.7.SIDEBAR.ROW';
-			42: OopConfigs := 'INPUT.8.KEYBIND';
-			43: OopConfigs := 'INPUT.8.LABEL';
-			44: OopConfigs := 'INPUT.8.SIDEBAR.ROW';
-			45: OopConfigs := 'FLAG.BOARD.1';
-			46: OopConfigs := 'FLAG.BOARD.2';
-			47: OopConfigs := 'FLAG.BOARD.3';
-			48: OopConfigs := 'FLAG.BOARD.4';
-			49: OopConfigs := 'FLAG.BOARD.5';
-			50: OopConfigs := 'FLAG.BOARD.6';
-			51: OopConfigs := 'FLAG.BOARD.7';
-			52: OopConfigs := 'FLAG.OBJ.1';
-			53: OopConfigs := 'FLAG.OBJ.2';
-			54: OopConfigs := 'FLAG.OBJ.3';
-			55: OopConfigs := 'FLAG.OBJ.4';
-			56: OopConfigs := 'FLAG.OBJ.5';
-			57: OopConfigs := 'FLAG.OBJ.6';
-			58: OopConfigs := 'FLAG.OBJ.7';
-			59: OopConfigs := 'FLAG.OBJ.8';
-			60: OopConfigs := 'FLAG.OBJ.9';
-			61: OopConfigs := 'WORLD.FLAG';
-			62: OopConfigs := 'WORLD.COUNTER';
+			1: OopConfigs := 'OOP.CMD.BOARD';
+			2: OopConfigs := 'OOP.CMD.STEP';
+			3: OopConfigs := 'OOP.CMD.COLOR';
+			4: OopConfigs := 'OOP.CMD.SHOVE';
+			5: OopConfigs := 'OOP.CMD.EDGE';
+			6: OopConfigs := 'OOP.CMD.ELSE';
+			7: OopConfigs := 'COUNTER.MOUSEX';
+			8: OopConfigs := 'COUNTER.MOUSEY';
+			9: OopConfigs := 'OOP.COND.DETECT';
+			10: OopConfigs := 'OOP.COND.RND';
+			11: OopConfigs := 'OOP.COND.AT';
+			12: OopConfigs := 'OOP.COND.WITHIN';
+			13: OopConfigs := 'COUNTER.PLAYERX';
+			14: OopConfigs := 'COUNTER.PLAYERY';
+			15: OopConfigs := 'COUNTER.THISX';
+			16: OopConfigs := 'COUNTER.THISY';
+			17: OopConfigs := 'COUNTER.ENERGIZED';
+			18: OopConfigs := 'COUNTER.WICK';
+			19: OopConfigs := 'COUNTER.ISDARK';
+			20: OopConfigs := 'COUNTER.BLUEKEY';
+			21: OopConfigs := 'COUNTER.GREENKEY';
+			22: OopConfigs := 'COUNTER.CYANKEY';
+			23: OopConfigs := 'COUNTER.REDKEY';
+			24: OopConfigs := 'COUNTER.PURPLEKEY';
+			25: OopConfigs := 'COUNTER.YELLOWKEY';
+			26: OopConfigs := 'COUNTER.WHITEKEY';
+			27: OopConfigs := 'COUNTER.RANDOM';
+			28: OopConfigs := 'OOP.MSG.ENTER';
+			29: OopConfigs := 'OOP.CMD.LOAD';
+			30: OopConfigs := 'OOP.CMD.DUPLICATE';
+			31: OopConfigs := 'OOP.CMD.BGPLAY';
+			32: OopConfigs := 'OOP.CMD.QUICKLOAD';
+			33: OopConfigs := 'OOP.CMD.QUICKSAVE';
+			34: OopConfigs := 'OOP.CMD.PLAYER';
+			35: OopConfigs := 'OOP.COND.COLOR';
+			36: OopConfigs := 'OOP.CMD.PALETTE';
+			37: OopConfigs := 'COUNTER.KEYSPEED';
+			38: OopConfigs := 'INPUT.TERMINAL';
+			39: OopConfigs := 'INPUT.1.KEYBIND';
+			40: OopConfigs := 'INPUT.1.LABEL';
+			41: OopConfigs := 'INPUT.1.SIDEBAR.ROW';
+			42: OopConfigs := 'INPUT.2.KEYBIND';
+			43: OopConfigs := 'INPUT.2.LABEL';
+			44: OopConfigs := 'INPUT.2.SIDEBAR.ROW';
+			45: OopConfigs := 'INPUT.3.KEYBIND';
+			46: OopConfigs := 'INPUT.3.LABEL';
+			47: OopConfigs := 'INPUT.3.SIDEBAR.ROW';
+			48: OopConfigs := 'INPUT.4.KEYBIND';
+			49: OopConfigs := 'INPUT.4.LABEL';
+			50: OopConfigs := 'INPUT.4.SIDEBAR.ROW';
+			51: OopConfigs := 'INPUT.5.KEYBIND';
+			52: OopConfigs := 'INPUT.5.LABEL';
+			53: OopConfigs := 'INPUT.5.SIDEBAR.ROW';
+			54: OopConfigs := 'INPUT.6.KEYBIND';
+			55: OopConfigs := 'INPUT.6.LABEL';
+			56: OopConfigs := 'INPUT.6.SIDEBAR.ROW';
+			57: OopConfigs := 'INPUT.7.KEYBIND';
+			58: OopConfigs := 'INPUT.7.LABEL';
+			59: OopConfigs := 'INPUT.7.SIDEBAR.ROW';
+			60: OopConfigs := 'INPUT.8.KEYBIND';
+			61: OopConfigs := 'INPUT.8.LABEL';
+			62: OopConfigs := 'INPUT.8.SIDEBAR.ROW';
+			63: OopConfigs := 'FLAG.BOARD.1';
+			64: OopConfigs := 'FLAG.BOARD.2';
+			65: OopConfigs := 'FLAG.BOARD.3';
+			66: OopConfigs := 'FLAG.BOARD.4';
+			67: OopConfigs := 'FLAG.BOARD.5';
+			68: OopConfigs := 'FLAG.BOARD.6';
+			69: OopConfigs := 'FLAG.BOARD.7';
+			70: OopConfigs := 'FLAG.OBJ.1';
+			71: OopConfigs := 'FLAG.OBJ.2';
+			72: OopConfigs := 'FLAG.OBJ.3';
+			73: OopConfigs := 'FLAG.OBJ.4';
+			74: OopConfigs := 'FLAG.OBJ.5';
+			75: OopConfigs := 'FLAG.OBJ.6';
+			76: OopConfigs := 'WORLD.FLAG';
+			77: OopConfigs := 'WORLD.COUNTER';
 		else OopConfigs := '_nil' end;
 	end;
 
 function DefaultOopList (i: integer): string;
 	begin
 		case i of
-			1: DefaultOopList := 'ENTER';
-			2: DefaultOopList := 'RANDOM';
-			3: DefaultOopList := 'ENERGIZED';
-			4: DefaultOopList := 'WICK';
-			5: DefaultOopList := 'ISDARK';
-			6: DefaultOopList := 'BLUEKEY';
-			7: DefaultOopList := 'GREENKEY';
-			8: DefaultOopList := 'CYANKEY';
-			9: DefaultOopList := 'REDKEY';
-			10: DefaultOopList := 'PURPLEKEY';
-			11: DefaultOopList := 'YELLOWKEY';
-			12: DefaultOopList := 'WHITEKEY';
-			13: DefaultOopList := 'KEYSPEED';
-			14: DefaultOopList := 'MOUSEX';
-			15: DefaultOopList := 'MOUSEY';
-			16: DefaultOopList := 'PLAYERX';
-			17: DefaultOopList := 'PLAYERY';
-			18: DefaultOopList := 'THISX';
-			19: DefaultOopList := 'THISY';
+			1: DefaultOopList := 'BOARD';
+			2: DefaultOopList := 'STEP';
+			3: DefaultOopList := 'COLOR';
+			4: DefaultOopList := 'SHOVE';
+			5: DefaultOopList := 'EDGE';
+			6: DefaultOopList := 'ELSE';
+			7: DefaultOopList := 'MOUSEX';
+			8: DefaultOopList := 'MOUSEY';
+			9: DefaultOopList := 'DETECT';
+			10: DefaultOopList := 'RND';
+			11: DefaultOopList := 'AT';
+			12: DefaultOopList := 'WITHIN';
+			13: DefaultOopList := 'PLAYERX';
+			14: DefaultOopList := 'PLAYERY';
+			15: DefaultOopList := 'THISX';
+			16: DefaultOopList := 'THISY';
+			17: DefaultOopList := 'ENERGIZED';
+			18: DefaultOopList := 'WICK';
+			19: DefaultOopList := 'ISDARK';
+			20: DefaultOopList := 'BLUEKEY';
+			21: DefaultOopList := 'GREENKEY';
+			22: DefaultOopList := 'CYANKEY';
+			23: DefaultOopList := 'REDKEY';
+			24: DefaultOopList := 'PURPLEKEY';
+			25: DefaultOopList := 'YELLOWKEY';
+			26: DefaultOopList := 'WHITEKEY';
+			27: DefaultOopList := 'RANDOM';
+			28: DefaultOopList := 'ENTER';
+			29: DefaultOopList := 'LOAD';
+			30: DefaultOopList := 'DUPLICATE';
+			31: DefaultOopList := 'BGPLAY';
+			32: DefaultOopList := 'QUICKLOAD';
+			33: DefaultOopList := 'QUICKSAVE';
+			34: DefaultOopList := 'PLAYER';
+			35: DefaultOopList := 'COLOR';
+			36: DefaultOopList := 'PALETTE';
+			37: DefaultOopList := 'KEYSPEED';
 		else DefaultOopList := '_nil' end;
 	end;
 
@@ -352,11 +385,11 @@ procedure CustomOOPLoad;
 			Str(i,s);
 			CustomFlagList[i] := 'FLAG' + s;
 		end;
-		for i := 1 to 7 do begin
+		for i := 1 to 6 do begin
 			Str(i,s);
 			CustomBoardList[i] := 'LOCAL' + s;
 		end; 
-		for i := 1 to 9 do begin
+		for i := 1 to 3 do begin
 			Str(i,s);
 			CustomObjList[i] := 'OBJ' + s;
 		end;
@@ -621,7 +654,7 @@ procedure BoardClose;
 
 		{ We will always have enough size to store the above in the default IoTmpBuf. }
 		{ From here, do size estimation. }
-		isize := (Ofs(ptr^) - Ofs(IoTmpBuf^)) + ((Board.StatCount + 1) * TSTAT_OFFSET);
+		isize := (Ofs(ptr^) - Ofs(IoTmpBuf^)) + ((Board.StatCount + 1) * SizeOf(TStat));
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
@@ -638,8 +671,8 @@ procedure BoardClose;
 
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
-				Move(Board.Stats[ix], ptr^, TSTAT_OFFSET);
-				AdvancePointer(ptr, TSTAT_OFFSET);
+				Move(Board.Stats[ix], ptr^, SizeOf(TStat));
+				AdvancePointer(ptr, SizeOf(TStat));
 				if DataLen > 0 then begin
 					Move(Data^, ptr^, DataLen);
 					FreeMem(Data, DataLen);
@@ -701,8 +734,8 @@ procedure BoardOpen(boardId: integer);
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
-				Move(ptr^, Board.Stats[ix], TSTAT_OFFSET);
-				AdvancePointer(ptr, TSTAT_OFFSET);
+				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
+				AdvancePointer(ptr, SizeOf(TStat));
 				Data := nil;
 				if DataLen > 0 then begin
 					if MaxAvail < DataLen then begin
@@ -723,6 +756,7 @@ procedure BoardOpen(boardId: integer);
 			end;
 
 		World.Info.CurrentBoard := boardId;
+		if Board.Info.boardFixed <> $07 then FixBoard;
 	end;
 
 procedure BoardChange(boardId: integer);
@@ -737,6 +771,7 @@ procedure BoardCreate;
 	begin
 		Board.Name := '';
 		Board.Info.Message := '';
+		Board.Info.boardFixed := $07;
 		Board.Info.MaxShots := 255;
 		Board.Info.IsDark := 0;
 		Board.Info.ReenterWhenZapped := false;
@@ -786,7 +821,7 @@ procedure WorldCreate;
 		i: integer;
 	begin
 		ParamsLoad;
-		InitPalette(false);
+		InitPalette;
 		World.BoardCount := 0;
 		World.BoardLen[0] := 0;
 		ResetMessageNotShownFlags;
@@ -1116,17 +1151,15 @@ function WorldLoad(filename, extension: TString50): boolean;
 						ExtMemWrite(World.BoardData[boardId], IoTmpBuf^, World.BoardLen[boardId]);
 					end else RunError(203);
 				end;
-			
+
 				ParamsLoad;
-				InitPalette(false);
-				BoardOpen(World.Info.CurrentBoard);
-				{ if extension = '.SAV' then
-					BlockRead(f, ElementDefs, SizeOf(ElementDefs)); }
+				InitPalette;
 				LoadedGameFileName := filename;
 				WorldLoad := true;
 
 				HighScoresLoad;
 				CustomOOPLoad;
+				BoardOpen(World.Info.CurrentBoard);
 
 				SidebarClearLine(5);
 
@@ -1175,8 +1208,6 @@ procedure WorldSave(filename, extension: TString50);
 				BlockWrite(f, IoTmpBuf^, World.BoardLen[i]);
 				if DisplayIOError(filename + extension) then goto OnError;
 			end;
-			{ if extension = '.SAV' then
-				BlockWrite(f, ElementDefs, SizeOf(ElementDefs)); }
 			Close(f);
 		end;
 
@@ -1256,12 +1287,9 @@ procedure AddStat(tx, ty: integer; txelement, txcolor: byte; tcycle: integer; te
 					P1 := template.P1;
 					P2 := template.P2;
 					P3 := template.P3;
-					for i := 1 to 4 do
-						ObjLocal[i] := template.ObjLocal[i];
 					for i := 1 to 3 do
-						ObjTiny[i] := template.ObjTiny[i];
-					Leader := template.Leader;
-					Follower := template.Follower;
+						ObjLocal[i] := template.ObjLocal[i];
+					elseCheck := template.elseCheck;
 				end;
 				Under := Board.Tiles[tx][ty];
 				Data := nil;
@@ -1296,6 +1324,54 @@ Procedure FreeStatDataMem(statId: integer);
 		end;
 	end;
 
+procedure FileLoadFix;
+	var
+		TmpString: string;
+		f: text;
+		i, j, k: integer;
+		NumRead: word;
+		TmpPtr: pointer;
+	begin
+		Str(World.Info.CurrentBoard,TmpString);
+		if not FileExists(World.Info.Name + '.' + TmpString) then exit;
+		Assign(f, World.Info.Name + '.' + TmpString);
+		Reset(f);
+		with Board.Stats[Board.StatCount] do begin
+			FreeStatDataMem(Board.StatCount);
+			NumRead := 0;
+			k := 0;
+			TmpPtr := ObjTmpBuf;
+
+			for i := 1 to 1024 do begin
+				TmpString := '';
+				ReadLn(f, TmpString);
+				if NumRead < (LOAD_OBJ_LENGTH - 255) then begin
+					if TmpString <> '' then begin
+						k := 0;
+						TmpString := TmpString + KEY_ENTER;
+						NumRead := NumRead + Length(TmpString);						
+						for j := 1 to Length(TmpString) do begin
+							Char(TmpPtr^) := TmpString[j];
+							AdvancePointer(TmpPtr, 1);
+						end;
+					end else begin
+						Inc(NumRead);
+						Inc(k);
+						Char(TmpPtr^) := KEY_ENTER;
+						AdvancePointer(TmpPtr, 1);
+					end;
+				end;
+			end;
+
+			GetMem(Data, NumRead - k);
+			Move(ObjTmpBuf^, Data^, NumRead - k);
+			DataLen := NumRead - k;
+			DataPos := 0;
+		end;
+		Close(f);
+		if IOResult <> 0 then begin end;
+	end;
+
 function FileLoadStatData(s: TString8; statId: integer): boolean;
 	var
 		TmpString: string;
@@ -1306,9 +1382,9 @@ function FileLoadStatData(s: TString8; statId: integer): boolean;
 	begin
 		FileLoadStatData := false;
 		if not FileExists(s + '.OBJ') then exit;
-		FileLoadStatData := true;
 		Assign(f, s + '.OBJ');
 		Reset(f);
+		FileLoadStatData := true;
 		with Board.Stats[statId] do begin
 			FreeStatDataMem(statId);
 			NumRead := 0;
@@ -2097,9 +2173,9 @@ procedure GameDebugPrompt;
 				if World.Info.Keys[i] > 0 then begin
 					if World.Info.Keys[i] > 1 then begin
 						Str(World.Info.Keys[i],s);
-						TextWindowAppend(textWindow, OOPList[i + 5] + ': ' + s);
+						TextWindowAppend(textWindow, OOPList[i + 19] + ': ' + s);
 					end else
-						TextWindowAppend(textWindow, OOPList[i + 5]);
+						TextWindowAppend(textWindow, OOPList[i + 19]);
 				end;
 			TextWindowAppend(textWindow, '$** Custom World Parameters **');
 			for i := 1 to CUSTOM_FLAG_COUNT do
@@ -2220,14 +2296,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 					VideoWriteText(62, 16, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[75] + ' ');
 					VideoWriteText(65, 16, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[76]);
 				end;
-				if ConfigList[86] <> '' then begin {' Move'}
-					VideoWriteText(67, 18, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' '#24#25#26#27' ');
-					VideoWriteText(72, 18, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ConfigList[86]);
-				end;
-				if ConfigList[87] <> '' then begin {' Shoot'}
-					VideoWriteText(61, 19, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ConfigList[88] + #24#25#26#27' ');
-					VideoWriteText(72, 19, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ConfigList[87]);
-				end;
+				VideoWriteText(67, 18, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' '#24#25#26#27' ');
+				VideoWriteText(72, 18, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Move');
+				VideoWriteText(61, 19, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' Shift '#24#25#26#27' ');
+				VideoWriteText(72, 19, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Shoot');
 				if ConfigList[77] <> '' then begin {'S' Save gave hotkey}
 					VideoWriteText(62, 21, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' ' + ConfigList[77] + ' ');
 					VideoWriteText(65, 21, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[78]);
@@ -2412,7 +2484,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end;
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
 
-		InitPalette(true);
 		SoundClearQueue;
 
 		if GameStateElement = E_PLAYER then begin

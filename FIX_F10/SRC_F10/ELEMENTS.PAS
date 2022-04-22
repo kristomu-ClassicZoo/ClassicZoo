@@ -38,7 +38,7 @@ interface
 	procedure ResetMessageNotShownFlags;
 	procedure InitElementsGame;
 	procedure ConfigStringsLoad;
-	procedure ElementMod(e: integer; par: string; op: string; statId: integer);
+	procedure FixBoard;
 
 implementation
 uses Crt, Video, Sounds, Input, TxtWind, Oop, Game;
@@ -55,8 +55,8 @@ function FileExists(name: TFilenameString): boolean;
 		Assign(f, name);
 		Reset(f);
 		if IOResult = 0 then begin
-			FileExists := true;
 			Close(f);
+			FileExists := true;
 		end else begin
 			FileExists := false;
 		end;
@@ -996,24 +996,35 @@ procedure ElementDuplicatorDraw(x, y: integer; var ch: byte);
 procedure ElementObjectTick(statId: integer);
 	var
 		retVal: boolean;
-		rbrd: byte;
 	begin
 		with Board.Stats[statId] do begin
 			OPosX := X;
 			OPosY := Y;
-			rbrd := World.Info.CurrentBoard;
 			if DataPos >= 0 then
 				retVal := OopExecute(statId, DataPos, ConfigList[84])
 			else
 				retVal := true;
 
-			if retVal and (rbrd = World.Info.CurrentBoard) then begin
+			if retVal then begin
 				if ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then
 					MoveStat(statId, X + StepX, Y + StepY)
 				else if (StepX <> 0) or (StepY <> 0) then
 					retVal := OopSend(-statId, 'THUD', false);
 			end;
 		end;
+	end;
+
+procedure FixBoard;
+	begin
+		if GetStatIdAt(0, 0) <> -1 then begin			
+			Board.Stats[0].P3 := Board.Stats[GetStatIdAt(0, 0)].P2;
+			RemoveStat(GetStatIdAt(0, 0));
+		end else Board.Stats[0].P3 := 0;
+		AddStat(0, BOARD_WIDTH + 1, E_OBJECT, 0, 1, StatTemplateDefault);
+		FileLoadFix;
+		ElementObjectTick(Board.StatCount);
+		if GetStatIdAt(0, BOARD_WIDTH + 1) <> -1 then RemoveStat(GetStatIdAt(0, BOARD_WIDTH + 1));
+		Board.Info.boardFixed := $07;
 	end;
 
 procedure ElementObjectDraw(x, y: integer; var ch: byte);
@@ -1175,7 +1186,7 @@ procedure ElementPassageTouch(x, y: integer; sourceStatId: integer; var deltaX, 
 		BoardPassageTeleport(x, y);
 		deltaX := 0;
 		deltaY := 0;
-		if OopSend(0, 'ALL:' + Ooplist[1], false) then begin end;
+		if OopSend(0, 'ALL:' + OOPList[28], false) then begin end;
 	end;
 
 procedure ElementDoorTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -1335,7 +1346,7 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 				deltaX := 0;
 				deltaY := 0;
 				BoardEnter;
-				if OopSend(0, 'ALL:' + Ooplist[1], false) then begin end;
+				if OopSend(0, 'ALL:' + OOPList[28], false) then begin end;
 			end else begin
 				BoardChange(boardId);
 			end;
@@ -1594,7 +1605,7 @@ procedure ElementTruePlayerTick;
 
 			if (Board.Info.TimeLimitSec > 0) and (World.Info.Health > 0) then
 				if (GameMove) and (Board.Info.BoardTicks mod 10 = 0) then begin
-					Inc(World.Info.BoardTimeSec);
+					World.Info.BoardTimeSec := World.Info.BoardTimeSec + 1;
 
 					if (Board.Info.TimeLimitSec - 10) = World.Info.BoardTimeSec then begin
 						DisplayMessage(200, ConfigList[54]); {"Running out of time!"}
@@ -2125,45 +2136,6 @@ function ParamConfigs(i: integer): string;
 		else ParamConfigs := '_nil' end;
 	end;
 
-procedure ElementMod(e: integer; par: string; op: string; statId: integer);
-	var
-		v, code: integer;
-	begin
-		v := ColorNumber(op, statId);
-		if (v = -128) then
-			Val(op, v, code);
-		if par = 'CHAR' then
-			ElementDefs[e].Character := Chr(v)
-		else if par = 'FG' then
-			ElementDefs[e].Color := AsColor(v, ElementDefs[e].Color div 16)
-		else if par = 'BG' then
-			ElementDefs[e].Color := AsColor(ElementDefs[e].Color and $0F, v)
-		else if par = 'DESTRUCTIBLE' then
-			ElementDefs[e].Destructible := op = 'TRUE'
-		else if par = 'PUSHABLE' then begin
-			ElementDefs[e].Pushable := op = 'TRUE';
-			if op = 'TRUE' then
-				ElementDefs[e].TouchProc := ElementPushableTouch
-			else
-				ElementDefs[e].TouchProc := ElementDefaultTouch;
-		end else if par = 'VISIBLEINDARK' then
-			ElementDefs[e].VisibleInDark := op = 'TRUE'
-		else if par = 'PLACEABLEONTOP' then
-			ElementDefs[e].PlaceableOnTop := op = 'TRUE'
-		else if par = 'WALKABLE' then
-			ElementDefs[e].Walkable := op = 'TRUE'
-		else if par = 'CYCLE' then
-			ElementDefs[e].Cycle := v
-		else if par = 'PARAM1' then
-			ElementDefs[e].Param1 := v
-		else if par = 'PARAM2' then
-			ElementDefs[e].Param2 := v
-		else if par = 'PARAM3' then
-			ElementDefs[e].Param3 := v
-		else if par = 'SCOREVALUE' then
-			ElementDefs[e].ScoreValue := v;
-	end;
-
 procedure InitElementsGame;
 	var
 		s: string;
@@ -2268,21 +2240,53 @@ procedure InitElementsGame;
 									c := UpCase(s[i]);
 									if ((c >= 'A') and (c <= 'Z'))
 										or ((c >= '0') and (c <= '9'))
-										or (c = '-')
 									then
 										k := k + c;
 									Inc(i);
 								end;
-								if k <> '' then ElementMod(q, l, k, -1);
+								if k <> '' then begin
+									v := ColorNumber(k, -1);
+									if (v = -128) then
+										Val(k, v, code);
+									if l = 'CHAR' then
+										ElementDefs[q].Character := Chr(v)
+									else if l = 'FG' then
+										ElementDefs[q].Color := AsColor(v, ElementDefs[q].Color div 16)
+									else if l = 'BG' then
+										ElementDefs[q].Color := AsColor(ElementDefs[q].Color and $0F, v)
+									else if l = 'DESTRUCTIBLE' then
+										ElementDefs[q].Destructible := k = 'TRUE'
+									else if l = 'PUSHABLE' then begin
+										ElementDefs[q].Pushable := k = 'TRUE';
+										if k = 'TRUE' then
+											ElementDefs[q].TouchProc := ElementPushableTouch;
+									end else if l = 'VISIBLEINDARK' then
+										ElementDefs[q].VisibleInDark := k = 'TRUE'
+									else if l = 'PLACEABLEONTOP' then
+										ElementDefs[q].PlaceableOnTop := k = 'TRUE'
+									else if l = 'WALKABLE' then
+										ElementDefs[q].Walkable := k = 'TRUE'
+									else if l = 'CYCLE' then
+										ElementDefs[q].Cycle := v
+									else if l = 'PARAM1' then
+										ElementDefs[q].Param1 := v
+									else if l = 'PARAM2' then
+										ElementDefs[q].Param2 := v
+									else if l = 'PARAM3' then
+										ElementDefs[q].Param3 := v
+									else if l = 'SCOREVALUE' then
+										ElementDefs[q].ScoreValue := v;
+								end;
 							end;
 						end;
 					end;
 				end;
-				Close(f);
 			end;
+			Close(f);
+			if IOResult <> 0 then begin end;
 		end;
-		{ World.Info.PlayerChar := ElementDefs[E_PLAYER].Character;
-		World.Info.PlayerColor := ElementDefs[E_PLAYER].Color; }
+		World.Info.PlayerChar := ElementDefs[E_PLAYER].Character;
+		World.Info.PlayerColor := ElementDefs[E_PLAYER].Color;
 	end;
 
 function StringConfigs(i: integer): string;
@@ -2524,8 +2528,9 @@ procedure ConfigStringsLoad;
 							end;
 					end;
 				end;
-			Close(f);
 			end;
+			Close(f);
+			if IOResult <> 0 then begin end;
 		end;
 	end;
 
