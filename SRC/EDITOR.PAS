@@ -1577,7 +1577,7 @@ procedure EditorLoop;
 					end;
 				end else if i = 1 then begin
 					SidebarPromptString('Export board', '.BRD', SavedBoardFileName, PROMPT_ALPHANUM);
-					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
+					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) and (OverwriteCheck(SavedBoardFilename + '.BRD')) then begin
 						case EnsureIoTmpBufSize(WorldExt.BoardLen[World.Info.CurrentBoard]) of
 							0, 1: begin
 								AssignFSys(f, SavedBoardFileName + '.BRD');

@@ -1015,7 +1015,7 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					KEY_CTRL_S: begin
 						textFilename := '';
 						SidebarPromptString('Filename', extension, textFilename, PROMPT_ALPHANUM);
-						if Length(textFilename) > 0 then begin
+						if (Length(textFilename) > 0) and (OverwriteCheck(textFilename + extension)) then begin
 							TextWindowSaveFile(textFilename + extension, state);
 						end;
 						InputKeyPressed := #0;

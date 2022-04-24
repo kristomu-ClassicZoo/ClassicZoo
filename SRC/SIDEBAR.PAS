@@ -50,11 +50,12 @@ interface
 	procedure BottomAnimateLoading(var loadProgress: integer);
 	function DisplayIOError: boolean;
 	procedure GameDisplayResourceImage(name: TString50; x, y, width, height: integer);
+	function OverwriteCheck(filename: string): boolean;
 
 implementation
 uses
 {$IFDEF WIDECHAR} ZWideChr, {$ENDIF}
-ZInput, TimerSys, Sounds, ZVideo, TxtWind, Game;
+FileSel, ZInput, TimerSys, Sounds, ZVideo, TxtWind, Game;
 
 {$IFNDEF MSDOS}
 {$DEFINE SAFEVID}
@@ -470,7 +471,6 @@ function DisplayIOError: boolean;
 		ClearDisplayMessage;
 {$ENDIF}
 		DisplayIOError := true;
-
 		Str(ioResValue, textWindow.Title);
 		textWindow.Title := 'Error # ' + textWindow.Title;
 		TextWindowInitState(textWindow);
@@ -556,6 +556,14 @@ procedure GameDisplayResourceImage(name: TString50; x, y, width, height: integer
 {$ENDIF}
 			{$IFDEF BASICSYS} VideoUnlockScreenUpdate(x, y, x + width - 1, y + height - 1); {$ENDIF}
 			FreeMem(fileData, fileDataLen);
+		end;
+	end;
+
+function OverwriteCheck(filename: string): boolean;
+	begin
+		OverwriteCheck := true;
+		if FileExists(filename) then begin
+			OverwriteCheck := SidebarPromptYesNo('Overwrite? ', false);
 		end;
 	end;
 

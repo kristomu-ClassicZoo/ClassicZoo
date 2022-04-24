@@ -11,6 +11,10 @@ $< ClassicZoo dev >
 + Editor improvements.
   + The low-level stat info box now
     displays the stat index.
+  + When changing the filename of a
+    world or board, you will receive
+    a warning if this would overwrite
+    an existing file.
 
 $< ClassicZoo 4.34 >
 

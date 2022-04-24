@@ -634,7 +634,8 @@ procedure GameWorldSave(prompt: TSmallString; var filename: TSmallString; extens
 	begin
 		newFilename := filename;
 		BottomPromptString(prompt, extension, newFilename, PROMPT_ALPHANUM);
-		if (InputKeyPressed <> KEY_ESCAPE) and (Length(newFilename) <> 0) then begin
+		if (InputKeyPressed <> KEY_ESCAPE) and (Length(newFilename) <> 0)
+		and ((filename = newFilename) or (extension <> '.SZT') or OverwriteCheck(newFilename + extension)) then begin
 			filename := newFilename;
 			if extension = '.SZT' then
 				World.Info.Name := filename;
