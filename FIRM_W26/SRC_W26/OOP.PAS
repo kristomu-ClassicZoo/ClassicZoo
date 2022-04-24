@@ -604,16 +604,20 @@ function OopParseTile(var statId, position: integer; var tile: TMatchTile): bool
 		elem := ElementNumber(OopWord);
 		if elem <> -1 then goto FindElement;
 		i := ColorNumber(OopWord, statId);
-		if i = -128 then exit;
+		if i = -128 then begin
+			Val(OopWord, i, elem);
+			if not ((i > 15) and (i < 256)) then exit;
+		end;
 		if i = 0 then tile.SetFG := true;
 		tile.Color := AsColor(i,0);
 
 		OopReadWord(statId, position);
 		elem := ElementNumber(OopWord);
 		if elem <> -1 then goto FindElement;
-		if i > 15 then exit;
-		j := ColorNumber(OopWord, statId);
-		if (j = -128) or (j > 15) then exit;
+		if i < 15 then begin
+			j := ColorNumber(OopWord, statId);
+			if (j = -128) or (j > 15) then exit;
+		end;
 		if j = 0 then tile.SetBG := true;
 		tile.Color := AsColor(i,j);
 
@@ -1231,6 +1235,20 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							if BoardShoot(E_STAR, X, Y, deltaX, deltaY, SHOT_SOURCE_ENEMY) then
 								begin end;
 							stopRunning := true;
+						end else if OopWord = 'PSET' then begin
+							OopReadDirection(statId, position, deltaX, deltaY);
+							ix := GetStatIdAt( X + deltaX, Y + deltaY );
+							if ix > -1 then begin
+								OopReadWord(statId, position);
+								OopReadValue(statId, position);
+								iy := OopValue;
+								if OopWord = 'P1' then
+									Board.Stats[ix].P1 := iy
+								else if OopWord = 'P2' then
+									Board.Stats[ix].P2 := iy
+								else if OopWord = 'P3' then
+									Board.Stats[ix].P3 := iy;
+							end;
 						{ end else if OopWord = 'ELEMENT' then begin
 							OopReadWord(statId, position);
 							ix := ElementNumber(OopWord);

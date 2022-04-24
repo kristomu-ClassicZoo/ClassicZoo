@@ -477,15 +477,17 @@ procedure ElementSpinningGunTick(statId: integer);
 		end;
 	end;
 
-procedure ElementConveyorTick(x, y, direction: integer);
+procedure ElementConveyorTick(x, y: integer; direction: integer);
 	var
-		i, j: integer;
-		ix, iy, tx, ty: integer;
+		i: integer;
+		iStat: integer;
+		ix, iy: integer;
 		canMove: boolean;
 		tiles: array[0..7] of TTile;
 		statIds: array[0..7] of integer;
 		iMin, iMax: integer;
 		tmpTile: TTile;
+		tx, ty: integer;
 	begin
 		if direction = 1 then begin
 			iMin := 0;
@@ -495,7 +497,8 @@ procedure ElementConveyorTick(x, y, direction: integer);
 			iMax := -1;
 		end;
 
-		BoardDrawTile(x, y);
+		{ Moved from CWTick/CCWTick }
+		BoardDrawTile(X, Y);
 
 		canMove := true;
 		i := iMin;
@@ -508,6 +511,8 @@ procedure ElementConveyorTick(x, y, direction: integer);
 					canMove := true
 				else if not ElementDefs[Element].Pushable then
 					canMove := false;
+				{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
+				{ Pre-find stat IDs to prevent such a scenario from occuring. }
 				if ElementDefs[Element].Cycle > -1 then
 					statIds[i] := GetStatIdAt(tx, ty);
 			end;
@@ -518,10 +523,9 @@ procedure ElementConveyorTick(x, y, direction: integer);
 		repeat
 			with tiles[i] do begin
 				if canMove then begin
-					if (ElementDefs[Element].Pushable) or (Element = E_EMPTY) then begin
-						j := (i - direction) and 7;
-						ix := x + DiagonalDeltaX[j];
-						iy := y + DiagonalDeltaY[j];
+					if ElementDefs[Element].Pushable or (Element = E_EMPTY) then begin
+						ix := x + DiagonalDeltaX[(i - direction) and 7];
+						iy := y + DiagonalDeltaY[(i - direction) and 7];
 						tx := x + DiagonalDeltaX[i];
 						ty := y + DiagonalDeltaY[i];
 
@@ -530,13 +534,17 @@ procedure ElementConveyorTick(x, y, direction: integer);
 							Board.Tiles[tx][ty] := tiles[i];
 							Board.Tiles[ix][iy].Element := E_EMPTY;
 							MoveStat(statIds[i], ix, iy);
+
 							Board.Tiles[tx][ty] := tmpTile;
+							{ FIX: Add missing BoardDrawTile. }
 							BoardDrawTile(tx, ty);
 						end else begin
 							Board.Tiles[ix][iy] := tiles[i];
 							BoardDrawTile(ix, iy);
 						end;
-						if not ElementDefs[tiles[j].Element].Pushable and (tiles[j].Element <> E_EMPTY)	then begin
+						if not (ElementDefs[tiles[(i + direction) and 7].Element].Pushable
+							or (tiles[(i + direction) and 7].Element = E_EMPTY))
+						then begin
 							Board.Tiles[tx][ty].Element := E_EMPTY;
 							BoardDrawTile(tx, ty);
 						end;
@@ -545,7 +553,7 @@ procedure ElementConveyorTick(x, y, direction: integer);
 					end;
 				end else if Element = E_EMPTY then
 					canMove := true
-				else if not ElementDefs[Element].Pushable then
+				else if not (ElementDefs[Element].Pushable or (Element = E_EMPTY)) then
 					canMove := false;
 			end;
 			Inc(i, direction);
@@ -554,7 +562,7 @@ procedure ElementConveyorTick(x, y, direction: integer);
 
 procedure ElementConveyorCWDraw(x, y: integer; var ch: byte);
 	begin
-		case (CurrentTick div ElementDefs[E_CONVEYOR_CW].Cycle) mod 4 of
+		case (CurrentTick div ElementDefs[E_CONVEYOR_CW].Cycle) and 3 of
 			0: ch := 179;
 			1: ch := 47;
 			2: ch := 196;
@@ -570,7 +578,7 @@ procedure ElementConveyorCWTick(statId: integer);
 
 procedure ElementConveyorCCWDraw(x, y: integer; var ch: byte);
 	begin
-		case (CurrentTick div ElementDefs[E_CONVEYOR_CCW].Cycle) mod 4 of
+		case (CurrentTick div ElementDefs[E_CONVEYOR_CCW].Cycle) and 3 of
 			3: ch := 179;
 			2: ch := 47;
 			1: ch := 196;

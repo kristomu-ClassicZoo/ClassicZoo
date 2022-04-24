@@ -1,3 +1,16 @@
+4/24/2022: FixWeave 1.0d
+Bugs fixed:
+* The "Bomb Activated!" config string was overwritten during the Custom OOP loader routine.
+* #put <dir> <char> element worked when <char> was interpolated, but not when a bare value was used. (FixWeave and FirmWeave)
+
+4/22/2022: 2.6a, FixWeave 1.0c
+Added:
+* FixWeave 1.0, allowing zzt games to be patched on-the-fly
+* #PSET command allowing modification of P values
+
+Fixed Bugs:
+* Conveyors duplicating statted and nonstatted elements.
+
 4/19/2022: 2.6rc4
 Bugs Fixed:
 * If you quit out and play a world again, some objects would lose their reference pointer to their code, resulting in a blank object.
@@ -6,9 +19,6 @@ Bugs Fixed:
 
 Improved:
 * Quitting to title screen now restores the palette to the one in the .CFG file.
-
-Known bugs:
-* There may be a problem with #shove player at <x> <y>.
 
 4/2/2022: 2.6rc3
 Added:

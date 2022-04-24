@@ -41,6 +41,7 @@ interface
 	procedure OopGetShort(s: string; var cPtr: cShort);
 	function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 	procedure GetBoardStats;
+	procedure GetConfigStrings;
 
 implementation
 uses Sounds, TxtWind, Game, Elements;
@@ -581,15 +582,20 @@ function OopParseTile(var statId, position: integer; var tile: TMatchTile): bool
 		elem := ElementNumber(OopWord);
 		if elem <> -1 then goto FindElement;
 		i := ColorNumber(OopWord, statId);
-		if i = -128 then exit;
+		if i = -128 then begin
+			Val(OopWord, i, elem);
+			if not ((i > 15) and (i < 256)) then exit;
+		end;
 		if i = 0 then tile.SetFG := true;
 		tile.Color := AsColor(i,0);
 
 		OopReadWord(statId, position);
 		elem := ElementNumber(OopWord);
 		if elem <> -1 then goto FindElement;
-		j := ColorNumber(OopWord, statId);
-		if j = -128 then exit;
+		if i < 15 then begin
+			j := ColorNumber(OopWord, statId);
+			if (j = -128) or (j > 15) then exit;
+		end;
 		if j = 0 then tile.SetBG := true;
 		tile.Color := AsColor(i,j);
 
@@ -782,6 +788,27 @@ function OopReadLineToEnd(statId: integer; var position: integer) : string;
 			OopReadChar(statId, position);
 		end;
 		OopReadLineToEnd := s;
+	end;
+
+procedure GetConfigStrings;
+	var
+		i: integer;
+		t: string;
+		textWindow: TTextWindowState;
+	begin
+		TextWindowInitState(textWindow);
+		textWindow.Selectable := false;
+		TextWindowAppend(textWindow, '$** Config Strings: **');
+		for i := 1 to CUSTOM_OOP_COUNT do begin
+			Str(Length(OOPList[i]),t);
+			TextWindowAppend(textWindow, t);
+			TextWindowAppend(textWindow, OOPList[i]);
+		end;
+		textWindow.Title := 'Inspecting Strings';
+		TextWindowDrawOpen(textWindow);
+		TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
+		TextWindowDrawClose(textWindow);
+		TextWindowFree(textWindow);
 	end;
 
 procedure GetBoardStats;
@@ -1368,6 +1395,20 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								if ix <> -1 then
 									Board.Stats[ix].P2 := iy;
 							end;
+						end else if OopWord = OopStringToWord(OOPList[38]) then begin {'PSET'}
+							OopReadDirection(statId, position, deltaX, deltaY);
+							ix := GetStatIdAt( X + deltaX, Y + deltaY );
+							if ix > -1 then begin
+								OopReadWord(statId, position);
+								OopReadValue(statId, position);
+								iy := OopValue;
+								if OopWord = 'P1' then
+									Board.Stats[ix].P1 := iy
+								else if OopWord = 'P2' then
+									Board.Stats[ix].P2 := iy
+								else if OopWord = 'P3' then
+									Board.Stats[ix].P3 := iy;
+							end;
 						end else if OopWord = 'SEND' then begin
 							repeat
 								OopReadChar(statId, position);
@@ -1466,9 +1507,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							ix := OopValue;
 							OopReadValue(statId, position);
 							iy := OopValue;
-							if ( ix > -1 ) and ( ix < 16 ) then begin
-								if ( iy < 1 ) or ( iy > 15 ) then
-									iy := 0;
+							if ( iy < 1 ) or ( iy > 15 ) then
+								iy := 0;
+							if ((ix + (iy * 16)) > -1) and ((ix + (iy * 16)) < 256) then begin
 								Board.Tiles[X + deltaX][Y + deltaY].Color := AsColor(ix, iy);
 								BoardDrawTile(X + deltaX, Y + deltaY);
 							end else
