@@ -827,7 +827,7 @@ procedure GameConfigInit;
 			Category := CCEditor;
 			Key := 'EdLowLvl';
 {$IFDEF EDITOR}
-			Name := 'Low-level tile edit';
+			Name := 'Show internal data';
 {$ENDIF}
 			GetValue := ConfigEdLowLevelGetValue;
 			SetValue := ConfigEdLowLevelSetValue;

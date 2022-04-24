@@ -1170,7 +1170,7 @@ procedure EditorLoop;
 			end;
 {$ENDIF}
 		begin
-			state.Title := 'Low-Level Tile Info';
+			state.Title := 'Low-Level Tile Data';
 			TextWindowDrawOpen(state);
 			state.LinePos := 1;
 			exitRequested := false;
@@ -2908,20 +2908,35 @@ function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNo
 		choiceResult: byte;
 	procedure PopulateBoards;
 		var
-			j: integer;
+			j, padSize, mw: integer;
+			s1: string[12];
+			s: TSmallString;
 			bs: word;
 		begin
 			TextWindowFree(textWindow);
 			for j := 0 to World.BoardCount do begin
+				s := EditorGetBoardName(j, titleScreenIsNone);
+				if EditorLowLevelEnable then begin
+					padSize := 1;
+					if World.BoardCount >= 10 then padSize := 2;
+					if World.BoardCount >= 100 then padSize := 3;
+
+					Str(j, s1);
+					while Length(s1) < padSize do s1 := ' ' + s1;
+
+					s := '[' + s1 + '] ' + s;
+				end;
 				if (EditorShowDataSizes) and (not (titleScreenIsNone and (j = 0))) then begin
 					if j = World.Info.CurrentBoard then
 						bs := BoardCurrentStorageSize
 					else
 						bs := WorldExt.BoardLen[j];
-					TextWindowAppend(textWindow, EditorAppendSizeToLine(
-						EditorGetBoardName(j, titleScreenIsNone), bs));
+					TextWindowAppend(textWindow, EditorAppendSizeToLine(s, bs));
 				end else begin
-					TextWindowAppend(textWindow, EditorGetBoardName(j, titleScreenIsNone));
+					mw := TextWindowWidth - 9;
+					if Length(s) > mw then
+						s := Copy(s, 1, mw - 3) + '...';
+					TextWindowAppend(textWindow, s);
 				end;
 			end;
 			if showAddNewBoard then begin

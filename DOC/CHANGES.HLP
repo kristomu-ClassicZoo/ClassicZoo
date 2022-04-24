@@ -11,6 +11,9 @@ $< ClassicZoo dev >
 + Editor improvements.
   + The low-level stat info box now
     displays the stat index.
+  + The board list now displays board
+    IDs if viewing internal data is
+    enabled.
   + When changing the filename of a
     world or board, you will receive
     a warning if this would overwrite
