@@ -18,6 +18,8 @@ $< ClassicZoo dev >
     world or board, you will receive
     a warning if this would overwrite
     an existing file.
+/ [SDL2] Saving a text file on Linux/Mac
+  now always emits DOS line endings.
 
 $< ClassicZoo 4.34 >
 

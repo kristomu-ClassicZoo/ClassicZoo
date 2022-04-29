@@ -1243,7 +1243,12 @@ procedure TextWindowSaveFile(filename: TFilenameString; var state: TTextWindowSt
 
 		with state do begin
 			for i := 1 to LineCount do begin
+{$IFDEF FPC}
+				Write(f, Lines[i]^);
+				Write(f, #13#10); { always write DOS endings }
+{$ELSE}
 				WriteLn(f, Lines[i]^);
+{$ENDIF}
 				if DisplayIOError then goto OnError;
 			end;
 		end;
