@@ -2637,6 +2637,7 @@ PlacementDone:
 						i := EditorSelectStat('Stats', 0, false, false, false, true);
 						if (not TextWindowRejected) then begin
 							with Board.Stats[i] do begin
+								EditorMoveCursor(X, Y, false);
 								if EditorLowLevelEnable then begin
 									EditorEditTileLowLevel(X, Y, i);
 								end else begin

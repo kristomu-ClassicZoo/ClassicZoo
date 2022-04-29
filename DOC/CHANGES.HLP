@@ -11,6 +11,8 @@ $< ClassicZoo dev >
 + Editor improvements.
   + The low-level stat info box now
     displays the stat index.
+  + Opening a stat in the low-level stat
+    list now moves the cursor to it.
   + The board list now displays board
     IDs if viewing internal data is
     enabled.
