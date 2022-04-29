@@ -1132,7 +1132,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = OopStringToWord(OOPList[29]) then begin {'LOAD'}
 							OopReadDirection(statId, position, deltaX, deltaY);
 							OopReadWord(statId, position);
-							if Board.Tiles[X + deltaX][Y + deltaY].element = E_OBJECT then begin
+							if (Board.Tiles[X + deltaX][Y + deltaY].Element = E_OBJECT)
+								or (Board.Tiles[X + deltaX][Y + deltaY].Element = E_SCROLL)
+							then begin
 								bindStatId := GetStatIdAt(X + deltaX, Y + deltaY);
 								textLine := OopWord;
 								if textLine = 'APPEND' then
@@ -1407,7 +1409,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								else if OopWord = 'P2' then
 									Board.Stats[ix].P2 := iy
 								else if OopWord = 'P3' then
-									Board.Stats[ix].P3 := iy;
+									Board.Stats[ix].P3 := iy
+								else if OopWord = 'CYCLE' then
+									Board.Stats[ix].Cycle := iy;
 							end;
 						end else if OopWord = 'SEND' then begin
 							repeat

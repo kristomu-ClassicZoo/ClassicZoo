@@ -1,3 +1,8 @@
+4/27/2022: FixWeave 1.0e
+Added:
+* #PSET can now modify CYCLE as well as P values.
+* #LOAD can now modify the contents of scrolls.
+
 4/24/2022: FixWeave 1.0d
 Bugs fixed:
 * The "Bomb Activated!" config string was overwritten during the Custom OOP loader routine.
