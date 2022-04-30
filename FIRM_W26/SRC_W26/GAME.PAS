@@ -100,6 +100,7 @@ const
 	ColorList: array[0..15] of byte = (
 		0,1,2,3,4,5,20,7,56,57,58,59,60,61,62,63
 	);
+
 	NeighborArrowList: array[0..3] of char = (
 		#30, #31, #17, #16
 	);

@@ -1,3 +1,7 @@
+4/30/2022: FixWeave 1.0f and FirmWeave 2.6d
+Bugs Fixed:
+* Doors and Passages would not place the correct background color if their foreground color was white.
+
 4/27/2022: FixWeave 1.0e
 Added:
 * #PSET can now modify CYCLE as well as P values.

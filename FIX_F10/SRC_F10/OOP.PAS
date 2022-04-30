@@ -592,7 +592,7 @@ function OopParseTile(var statId, position: integer; var tile: TMatchTile): bool
 		OopReadWord(statId, position);
 		elem := ElementNumber(OopWord);
 		if elem <> -1 then goto FindElement;
-		if i < 15 then begin
+		if i < 16 then begin
 			j := ColorNumber(OopWord, statId);
 			if (j = -128) or (j > 15) then exit;
 		end;
