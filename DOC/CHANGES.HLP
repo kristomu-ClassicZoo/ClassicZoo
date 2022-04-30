@@ -6,7 +6,7 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
-$< ClassicZoo dev >
+$< ClassicZoo 4.35 >
 
 + Editor improvements.
   + The low-level stat info box now
@@ -20,6 +20,10 @@ $< ClassicZoo dev >
     world or board, you will receive
     a warning if this would overwrite
     an existing file.
+  + [SDL2] Support both .OBJ and .TXT
+    extensions for code text files.
+/ Fix rare crashes when opening text
+  files in the editor.
 / [SDL2] Saving a text file on Linux/Mac
   now always emits DOS line endings.
 

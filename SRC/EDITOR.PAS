@@ -42,7 +42,7 @@ interface
 {$IFDEF EDITOR}
 	procedure EditorLoop;
 	procedure EditorOpenEditTextWindow(var state: TTextWindowState; extension: TExtensionString;
-		syntaxHighlighting: boolean);
+		syntaxHighlighting, multiExtension: boolean);
 	procedure EditorEditTextFile;
 {$ENDIF}
 	function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TSmallString;
@@ -1043,7 +1043,11 @@ procedure EditorLoop;
 					FillChar(affectedStats, Board.StatCount + 1, false);
 				end;
 
-				EditorOpenEditTextWindow(state, '.TXT', EditorSyntaxHighlightEnable);
+{$IFDEF SDL2}
+				EditorOpenEditTextWindow(state, '.OBJ;.TXT', EditorSyntaxHighlightEnable, true);
+{$ELSE}
+				EditorOpenEditTextWindow(state, '.TXT', EditorSyntaxHighlightEnable, false);
+{$ENDIF}
 
 				for iLine := 1 to state.LineCount do
 					Inc(DataLen, Length(state.Lines[iLine]^) + 1);
@@ -1576,7 +1580,7 @@ procedure EditorLoop;
 						end;
 					end;
 				end else if i = 1 then begin
-					SidebarPromptString('Export board', '.BRD', SavedBoardFileName, PROMPT_ALPHANUM);
+					SidebarPromptFilename('Export board', '.BRD', SavedBoardFileName, PROMPT_ALPHANUM);
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0)
 					and (OverwriteCheck(SavedBoardFilename + '.BRD')) then begin
 						case EnsureIoTmpBufSize(WorldExt.BoardLen[World.Info.CurrentBoard]) of
@@ -2752,7 +2756,7 @@ procedure HighScoresDisplay(linePos: integer);
 
 {$IFDEF EDITOR}
 procedure EditorOpenEditTextWindow(var state: TTextWindowState; extension: TExtensionString;
-	syntaxHighlighting: boolean);
+	syntaxHighlighting, multiExtension: boolean);
 	begin
 		SidebarClear;
 		VideoWriteText(VideoSidebarX + 1, 7, $30, ' Return ');
@@ -2783,7 +2787,7 @@ procedure EditorOpenEditTextWindow(var state: TTextWindowState; extension: TExte
 		VideoWriteText(VideoSidebarX + 9, 22, $1F, ' Save file');
 		VideoWriteText(VideoSidebarX + 1, 23, $30, ' Esc ');
 		VideoWriteText(VideoSidebarX + 6, 23, $1F, ' Exit editor');
-		TextWindowEdit(state, extension, syntaxHighlighting);
+		TextWindowEdit(state, extension, syntaxHighlighting, multiExtension);
 	end;
 
 procedure EditorEditTextFile;
@@ -2808,7 +2812,7 @@ procedure EditorEditTextFile;
 
 		textWindow.Title := filename;
 		TextWindowDrawOpen(textWindow);
-		EditorOpenEditTextWindow(textWindow, extension, false);
+		EditorOpenEditTextWindow(textWindow, extension, false, false);
 		TextWindowDrawClose(textWindow);
 		TextWindowFreeEdit(textWindow);
 	end;

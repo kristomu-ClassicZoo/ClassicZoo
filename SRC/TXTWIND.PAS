@@ -70,7 +70,11 @@ interface
 		MAX_TEXT_WINDOW_HEIGHT = 18;
 {$ENDIF}
 	type
+{$IFDEF SDL2}
+		TExtensionString = string[12];
+{$ELSE}
 		TExtensionString = string[4];
+{$ENDIF}
 		TTextWindowLine = string[MAX_LINE_LENGTH_EDIT];
 		PTTextWindowLine = ^TTextWindowLine;
 		TTextWindowState = record
@@ -119,7 +123,8 @@ interface
 	procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 	procedure TextWindowSort(var state: TTextWindowState; fromIdx, toIdx: integer);
 {$IFDEF EDITOR}
-	procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionString; syntaxHighlighting: boolean);
+	procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionString;
+		syntaxHighlighting, multiExtension: boolean);
 {$ENDIF}
 	function ResourceDataCheckPresent: boolean;
 	function ResourceDataReadBinaryFile(name: TFilenameString; var fdata: pointer; foffset, fmaxsize: word): word;
@@ -601,7 +606,8 @@ procedure TextWindowSort(var state: TTextWindowState; fromIdx, toIdx: integer);
 	end;
 
 {$IFDEF EDITOR}
-procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionString; syntaxHighlighting: boolean);
+procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionString;
+	syntaxHighlighting, multiExtension: boolean);
 	var
 		newLinePos: integer;
 		insertMode: boolean;
@@ -1006,17 +1012,31 @@ procedure TextWindowEdit(var state: TTextWindowState; extension: TExtensionStrin
 					KEY_CTRL_O: begin
 						textFilename := FileSelect('Text Files', extension, FileTextCachedLinePos);
 						if (InputKeyPressed <> KEY_ESCAPE) and (Length(textFilename) <> 0) then begin
-							TextWindowFreeEdit(state);
-							TextWindowOpenFile('*' + textFilename + extension, state, true, true);
+							if not multiExtension then
+								textFilename := textFilename + extension;
+							if FileExists(textFilename) then begin
+								TextWindowFreeEdit(state);
+								TextWindowOpenFile('*' + textFilename, state, true, true);
+							end else begin
+								VideoWriteText(63, 4, $1E, 'File not found!');
+								PauseOnError;
+								SidebarClearLine(4);
+							end;
 							forceFullRedraw := true;
 						end;
 						InputKeyPressed := #0;
 					end;
 					KEY_CTRL_S: begin
 						textFilename := '';
-						SidebarPromptString('Filename', extension, textFilename, PROMPT_ALPHANUM);
-						if (Length(textFilename) > 0) and (OverwriteCheck(textFilename + extension)) then begin
-							TextWindowSaveFile(textFilename + extension, state);
+						if multiExtension then begin
+							SidebarPromptFilename('Filename', '', textFilename, PROMPT_ANY);
+						end else begin
+							SidebarPromptFilename('Filename', extension, textFilename, PROMPT_ALPHANUM);
+							if Length(textFilename) > 0 then
+								textFilename := textFilename + extension;
+						end;
+						if (Length(textFilename) > 0) and (OverwriteCheck(textFilename)) then begin
+							TextWindowSaveFile(textFilename, state);
 						end;
 						InputKeyPressed := #0;
 					end;
@@ -1098,6 +1118,7 @@ function ResourceDataCheckPresent: boolean;
 			if (IOResult <> 0) or (ResourceDataHeader.Version <> RESOURCE_DATA_VERSION) then
 				ResourceDataHeader.EntryCount := -1;
 			Close(f);
+			if IOResult <> 0 then begin end;
 		end;
 
 		ResourceDataCheckPresent := (ResourceDataHeader.EntryCount > 0);

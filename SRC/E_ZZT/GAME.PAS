@@ -512,7 +512,7 @@ procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: T
 		newFilename: TString50;
 	begin
 		newFilename := filename;
-		SidebarPromptString(prompt, extension, newFilename, PROMPT_ALPHANUM);
+		SidebarPromptFilename(prompt, extension, newFilename, PROMPT_ALPHANUM);
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(newFilename) <> 0)
 		and ((filename = newFilename) or (extension <> '.ZZT') or OverwriteCheck(newFilename + extension)) then begin
 			filename := newFilename;

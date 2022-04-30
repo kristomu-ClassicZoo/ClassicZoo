@@ -44,7 +44,7 @@ interface
 	procedure PromptString(x, y, arrowColor, color, width, stringLength: integer; mode: byte; var buffer: TSmallString);
 	function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
 	procedure SidebarPromptNumericAsString(prompt: string; extension: TSmallString; minV, maxV: integer; var value: integer);
-	procedure SidebarPromptString(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
+	procedure SidebarPromptFilename(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
 	procedure PopupPromptString(question: string; var buffer: TSmallString; maxLen: integer);
 	procedure SidebarAnimateLoading(var loadProgress: integer);
 	procedure BottomAnimateLoading(var loadProgress: integer);
@@ -402,16 +402,29 @@ function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
 		SidebarPromptYesNo := defaultReturn;
 	end;
 
-procedure SidebarPromptString(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
+procedure SidebarPromptFilename(prompt: string; extension: TSmallString; var filename: string; promptMode: byte);
 	begin
 		SidebarClearLine(3);
 		SidebarClearLine(4);
 		SidebarClearLine(5);
 
 		VideoWriteText(VideoSidebarX + 15 - Length(prompt), 3, $1F, prompt);
-		VideoWriteText(VideoSidebarX + 3, 5, $0F, '        ' + extension);
 
-		PromptString(63, 5, $1E, $0F, 8, 8, promptMode, filename);
+		if Length(extension) <= 0 then begin
+			VideoWriteText(VideoSidebarX + 3, 5, $0F, '            ');
+{$IFDEF SDL2}
+			PromptString(63, 5, $1E, $0F, 12, 20, promptMode, filename);
+{$ELSE}
+			PromptString(63, 5, $1E, $0F, 12, 12, promptMode, filename);
+{$ENDIF}
+		end else begin
+			VideoWriteText(VideoSidebarX + 3, 5, $0F, '        ' + extension);
+{$IFDEF SDL2}
+			PromptString(63, 5, $1E, $0F, 8, 16, promptMode, filename);
+{$ELSE}
+			PromptString(63, 5, $1E, $0F, 8, 8, promptMode, filename);
+{$ENDIF}
+		end;
 
 		SidebarClearLine(3);
 		SidebarClearLine(4);
@@ -438,7 +451,7 @@ procedure SidebarPromptNumericAsString(prompt: string; extension: TSmallString; 
 		while running do begin
 			if ClampVal then begin end;
 			Str(value, valStr);
-			SidebarPromptString(prompt, extension, valStr, PROMPT_NUMERIC);
+			SidebarPromptFilename(prompt, extension, valStr, PROMPT_NUMERIC);
 			Val(valStr, value, i);
 			if not ClampVal then running := false;
 		end;
