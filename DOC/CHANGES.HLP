@@ -6,6 +6,10 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
+$< ClassicZoo dev >
+
+/ [DOS] Improve joystick compatibility.
+
 $< ClassicZoo 4.35 >
 
 + Editor improvements.

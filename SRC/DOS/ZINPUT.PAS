@@ -102,7 +102,9 @@ procedure InputJoystickGetCoords(var x, y: integer);
 		x := 0;
 		y := 0;
 		startTicks := TimerTicks;
-		Port[PORT_JOYSTICK] := 0;
+		{ some adapters won't work unless the one-shot sent to 201h has all bits set }
+		{ https://github.com/tkchia/GW-BASIC/issues/4 }
+		Port[PORT_JOYSTICK] := $FF;
 		repeat
 			x := x + (Port[PORT_JOYSTICK] and 1);
 			y := y + (Port[PORT_JOYSTICK] and 2);
