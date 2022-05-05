@@ -22,6 +22,7 @@ $< ClassicZoo 4.35 >
     an existing file.
   + [SDL2] Support both .OBJ and .TXT
     extensions for code text files.
+* [Windows] Updated SDL2 to 2.0.22.
 / Fix rare crashes when opening text
   files in the editor.
 / [SDL2] Saving a text file on Linux/Mac
