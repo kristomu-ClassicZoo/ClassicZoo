@@ -288,8 +288,8 @@ procedure GameDebugPrompt;
 {$IFDEF E_ZZT}
 				if DebugPromptStarts(input, 'SPEED') then begin
 					i := DebugPromptParseInt(input, 5, -1);
-					if (i >= 0) and (i <= 8) then begin
-						TickSpeed := i;
+					if (i >= 1) and (i <= 9) then begin
+						TickSpeed := i - 1;
 					end else begin
 						SidebarPromptSlider(true, 63, 3, 'Game speed:;FS', TickSpeed);
 						SidebarClearLine(3);
