@@ -221,8 +221,16 @@ function LFSRUpdateSeed(var seed: word; var tx, ty: byte): boolean;
 
 procedure BoardChange(boardId: integer);
 	begin
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
+		with Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y] do begin
+			if ExtensionEnabled[ExtFixPassageDestroy] then begin
+				if Element = E_PLAYER then
+					Color := ElementDefs[E_PLAYER].Color;
+			end else begin
+				Element := E_PLAYER;
+				Color := ElementDefs[E_PLAYER].Color;
+			end;
+		end;
+
 		BoardClose;
 		BoardOpen(boardId);
 	end;
@@ -1061,7 +1069,9 @@ procedure DamageStat(attackerStatId: integer);
 					GameUpdateSidebar;
 					DisplayMessage(100, '', 'Ouch!');
 
-					Board.Tiles[X][Y].Color := $70 + (ElementDefs[E_PLAYER].Color and $0F);
+					if (not ExtensionEnabled[ExtFixPassageColorDamage])
+					or (Board.Tiles[X][Y].Element = E_PLAYER) then
+						Board.Tiles[X][Y].Color := $70 + (ElementDefs[E_PLAYER].Color and $0F);
 
 					if World.Info.Health > 0 then begin
 						World.Info.BoardTimeSec := 0;
@@ -1206,8 +1216,18 @@ procedure BoardPassageTeleport(x, y: integer);
 					newY := iy;
 				end;
 
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := Board.Stats[0].Under.Element;
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := Board.Stats[0].Under.Color;
+		with Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y] do begin
+			if (not ExtensionEnabled[ExtFixPassageDestroy])
+			or (Element = E_PLAYER) then begin
+				if ExtensionEnabled[ExtFixPlayerUnpauseDamage] then begin
+					Element := Board.Stats[0].Under.Element;
+					Color := Board.Stats[0].Under.Color;
+				end else begin
+					Element := E_EMPTY;
+					Color := 0;
+				end;
+			end;
+		end;
 		if newX <> 0 then begin
 			Board.Stats[0].X := newX;
 			Board.Stats[0].Y := newY;

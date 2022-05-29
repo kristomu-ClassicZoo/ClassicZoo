@@ -275,7 +275,12 @@ procedure GameDebugPrompt;
 							BoardChange(i);
 							GamePaused := true;
 							TransitionDrawBoardChange;
+{$IFDEF E_SUPERZ}
 							BoardEnter;
+{$ELSE}
+							BoardEnter(true);
+{$ENDIF}
+
 						end;
 					end;
 				end else if DebugPromptStarts(input, 'TOUCH') then begin

@@ -48,7 +48,9 @@ const
 	HEX_DIGITS = '0123456789ABCDEF';
 	EditorCategoryCharacters = 'FOQ';
 	HEADER_BAR_Y = 0;
-	EDITOR_ZXT_INFOS_COUNT = 1;
+	EDITOR_ZXT_INFOS_COUNT = 14
+	{$IFNDEF E_SUPERZ} + 2 {$ENDIF}
+		;
 	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
 	(
 		(
@@ -57,6 +59,115 @@ const
 			EditCategory: EditorZxtCategoryOop;
 			EditFlags: 0;
 			Name: '#IFEXT'
+		),
+		(
+			ExtType: ExtFixPutBottomRow;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryFix;
+			EditFlags: 0;
+			Name: '#PUT on bottom row'
+		),
+		(
+			ExtType: ExtFixBlinkWallShift;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryFix;
+			EditFlags: 0;
+			Name: 'Blink wall shift to left'
+		),
+{$IFNDEF E_SUPERZ}
+		(
+			ExtType: ExtFixBoardEdgeTouch;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryFix;
+			EditFlags: 0;
+			Name: 'Board edge touch direction'
+		),
+{$ENDIF}
+		(
+			ExtType: ExtFixConveyorStatSwapping;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryFix;
+			EditFlags: 0;
+			Name: 'Conveyor stat swapping'
+		),
+		(
+			ExtType: ExtFixConveyorStatCheck;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryFix;
+			EditFlags: 0;
+			Name: 'Conveyor statless movement'
+		),
+		(
+			ExtType: ExtFixConveyorMissingFinalDraw;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryFix;
+			EditFlags: 0;
+			Name: 'Conveyor visual bugs'
+		),
+		(
+			ExtType: ExtFixKoopoBug;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryFix;
+			EditFlags: 0;
+			Name: 'Duplicator "Koopo" bug'
+		),
+		(
+			ExtType: ExtFixBindDoubleFree;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryFix;
+			EditFlags: 0;
+			Name: 'Nested #BIND calls'
+		),
+		(
+			ExtType: ExtFixRecursiveElementPush;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryFix;
+			EditFlags: 0;
+			Name: 'Recursive element push'
+		),
+		(
+			ExtType: ExtGMDirByAt;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryOop;
+			EditFlags: 0;
+			Name: 'BY/AT directions'
+		),
+{$IFNDEF E_SUPERZ}
+		(
+			ExtType: ExtSuperzEnter;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryOop;
+			EditFlags: 0;
+			Name: ':ENTER'
+		),
+{$ENDIF}
+		(
+			ExtType: ExtDieItem;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryOop;
+			EditFlags: 0;
+			Name: '#DIE ITEM'
+		),
+		(
+			ExtType: ExtDieUnderTile;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryOop;
+			EditFlags: 0;
+			Name: '#DIE preserves tile under'
+		),
+		(
+			ExtType: ExtIfRnd;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryOop;
+			EditFlags: 0;
+			Name: '#IF RND'
+		),
+		(
+			ExtType: ExtQuirkArgTile2;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryQuirk;
+			EditFlags: 0;
+			Name: 'Mark as using argTile2'
 		)
 	);
 

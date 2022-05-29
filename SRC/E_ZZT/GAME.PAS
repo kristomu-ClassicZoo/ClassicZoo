@@ -54,7 +54,7 @@ interface
 	procedure GameUpdateSidebar;
 	procedure GamePlayLoop(boardChanged: boolean);
 	procedure DisplayMessage(time: integer; message: string);
-	procedure BoardEnter;
+	procedure BoardEnter(playerCaused: boolean);
 	procedure BoardPassageTeleport(x, y: integer);
 	procedure GameTitleLoop;
 	procedure ResetCachedLinePos;
@@ -106,8 +106,16 @@ function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
 
 procedure BoardChange(boardId: integer);
 	begin
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
+		with Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y] do begin
+			if ExtensionEnabled[ExtFixPassageDestroy] then begin
+				if Element = E_PLAYER then
+					Color := ElementDefs[E_PLAYER].Color;
+			end else begin
+				Element := E_PLAYER;
+				Color := ElementDefs[E_PLAYER].Color;
+			end;
+		end;
+
 		BoardClose;
 		BoardOpen(boardId);
 	end;
@@ -835,7 +843,9 @@ procedure DamageStat(attackerStatId: integer);
 					GameUpdateSidebar;
 					DisplayMessage(100, 'Ouch!');
 
-					Board.Tiles[X][Y].Color := $70 + (ElementDefs[E_PLAYER].Color and $0F);
+					if (not ExtensionEnabled[ExtFixPassageColorDamage])
+					or (Board.Tiles[X][Y].Element = E_PLAYER) then
+						Board.Tiles[X][Y].Color := $70 + (ElementDefs[E_PLAYER].Color and $0F);
 
 					if World.Info.Health > 0 then begin
 						World.Info.BoardTimeSec := 0;
@@ -946,7 +956,7 @@ procedure TransitionDrawBoardChange;
 		TransitionDrawToBoard;
 	end;
 
-procedure BoardEnter;
+procedure BoardEnter(playerCaused: boolean);
 	begin
 		Board.Info.StartPlayerX := Board.Stats[0].X;
 		Board.Info.StartPlayerY := Board.Stats[0].Y;
@@ -963,6 +973,9 @@ procedure BoardEnter;
 		if DebugCompatEnabled then
 			DebugBoardIllegalElements;
 {$ENDIF}
+
+		if playerCaused and ExtensionEnabled[ExtSuperzEnter] then
+			if OopSend(0, 'ALL:ENTER', false) then begin end;
 	end;
 
 procedure BoardPassageTeleport(x, y: integer);
@@ -985,8 +998,18 @@ procedure BoardPassageTeleport(x, y: integer);
 					newY := iy;
 				end;
 
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_EMPTY;
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := 0;
+		with Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y] do begin
+			if (not ExtensionEnabled[ExtFixPassageDestroy])
+			or (Element = E_PLAYER) then begin
+				if ExtensionEnabled[ExtFixPlayerUnpauseDamage] then begin
+					Element := Board.Stats[0].Under.Element;
+					Color := Board.Stats[0].Under.Color;
+				end else begin
+					Element := E_EMPTY;
+					Color := 0;
+				end;
+			end;
+		end;
 		if newX <> 0 then begin
 			Board.Stats[0].X := newX;
 			Board.Stats[0].Y := newY;
@@ -995,7 +1018,7 @@ procedure BoardPassageTeleport(x, y: integer);
 		GamePaused := true;
 		SoundQueue(4, #48#1#52#1#55#1#49#1#53#1#56#1#50#1#54#1#57#1#51#1#55#1#58#1#52#1#56#1#64#1);
 		TransitionDrawBoardChange;
-		BoardEnter;
+		BoardEnter(true);
 	end;
 
 procedure GameOnStart;
@@ -1174,6 +1197,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 						Inc(Board.Stats[0].X, InputDeltaX);
 						Inc(Board.Stats[0].Y, InputDeltaY);
 						with Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y] do begin
+							if ExtensionEnabled[ExtFixPlayerUnpauseDamage] then begin
+								Board.Stats[0].Under.Element := Element;
+								Board.Stats[0].Under.Color := Color;
+							end;
 							Element := E_PLAYER;
 							Color := ElementDefs[E_PLAYER].Color;
 						end;
@@ -1289,7 +1316,7 @@ procedure GameTitleLoop;
 						end;
 						if startPlay then begin
 							BoardChange(ReturnBoardId);
-							BoardEnter;
+							BoardEnter(false);
 						end;
 					end;
 {$IFDEF WEBBROW}

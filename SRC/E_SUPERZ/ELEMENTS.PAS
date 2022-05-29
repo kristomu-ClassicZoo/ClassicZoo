@@ -46,6 +46,7 @@ uses
 {$IFDEF MSDOS}
 {$IFDEF NEC98} Pc98, {$ELSE} Crt, {$ENDIF}
 {$ENDIF} {$IFDEF SDL2} AudioSim, {$ENDIF}
+ZxtMgr,
 GameConf, ZVideo, Sounds, ZInput, TxtWind, Editor, Oop, Cheats, GameSh, Game;
 
 const
@@ -577,7 +578,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 		i: integer;
 		iStat: integer;
 		ix, iy: integer;
-		canMove: boolean;
+		canMove, isStatted: boolean;
 		tiles: array[0..7] of TTile;
 		statIds: array[0..7] of integer;
 		iMin, iMax: integer;
@@ -600,15 +601,14 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			tx := x + DiagonalDeltaX[i];
 			ty := y + DiagonalDeltaY[i];
 			tiles[i] := Board.Tiles[tx][ty];
+			{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
+			{ Pre-find stat IDs to prevent such a scenario from occuring. }
+			statIds[i] := GetStatIdAt(tx, ty);
 			with tiles[i] do begin
 				if Element = E_EMPTY then
 					canMove := true
 				else if not ElementDefs[Element].Pushable then
 					canMove := false;
-				{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
-				{ Pre-find stat IDs to prevent such a scenario from occuring. }
-				if ElementDefs[Element].Cycle > -1 then
-					statIds[i] := GetStatIdAt(tx, ty)
 			end;
 			Inc(i, direction);
 		until i = iMax;
@@ -618,13 +618,18 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			with tiles[i] do begin
 				if canMove then begin
 					if ElementDefs[Element].Pushable then begin
-						ix := x + DiagonalDeltaX[(i - direction + 8) and 7];
-						iy := y + DiagonalDeltaY[(i - direction + 8) and 7];
+						ix := x + DiagonalDeltaX[(i - direction) and 7];
+						iy := y + DiagonalDeltaY[(i - direction) and 7];
 						tx := x + DiagonalDeltaX[i];
 						ty := y + DiagonalDeltaY[i];
 
-						if ElementDefs[Element].Cycle > -1 then begin
-							if HighCompat then
+						if ExtensionEnabled[ExtFixConveyorStatCheck] then
+							isStatted := statIds[i] >= 0
+						else
+							isStatted := ElementDefs[Element].Cycle > -1;
+
+						if isStatted then begin
+							if HighCompat or (not ExtensionEnabled[ExtFixConveyorStatSwapping]) then
 								statIds[i] := GetStatIdAt(tx, ty);
 
 							tmpTile := Board.Tiles[tx][ty];
@@ -639,7 +644,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 							Board.Tiles[ix][iy] := tiles[i];
 							BoardDrawTile(ix, iy);
 						end;
-						if not ElementDefs[tiles[(i + direction + 8) and 7].Element].Pushable then begin
+						if not ElementDefs[tiles[(i + direction) and 7].Element].Pushable then begin
 							Board.Tiles[tx][ty].Element := E_EMPTY;
 							{ FIX: Add missing BoardDrawTile. }
 							BoardDrawTile(tx, ty);
@@ -993,7 +998,10 @@ procedure ElementBlinkWallTick(statId: integer);
 								if Board.Tiles[ix + 1][iy].Element = E_EMPTY then
 									MoveStat(playerStatId, ix + 1, iy)
 								else if Board.Tiles[ix - 1][iy].Element = E_EMPTY then
-									MoveStat(playerStatId, ix + 1, iy);
+									if ExtensionEnabled[ExtFixBlinkWallShift] then
+										MoveStat(playerStatId, ix - 1, iy)
+									else
+										MoveStat(playerStatId, ix + 1, iy);
 							end;
 
 							if Board.Tiles[ix][iy].Element = E_PLAYER then begin
@@ -1144,7 +1152,10 @@ procedure ElementObjectTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 procedure ElementDuplicatorTick(statId: integer);
 	var
 		sourceStatId: integer;
+		lastCurrentBoard: integer;
 	begin
+		lastCurrentBoard := World.Info.CurrentBoard;
+
 		with Board.Stats[statId] do begin
 			if P1 <= 4 then begin
 				Inc(P1);
@@ -1179,6 +1190,9 @@ procedure ElementDuplicatorTick(statId: integer);
 						SoundQueue(3, #24#1#22#1);
 					end;
 				end;
+
+				if ExtensionEnabled[ExtFixKoopoBug] then
+					if lastCurrentBoard <> World.Info.CurrentBoard then exit;
 
 				P1 := 0;
 			end;

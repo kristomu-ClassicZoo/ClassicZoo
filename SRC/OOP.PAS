@@ -138,6 +138,47 @@ procedure OopReadValue(statId: integer; var position: integer);
 			OopValue := -1;
 	end;
 
+function OopReadSignedValue(statId: integer; var position: integer): boolean;
+	var
+		s: string[OOP_TOKEN_LENGTH];
+		code: integer;
+		wordPos: byte;
+	begin
+		wordPos := 0;
+		repeat
+			OopReadChar(statId, position)
+		until OopChar <> ' ';
+
+		OopChar := UpCase(OopChar);
+		if (OopChar = '-') then begin
+			Inc(wordPos);
+			s[WordPos] := '-';
+			OopReadChar(statId, position);
+			OopChar := UpCase(OopChar);
+		end;
+
+		while (OopChar >= '0') and (OopChar <= '9') do begin
+			if wordPos <= OOP_TOKEN_LENGTH then begin
+				Inc(wordPos);
+				s[wordPos] := OopChar;
+			end;
+			OopReadChar(statId, position);
+			OopChar := UpCase(OopChar);
+		end;
+
+		s[0] := Chr(wordPos);
+		if position > 0 then
+			Dec(position);
+
+		if Length(s) <> 0 then begin
+			Val(s, OopValue, code);
+			OopReadSignedValue := true;
+		end else begin
+			OopValue := -1;
+			OopReadSignedValue := false;
+		end;
+	end;
+
 function OopReadHex(statId: integer; var position: integer): longint;
 	var
 		result: longint;
@@ -186,6 +227,8 @@ procedure OopSkipLine(statId: integer; var position: integer);
 	end;
 
 function OopParseDirection(statId: integer; var position: integer; var dx, dy: integer): boolean;
+	var
+		isabs: boolean;
 	begin
 		with Board.Stats[statId] do begin
 			OopParseDirection := true;
@@ -238,6 +281,25 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 				OopParseDirection := OopParseDirection(statId, position, dx, dy);
 				dx := -dx;
 				dy := -dy;
+			end else if ExtensionEnabled[ExtGMDirByAt] and ((OopWord = 'BY') or (OopWord = 'AT')) then begin
+				dx := 0;
+				dy := 0;
+				OopParseDirection := false;
+
+				{ Extension 79656D74:0001: by/at directions }
+				isabs := (OopWord = 'AT');
+				if OopReadSignedValue(statId, position) then begin
+					dx := OopValue;
+					if OopReadSignedValue(statId, position) then begin
+						dy := OopValue;
+						{ For AT, convert absolute to relative }
+						if isabs then with Board.Stats[statId] do begin
+							dx := dx - X;
+							dy := dy - Y;
+						end;
+						OopParseDirection := true;
+					end;
+				end;
 			end else begin
 				dx := 0;
 				dy := 0;
@@ -583,6 +645,8 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				ix := 0;
 				iy := 1;
 				OopCheckCondition := FindTileOnBoard(ix, iy, tile);
+			end else if ExtensionEnabled[ExtIfRnd] and (OopWord = 'RND') then begin
+				OopCheckCondition := ZRandom(2) > 0;
 			end else begin
 				OopCheckCondition := WorldGetFlagPosition(OopWord) >= 0;
 			end;
@@ -653,6 +717,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 		ix, iy: integer;
 		stopRunning: boolean;
 		replaceStat: boolean;
+		movePlayerToStat: boolean;
 		endOfProgram: boolean;
 		replaceTile: TTile;
 		namePosition: integer;
@@ -679,6 +744,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 			stopRunning := false;
 			repeatInsNextTick := false;
 			replaceStat := false;
+			movePlayerToStat := false;
 			endOfProgram := false;
 			insCount := 0;
 			repeat
@@ -949,8 +1015,17 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 							end;
 						end else if OopWord = 'DIE' then begin
 							replaceStat := true;
-							replaceTile.Element := E_EMPTY;
-							replaceTile.Color := $0F;
+							if ExtensionEnabled[ExtDieUnderTile] then begin
+								replaceTile := Under;
+							end else begin
+								replaceTile.Element := E_EMPTY;
+								replaceTile.Color := $0F;	
+							end;
+
+							OopReadWord(statId, position);
+							if ExtensionEnabled[ExtDieItem] and (OopWord = 'ITEM') then begin
+								movePlayerToStat := true;
+							end;
 						end else if OopWord = 'BIND' then begin
 							OopReadWord(statId, position);
 							bindStatId := 0;
@@ -1046,6 +1121,10 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 				iy := Y;
 				DamageStat(statId);
 				OopPlaceTile(ix, iy, replaceTile);
+
+				if movePlayerToStat then begin
+					MoveStat(0, ix, iy);
+				end;
 			end;
 		end;
 
