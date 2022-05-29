@@ -107,7 +107,7 @@ type
 		previewColor: byte;
 	end;
 	TEditorCopyTileBuffer = array[0 .. 32000] of TTile;
-	TEditorCopyStatBuffer = array[1 .. MAX_STAT + 2] of TStat;
+	TEditorCopyStatBuffer = array[1 .. ACTUAL_MAX_STAT + 2] of TStat;
 	TEditorCopyBuffer = record
 		tiles: ^TEditorCopyTileBuffer;
 		stats: ^TEditorCopyStatBuffer;
@@ -1055,7 +1055,7 @@ procedure EditorLoop;
 		var
 			state: TTextWindowState;
 			i, iLine, iChar, iStat: integer;
-			affectedStats: array[0 .. MAX_STAT + 1] of boolean;
+			affectedStats: array[0 .. ACTUAL_MAX_STAT + 1] of boolean;
 		begin
 			with Board.Stats[statId] do begin
 				state.Title := prompt;

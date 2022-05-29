@@ -20,5 +20,6 @@ TExtensionType = (
 	ExtIfRnd,
 	ExtGMDirByAt,
 	ExtQuirkArgTile2,
+	ExtMaxStatCount,
 	ExtTypeEnd { This one has to be last. }
 );

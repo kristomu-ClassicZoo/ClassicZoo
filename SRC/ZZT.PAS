@@ -51,7 +51,7 @@ SysUtils, FileSel,
 cwstring,
 {$ENDIF}
 Dos, ExtMem, ZxtMgr, FileSys, ZVideo, Keys, Sounds, TimerSys, ZInput, TxtWind,
-GameConf, GameVars, Elements, Editor, Oop, Game;
+ZxtZoo, GameConf, GameVars, Elements, Editor, Oop, Game;
 
 {$IFDEF SDL2}
 function FileNameFromProgramName(const ext: string; checkExists: boolean): string;
@@ -191,6 +191,8 @@ begin
 		InputUpdate;
 {$ENDIF}
 
+		MAX_STAT := DEFAULT_MAX_STAT;
+
 		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);
 		ZxtRegisterExtensionSimple(ExtFixPutBottomRow, $00000001, $0001);
 		ZxtRegisterExtensionSimple(ExtFixBindDoubleFree, $00000001, $0002);
@@ -210,6 +212,8 @@ begin
 		ZxtRegisterExtensionSimple(ExtIfRnd, $0000A51E, $0004);
 		ZxtRegisterExtensionSimple(ExtGMDirByAt, $79656D74, $0001);
 		ZxtRegisterExtensionSimple(ExtQuirkArgTile2, $00000000, $1001);
+		ZxtRegisterExtension(ExtMaxStatCount, $0000A51E, $0005,
+			ZxtMaxStatCountHandler);
 
 		SavedGameFileName := 'SAVED';
 		SavedBoardFileName := 'TEMP';

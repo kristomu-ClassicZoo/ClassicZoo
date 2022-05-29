@@ -28,7 +28,8 @@ interface
 		TEditorZxtCategory = (
 			EditorZxtCategoryFix,
 			EditorZxtCategoryOop,
-			EditorZxtCategoryQuirk
+			EditorZxtCategoryQuirk,
+			EditorZxtCategoryWorld
 		);
 		TEditorZxtInfo = record
 			ExtType: TExtensionType;
@@ -40,15 +41,15 @@ interface
 	function ZxtEditorRun: boolean;
 
 implementation
-uses Dos, FileSel, ZVideo, ZInput, TimerSys, Sidebar, Oop;
+uses Dos, FileSel, ZVideo, ZInput, TimerSys, Sidebar, Oop, ZxtZoo;
 
 { START YOUR EDITS HERE }
 
 const
 	HEX_DIGITS = '0123456789ABCDEF';
-	EditorCategoryCharacters = 'FOQ';
+	EditorCategoryCharacters = 'FOQW';
 	HEADER_BAR_Y = 0;
-	EDITOR_ZXT_INFOS_COUNT = 14
+	EDITOR_ZXT_INFOS_COUNT = 15
 	{$IFNDEF E_SUPERZ} + 2 {$ENDIF}
 		;
 	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
@@ -59,6 +60,13 @@ const
 			EditCategory: EditorZxtCategoryOop;
 			EditFlags: 0;
 			Name: '#IFEXT'
+		),
+		(
+			ExtType: ExtMaxStatCount;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryWorld;
+			EditFlags: 0;
+			Name: 'Maximum stat count'
 		),
 		(
 			ExtType: ExtFixPutBottomRow;
@@ -257,12 +265,10 @@ function ZxtEditorRun: boolean;
 
 	procedure ZxtEditorDrawBackground;
 		var
-			ix, iy: integer;
+			iy: integer;
 		begin
-			for iy := 0 to 24 do begin
-				SidebarClearLine(iy);
+			for iy := 0 to 24 do
 				ZxtEditorClearLine(iy, $FF);
-			end;
 
 			VideoWriteText(4, HEADER_BAR_Y, $0F, 'I.D.');
 			VideoWriteText(13, HEADER_BAR_Y, $07, #179);
@@ -271,6 +277,22 @@ function ZxtEditorRun: boolean;
 			VideoWriteText(46 + 1, HEADER_BAR_Y, $0F, 'FLAGS');
 			VideoWriteText(46 + 7, HEADER_BAR_Y, $07, #179);
 			VideoWriteText(54 + 1, HEADER_BAR_Y, $0F, 'LEN.');
+		end;
+
+	procedure ZxtEditorClearSidebar;
+		var
+			iy: integer;
+		begin
+			for iy := 3 to 24 do
+				SidebarClearLine(iy);
+		end;
+
+	procedure ZxtEditorDrawSidebar;
+		var
+			iy: integer;
+		begin
+			for iy := 0 to 24 do
+				SidebarClearLine(iy);
 
 			VideoWriteText(VideoSidebarX + 1, 0, $1F,
 				'__  /\\  /_ __|');
@@ -381,6 +403,24 @@ function ZxtEditorRun: boolean;
 			else ZxtEditorSelectType := state.LinePos;
 		end;
 
+	procedure ZxtEditorEdit(var block: TExtensionBlock);
+		begin
+			ZxtEditorClearSidebar;
+			case block.ExtType of
+				ExtMaxStatCount: begin
+					ZxtMaxStatCountEditor(false, block);
+					ZxtMaxStatCountEditor(true, block);
+				end;
+			end;
+			ZxtEditorDrawSidebar;
+		end;
+
+	procedure ZxtEditorEditSelected;
+		begin
+			if selEntry > ZxtBlockGetCount then exit;
+			ZxtEditorEdit(ZxtBlockGet(selEntry)^);
+		end;
+
 	procedure ZxtEditorInsertNew;
 		var
 			i: integer;
@@ -394,8 +434,10 @@ function ZxtEditorRun: boolean;
 				block.ExtType := EditorZxtInfos[i].ExtType;
 				ZxtGetExtId(ExtType, block.Header.Id);
 				block.Header.Flags := (block.Header.Flags and $EF) or $40;
+				block.Header.FieldLength := 0;
 				block.Data := nil;
 			end;
+			ZxtEditorEdit(block);
 			i := ZxtBlockAppend(ZXT_APPEND_END, block);
 			EditorZxtLoadAll;
 			ZxtEditorDrawEntries;
@@ -433,6 +475,7 @@ function ZxtEditorRun: boolean;
 	begin
 		selEntry := 1;
 
+		ZxtEditorDrawSidebar;
 		ZxtEditorDrawBackground;
 		ZxtEditorDrawEntries;
 
@@ -464,6 +507,7 @@ function ZxtEditorRun: boolean;
 					end;
 				end;
 				KEY_DELETE: ZxtEditorDelete;
+				KEY_ENTER: ZxtEditorEditSelected;
 				'N': ZxtEditorInsertNew;
 				'H': begin
 					TextWindowDisplayFile('zxtedit.hlp', 'ZXT editor help');
@@ -479,7 +523,7 @@ function ZxtEditorRun: boolean;
 			end;
 		until (InputKeyPressed = KEY_ESCAPE) or (UpCase(InputKeyPressed) = 'Q');
 
-		ZxtEditorRun := false;		
+		ZxtEditorRun := true;		
 	end;
 
 end.

@@ -34,7 +34,9 @@ unit GameVars;
 interface
 	uses ExtMem;
 	const
-		MAX_STAT = 128;
+		DEFAULT_MAX_STAT = 150;
+		ACTUAL_MAX_STAT = {$IFDEF SDL2}254{$ELSE}128{$ENDIF};
+
 		SAFE_MAX_ELEMENT = 79;
 {$IFDEF SDL2}
 		MAX_ELEMENT = 255;
@@ -245,9 +247,9 @@ interface
 			StatCount: integer;
 {$IFDEF MEMBOUND}
 			{ On platforms with different memory layouts, add a faux stat -1. }
-			Stats: array[-1 .. MAX_STAT + 1] of TStat;
+			Stats: array[-1 .. ACTUAL_MAX_STAT + 1] of TStat;
 {$ELSE}
-			Stats: array[0 .. MAX_STAT + 1] of TStat;
+			Stats: array[0 .. ACTUAL_MAX_STAT + 1] of TStat;
 {$ENDIF}
 			Info: TBoardInfo;
 		end;
@@ -348,6 +350,8 @@ interface
 		MenuScrPointer: pointer;
 		MenuScrLen: word; }
 		UseCustomFont: boolean;
+
+		MAX_STAT: integer;
 
 {$IFDEF DEBUGWND}
 		DebugCompatEnabled: boolean;

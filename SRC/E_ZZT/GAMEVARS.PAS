@@ -34,7 +34,9 @@ unit GameVars;
 interface
 	uses ExtMem;
 	const
-		MAX_STAT = 150;
+		DEFAULT_MAX_STAT = 150;
+		ACTUAL_MAX_STAT = {$IFDEF SDL2}255{$ELSE}150{$ENDIF};
+
 		SAFE_MAX_ELEMENT = 53;
 {$IFDEF SDL2}
 		MAX_ELEMENT = 255;
@@ -246,9 +248,9 @@ interface
 			StatCount: integer;
 {$IFDEF MEMBOUND}
 			{ On platforms with different memory layouts, add a faux stat -1. }
-			Stats: array[-1 .. MAX_STAT + 1] of TStat;
+			Stats: array[-1 .. ACTUAL_MAX_STAT + 1] of TStat;
 {$ELSE}
-			Stats: array[0 .. MAX_STAT + 1] of TStat;
+			Stats: array[0 .. ACTUAL_MAX_STAT + 1] of TStat;
 {$ENDIF}
 			Info: TBoardInfo;      
 		end;
@@ -353,6 +355,7 @@ interface
 		JustStarted: boolean;
 
 		WorldExt: TWorldExt;
+		MAX_STAT: integer;
 
 {$IFDEF PLAYSTEP}
 		PlayerStepEnabled: boolean;
