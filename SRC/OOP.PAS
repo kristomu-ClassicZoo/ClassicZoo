@@ -1,7 +1,7 @@
 {
 	Copyright (c) 2020 Adrian Siekierka
 
-	Based on a reconstruction of code from Super ZZT,
+	Based on a reconstruction of code from ZZT,
 	Copyright 1991 Epic MegaGames, used with permission.
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -35,7 +35,11 @@ interface
 	procedure WorldClearFlag(name: TSmallString);
 	function OopStringToWord(input: TSmallString): TSmallString;
 	function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
+{$IFDEF E_SUPERZ}
 	function OopExecute(statId: integer; var position: integer; name: TSmallString): boolean;
+{$ELSE}
+	procedure OopExecute(statId: integer; var position: integer; name: TSmallString);
+{$ENDIF}
 
 implementation
 uses
@@ -54,7 +58,7 @@ procedure OopError(statId: integer; message: string);
 				exit;
 			end;
 {$ENDIF}
-			DisplayMessage(200, '', 'ERR: ' + message);
+			DisplayMessage(200, {$IFDEF E_SUPERZ}'',{$ENDIF} 'ERR: ' + message);
 			SoundQueue(5, #80#10);
 			DataPos := -1;
 		end;
@@ -139,6 +143,8 @@ function OopReadHex(statId: integer; var position: integer): longint;
 		result: longint;
 	label Done;
 	begin
+		result := 0;
+
 		repeat
 			OopReadChar(statId, position)
 		until OopChar <> ' ';
@@ -247,23 +253,32 @@ procedure OopReadDirection(statId: integer; var position: integer; var dx, dy: i
 			OopError(statId, 'Bad direction');
 	end;
 
-function OopFindString(statId: integer; s: string): integer;
+function OopFindString(statId: integer; startPos: integer; s: string): integer;
 	var
 		pos, wordPos, cmpPos: integer;
+		maxPos: integer;
 	label NoMatch;
 	begin
 		for pos := 1 to Length(s) do
 			s[pos] := UpCase(s[pos]);
 		with Board.Stats[statId] do begin
-			pos := 0;
-			while pos <= DataLen do begin
+			pos := startPos;
+			maxPos := DataLen - Length(s);
+			while pos <= maxPos do begin
 				wordPos := 1;
 				cmpPos := pos;
 				repeat
-					OopReadChar(statId, cmpPos);
+					{$IFNDEF FPC}
+					{ On Turbo Pascal, the array pointer is actually }
+					{ a poiter to a string. }
+					OopChar := Data^[cmpPos];
+					{$ELSE}
+					OopChar := Data[cmpPos];
+					{$ENDIF}
 					if s[wordPos] <> UpCase(OopChar) then
 						goto NoMatch;
 					Inc(wordPos);
+					Inc(cmpPos);
 				until wordPos > Length(s);
 
 				{ string matches }
@@ -287,46 +302,50 @@ function OopFindString(statId: integer; s: string): integer;
 function OopIterateStat(statId: integer; var iStat: integer; lookup: string): boolean;
 	var
 		pos: integer;
-		found: boolean;
 	begin
 		Inc(iStat);
-		found := false;
 
 		if lookup = 'ALL' then begin
-			if iStat <= Board.StatCount then
-				found := true;
+			if iStat <= Board.StatCount then begin
+				OopIterateStat := true;
+				exit;
+			end;
 		end else if lookup = 'OTHERS' then begin
 			if iStat <= Board.StatCount then begin
-				if iStat <> statId then
-					found := true
-				else begin
+				if iStat <> statId then begin
+					OopIterateStat := true;
+					exit;
+				end else begin
 					Inc(iStat);
-					found := (iStat <= Board.StatCount);
+					OopIterateStat := (iStat <= Board.StatCount);
+					exit;
 				end;
 			end;
 		end else if lookup = 'SELF' then begin
 			if (statId > 0) and (iStat <= statId) then begin
 				iStat := statId;
-				found := true;
+				OopIterateStat := true;
+				exit;
 			end;
 		end else begin
-			while (iStat <= Board.StatCount) and not found do begin
+			while (iStat <= Board.StatCount) do begin
 				if Board.Stats[iStat].Data <> nil then begin
 					pos := 0;
 					OopReadChar(iStat, pos);
 					if OopChar = '@' then begin
 						OopReadWord(iStat, pos);
-						if OopWord = lookup then
-							found := true;
+						if OopWord = lookup then begin
+							OopIterateStat := true;
+							exit;
+						end;
 					end;
 				end;
 
-				if not found then
-					Inc(iStat);
+				Inc(iStat);
 			end;
 		end;
 
-		OopIterateStat := found;
+		OopIterateStat := false;
 	end;
 
 function OopFindLabel(statId: integer; sendLabel: string; var iStat, iDataPos: integer; labelPrefix: string): boolean;
@@ -359,7 +378,7 @@ function OopFindLabel(statId: integer; sendLabel: string; var iStat, iDataPos: i
 			if objectMessage = 'RESTART' then begin
 				iDataPos := 0;
 			end else begin
-				iDataPos := OopFindString(iStat, labelPrefix + objectMessage);
+				iDataPos := OopFindString(iStat, 0, labelPrefix + objectMessage);
 				{ if lookup target exists, there may be more stats }
 				if (iDataPos < 0) and (targetSplitPos > 0) then
 					goto FindNextStat;
@@ -450,14 +469,26 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 		end;
 	end;
 
-function GetColorForTileMatch(var tile: TTile): byte;
+function GetColorForTileMatch(tile: TTile): byte;
+	var
+		defColor: byte;
 	begin
-		if ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN then
-			GetColorForTileMatch := ElementDefs[tile.Element].Color and $07
-		else if ElementDefs[tile.Element].Color = COLOR_WHITE_ON_CHOICE then
+		defColor := ElementDefs[tile.Element].Color;
+{$IFDEF E_SUPERZ}
+		if defColor < COLOR_SPECIAL_MIN then
+			GetColorForTileMatch := defColor and $07
+		else if defColor = COLOR_WHITE_ON_CHOICE then
 			GetColorForTileMatch := ((tile.Color shr 4) and $07)
 		else
 			GetColorForTileMatch := (tile.Color and $07);
+{$ELSE}
+		if defColor < COLOR_SPECIAL_MIN then
+			GetColorForTileMatch := defColor and $07
+		else if defColor = COLOR_WHITE_ON_CHOICE then
+			GetColorForTileMatch := ((tile.Color shr 4) and $0F) + 8
+		else
+			GetColorForTileMatch := (tile.Color and $0F);
+{$ENDIF}
 	end;
 
 function FindTileOnBoard(var x, y: integer; tile: TTile): boolean;
@@ -473,48 +504,56 @@ function FindTileOnBoard(var x, y: integer; tile: TTile): boolean;
 			end;
 
 			if Board.Tiles[x][y].Element = tile.Element then
+{$IFDEF E_SUPERZ}
 				if ((tile.Color = 0) or (GetColorForTileMatch(Board.Tiles[x][y]) = (tile.Color and $07))) then begin
+{$ELSE}
+				if ((tile.Color = 0) or (GetColorForTileMatch(Board.Tiles[x][y]) = tile.Color)) then begin
+{$ENDIF}
 					FindTileOnBoard := true;
 					exit;
 				end;
 		end;
 	end;
 
-procedure OopPlaceTile(x, y: integer; var tile: TTile);
+procedure OopPlaceTile(x, y: integer; tile: TTile);
 	var
-		color: byte;
+		dstColor: byte;
 	begin
 {$IFDEF MEMBOUND}
 		if TileOutOfBounds(x, y) then exit;
 {$ENDIF}
-		if Board.Tiles[x][y].Element <> E_PLAYER then begin
-			color := tile.Color;
-			if ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN then
-				color := ElementDefs[tile.Element].Color
-			else begin
-				if color = 0 then
-					color := Board.Tiles[x][y].Color;
+		with Board.Tiles[x][y] do begin
+			if Element <> E_PLAYER then begin
+				dstColor := ElementDefs[tile.Element].Color;
+				if dstColor >= COLOR_SPECIAL_MIN then begin
+					dstColor := tile.Color;
 
-				if color = 0 then
-					color := $0F;
+					if dstColor = 0 then begin
+						dstColor := Color;
 
-				if ElementDefs[tile.Element].Color = COLOR_WHITE_ON_CHOICE then
-					color := ((color - 8) * $10) + $0F;
-			end;
+						if dstColor = 0 then begin
+							dstColor := $0F;
+						end;
+					end;
 
-			if Board.Tiles[x][y].Element = tile.Element then
-				Board.Tiles[x][y].Color := color
-			else begin
-				BoardDamageTile(x, y);
-				if ElementDefs[tile.Element].Cycle >= 0 then begin
-					AddStat(x, y, tile.Element, color, ElementDefs[tile.Element].Cycle, StatTemplateDefault);
-				end else begin
-					Board.Tiles[x][y].Element := tile.Element;
-					Board.Tiles[x][y].Color := color;
+					if ElementDefs[tile.Element].Color = COLOR_WHITE_ON_CHOICE then
+						dstColor := ((dstColor - 8) * $10) + $0F;
 				end;
-			end;
 
-			BoardDrawTile(x, y);
+				if Element = tile.Element then
+					Color := dstColor
+				else begin
+					BoardDamageTile(x, y);
+					if ElementDefs[tile.Element].Cycle >= 0 then begin
+						AddStat(x, y, tile.Element, dstColor, ElementDefs[tile.Element].Cycle, StatTemplateDefault);
+					end else begin
+						Element := tile.Element;
+						Color := dstColor;
+					end;
+				end;
+
+				BoardDrawTile(x, y);
+			end;
 		end;
 	end;
 
@@ -571,35 +610,42 @@ function OopReadLineToEnd(statId: integer; var position: integer) : string;
 function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
 	var
 		iDataPos, iStat: integer;
-		respectSelfLock: boolean;
+		ignoreSelfLock: boolean;
 	begin
-		{ If the statId passed is positive, the passed stat will always }
-		{ receive the label irrespective of whether it has been locked }
-		{ or not. ZZT uses positive stat IDs for labels sent by objects, }
-		{ and negative stat IDs for labels sent by in-world events (like }
-		{ touch, shot or energize). }
 		if statId < 0 then begin
+			{ if statId is negative, label send will always succeed on self }
+			{ this is used for in-game events (f.e. TOUCH, SHOT) }
 			statId := -statId;
-			respectSelfLock := true;
+			ignoreSelfLock := true;
 		end else begin
-			respectSelfLock := false;
+			ignoreSelfLock := false;
 		end;
 
 		OopSend := false;
 		iStat := 0;
 
 		while OopFindLabel(statId, sendLabel, iStat, iDataPos, #13':') do begin
-			if ((Board.Stats[iStat].P3 = 0) or ignoreLock) or ((statId = iStat) and not respectSelfLock) then begin
+{$IFDEF E_SUPERZ}
+			if ((Board.Stats[iStat].P3 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
+{$ELSE}
+			if ((Board.Stats[iStat].P2 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
+{$ENDIF}
 				if iStat = statId then
 					OopSend := true;
 
 				Board.Stats[iStat].DataPos := iDataPos;
+{$IFDEF E_SUPERZ}
 				Board.Stats[iStat].P2 := 0;
+{$ENDIF}
 			end;
 		end;
 	end;
 
+{$IFDEF E_SUPERZ}
 function OopExecute(statId: integer; var position: integer; name: TSmallString): boolean;
+{$ELSE}
+procedure OopExecute(statId: integer; var position: integer; name: TSmallString);
+{$ENDIF}
 	var
 		textWindow: TTextWindowState;
 		textLine: string;
@@ -654,6 +700,7 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 				end else if OopChar = '@' then begin
 					OopSkipLine(statId, position);
 				end else if (OopChar = '/') or (OopChar = '?') then begin
+{$IFDEF E_SUPERZ}
 					counterSubtract := (OopChar = '?');
 
 					OopReadWord(statId, position);
@@ -676,6 +723,33 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 					end else begin
 						OopError(statId, 'Bad direction');
 					end;
+{$ELSE}
+					if OopChar = '/' then
+						repeatInsNextTick := true;
+
+					OopReadWord(statId, position);
+					if OopParseDirection(statId, position, deltaX, deltaY) then begin
+						if (deltaX <> 0) or (deltaY <> 0) then begin
+							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
+								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+
+							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
+								MoveStat(statId, X + deltaX, Y + deltaY);
+								repeatInsNextTick := false;
+							end;
+						end else begin
+							repeatInsNextTick := false;
+						end;
+
+						OopReadChar(statId, position);
+						if OopChar <> #13 then
+							Dec(position);
+
+						stopRunning := true;
+					end else begin
+						OopError(statId, 'Bad direction');
+					end;
+{$ENDIF}
 				end else if OopChar = '#' then begin
 		ReadCommand:
 					OopReadWord(statId, position);
@@ -745,10 +819,15 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 								counterPtr := @World.Info.Health
 							else if OopWord = 'AMMO' then
 								counterPtr := @World.Info.Ammo
-							else if OopWord = 'Z' then
-								counterPtr := @World.Info.StonesOfPower
 							else if OopWord = 'GEMS' then
 								counterPtr := @World.Info.Gems
+{$IFDEF E_SUPERZ}
+							else if OopWord = 'Z' then
+								counterPtr := @World.Info.StonesOfPower
+{$ELSE}
+							else if OopWord = 'TORCHES' then
+								counterPtr := @World.Info.Torches
+{$ENDIF}
 							else if OopWord = 'SCORE' then
 								counterPtr := @World.Info.Score
 							else if OopWord = 'TIME' then
@@ -802,12 +881,12 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 
 									Char(labelPtr^) := ':';
 
-									labelDataPos := OopFindString(labelStatId, #13#39 + OopWord + #13);
+									labelDataPos := OopFindString(labelStatId, labelDataPos + 1, #13#39 + OopWord + #13);
 								until labelDataPos <= 0;
 						end else if OopWord = 'LOCK' then begin
-							P3 := 1;
+							{$IFDEF E_SUPERZ}P3{$ELSE}P2{$ENDIF} := 1;
 						end else if OopWord = 'UNLOCK' then begin
-							P3 := 0;
+							{$IFDEF E_SUPERZ}P3{$ELSE}P2{$ENDIF} := 0;
 						end else if ExtensionEnabled[ExtUnlockExtensions] and (OopWord = 'IFEXT') then begin
 							if OopCheckZxtExtension(statId, position) then
 								goto ReadCommand;
@@ -818,8 +897,7 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 						end else if OopWord = 'BECOME' then begin
 							if OopParseTile(statId, position, argTile) then begin
 								replaceStat := true;
-								replaceTile.Element := argTile.Element;
-								replaceTile.Color := argTile.Color;
+								replaceTile := argTile;
 							end else begin
 								OopError(statId, 'Bad #BECOME');
 							end;
@@ -926,7 +1004,11 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 			if OopChar = #0 then
 				position := -1;
 
+{$IFDEF E_SUPERZ}
 			if textWindow.LineCount > 2 then begin
+{$ELSE}
+			if textWindow.LineCount > 1 then begin
+{$ENDIF}
 				namePosition := 0;
 				OopReadChar(statId, namePosition);
 				if OopChar = '@' then begin
@@ -945,22 +1027,31 @@ function OopExecute(statId: integer; var position: integer; name: TSmallString):
 				if Length(textWindow.Hyperlink) <> 0 then
 					if OopSend(statId, textWindow.Hyperlink, false) then
 						goto StartParsing;
+{$IFDEF E_SUPERZ}
 			end else if textWindow.LineCount = 2 then begin
 				DisplayMessage(200, textWindow.Lines[1]^, textWindow.Lines[2]^);
 				TextWindowFree(textWindow);
 			end else if textWindow.LineCount = 1 then begin
 				DisplayMessage(200, '', textWindow.Lines[1]^);
 				TextWindowFree(textWindow);
+{$ELSE}
+			end else if textWindow.LineCount = 1 then begin
+				DisplayMessage(200, textWindow.Lines[1]^);
+				TextWindowFree(textWindow);
+{$ENDIF}
 			end;
 
 			if replaceStat then begin
 				ix := X;
 				iy := Y;
+				DamageStat(statId);
 				OopPlaceTile(ix, iy, replaceTile);
 			end;
 		end;
 
+{$IFDEF E_SUPERZ}
 		OopExecute := replaceStat;
+{$ENDIF}
 	end;
 
 end.
