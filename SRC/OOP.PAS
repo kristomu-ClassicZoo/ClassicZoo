@@ -226,7 +226,7 @@ procedure OopSkipLine(statId: integer; var position: integer);
 		until (OopChar = #0) or (OopChar = #13);
 	end;
 
-function OopParseDirection(statId: integer; var position: integer; var dx, dy: integer): boolean;
+function OopParseDirection(statId: integer; var position: integer; sx, sy: integer; var dx, dy: integer): boolean;
 	var
 		isabs: boolean;
 	begin
@@ -263,22 +263,22 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 				if dx = 0 then dy := -1 else dy := 0;
 			end else if (OopWord = 'CW') then begin
 				OopReadWord(statId, position);
-				OopParseDirection := OopParseDirection(statId, position, dy, dx);
+				OopParseDirection := OopParseDirection(statId, position, sx, sy, dy, dx);
 				dx := -dx;
 			end else if (OopWord = 'CCW') then begin
 				OopReadWord(statId, position);
-				OopParseDirection := OopParseDirection(statId, position, dy, dx);
+				OopParseDirection := OopParseDirection(statId, position, sx, sy, dy, dx);
 				dy := -dy;
 			end else if (OopWord = 'RNDP') then begin
 				OopReadWord(statId, position);
-				OopParseDirection := OopParseDirection(statId, position, dy, dx);
+				OopParseDirection := OopParseDirection(statId, position, sx, sy, dy, dx);
 				if ZRandom(2) = 0 then
 					dx := -dx
 				else
 					dy := -dy;
 			end else if (OopWord = 'OPP') then begin
 				OopReadWord(statId, position);
-				OopParseDirection := OopParseDirection(statId, position, dx, dy);
+				OopParseDirection := OopParseDirection(statId, position, sx, sy, dx, dy);
 				dx := -dx;
 				dy := -dy;
 			end else if ExtensionEnabled[ExtGMDirByAt] and ((OopWord = 'BY') or (OopWord = 'AT')) then begin
@@ -293,9 +293,9 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 					if OopReadSignedValue(statId, position) then begin
 						dy := OopValue;
 						{ For AT, convert absolute to relative }
-						if isabs then with Board.Stats[statId] do begin
-							dx := dx - X;
-							dy := dy - Y;
+						if isabs then begin
+							dx := dx - sx;
+							dy := dy - sy;
 						end;
 						OopParseDirection := true;
 					end;
@@ -308,10 +308,10 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 		end;
 	end;
 
-procedure OopReadDirection(statId: integer; var position: integer; var dx, dy: integer);
+procedure OopReadDirection(statId: integer; var position: integer; sx, sy: integer; var dx, dy: integer);
 	begin
 		OopReadWord(statId, position);
-		if not OopParseDirection(statId, position, dx, dy) then
+		if not OopParseDirection(statId, position, sx, sy, dx, dy) then
 			OopError(statId, 'Bad direction');
 	end;
 
@@ -634,7 +634,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 			end else if OopWord = 'CONTACT' then begin
 				OopCheckCondition := (Sqr(X - Board.Stats[0].X) + Sqr(Y - Board.Stats[0].Y)) = 1;
 			end else if OopWord = 'BLOCKED' then begin
-				OopReadDirection(statId, position, deltaX, deltaY);
+				OopReadDirection(statId, position, X, Y, deltaX, deltaY);
 				OopCheckCondition := not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable;
 			end else if OopWord = 'ENERGIZED' then begin
 				OopCheckCondition := World.Info.EnergizerTicks > 0;
@@ -770,7 +770,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 					counterSubtract := (OopChar = '?');
 
 					OopReadWord(statId, position);
-					if OopParseDirection(statId, position, deltaX, deltaY) then begin
+					if OopParseDirection(statId, position, X, Y, deltaX, deltaY) then begin
 						OopReadValue(statId, position);
 						if OopValue < 0 then
 							OopValue := 1;
@@ -794,7 +794,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 						repeatInsNextTick := true;
 
 					OopReadWord(statId, position);
-					if OopParseDirection(statId, position, deltaX, deltaY) then begin
+					if OopParseDirection(statId, position, X, Y, deltaX, deltaY) then begin
 						if (deltaX <> 0) or (deltaY <> 0) then begin
 							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
@@ -826,7 +826,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 					Inc(insCount);
 					{ if Length(OopWord) <> 0 then begin // already checked above }
 						if OopWord = 'GO' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
+							OopReadDirection(statId, position, X, Y, deltaX, deltaY);
 
 							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
@@ -839,7 +839,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 
 							stopRunning := true;
 						end else if OopWord = 'TRY' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
+							OopReadDirection(statId, position, X, Y, deltaX, deltaY);
 
 							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
@@ -851,7 +851,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 								goto ReadCommand;
 							end;
 						end else if OopWord = 'WALK' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
+							OopReadDirection(statId, position, X, Y, deltaX, deltaY);
 							StepX := deltaX;
 							StepY := deltaY;
 						end else if OopWord = 'SET' then begin
@@ -865,12 +865,12 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 							if OopCheckCondition(statId, position) then
 								goto ReadCommand;
 						end else if OopWord = 'SHOOT' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
+							OopReadDirection(statId, position, X, Y, deltaX, deltaY);
 							if BoardShoot(E_BULLET, X, Y, deltaX, deltaY, SHOT_SOURCE_ENEMY) then
 								SoundQueue(2, #48#1#38#1);
 							stopRunning := true;
 						end else if OopWord = 'THROWSTAR' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
+							OopReadDirection(statId, position, X, Y, deltaX, deltaY);
 							if BoardShoot(E_STAR, X, Y, deltaX, deltaY, SHOT_SOURCE_ENEMY) then
 								begin end;
 							stopRunning := true;
@@ -968,7 +968,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 								OopError(statId, 'Bad #BECOME');
 							end;
 						end else if OopWord = 'PUT' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
+							OopReadDirection(statId, position, X, Y, deltaX, deltaY);
 							if (deltaX = 0) and (deltaY = 0) then
 								OopError(statId, 'Bad #PUT')
 							else if not OopParseTile(statId, position, argTile) then

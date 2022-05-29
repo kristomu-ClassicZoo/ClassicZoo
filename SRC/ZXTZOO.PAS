@@ -81,12 +81,16 @@ begin
 	with block do begin
 		case state.Action of
 			ExtActionLoad: begin
-				if Header.FieldLength <> 4 then exit;
+				if (Header.FieldLength <> 2) and (Header.FieldLength <> 4) then exit;
 				with PTMaxStatCountData(Data)^ do begin
 					if ACTUAL_MAX_STAT < LEToN(minCount) then exit;
-					MAX_STAT := LEToN(recCount);
-					if MAX_STAT > ACTUAL_MAX_STAT then
-						MAX_STAT := ACTUAL_MAX_STAT;
+					if Header.FieldLength = 2 then begin
+						MAX_STAT := LEToN(minCount);
+					end else begin
+						MAX_STAT := LEToN(recCount);
+						if MAX_STAT > ACTUAL_MAX_STAT then
+							MAX_STAT := ACTUAL_MAX_STAT;
+					end;
 					ZxtMaxStatCountHandler := ExtResultSuccess;
 				end;
 			end;
