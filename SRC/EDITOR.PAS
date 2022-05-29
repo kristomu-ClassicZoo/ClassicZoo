@@ -57,7 +57,7 @@ interface
 {$ENDIF}
 
 implementation
-uses Dos, GameIo, Cheats, GameSh, FileSel, FileSys, ExtMem, ZxtMgr,
+uses Dos, GameIo, Cheats, GameSh, FileSel, FileSys, ExtMem, ZxtMgr, ZxtEdit,
 GameConf, ZVideo, Sounds, TimerSys, Keys, ZInput, Elements, Oop, Game, Sidebar;
 
 type
@@ -983,7 +983,7 @@ procedure EditorLoop;
 
 			repeat
 				state.Selectable := true;
-				state.LineCount := 4;
+				state.LineCount := 5;
 				for i := 1 to state.LineCount do
 					New(state.Lines[i]);
 
@@ -991,10 +991,11 @@ procedure EditorLoop;
 				state.Lines[1]^  := ' Starting health: ' + numStr;
 				state.Lines[2]^  := '  Starting board: ' + EditorGetBoardName(EditorGetStartingBoard, false);
 				state.Lines[3]^ := '';
-				state.Lines[4]^ := '!;Exit';
+				state.Lines[4]^ := '!;ZXT Editor';
+				state.Lines[5]^ := '!;Exit';
 
 				TextWindowSelect(state, TWS_HYPERLINK_AS_SELECT);
-				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 4) then begin
+				if (InputKeyPressed = KEY_ENTER) and (state.LinePos <> 5) then begin
 					case state.LinePos of
 						1: begin
 							SidebarPromptNumericAsString('Health?', '', -32768, 32767, World.Info.Health);
@@ -1008,6 +1009,13 @@ procedure EditorLoop;
 								startingBoard := i;
 								wasModified := true;
 							end;
+						end;
+						4: begin
+							TextWindowFreeEdit(state);
+							if ZxtEditorRun then
+								wasModified := true;
+							EditorDrawRefresh;
+							exit;
 						end;
 					end
 				end else begin

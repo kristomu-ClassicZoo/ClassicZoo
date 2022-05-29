@@ -131,6 +131,7 @@ interface
 	procedure TextWindowOpenFile(filename: TFilenameString; var state: TTextWindowState; editing, showError: boolean);
 	procedure TextWindowSaveFile(filename: TFilenameString; var state: TTextWindowState);
 	procedure TextWindowDisplayFile(filename: TFilenameString; title: TTextWindowLine);
+	procedure TextWindowDisplayFileLabel(filename: TFilenameString; flabel: TString50; title: TTextWindowLine);
 	procedure TextWindowInit(x, y, width, height: integer);
 	procedure TextWindowInitXY(x, y: integer);
 
@@ -428,6 +429,26 @@ procedure TextWindowPrint(var state: TTextWindowState);
 	end;
 {$ENDIF}
 
+function TextWindowFindLabel(var state: TTextWindowState; pointerStr: TString50): integer;
+	var
+		iLine, iChar: integer;
+	label LabelNotMatched;
+	begin
+		pointerStr := ':' + pointerStr;
+		with state do for iLine := 1 to LineCount do begin
+			if Length(pointerStr) <= Length(Lines[iLine]^) then begin
+				for iChar := 1 to Length(pointerStr) do begin
+					if UpCase(pointerStr[iChar]) <> UpCase(Lines[iLine]^[iChar]) then
+						goto LabelNotMatched;
+				end;
+				TextWindowFindLabel := iLine;
+				exit;
+			LabelNotMatched:
+			end;
+		end;
+		TextWindowFindLabel := -1;
+	end;
+
 procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 	var
 		newLinePos: integer;
@@ -436,7 +457,6 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 		iLine, iChar: integer;
 		pointerStr: TString50;
 	label LabelMatched;
-	label LabelNotMatched;
 	begin
 		viewingFile := (flags and TWS_VIEWING_FILE) <> 0;
 		exitWindow := false;
@@ -482,20 +502,12 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 							if (flags and TWS_HYPERLINK_AS_SELECT) <> 0 then begin
 								Hyperlink := pointerStr;
 							end else begin
-								pointerStr := ':' + pointerStr;
-								for iLine := 1 to LineCount do begin
-									if Length(pointerStr) > Length(Lines[iLine]^) then begin
-									end else begin
-										for iChar := 1 to Length(pointerStr) do begin
-											if UpCase(pointerStr[iChar]) <> UpCase(Lines[iLine]^[iChar]) then
-												goto LabelNotMatched;
-										end;
-										newLinePos := iLine;
-										InputKeyPressed := #0;
-										InputShiftPressed := false;
-										goto LabelMatched;
-									LabelNotMatched:
-									end;
+								iLine := TextWindowFindLabel(state, pointerStr);
+								if iLine >= 1 then begin
+									newLinePos := iLine;
+									InputKeyPressed := #0;
+									InputShiftPressed := false;
+									goto LabelMatched;
 								end;
 							end;
 						end;
@@ -1286,6 +1298,24 @@ procedure TextWindowDisplayFile(filename: TFilenameString; title: TTextWindowLin
 		TextWindowOpenFile(filename, state, false, false);
 		state.Selectable := false;
 		if state.LineCount > 0 then begin
+			TextWindowDrawOpen(state);
+			TextWindowSelect(state, TWS_VIEWING_FILE);
+			TextWindowDrawClose(state);
+		end;
+		TextWindowFree(state);
+	end;
+
+procedure TextWindowDisplayFileLabel(filename: TFilenameString; flabel: TString50; title: TTextWindowLine);
+	var
+		state: TTextWindowState;
+		iLine: integer;
+	begin
+		state.Title := title;
+		TextWindowOpenFile(filename, state, false, false);
+		state.Selectable := false;
+		if state.LineCount > 0 then begin
+			iLine := TextWindowFindLabel(state, flabel);
+			if iLine >= 0 then state.LinePos := iLine;
 			TextWindowDrawOpen(state);
 			TextWindowSelect(state, TWS_VIEWING_FILE);
 			TextWindowDrawClose(state);
