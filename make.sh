@@ -16,6 +16,7 @@ PLATFORM_UNIT_LOWER=dos
 PLATFORM_UNIT=DOS
 EXTMEM_STUB=
 DEBUG_BUILD=
+NATIVE_TOOLS_BUILD=
 
 # Parse arguments
 
@@ -139,6 +140,8 @@ fi
 
 echo "Preparing Pascal code..."
 
+mkdir -p VENDOR
+
 for i in DOC HEADERS RES SRC SYSTEM TOOLS VENDOR LICENSE.TXT; do
 	cp -R "$i" "$TEMP_PATH"/
 done
@@ -175,14 +178,26 @@ fi
 FPC_BINARY_PATH="$FPC_PATH"
 if [ -x "$(command -v $FPC_BINARY)" ]; then
 	FPC_BINARY_PATH=$(realpath $(dirname $(command -v $FPC_BINARY))/..)
+elif [ ! -f "$FPC_BINARY_PATH"/bin/"$FPC_BINARY" ]; then
+	FPC_BINARY=fpc
+	if [ -x "$(command -v $FPC_BINARY)" ]; then
+		FPC_BINARY_PATH=$(realpath $(dirname $(command -v $FPC_BINARY))/..)
+	fi
+fi
+if [ -x "$(command -v fpc)" ]; then
+	NATIVE_TOOLS_BUILD=yes
+fi
+if [ -z "$FPC_LIBRARY_PATH" ]; then
+	FPC_LIBRARY_PATH="$FPC_PATH"/lib
 fi
 
 sed -i -e 's#%COMPARGS%#'"$TPC_ARGS"'#g' "$TEMP_PATH"/BUILD.BAT
 sed -i -e 's#%ENGINE%#'"$ENGINE"'#g' "$TEMP_PATH"/BUILD.BAT
 sed -i -e 's#%ENGINE%#'"$ENGINE"'#g' "$TEMP_PATH"/RUNTOOLS.BAT
-sed -i -e 's#%FPC_PATH%#'"$FPC_PATH"'#g' "$TEMP_PATH"/SYSTEM/fpc.datpack.cfg
+sed -i -e 's#%FPC_PATH%#'"$FPC_BINARY_PATH"'#g' "$TEMP_PATH"/SYSTEM/fpc.datpack.cfg
 for i in `ls "$TEMP_PATH"/SYSTEM/fpc.*.cfg`; do
 	sed -i -e 's#%FPC_PATH%#'"$FPC_BINARY_PATH"'#g' "$i"
+	sed -i -e 's#%FPC_LIBRARY_PATH%#'"$FPC_LIBRARY_PATH"'#g' "$i"
 done
 echo "Compiling Pascal code..."
 
@@ -198,17 +213,19 @@ if [ -d DOC/"$ENGINE" ]; then
 fi
 
 if [ -n "$FREE_PASCAL" ]; then
-	if [ ! -d "$FPC_PATH" ]; then
-		echo "Please set the FPC_PATH environment variable!"
-		exit 1
-	fi
+	if [ -n "$NATIVE_TOOLS_BUILD" ]; then
+		cd TOOLS
 
-	echo "[ Building DATPACK.EXE ]"
-	cd TOOLS
-	cp ../SYSTEM/fpc.datpack.cfg fpc.cfg
-	"$FPC_PATH"/bin/ppcross8086 DATPACK.PAS
-	cp DATPACK.exe ../BUILD/DATPACK.EXE
-	cd ..
+		echo "[ Building DATPACK ]"
+		fpc DATPACK.PAS
+		mv DATPACK ../BUILD/
+
+		echo "[ Building BIN2PAS ]"
+		fpc BIN2PAS.PAS
+		mv BIN2PAS ../BUILD/
+
+		cd ..
+	fi
 
 	cd SYSTEM
 	touch ../SRC/fpc.cfg
@@ -250,10 +267,17 @@ if [ -n "$FREE_PASCAL" ]; then
 	fi
 
 	cd ..
-	sed -i -e "s/^BUILD$/RUNTOOLS/" SYSTEM/dosbox.conf
-	touch BUILD.LOG
-	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
-	tail --pid $! -n +1 -f BUILD.LOG
+	if [ -n "$NATIVE_TOOLS_BUILD" ]; then
+		BUILD/BIN2PAS SRC/ASCII.CHR SRC/F_ASCII.PAS F_ASCII
+		cd DOC
+		../BUILD/DATPACK /C ../BUILD/"$ENGINE".DAT *.*
+		cd ..
+	else
+		sed -i -e "s/^BUILD$/RUNTOOLS/" SYSTEM/dosbox.conf
+		touch BUILD.LOG
+		SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
+		tail --pid $! -n +1 -f BUILD.LOG
+	fi
 
 	cp SRC/E_"$ENGINE"/*.INC SRC/ 2>/dev/null
 
