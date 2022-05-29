@@ -32,7 +32,7 @@ function FilenameToUnitName(s: string; asField: boolean): string;
 	label HasSplitBasename;
 	begin
 		for pos := Length(s) downto 1 do begin
-			if s[pos] = '\' then begin
+			if (s[pos] = '\') or (s[pos] = '/') then begin
 				s := Copy(s, pos + 1, Length(s) - pos);
 				goto HasSplitFilename;
 			end;

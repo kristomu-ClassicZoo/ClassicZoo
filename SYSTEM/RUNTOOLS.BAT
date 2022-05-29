@@ -1,5 +1,9 @@
 @echo off
 
+echo [ Building DATPACK.EXE ] >> BUILD.LOG
+TPC /B /Q /EBUILD TOOLS\DATPACK.PAS >> BUILD.LOG
+if errorlevel 1 goto error
+
 echo [ Building BIN2PAS.EXE ] >> BUILD.LOG
 TPC /B /Q /EBUILD TOOLS\BIN2PAS.PAS >> BUILD.LOG
 if errorlevel 1 goto error
