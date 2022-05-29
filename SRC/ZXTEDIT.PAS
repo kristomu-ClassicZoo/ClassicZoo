@@ -48,6 +48,9 @@ uses Dos, FileSel, ZVideo, ZInput, TimerSys, Sidebar, Oop, ZxtZoo;
 const
 	HEX_DIGITS = '0123456789ABCDEF';
 	EditorCategoryCharacters = 'FOQW';
+
+	EDITOR_ZXT_ALLOW_MULTIPLE = $0001;
+
 	HEADER_BAR_Y = 0;
 	EDITOR_ZXT_INFOS_COUNT = 15
 	{$IFNDEF E_SUPERZ} + 2 {$ENDIF}
@@ -267,7 +270,7 @@ function ZxtEditorRun: boolean;
 		var
 			iy: integer;
 		begin
-			for iy := 0 to 24 do
+			for iy := 0 to (VideoRows - 1) do
 				ZxtEditorClearLine(iy, $FF);
 
 			VideoWriteText(4, HEADER_BAR_Y, $0F, 'I.D.');
@@ -283,7 +286,7 @@ function ZxtEditorRun: boolean;
 		var
 			iy: integer;
 		begin
-			for iy := 3 to 24 do
+			for iy := 3 to (VideoRows - 1) do
 				SidebarClearLine(iy);
 		end;
 
@@ -291,7 +294,7 @@ function ZxtEditorRun: boolean;
 		var
 			iy: integer;
 		begin
-			for iy := 0 to 24 do
+			for iy := 0 to (VideoRows - 1) do
 				SidebarClearLine(iy);
 
 			VideoWriteText(VideoSidebarX + 1, 0, $1F,
@@ -369,9 +372,10 @@ function ZxtEditorRun: boolean;
 		begin
 			ofs := selEntry - 12;
 			if ofs <= 1 then ofs := 1
-			else if ofs > (ZxtBlockGetCount - 23) then ofs := ZxtBlockGetCount - 23;
+			else if ofs > (ZxtBlockGetCount - (VideoRows - 2)) then
+				ofs := ZxtBlockGetCount - (VideoRows - 2);
 
-			for i := 1 to 24 do
+			for i := 1 to (VideoRows - 1) do
 				ZxtEditorDrawEntry(i - 1 + ofs, i);
 		end;
 
@@ -425,21 +429,29 @@ function ZxtEditorRun: boolean;
 		var
 			i: integer;
 			block: TExtensionBlock;
+		label InsertFinished;
 		begin
 			i := ZxtEditorSelectType;
 			if i < 0 then exit;
 
-			EditorZxtUnloadAll;
 			with EditorZxtInfos[i] do begin
 				block.ExtType := EditorZxtInfos[i].ExtType;
+				if (ZxtBlockGetCountByType(block.ExtType) > 0)
+				and ((EditFlags and EDITOR_ZXT_ALLOW_MULTIPLE) = 0) then begin
+					selEntry := ZxtBlockGetIdByType(block.ExtType, 0);
+					goto InsertFinished;
+				end;
 				ZxtGetExtId(ExtType, block.Header.Id);
 				block.Header.Flags := (block.Header.Flags and $EF) or $40;
 				block.Header.FieldLength := 0;
 				block.Data := nil;
 			end;
+			EditorZxtUnloadAll;
 			ZxtEditorEdit(block);
 			i := ZxtBlockAppend(ZXT_APPEND_END, block);
 			EditorZxtLoadAll;
+
+		InsertFinished:
 			ZxtEditorDrawEntries;
 		end;
 

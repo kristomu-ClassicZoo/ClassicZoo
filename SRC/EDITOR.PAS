@@ -1029,15 +1029,9 @@ procedure EditorLoop;
 						end;
 						4: begin
 							TextWindowFreeEdit(state);
-{$IFDEF E_SUPERZ}
-							if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
 							if ZxtEditorRun then
 								wasModified := true;
-							EditorSetViewMode(viewMode);
-{$ELSE}
-							if ZxtEditorRun then
-								wasModified := true;
-{$ENDIF}
+							VideoClear(1);
 							EditorDrawRefresh;
 							exit;
 						end;
