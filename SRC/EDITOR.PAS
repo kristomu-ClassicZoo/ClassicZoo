@@ -57,7 +57,7 @@ interface
 {$ENDIF}
 
 implementation
-uses Dos, GameIo, Cheats, GameSh, FileSel, FileSys, ExtMem,
+uses Dos, GameIo, Cheats, GameSh, FileSel, FileSys, ExtMem, ZxtMgr,
 GameConf, ZVideo, Sounds, TimerSys, Keys, ZInput, Elements, Oop, Game, Sidebar;
 
 type
@@ -397,7 +397,7 @@ procedure EditorLoop;
 					VideoWriteText(VideoSidebarX + 3, 5, $1E, '    locked!');
 				PauseOnError;
 			end;
-			if World.Info.IsSave and (not DebugEnabled) then begin
+			if (World.Info.IsSave and (not DebugEnabled)) or ZxtShowFlagError(true) then begin
 				WorldUnload;
 				WorldCreate;
 				EditorOnWorldOpen;

@@ -42,7 +42,7 @@ uses
 {$IFDEF DEBUGWND}
 DebugWnd,
 {$ENDIF}
-Sounds, TxtWind, Game, GameSh, Elements, ZVideo;
+ZxtMgr, Sounds, TxtWind, Game, GameSh, Elements, ZVideo;
 
 procedure OopError(statId: integer; message: string);
 	begin
@@ -132,6 +132,44 @@ procedure OopReadValue(statId: integer; var position: integer);
 			Val(s, OopValue, code)
 		else
 			OopValue := -1;
+	end;
+
+function OopReadHex(statId: integer; var position: integer): longint;
+	var
+		result: longint;
+	label Done;
+	begin
+		repeat
+			OopReadChar(statId, position)
+		until OopChar <> ' ';
+
+		repeat
+			OopChar := UpCase(OopChar);
+			if (OopChar >= '0') and (OopChar <= '9') then
+				result := (result shl 4) or (Ord(OopChar) - 48)
+			else if (OopChar >= 'A') and (OopChar <= 'F') then
+				result := (result shl 4) or (Ord(OopChar) - 55)
+			else
+				goto Done;
+			OopReadChar(statId, position);
+		until false;
+
+	Done:
+		OopReadHex := result;
+	end;
+
+function OopCheckZxtExtension(statId: integer; var position: integer): boolean;
+	var
+		eowner: longint;
+		eselector: word;
+		etype: TExtensionType;
+	begin
+		eowner := OopReadHex(statId, position);
+		eselector := OopReadHex(statId, position);
+		if ZxtGetExtType(eowner, eselector, etype) then
+			OopCheckZxtExtension := ExtensionEnabled[eType]
+		else
+			OopCheckZxtExtension := false;
 	end;
 
 procedure OopSkipLine(statId: integer; var position: integer);
@@ -789,6 +827,9 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							P2 := 1;
 						end else if OopWord = 'UNLOCK' then begin
 							P2 := 0;
+						end else if ExtensionEnabled[ExtUnlockExtensions] and (OopWord = 'IFEXT') then begin
+							if OopCheckZxtExtension(statId, position) then
+								goto ReadCommand;
 						end else if OopWord = 'SEND' then begin
 							OopReadWord(statId, position);
 							if OopSend(statId, OopWord, false) then

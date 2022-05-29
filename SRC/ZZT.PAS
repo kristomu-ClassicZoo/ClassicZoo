@@ -50,7 +50,7 @@ SysUtils, FileSel,
 {$IFDEF UNIX}
 cwstring,
 {$ENDIF}
-Dos, ExtMem, FileSys, ZVideo, Keys, Sounds, TimerSys, ZInput, TxtWind,
+Dos, ExtMem, ZxtMgr, FileSys, ZVideo, Keys, Sounds, TimerSys, ZInput, TxtWind,
 GameConf, GameVars, Elements, Editor, Oop, Game;
 
 {$IFDEF SDL2}
@@ -190,6 +190,9 @@ begin
 		{ SDL2 - Fixes initial window size }
 		InputUpdate;
 {$ENDIF}
+
+		ZxtRegisterExtensionSimple(ExtUnlockExtensions, $00000000, $0001);
+
 		SavedGameFileName := 'SAVED';
 		SavedBoardFileName := 'TEMP';
 		ResetCachedLinePos;

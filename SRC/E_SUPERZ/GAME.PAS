@@ -114,7 +114,7 @@ uses
 {$IFNDEF RAWMEM} GameVSer, {$ENDIF}
 {$IFDEF WEBBROW} WebBrow, {$ENDIF}
 {$IFDEF UISCBACK} UiScBack, {$ENDIF}
-Dos, GameSh, Cheats, GameIo,
+Dos, GameSh, Cheats, GameIo, ZxtMgr,
 GameConf, FileSys, ExtMem, FileSel, ZVideo, Sounds, TimerSys, ZInput, Elements, Editor, Oop, Sidebar;
 
 function GameVideoInstall(videoMode, mode: integer): boolean;
@@ -450,6 +450,7 @@ procedure WorldUnload;
 		i: integer;
 	begin
 		BoardClose;
+		if ZxtUnloadExtensions then begin end;
 		for i := 0 to World.BoardCount do
 			ExtMemFree(World.BoardData[i], World.BoardLen[i]);
 	end;
@@ -472,9 +473,16 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 
 		if not DisplayIOError then begin
 			WorldUnload;
-			BlockRead(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE);
+			BlockRead(f, World.BoardCount, 2);
 
 			if not DisplayIOError then begin
+				if not ZxtLoadExtensions(f, filename) then begin
+					VideoWriteText(63, 5, $1E, ' .ZXT extension');
+					VideoWriteText(63, 6, $1E, ' loading error!');
+					exit;
+				end;
+
+				BlockRead(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE - 2);
 				ptr := IoTmpBuf;
 				Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
 				AdvancePointer(ptr, SizeOf(World.BoardCount));
@@ -573,6 +581,10 @@ procedure WorldSave(filename, extension: TSmallString);
 		Rewrite(f, 1);
 
 		if not DisplayIOError then begin
+			if ZxtBlockGetCount > 0 then begin
+				if not ZxtWriteExtensions(f) then goto OnError;
+			end;
+
 			ptr := IoTmpBuf;
 			FillChar(IoTmpBuf^, WORLD_FILE_HEADER_SIZE, 0);
 			version := -2;
@@ -1501,6 +1513,7 @@ procedure GameTitleLoop;
 					'W': begin
 LoadWorldSelect:
 						if GameWorldLoad('.SZT') then begin
+							if ZxtShowFlagError(false) then begin end;
 							ReturnBoardId := World.Info.CurrentBoard;
 							returningFromGame := true;
 							runTitle := true;
@@ -1529,6 +1542,7 @@ LoadWorldSelect:
 					end;
 					'R': begin
 						if GameWorldLoad('.SAV') then begin
+							if ZxtShowFlagError(false) then begin end;
 							GamePlayVideoInstall;
 							ReturnBoardId := World.Info.CurrentBoard;
 							BoardChange(ReturnBoardId);

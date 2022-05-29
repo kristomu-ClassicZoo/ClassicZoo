@@ -255,6 +255,8 @@ if [ -n "$FREE_PASCAL" ]; then
 	SDL_VIDEODRIVER=dummy dosbox -noconsole -conf SYSTEM/dosbox.conf > /dev/null &
 	tail --pid $! -n +1 -f BUILD.LOG
 
+	cp SRC/E_"$ENGINE"/*.INC SRC/ 2>/dev/null
+
 	cd SRC
 	echo "[ Building ZZT.EXE ]"
 	"$FPC_BINARY_PATH"/bin/"$FPC_BINARY" $FPC_ARGS ZZT.PAS
