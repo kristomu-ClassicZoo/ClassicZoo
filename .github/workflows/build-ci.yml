@@ -1,0 +1,32 @@
+name: Build CI-specific versions
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      FPC_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Set up Ubuntu packages
+        run: sudo apt-get install -y fp-compiler-3.2.2 fp-units-base-3.2.2 fp-units-fcl-3.2.2 fp-units-net-3.2.2 fp-units-rtl-3.2.2 fp-utils-3.2.2 git zip libsdl2-dev
+      - name: Install Win64 FPC units
+        run: sudo sh -c "cd /usr/lib/x86_64-linux-gnu/ && curl https://asie.pl/files/fpc-3.2.2-units-win64.tar.gz | tar xzvf -"
+      - name: Build
+        run: ./build.sh build-ci.releases
+      - name: Archive Win64 artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ClassicZoo (Windows)
+          path: OUTPUT/zztwin64.zip
+      - name: Archive Lin64 artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ClassicZoo (Linux)
+          path: OUTPUT/zztlin64.zip

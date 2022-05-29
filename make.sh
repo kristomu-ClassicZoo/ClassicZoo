@@ -140,6 +140,8 @@ fi
 
 echo "Preparing Pascal code..."
 
+mkdir -p VENDOR
+
 for i in DOC HEADERS RES SRC SYSTEM TOOLS VENDOR LICENSE.TXT; do
 	cp -R "$i" "$TEMP_PATH"/
 done
