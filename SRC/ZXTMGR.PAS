@@ -113,19 +113,26 @@ interface
 	{ Register an extension with a handler function. }
 	procedure ZxtRegisterExtension(extType: TExtensionType; ownerId: longint; selectorId: word; handler: TExtensionHandlerFunc);
 	{ --- BLOCK API --- }
+	{ Flow:
+	  - Append
+	  - Load
+	  - ... (Get)
+	  - Unload
+	  - Remove }
 	function ZxtBlockGetCount: word;
 	{ Extension blocks are counted from 1 to ZxtBlockGetCount. }
-	function ZxtBlockGet(i: word): PTExtensionBlock;
+	function ZxtBlockGet(i: integer): PTExtensionBlock;
 	function ZxtBlockGetCountByType(targetExtType: TExtensionType): word;
 	{ Will return < 0, if not found. }
 	function ZxtBlockGetIdByType(targetExtType: TExtensionType; offset: word): integer;
 	{ May return NULL_EXT_BLOCK, if offset >= ZxtBlockGetCountByType. }
 	function ZxtBlockGetByType(targetExtType: TExtensionType; offset: word): PTExtensionBlock;
-	function ZxtBlockLoad(i: word): TExtensionHandlerResult;
-	function ZxtBlockUnload(i: word): TExtensionHandlerResult;
-	procedure ZxtBlockRemove(i: word);
+	function ZxtBlockLoad(i: integer): TExtensionHandlerResult;
+	function ZxtBlockUnload(i: integer): TExtensionHandlerResult;
+	procedure ZxtBlockRemove(i: integer; freeMemory: boolean);
 	procedure ZxtBlockRemoveByType(targetExtType: TExtensionType);
-	function ZxtBlockAppend(offset: word; var block: TExtensionBlock): boolean;
+	{ Returns < 0 if append failed. }
+	function ZxtBlockAppend(offset: word; var block: TExtensionBlock): integer;
 
 implementation
 uses Dos, TxtWind;
@@ -144,7 +151,7 @@ type
 		HandlerFunc: TExtensionHandlerFunc;
 	end;
 var
-	ExtensionBlocks: PTExtBlockArray;
+	ExtensionBlocks: PTExtBlockArray; 
 	ExtensionBlockCount: word; { actually loaded extensions }
 	ExtensionBlockSize: word; { array size }
 	ExtensionHandlers: array[0 .. (Ord(ExtTypeEnd) - 1)] of TExtensionHandler;
@@ -197,7 +204,7 @@ begin
 	state.Action := ExtActionUnload;
 
 	if ExtensionBlockSize > 0 then begin
-		for blockId := 1 to ExtensionBlockCount do begin
+		for blockId := ExtensionBlockCount downto 1 do begin
 			with ExtensionBlocks^[blockId] do begin
 				if ExtensionHandlers[Ord(ExtType)].HandlerFunc(ExtensionBlocks^[blockId], state) <> ExtResultSuccess then begin
 					ZxtUnloadExtensions := false;
@@ -487,7 +494,7 @@ begin
 	ZxtBlockGetCount := ExtensionBlockCount;
 end;
 
-function ZxtBlockGet(i: word): PTExtensionBlock;
+function ZxtBlockGet(i: integer): PTExtensionBlock;
 begin
 	if (i >= 1) and (i <= ExtensionBlockCount) then
 		ZxtBlockGet := @ExtensionBlocks^[i];
@@ -536,7 +543,7 @@ begin
 		ZxtBlockGetByType := NULL_EXT_BLOCK;
 end;
 
-function ZxtBlockLoad(i: word): TExtensionHandlerResult;
+function ZxtBlockLoad(i: integer): TExtensionHandlerResult;
 var
 	state: TExtensionHandlerState;
 begin
@@ -548,7 +555,7 @@ begin
 	end else ZxtBlockLoad := ExtResultFailure;
 end;
 
-function ZxtBlockUnload(i: word): TExtensionHandlerResult;
+function ZxtBlockUnload(i: integer): TExtensionHandlerResult;
 var
 	state: TExtensionHandlerState;
 begin
@@ -560,13 +567,19 @@ begin
 	end else ZxtBlockUnload := ExtResultFailure;
 end;
 
-procedure ZxtBlockRemove(i: word);
+procedure ZxtBlockRemove(i: integer; freeMemory: boolean);
 var
 	extType: TExtensionType;
 	j: integer;
 begin
 	if (i >= 1) and (i <= ExtensionBlockCount) then begin
-		extType := ExtensionBlocks^[i].ExtType;
+		with ExtensionBlocks^[i] do begin
+			if freeMemory and (Header.FieldLength > 0) then
+				FreeMem(Data, Header.FieldLength);
+
+			extType := ExtensionBlocks^[i].ExtType;
+		end;
+
 		for j := (i) to (ExtensionBlockCount - 1) do
 			ExtensionBlocks^[j] := ExtensionBlocks^[j + 1];
 		Dec(ExtensionBlockCount);
@@ -582,16 +595,16 @@ var
 begin
 	repeat
 		i := ZxtBlockGetIdByType(targetExtType, 0);
-		if i >= 0 then ZxtBlockRemove(i) else exit;
+		if i >= 0 then ZxtBlockRemove(i, true) else exit;
 	until 1 = 0;
 end;
 
-function ZxtBlockAppend(offset: word; var block: TExtensionBlock): boolean;
+function ZxtBlockAppend(offset: word; var block: TExtensionBlock): integer;
 var
 	newBlocks: PTExtBlockArray;
 	newSize, i: word;
 begin
-	ZxtBlockAppend := false;
+	ZxtBlockAppend := -1;
 	if offset > ExtensionBlockCount then offset := ExtensionBlockCount;
 
 	{ If the ExtensionBlockSize is too small, copy it first. }
@@ -610,14 +623,15 @@ begin
 	end;
 
 	{ Make room... }
-	for i := ExtensionBlockCount downto (offset + 1) do begin
+	Inc(offset);
+	for i := ExtensionBlockCount downto (offset) do begin
 		ExtensionBlocks^[i + 1] := ExtensionBlocks^[i];
 	end;
-	ExtensionBlocks^[offset + 1] := block;
+	ExtensionBlocks^[offset] := block;
 	Inc(ExtensionBlockCount);
 
 	ExtensionEnabled[block.ExtType] := true;
-	ZxtBlockAppend := true;
+	ZxtBlockAppend := offset;
 end;
 
 begin
