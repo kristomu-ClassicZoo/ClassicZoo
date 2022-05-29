@@ -527,7 +527,7 @@ end;
 
 function ZxtBlockGetByType(targetExtType: TExtensionType; offset: word): PTExtensionBlock;
 var
-	i: word;
+	i: integer;
 begin
 	i := ZxtBlockGetIdByType(targetExtType, offset);
 	if i >= 0 then
