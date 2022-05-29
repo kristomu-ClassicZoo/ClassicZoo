@@ -111,6 +111,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 {$ENDIF}
 		curPath: TFilenameString;
 		previewPath: string[PATH_PREVIEW_LENGTH + 4];
+		zxtDividePos: integer;
 	begin
 		searching := true;
 {$IFDEF ADVFILES}
@@ -202,6 +203,26 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 				end;
 			until FindNext(fileSearchRec) <> 0;
 			FindClose(fileSearchRec);
+
+			{ .ZXT files - hack }
+			if not multiExtension and (extension = {$IFDEF E_SUPERZ}'.SZT'{$ELSE}'.ZZT'{$ENDIF}) then begin
+				zxtDividePos := textWindow.LineCount;
+
+				FindFirst('*.ZXT', faAnyFile, fileSearchRec);
+				repeat
+					if ((fileSearchRec.Attr and faDirectory) = 0) then begin
+						if UpCase(Copy(fileSearchRec.Name,
+							Length(fileSearchRec.name) - Length(extension) + 1,
+							Length(extension))) = '.ZXT' then begin
+							entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
+
+							if Length(entryName) <= MAX_FILENAME_LENGTH then
+								TextWindowAppend(textWindow, entryName);
+						end;
+					end;
+				until FindNext(fileSearchRec) <> 0;
+				FindClose(fileSearchRec);
+			end;
 {$ELSE}
 {$IFNDEF NODIRS}
 			{ .. }
@@ -238,6 +259,22 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 						TextWindowAppend(textWindow, entryName);
 				end;
 				FindNext(fileSearchRec);
+			end;
+
+			{ .ZXT files - hack }
+			if extension = {$IFDEF E_SUPERZ}'.SZT'{$ELSE}'.ZZT'{$ENDIF} then begin
+				zxtDividePos := textWindow.LineCount;
+
+				FindFirst('*.ZXT', AnyFile, fileSearchRec);
+				while DosError = 0 do begin
+					if (fileSearchRec.Attr and Directory) = 0 then begin
+						entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - Length(extension));
+
+						if Length(entryName) <= MAX_FILENAME_LENGTH then
+							TextWindowAppend(textWindow, entryName);
+					end;
+					FindNext(fileSearchRec);
+				end;
 			end;
 {$ENDIF}
 

@@ -35,6 +35,7 @@ interface
 	function BoardCurrentStorageSize: longint;
 	procedure BoardClose;
 	procedure BoardOpen(boardId: integer);
+	procedure WorldSaveZax(filename: TString50);
 
 implementation
 uses
@@ -44,7 +45,7 @@ DebugWnd,
 {$IFNDEF RAWMEM}
 GameVSer,
 {$ENDIF}
-GameSh, ExtMem;
+GameSh, ExtMem, ZxtMgr, FileSys;
 
 function EnsureIoTmpBufSize(newSize: word): integer;
 	var
@@ -321,6 +322,20 @@ procedure BoardOpen(boardId: integer);
 {$ENDIF}
 
 		World.Info.CurrentBoard := boardId;
+	end;
+
+procedure WorldSaveZax(filename: TString50);
+	var
+		f: file;
+	begin
+		AssignFSys(f, filename + '.ZAX');
+		Rewrite(f, 1);
+		if not ZxtWriteExtensions(f) then begin
+			Close(f);
+			Erase(f);
+			exit;
+		end;
+		Close(f);
 	end;
 
 end.

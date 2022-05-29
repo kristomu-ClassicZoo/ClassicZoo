@@ -48,7 +48,7 @@ interface
 	procedure PauseOnError;
 	procedure WorldUnload;
 	function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boolean;
-	procedure WorldSave(filename, extension: TSmallString);
+	procedure WorldSave(filename, extension: TSmallString; saveZxts: boolean);
 	procedure GameWorldSave(prompt: TSmallString; var filename: TSmallString; extension: TSmallString);
 	function GameWorldLoad(extension: TSmallString): boolean;
 	procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; template: TStat);
@@ -468,6 +468,10 @@ function WorldLoad(filename, extension: TSmallString; titleOnly: boolean): boole
 
 		VideoWriteText(15, VideoRows - 1, $1F, 'Loading.....');
 
+		{ .ZXT files - hack }
+		if (extension = '.SZT') and FileExists(filename + '.ZXT') then
+			extension := '.ZXT';
+
 		AssignFSys(f, filename + extension);
 		Reset(f, 1);
 
@@ -565,7 +569,7 @@ procedure BottomPromptString(prompt: string; extension: TSmallString; var filena
 		ClearDisplayMessage;
 	end;
 
-procedure WorldSave(filename, extension: TSmallString);
+procedure WorldSave(filename, extension: TSmallString; saveZxts: boolean);
 	var
 		f: file;
 		i: integer;
@@ -581,7 +585,7 @@ procedure WorldSave(filename, extension: TSmallString);
 		Rewrite(f, 1);
 
 		if not DisplayIOError then begin
-			if ZxtBlockGetCount > 0 then begin
+			if saveZxts and (ZxtBlockGetCount > 0) then begin
 				if not ZxtWriteExtensions(f) then goto OnError;
 			end;
 
@@ -643,15 +647,28 @@ procedure WorldSave(filename, extension: TSmallString);
 procedure GameWorldSave(prompt: TSmallString; var filename: TSmallString; extension: TSmallString);
 	var
 		newFilename: TSmallString;
+		zxtChoice: byte;
 	begin
 		newFilename := filename;
+		if (extension = '.SZT') and (ZxtBlockGetCount > 0) then begin
+			zxtChoice := 1;
+			SidebarPromptChoice(true, 3, 'Save as:', '.SZT .ZXT', zxtChoice);
+			if zxtChoice > 0 then extension := '.ZXT';
+		end;
 		BottomPromptString(prompt, extension, newFilename, PROMPT_ALPHANUM);
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(newFilename) <> 0)
 		and ((filename = newFilename) or (extension <> '.SZT') or OverwriteCheck(newFilename + extension)) then begin
 			filename := newFilename;
-			if extension = '.SZT' then
+			if extension <> '.SAV' then
 				World.Info.Name := filename;
-			WorldSave(filename, extension);
+
+			if extension = '.SZT' then begin
+				WorldSave(filename, extension, false);
+				if ZxtBlockGetCount > 0 then
+					WorldSaveZax(filename);
+			end else begin
+				WorldSave(filename, extension, true);
+			end;
 		end;
 	end;
 
