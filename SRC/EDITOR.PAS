@@ -856,6 +856,23 @@ procedure EditorLoop;
 			EditorDrawStatsState;
 		end;
 
+{$IFDEF E_SUPERZ}
+	procedure EditorSetViewMode(mode: integer);
+		begin
+			viewMode := mode;
+			if viewMode = VIEW_EDITOR_LARGE then begin
+{$IFDEF SDL2}
+				if not GameVideoInstall(VIDEO_MODE_RESIZABLE, viewMode) then
+{$ENDIF}
+				if not GameVideoInstall(VIDEO_MODE_80X50, viewMode) then
+				if not GameVideoInstall(VIDEO_MODE_80X43, viewMode) then
+					if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
+			end else begin
+				if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
+			end;
+		end;
+{$ENDIF}
+
 	procedure EditorEditBoardInfo;
 		var
 			state: TTextWindowState;
@@ -1012,8 +1029,15 @@ procedure EditorLoop;
 						end;
 						4: begin
 							TextWindowFreeEdit(state);
+{$IFDEF E_SUPERZ}
+							if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
 							if ZxtEditorRun then
 								wasModified := true;
+							EditorSetViewMode(viewMode);
+{$ELSE}
+							if ZxtEditorRun then
+								wasModified := true;
+{$ENDIF}
 							EditorDrawRefresh;
 							exit;
 						end;
@@ -2128,23 +2152,6 @@ procedure EditorLoop;
 			end;
 		end;
 
-{$IFDEF E_SUPERZ}
-	procedure EditorSetViewMode(mode: integer);
-		begin
-			viewMode := mode;
-			if viewMode = VIEW_EDITOR_LARGE then begin
-{$IFDEF SDL2}
-				if not GameVideoInstall(VIDEO_MODE_RESIZABLE, viewMode) then
-{$ENDIF}
-				if not GameVideoInstall(VIDEO_MODE_80X50, viewMode) then
-				if not GameVideoInstall(VIDEO_MODE_80X43, viewMode) then
-					if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
-			end else begin
-				if GameVideoInstall(VIDEO_MODE_80X25, viewMode) then begin end;	
-			end;
-		end;
-{$ENDIF}
-
 	procedure EditorPlaceCursor(cx, cy: integer);
 		begin
 			with Board.Tiles[cx][cy] do begin
@@ -2214,9 +2221,11 @@ procedure EditorLoop;
 {$IFDEF E_SUPERZ}
 			if VideoScaleChanged then begin
 				if not GameVideoInstall(VIDEO_MODE_RESIZABLE, viewMode) then begin end;
+				i := (VideoColumns - TextWindowWidth) div 2;
+				if (i + TextWindowWidth) >= VideoSidebarX then
+					i := VideoSidebarX - TextWindowWidth - 1;
 				TextWindowInitXY(
-					(VideoColumns - TextWindowWidth) div 2,
-					(VideoRows - TextWindowHeight) div 2
+					i, (VideoRows - TextWindowHeight) div 2
 				);
 				EditorMoveCursor(cursorX, cursorY, false);
 				EditorDrawRefresh;
