@@ -214,6 +214,7 @@ begin
 		ZxtRegisterExtensionSimple(ExtQuirkArgTile2, $00000000, $1001);
 		ZxtRegisterExtension(ExtMaxStatCount, $0000A51E, $0005,
 			ZxtMaxStatCountHandler);
+		ZxtRegisterExtensionSimple(ExtOopViewport, $0000A51E, $0007);
 
 		SavedGameFileName := 'SAVED';
 		SavedBoardFileName := 'TEMP';

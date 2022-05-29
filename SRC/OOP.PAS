@@ -1041,6 +1041,9 @@ procedure OopExecute(statId: integer; var position: integer; name: TSmallString)
 								end;
 								position := 0;
 							end;
+						end else if (OopWord = 'VIEWPORT') and ExtensionEnabled[ExtOopViewport] then begin
+							{ TODO: Implement. }
+							OopSkipLine(statId, position);
 						end else begin
 							textLine := OopWord;
 							if OopSend(statId, OopWord, false) then begin

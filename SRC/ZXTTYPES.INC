@@ -21,5 +21,6 @@ TExtensionType = (
 	ExtGMDirByAt,
 	ExtQuirkArgTile2,
 	ExtMaxStatCount,
+	ExtOopViewport,
 	ExtTypeEnd { This one has to be last. }
 );

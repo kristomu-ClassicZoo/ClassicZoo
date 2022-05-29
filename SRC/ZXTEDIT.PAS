@@ -52,7 +52,7 @@ const
 	EDITOR_ZXT_ALLOW_MULTIPLE = $0001;
 
 	HEADER_BAR_Y = 0;
-	EDITOR_ZXT_INFOS_COUNT = 15
+	EDITOR_ZXT_INFOS_COUNT = 16
 	{$IFNDEF E_SUPERZ} + 2 {$ENDIF}
 		;
 	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
@@ -172,6 +172,13 @@ const
 			EditCategory: EditorZxtCategoryOop;
 			EditFlags: 0;
 			Name: '#IF RND'
+		),
+		(
+			ExtType: ExtOopViewport;
+			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			EditCategory: EditorZxtCategoryOop;
+			EditFlags: 0;
+			Name: '#VIEWPORT extension'
 		),
 		(
 			ExtType: ExtQuirkArgTile2;
