@@ -164,11 +164,15 @@ procedure SidebarPromptNumeric(editable: boolean; x, y: integer; prompt: string;
 					KEY_PAGE_DOWN: valueOffset := -5;
 				end;
 				
-				newValue := LongInt(value) + valueOffset;
-				
-				if (value <> newValue) and (newValue >= minV) and (newValue <= maxV) then begin
-					value := Integer(newValue);
-					VideoWriteText(x + 4, y + 2, $1E, '      ');
+				if valueOffset <> 0 then begin
+					newValue := LongInt(value) + valueOffset;
+					if (newValue > maxV) then newValue := maxV
+					else if (newValue < minV) then newValue := minV;
+
+					if (value <> newValue) then begin
+						value := Integer(newValue);
+						VideoWriteText(x + 4, y + 2, $1E, '      ');
+					end;
 				end;
 			end;
 		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
