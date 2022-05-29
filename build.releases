@@ -1,17 +1,7 @@
--a tp55-i8086-msdos-dos -d RAWMEM -d EXTCHEAT -d DEBUGWND -d EDITOR -d PRINTTXT -d ZETAEMU -d PLAYSTEP -g -e ZZT -o zzt.zip -p build.properties
--a tp55-i8086-msdos-dos -d RAWMEM -d EXTCHEAT -d DEBUGWND -d EDITOR -d PRINTTXT -d ZETAEMU -d PLAYSTEP -g -e SUPERZ -n SUPERZ -o zzt.zip -p build.properties
--a tp55-i8086-msdos-dos -d RAWMEM -d PRINTTXT -d ZETAEMU -d PLAYSTEP -e ZZTRUN -o zzt.zip -p build.properties
--a tp55-i8086-msdos-dos -d RAWMEM -d PRINTTXT -d ZETAEMU -d PLAYSTEP -e SZRUN -n SUPERZ -o zzt.zip -p build.properties
--a tp55-i8086-msdos-dos -d RAWMEM -d EXTCHEAT -d ZETAEMU -e ZZT -o zztzeta.zip -p build.properties
--a tp55-i8086-msdos-dos -d RAWMEM -d EXTCHEAT -d ZETAEMU -e SUPERZ -n SUPERZ -o zztzeta.zip -p build.properties
--a tp55-i8086-msdos-nec98 -d RAWMEM -d EXTCHEAT -d DEBUGWND -d EDITOR -d NEC98 -d PLAYSTEP -g -e ZZT -o zztpc98.zip -p build.properties
--a tp55-i8086-msdos-nec98 -d RAWMEM -d EXTCHEAT -d DEBUGWND -d EDITOR -d NEC98 -d PLAYSTEP -g -e SUPERZ -n SUPERZ -o zztpc98.zip -p build.properties
--a tp55-i8086-msdos-nec98 -d RAWMEM -d NEC98 -d PLAYSTEP -e ZZTRUN -o zztpc98.zip -p build.properties
--a tp55-i8086-msdos-nec98 -d RAWMEM -d NEC98 -d PLAYSTEP -e SZRUN -n SUPERZ -o zztpc98.zip -p build.properties
--a fpc-i8086-msdos-dos -d RAWMEM -d EXTCHEAT -d DEBUGWND -d EDITOR -d PRINTTXT -d ZETAEMU -d PLAYSTEP -e ZZTL -o zztlibre.zip -p build.properties
--a fpc-i8086-msdos-dos -d RAWMEM -d EXTCHEAT -d DEBUGWND -d EDITOR -d PRINTTXT -d ZETAEMU -d PLAYSTEP -e SUPERZL -n SUPERZ -o zztlibre.zip -p build.properties
--a fpc-i8086-msdos-dos -d RAWMEM -d PRINTTXT -d ZETAEMU -d PLAYSTEP -e ZZTLRUN -o zztlibre.zip -p build.properties
--a fpc-i8086-msdos-dos -d RAWMEM -d PRINTTXT -d ZETAEMU -d PLAYSTEP -e SZLRUN -n SUPERZ -o zztlibre.zip -p build.properties
+-a fpc-i8086-msdos-dos -d RAWMEM -d EXTCHEAT -d DEBUGWND -d EDITOR -d PRINTTXT -d ZETAEMU -d PLAYSTEP -e ZZT -o zzt.zip -p build.properties
+-a fpc-i8086-msdos-dos -d RAWMEM -d EXTCHEAT -d DEBUGWND -d EDITOR -d PRINTTXT -d ZETAEMU -d PLAYSTEP -e SUPERZ -n SUPERZ -o zzt.zip -p build.properties
+-a fpc-i8086-msdos-dos -d RAWMEM -d PRINTTXT -d ZETAEMU -d PLAYSTEP -e ZZTRUN -o zzt.zip -p build.properties
+-a fpc-i8086-msdos-dos -d RAWMEM -d PRINTTXT -d ZETAEMU -d PLAYSTEP -e SZRUN -n SUPERZ -o zzt.zip -p build.properties
 -a fpc-i386-win32-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d FASTVID -d AUD16BIT -d WEBBROW -d UISCBACK -d PLAYSTEP -o zztwin32.zip -p build.properties
 -a fpc-i386-win32-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d FASTVID -d AUD16BIT -d WEBBROW -d UISCBACK -d PLAYSTEP -e SUPERZ -n SUPERZ -o zztwin32.zip -p build.properties
 -a fpc-x86_64-win64-sdl2 -d EXTCHEAT -d DEBUGWND -d EDITOR -d FASTVID -d AUD16BIT -d WEBBROW -d UISCBACK -d PLAYSTEP -o zztwin64.zip -p build.properties
