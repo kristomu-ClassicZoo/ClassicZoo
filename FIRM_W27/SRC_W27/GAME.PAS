@@ -225,10 +225,7 @@ function DefaultParamList(i: integer): integer;
 
 procedure ParamsLoad;
 	var
-		f: text;
 		i: integer;
-		s: TString8;
-		code: integer;
 	begin
 		for i := 1 to PARAM_FILE_COUNT do
 			ParamList[i] := DefaultParamList(i);
@@ -787,7 +784,7 @@ procedure WorldCreate;
 		i: integer;
 	begin
 		ParamsLoad;
-		InitPalette(false);
+		InitPalette(true);
 		World.BoardCount := 0;
 		World.BoardLen[0] := 0;
 		ResetMessageNotShownFlags;
@@ -1282,7 +1279,7 @@ procedure AddStat(tx, ty: integer; txelement, txcolor: byte; tcycle: integer; te
 		end;
 	end;
 
-Procedure FreeStatDataMem(statId: integer);
+procedure FreeStatDataMem(statId: integer);
 	var
 		i: integer;
 	begin
@@ -1618,7 +1615,7 @@ procedure GameUpdateSidebar;
 					if Diffkeys then
 						keyChar := Chr(139 + i)
 					else
-						keyChar := ElementDefs[E_KEY].Character;
+						keyChar := Chr(Ord(ElementDefs[E_KEY].Character) + (i * ElementDefs[E_KEY].Param2));
 					if World.Info.Keys[i] > 0 then begin
 						if World.Info.Keys[i] = 1 then
 							VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), keyChar)

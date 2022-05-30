@@ -106,7 +106,7 @@ interface
 			Leader: integer;
 			Under: TTile;
 			ObjTiny: array[1 .. 3] of shortint;
-			elseCheck: boolean;
+			elseCheck: byte;
 			DataPos: integer;
 			DataLen: integer;
 			ObjLocal: array[1 .. 4] of integer;
@@ -183,7 +183,6 @@ interface
 
 		LoadedGameFileName: TString50;
 		SavedGameFileName: TString50;
-		SavedBoardFileName: TString50;
 		StartupWorldFileName: TString50;
 		Board: TBoard;
 		World: TWorld;
@@ -226,6 +225,7 @@ interface
 		TickTimeDuration: integer;
 		CurrentTick: integer;
 		CurrentStatTicked: integer;
+		OopFuncReturn: integer;
 		GamePaused: boolean;
 		TickTimeCounter: integer;
 		KeyLimit: integer;

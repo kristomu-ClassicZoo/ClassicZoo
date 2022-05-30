@@ -1,3 +1,41 @@
+5/29/2022: FirmWeave 2.7
+New Commands:
+* #AND, the exact opposite of #ELSE - runs when the last IF statement was TRUE.
+* #RUN <function>, runs the code in <function>.OBJ nonstop until the object either moves (#IDLE and /i count as movement) dies, or reaches an #END <response> command. #RUN functions can be called from within other #RUN functions, as a substitute for counter or other value, or as a conditional. Some examples:
+
+	#RUN DEMO
+This will run the contents of DEMO.OBJ.
+
+	#GIVE AMMO RUN DEMO
+This will run the contents of DEMO.OBJ and give ammo equal to the response value, passed by #END <value>.
+
+	#IF RUN DEMO PUT N WATER
+This will run the contents of DEMO.OBJ and #PUT N WATER if it reaches an #END TRUE command or an #END <value> with any positive value. It will do nothing if it reaches an #END FALSE, an #END <value> with a 0 or negative value, or if it reaches any other stopping point, such as a /i.
+
+New Counters:
+* BOARDID is a read-only counter that delivers the current board id.
+* ARRAY is an object counter (like OBJ1, OBJ2 etc.) with a range of 0-127. It works in conjunction with the ^ character. If ^ is added to a #SEND label, the name of a counter, or the name of a file to be #LOAD-ed or #RUN, it will replace the ^ with whatever value is currently held in ARRAY.  Some examples:
+
+	#SET ARRAY 5
+	#SET LOCAL^ 15
+This will set the LOCAL5 board counter to 15.
+
+	#SET ARRAY 17
+	#SEND OPTION^
+This will send the object to the :OBJECT17 label, if it has one.
+
+	#SET ARRAY 106
+	#LOAD I EVENT^
+This will replace the object's code with the contents of EVENT106.OBJ.
+
+Improvements:
+* Keys and Doors now have a "param2" parameter, which will offset each key/door character by that number. It occurred to me that people may want accessibility or key variety without the heavy-handed approach taken in the .CFG file, so this replicates that functionality with a bit more control.
+* PSET can now set the object counters (obj1, obj2) of a given object, as well as set the CYCLE of any stat.
+
+5/1/2022: FixWeave 1.0f and FirmWeave 2.6d
+Bugs Fixed:
+* Setting the properties of the 'EMPTY' element via CFG was not working.
+
 4/30/2022: FixWeave 1.0f and FirmWeave 2.6d
 Bugs Fixed:
 * Doors and Passages would not place the correct background color if their foreground color was white.

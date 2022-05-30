@@ -65,7 +65,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                                <=-  Weave  -=>');
 		TextColor(Yellow);
-		Writeln('                                 Version   2.6d');
+		Writeln('                                 Version   2.7');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -144,7 +144,6 @@ begin
 		TickSpeed := 4;
 		DebugEnabled := false;
 		SavedGameFileName := 'SAVED';
-		SavedBoardFileName := 'TEMP';
 		WorldCreate;
 		if Diffkeys then
 			SetAccKeys;

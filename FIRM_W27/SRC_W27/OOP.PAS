@@ -71,6 +71,9 @@ procedure OopReadChar(statId: integer; var position: integer);
 	end;
 
 procedure OopReadWord(statId: integer; var position: integer);
+	var
+		s: string;
+		i: integer;
 	begin
 		OopWord := '';
 		repeat
@@ -82,8 +85,13 @@ procedure OopReadWord(statId: integer; var position: integer);
 			or (OopChar = '_')
 			or (OopChar = ':')
 			or (OopChar = '-')
+			or (OopChar = '^')
 		do begin
-			OopWord := OopWord + OopChar;
+			if OopChar = '^' then begin
+				Str(Board.Stats[statId].elseCheck and $7F, s);
+				OopWord := OopWord + s;
+			end else
+				OopWord := OopWord + OopChar;
 			OopReadChar(statId, position);
 			OopChar := UpCase(OopChar);
 		end;
@@ -129,6 +137,7 @@ function ShortWord(s: string): boolean;
 			if s = OopStringToWord(Ooplist[i]) then ShortWord := true;
 		for i := 7 to 9 do
 			if s = CustomObjList[i] then ShortWord := true;
+		if s = 'ARRAY' then ShortWord := true;
 	end;
 
 procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
@@ -165,6 +174,8 @@ procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
 			cPtr := @OPosX
 		else if s = OopStringToWord(OOPList[19]) then
 			cPtr := @OPosY
+		else if s = 'ARRAY' then
+			cPtr := @Board.Stats[statId].elseCheck
 		else
 			for i := 7 to 9 do
 				if s = CustomObjList[i] then
@@ -221,13 +232,43 @@ function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 		end;
 	end;
 
+function OopRunFunc(statId: integer; var position: integer): integer;
+	var
+		ix, iy: integer;
+		labelPtr: pointer;
+		tmpcond: byte;
+	begin
+		OopReadWord(statId, position);
+		OopFuncReturn := -1;
+		with Board.Stats[statId] do begin
+			tmpcond := elseCheck and $80;
+			labelPtr := Data;
+			ix := DataPos;
+			iy := DataLen;
+			Data := nil;
+			DataLen := 0;
+			if FileLoadStatData(OopWord,statId) then begin
+				if OopExecute(statId,DataPos,'%%Function') then begin end;
+				FreeMem(Data,DataLen);
+				Data := labelPtr;
+				DataPos := ix;
+				DataLen := iy;
+				elseCheck := (elseCheck and $7F) + tmpcond;
+			end else 
+				OopError(statId,position, 'File not found ' + OopWord + '.OBJ');
+		end;
+		OopRunFunc := OopFuncReturn;
+	end;
+
 procedure OopReadValue(statId: integer; var position: integer);
 	var
 		s: string[20];
+		t: string;
 		ix, iy, code: integer;
 		isNumeric: boolean;
 		counterPtr: cInt;
-		shortPtr: cShort;		
+		shortPtr: cShort;
+		tmpCond: boolean;
 	begin
 		s := '';
 		repeat
@@ -238,12 +279,17 @@ procedure OopReadValue(statId: integer; var position: integer);
 		isNumeric := true;
 		while ((((OopChar >= 'A') and (OopChar <= 'Z'))
 			or ((OopChar >= '0') and (OopChar <= '9')))
-			or (OopChar = '-')) do begin
-
+			or (OopChar = '-')) or (OopChar = '^')
+		do begin
 			if (((OopChar < '0') or (OopChar > '9'))
-				and (OopChar <> '-')) then
+				and (OopChar <> '-')) and (OopChar <> '^')
+			then
 				isNumeric := false;
-			s := s + OopChar;
+			if OopChar = '^' then begin
+				Str(Board.Stats[statId].elseCheck and $7F, t);
+				s := s + t;
+			end else
+				s := s + OopChar;
 			OopReadChar(statId, position);
 			OopChar := UpCase(OopChar);
 		end;
@@ -270,7 +316,17 @@ procedure OopReadValue(statId: integer; var position: integer);
 							OopValue := ix;
 					end;
 				end;
-			end else if ShortWord(s) then begin
+			end else if s = 'TRUE' then
+				OopValue := 1
+			else if s = 'FALSE' then
+				OopValue := 0				
+			else if s = 'RUN' then begin
+				s := OopWord;
+				OopValue := OopRunFunc(statId, position);
+				OopWord := s;
+			end else if s = 'BOARDID' then
+				OopValue := World.Info.CurrentBoard
+			else if ShortWord(s) then begin
 				OopGetShort(statId, s, shortPtr);
 				OopValue := shortPtr^;
 			end else if OopGetCounter(statId, s, counterPtr) then
@@ -680,6 +736,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 		isCounter: boolean;
 		counterPtr: cInt;
 		shortPtr: cShort;
+		tmpcond: byte;
 	begin
 		with Board.Stats[statId] do begin
 			if OopWord = 'NOT' then begin
@@ -733,7 +790,9 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				else
 					OopError(statId,position, 'Bad condition');
 			end else if ShortWord(OopWord) then begin
-				OopGetShort(statId, OopWord, shortPtr);
+				tmpcond := elseCheck and $80;
+				elseCheck := elseCheck and $7F;
+				OopGetShort(statId, OopWord, shortPtr);				
 				ix := position;
 				OopReadWord(statId, position);
 				if (OopWord = 'ABOVE') or ((OopWord = 'BELOW') or (OopWord = 'IS')) then begin
@@ -751,6 +810,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					position := ix;
 					OopCheckCondition := (shortPtr^ > 0);
 				end;
+				elseCheck := elseCheck + tmpcond;
 			end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 				ix := position;
 				OopReadWord(statId, position);
@@ -769,7 +829,9 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					position := ix;
 					OopCheckCondition := (counterPtr^ > 0);
 				end;
-			end else if OopWord = 'WITHIN' then begin
+			end else if OopWord = 'RUN' then
+				OopCheckCondition := OopRunFunc(statId, position) > 0
+			else if OopWord = 'WITHIN' then begin
 				OopReadValue(statId, position);
 				OopCheckCondition := ((Sqr(Board.Stats[0].X - x) + Sqr(Board.Stats[0].Y - y) * 7 / 4) <= (Sqr(OopValue)));
 			end else if OopWord = 'DETECT' then begin
@@ -990,6 +1052,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 		insCount: integer;
 		argTile: TMatchTile;
 		argTile2: TMatchTile;
+		tmpcond: byte;
 	label StartParsing;
 	label ReadInstruction;
 	label ReadCommand;
@@ -1056,7 +1119,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						OopReadWord(statId, position);
 					if Length(OopWord) = 0 then
 						goto ReadInstruction;
-					Inc(insCount);
+					if name <> '%%Function' then Inc(insCount);
 					if Length(OopWord) <> 0 then begin
 						if OopWord = 'GO' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
@@ -1084,16 +1147,18 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopReadDirection(statId, position, deltaX, deltaY);
 							StepX := deltaX;
 							StepY := deltaY;
-						end else if OopWord = 'SET' then begin							
+						end else if OopWord = 'SET' then begin
 							OopReadWord(statId, position);
 							textLine := OopWord;
 							if ShortWord(OopWord) then begin
+								tmpcond := elseCheck and $80;
 								OopGetShort(statId, OopWord, shortPtr);
 								OopReadValue(statId, position);
 								if OopValue <> -128 then
 									shortPtr^ := OopValue
 								else
 									shortPtr^ := 1;
+								elsecheck := (elsecheck and $7F) + tmpcond;
 								GameUpdateSidebar;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 								OopReadValue(statId, position);
@@ -1127,15 +1192,20 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								(textLine = OopStringToWord(Ooplist[4]))
 							then TransitionDrawToBoard;
 						end else if OopWord = 'IF' then begin
-							elseCheck := false;
+							elseCheck := (elseCheck and $7F);
 							OopReadWord(statId, position);
 							if OopCheckCondition(statId, position) then
 								goto ReadCommand
 							else
-								elseCheck := true;
+								elseCheck := (elseCheck and $7F) + $80;
 						end else if OopWord = 'ELSE' then begin
-							if elseCheck then
+							if (elseCheck and $80) = $80 then
 								goto ReadCommand;
+						end else if OopWord = 'AND' then begin
+							if (elseCheck and $80) = 0 then
+								goto ReadCommand;
+						end else if OopWord = 'RUN' then begin
+							ix := OopRunFunc(statId, position);
 						end else if OopWord = 'LOAD' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
 							OopReadWord(statId, position);
@@ -1247,7 +1317,14 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								else if OopWord = 'P2' then
 									Board.Stats[ix].P2 := iy
 								else if OopWord = 'P3' then
-									Board.Stats[ix].P3 := iy;
+									Board.Stats[ix].P3 := iy
+								else if OopWord = 'CYCLE' then
+									Board.Stats[ix].Cycle := iy
+								else if ShortWord(OopWord) then begin
+									OopGetShort(ix, OopWord, shortPtr);
+									shortPtr^ := iy;
+								end else if OopGetCounter(ix, OopWord, counterPtr) then
+									counterPtr^ := iy;
 							end;
 						{ end else if OopWord = 'ELEMENT' then begin
 							OopReadWord(statId, position);
@@ -1273,6 +1350,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							textLine := OopWord;
 
 							if ShortWord(OopWord) then begin
+								tmpcond := elseCheck and $80;
+								elseCheck := elseCheck and $7F;
 								OopGetShort(statId, OopWord, shortPtr);
 								code := position;
 								OopReadValue(statId, position);
@@ -1287,9 +1366,11 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									if (shortPtr^ + OopValue) >= 0 then begin
 										shortPtr^ := shortPtr^ + OopValue;
 									end else begin
+										elsecheck := (elsecheck and $7F) + tmpcond;
 										goto ReadCommand;
 									end;
 								end;
+								elsecheck := (elsecheck and $7F) + tmpcond;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 								code := position;
 								OopReadValue(statId, position);
@@ -1356,6 +1437,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							end else
 								OopError(statId,position, 'No board label :' + OopWord);
 						end else if OopWord = 'END' then begin
+							OopReadValue(statId, position);
+							OopFuncReturn := OopValue;
 							position := -1;
 							OopChar := #0;
 						end else if OopWord = 'ENDGAME' then begin
@@ -1660,7 +1743,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 				TextWindowFree(textWindow);
 			end;
 
-			if replaceStat then begin
+			if replaceStat and (name <> '%%Function') then begin
 				ix := X;
 				iy := Y;
 				DamageStat(statId);

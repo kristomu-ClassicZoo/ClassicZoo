@@ -429,7 +429,7 @@ procedure ElementDoorDraw(x, y: integer; var ch: byte);
 		if Diffkeys then
 			ch := 132 + key
 		else
-			ch := Ord(ElementDefs[E_DOOR].Character);
+			ch := Ord(ElementDefs[E_DOOR].Character) + (key * ElementDefs[E_DOOR].Param2);
 	end;
 
 procedure ElementKeyDraw(x, y: integer; var ch: byte);
@@ -440,7 +440,7 @@ procedure ElementKeyDraw(x, y: integer; var ch: byte);
 		if Diffkeys then
 			ch := 139 + key
 		else
-			ch := Ord(ElementDefs[E_KEY].Character);
+			ch := Ord(ElementDefs[E_KEY].Character) + (key * ElementDefs[E_KEY].Param2);
 	end;
 
 procedure ElementSpinningGunTick(statId: integer);
@@ -2264,7 +2264,7 @@ procedure InitElementsGame;
 								Inc(i);
 							end;
 							q := -1;
-							for i := 1 to MAX_ELEMENT do
+							for i := 0 to MAX_ELEMENT do
 								if ElementDefs[i].Name = k then
 									q := i;
 							if (q <> -1) and (l <> '') then begin
