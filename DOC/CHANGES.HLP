@@ -8,6 +8,11 @@ Legend:
 
 $< ClassicZoo dev >
 
++ Editor improvements.
+  / Fixed the paste preview rectangle
+    being too large by one row/column.
+* ?SPEED now uses the 1-9 range instead
+  of 0-8.
 / [DOS] Improve joystick compatibility.
 
 $< ClassicZoo 4.35 >

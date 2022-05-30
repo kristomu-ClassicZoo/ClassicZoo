@@ -1900,10 +1900,10 @@ procedure EditorLoop;
 			var
 				maxX, maxY: integer;
 			begin
-				maxX := ox + copyBuffer.width;
-				maxY := oy + copyBuffer.height;
-				if maxX > BOARD_WIDTH then maxX := BOARD_WIDTH;
-				if maxY > BOARD_HEIGHT then maxY := BOARD_HEIGHT;
+				maxX := ox + copyBuffer.width - 1;
+				maxY := oy + copyBuffer.height - 1;
+				if maxX >= BOARD_WIDTH then maxX := BOARD_WIDTH - 1;
+				if maxY >= BOARD_HEIGHT then maxY := BOARD_HEIGHT - 1;
 				EditorBoardInvert(ox, oy, maxX, maxY);
 			end;
 		begin
