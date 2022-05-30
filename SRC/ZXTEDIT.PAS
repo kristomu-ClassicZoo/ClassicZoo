@@ -377,10 +377,10 @@ function ZxtEditorRun: boolean;
 		var
 			i, ofs: integer;
 		begin
-			ofs := selEntry - 12;
-			if ofs <= 1 then ofs := 1
-			else if ofs > (ZxtBlockGetCount - (VideoRows - 2)) then
+			ofs := selEntry - (VideoRows div 2);
+			if (ofs > (ZxtBlockGetCount - (VideoRows - 2))) then
 				ofs := ZxtBlockGetCount - (VideoRows - 2);
+			if ofs <= 1 then ofs := 1;
 
 			for i := 1 to (VideoRows - 1) do
 				ZxtEditorDrawEntry(i - 1 + ofs, i);
