@@ -33,7 +33,8 @@ interface
 		);
 		TEditorZxtInfo = record
 			ExtType: TExtensionType;
-			ExtFlags: word;
+			ExtAllowedFlags: word;
+			ExtToggleableFlags: word;
 			EditCategory: TEditorZxtCategory;
 			EditFlags: word;
 			Name: string[28];
@@ -51,6 +52,13 @@ const
 
 	EDITOR_ZXT_ALLOW_MULTIPLE = $0001;
 
+	ALLOWED_FLAGS_PLAY = FZxtExtPlayingShould or FZxtExtPlayingMust;
+	ALLOWED_FLAGS_PLAY_EDIT = ALLOWED_FLAGS_PLAY or FZxtExtEditingShould;
+	ALLOWED_FLAGS_READ_WRITE = ALLOWED_FLAGS_PLAY_EDIT or FZxtExtReadingMust or FZxtExtWritingMust;
+
+	TOGGLEABLE_FLAGS_DEFAULTS = FZxtExtPlayingShould or FZxtExtPlayingMust or FZxtExtEditingShould;
+	TOGGLEABLE_FLAGS_PLAY = FZxtExtPlayingShould or FZxtExtPlayingMust;
+
 	HEADER_BAR_Y = 0;
 	EDITOR_ZXT_INFOS_COUNT = 16
 	{$IFNDEF E_SUPERZ} + 2 {$ENDIF}
@@ -59,28 +67,32 @@ const
 	(
 		(
 			ExtType: ExtUnlockExtensions;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryOop;
 			EditFlags: 0;
 			Name: '#IFEXT'
 		),
 		(
 			ExtType: ExtMaxStatCount;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_READ_WRITE;
+			ExtToggleableFlags: 0;
 			EditCategory: EditorZxtCategoryWorld;
 			EditFlags: 0;
 			Name: 'Maximum stat count'
 		),
 		(
 			ExtType: ExtFixPutBottomRow;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryFix;
 			EditFlags: 0;
 			Name: '#PUT on bottom row'
 		),
 		(
 			ExtType: ExtFixBlinkWallShift;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryFix;
 			EditFlags: 0;
 			Name: 'Blink wall shift to left'
@@ -88,7 +100,8 @@ const
 {$IFNDEF E_SUPERZ}
 		(
 			ExtType: ExtFixBoardEdgeTouch;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryFix;
 			EditFlags: 0;
 			Name: 'Board edge touch direction'
@@ -96,49 +109,56 @@ const
 {$ENDIF}
 		(
 			ExtType: ExtFixConveyorStatSwapping;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryFix;
 			EditFlags: 0;
 			Name: 'Conveyor stat swapping'
 		),
 		(
 			ExtType: ExtFixConveyorStatCheck;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryFix;
 			EditFlags: 0;
 			Name: 'Conveyor statless movement'
 		),
 		(
 			ExtType: ExtFixConveyorMissingFinalDraw;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryFix;
 			EditFlags: 0;
 			Name: 'Conveyor visual bugs'
 		),
 		(
 			ExtType: ExtFixKoopoBug;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryFix;
 			EditFlags: 0;
 			Name: 'Duplicator "Koopo" bug'
 		),
 		(
 			ExtType: ExtFixBindDoubleFree;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryFix;
 			EditFlags: 0;
 			Name: 'Nested #BIND calls'
 		),
 		(
 			ExtType: ExtFixRecursiveElementPush;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryFix;
 			EditFlags: 0;
 			Name: 'Recursive element push'
 		),
 		(
 			ExtType: ExtGMDirByAt;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryOop;
 			EditFlags: 0;
 			Name: 'BY/AT directions'
@@ -146,7 +166,8 @@ const
 {$IFNDEF E_SUPERZ}
 		(
 			ExtType: ExtSuperzEnter;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryOop;
 			EditFlags: 0;
 			Name: ':ENTER'
@@ -154,35 +175,40 @@ const
 {$ENDIF}
 		(
 			ExtType: ExtDieItem;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryOop;
 			EditFlags: 0;
 			Name: '#DIE ITEM'
 		),
 		(
 			ExtType: ExtDieUnderTile;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryOop;
 			EditFlags: 0;
 			Name: '#DIE preserves tile under'
 		),
 		(
 			ExtType: ExtIfRnd;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryOop;
 			EditFlags: 0;
 			Name: '#IF RND'
 		),
 		(
 			ExtType: ExtOopViewport;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryOop;
 			EditFlags: 0;
 			Name: '#VIEWPORT extension'
 		),
 		(
 			ExtType: ExtQuirkArgTile2;
-			ExtFlags: FZxtExtPlayingShould or FZxtExtPlayingMust;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
 			EditCategory: EditorZxtCategoryQuirk;
 			EditFlags: 0;
 			Name: 'Mark as using argTile2'
@@ -324,8 +350,11 @@ function ZxtEditorRun: boolean;
 			VideoWriteText(VideoSidebarX + 1, 13, $30, ' H ');
 			VideoWriteText(VideoSidebarX + 4, 13, $1F, ' Help');
 
-			VideoWriteText(VideoSidebarX + 1, 15, $70, ' Esc ');
-			VideoWriteText(VideoSidebarX + 6, 15, $1F, ' Exit');
+			VideoWriteText(VideoSidebarX + 1, 15, $70, ' F ');
+			VideoWriteText(VideoSidebarX + 4, 15, $1F, ' Edit flags');
+
+			VideoWriteText(VideoSidebarX + 1, 17, $30, ' Esc ');
+			VideoWriteText(VideoSidebarX + 6, 17, $1F, ' Exit');
 		end;
 
 	procedure ZxtEditorDrawEntry(i, y: integer);
@@ -414,6 +443,45 @@ function ZxtEditorRun: boolean;
 			else ZxtEditorSelectType := state.LinePos;
 		end;
 
+	procedure ZxtFlagEditorA(editable: boolean; var block: TExtensionBlock);
+		var
+			i, eidx: integer;
+			ch: byte;
+		procedure FlagToChoice(f: word);
+			begin
+				if f = 0 then ch := 0
+				else ch := 1;
+			end;
+		function ChoiceToFlag(b, c: word): word;
+			begin
+				if ch <> 0 then ChoiceToFlag := b or c
+				else ChoiceToFlag := b and (not c);
+			end;
+		begin
+			i := 9;
+			eidx := EditorZxtGetInfoForId(block.Header.Id);
+			if eidx < 0 then exit;
+
+			with EditorZxtInfos[eidx] do begin
+				if (ExtToggleableFlags and FZxtExtPlayingMust) <> 0 then begin
+					FlagToChoice(block.Header.Flags and FZxtExtPlayingMust);
+					SidebarPromptChoice(editable,
+						i, 'Req. for play?', 'No Yes', ch);
+					block.Header.Flags := ChoiceToFlag(block.Header.Flags,
+						FZxtExtPlayingMust);
+					Inc(i, 4);
+				end;
+			end;
+		end;
+
+	procedure ZxtFlagEditor(var block: TExtensionBlock);
+		begin
+			ZxtEditorClearSidebar;
+			ZxtFlagEditorA(false, block);
+			ZxtFlagEditorA(true, block);
+			ZxtEditorDrawSidebar;
+		end;
+
 	procedure ZxtEditorEdit(var block: TExtensionBlock);
 		begin
 			ZxtEditorClearSidebar;
@@ -430,6 +498,14 @@ function ZxtEditorRun: boolean;
 		begin
 			if selEntry > ZxtBlockGetCount then exit;
 			ZxtEditorEdit(ZxtBlockGet(selEntry)^);
+			ZxtEditorDrawEntries;
+		end;
+
+	procedure ZxtEditorEditSelectedFlags;
+		begin
+			if selEntry > ZxtBlockGetCount then exit;
+			ZxtFlagEditor(ZxtBlockGet(selEntry)^);
+			ZxtEditorDrawEntries;
 		end;
 
 	procedure ZxtEditorInsertNew;
@@ -449,11 +525,16 @@ function ZxtEditorRun: boolean;
 					goto InsertFinished;
 				end;
 				ZxtGetExtId(ExtType, block.Header.Id);
-				block.Header.Flags := (block.Header.Flags and $EF) or $40;
+
+				block.Header.Flags := (
+					ExtAllowedFlags and ((not ExtToggleableFlags)
+						or TOGGLEABLE_FLAGS_DEFAULTS)
+				);
 				block.Header.FieldLength := 0;
 				block.Data := nil;
 			end;
 			EditorZxtUnloadAll;
+			ZxtFlagEditor(block);
 			ZxtEditorEdit(block);
 			i := ZxtBlockAppend(ZXT_APPEND_END, block);
 			EditorZxtLoadAll;
@@ -527,6 +608,7 @@ function ZxtEditorRun: boolean;
 				end;
 				KEY_DELETE: ZxtEditorDelete;
 				KEY_ENTER: ZxtEditorEditSelected;
+				'F': ZxtEditorEditSelectedFlags;
 				'N': ZxtEditorInsertNew;
 				'H': begin
 					TextWindowDisplayFile('zxtedit.hlp', 'ZXT editor help');

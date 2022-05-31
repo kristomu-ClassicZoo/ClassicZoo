@@ -69,6 +69,12 @@ begin
 			1, ACTUAL_MAX_STAT, minCount);
 		SidebarPromptNumeric(editable, VideoSidebarX + 3, 13, 'Rec. count?',
 			minCount, ACTUAL_MAX_STAT, recCount);
+
+		block.Header.Flags := (block.header.Flags and $FFC0);
+		if recCount > DEFAULT_MAX_STAT then
+			block.Header.Flags := block.Header.Flags or $08;
+		if minCount > DEFAULT_MAX_STAT then
+			block.Header.Flags := block.Header.Flags or $3E;
 	end;
 end;
 
