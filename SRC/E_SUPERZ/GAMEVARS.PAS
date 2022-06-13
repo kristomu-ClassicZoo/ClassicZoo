@@ -360,6 +360,8 @@ interface
 		CheatColorModifiers: array[0 .. MAX_ELEMENT] of byte;
 		CheatCharModifiers: array[0 .. MAX_ELEMENT] of char;
 		CheatNoClip: boolean;
+		CheatNoShoot: boolean;
+		CheatNoStar: boolean;
 		CheatFreeze: boolean;
 {$ENDIF}
 		FileBoardCachedLinePos: integer;

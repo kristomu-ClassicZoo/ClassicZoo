@@ -49,8 +49,9 @@ SHOW [el]   | Make all tiles of type
 TOUCH [el]  | Touch all elements of type
             | (and opt. color) [el].
 NOSHOW ALL  | Undo all SHOW commands.
-NOCLIP      | Enable walking through
-(CLIP)      | walls.
+(NO)CLIP    | Toggle noclip walking.
+(NO)SHOOT   | Toggle non-player shooting.
+(NO)STAR    | Toggle non-player stars.
 (NO)FREEZE  | Freeze non-player tiles.
 PASSAGE     | Teleport to any selected
             | board.

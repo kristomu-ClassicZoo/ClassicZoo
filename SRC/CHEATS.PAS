@@ -260,6 +260,10 @@ procedure GameDebugPrompt;
 				TransitionDrawToBoard;
 			end else if input = 'CLIP' then begin
 				CheatNoClip := not isYes;
+			end else if input = 'STAR' then begin
+				CheatNoStar := not isYes;
+			end else if input = 'SHOOT' then begin
+				CheatNoShoot := not isYes;
 			end else if input = 'FREEZE' then begin
 				CheatFreeze := isYes;
 			end else if input = 'FLAGS' then begin
