@@ -39,6 +39,7 @@ interface
 	procedure InitElementsGame;
 	procedure ConfigStringsLoad;
 	procedure ElementMod(e: integer; par: string; op: string; statId: integer);
+	function ParamConfigs(i: integer): string;
 
 implementation
 uses Crt, Video, Sounds, Input, TxtWind, Oop, Game;
@@ -1560,6 +1561,8 @@ procedure ElementTruePlayerTick;
 			end else if inputC = UpCase(ConfigList[75][1]) then begin {'H' Help file hotkey}
 				TextWindowDisplayFile(World.Info.Name + '.HLP', 'Help for '+ World.Info.Name);
 			end else if inputC = UpCase(ConfigList[83][1]) then begin {'?' Debug prompt hotkey}
+				World.Info.PlayerChar := ElementDefs[E_PLAYER].Character;
+				World.Info.PlayerColor := ElementDefs[E_PLAYER].Color;
 				GameDebugPrompt;
 				InputKeyPressed := #0;
 			end else if (NeuromotorAssist = true) and (inputC = 'P') then begin
@@ -2130,6 +2133,7 @@ function ParamConfigs(i: integer): string;
 			19: ParamConfigs := 'THEME.FG.SPECIAL';
 			20: ParamConfigs := 'THEME.BLINKING';
 			21: ParamConfigs := 'OTHER.STARTBOARD';
+			22: ParamConfigs := 'OTHER.FLAGLENGTH';
 		else ParamConfigs := '_nil' end;
 	end;
 
@@ -2215,7 +2219,7 @@ procedure InitElementsGame;
 							end;
 							v := ColorNumber(k, -1);
 							if (v <> -128) then begin
-								v := (v * 3) + 22;
+								v := (v * 3) + PALETTE_START;
 								for q := 0 to 2 do begin
 									while (s[i] <> ',') and (i <= Length(s)) do begin
 										if (s[i] >= '0') and (s[i] <= '9') then
@@ -2250,7 +2254,7 @@ procedure InitElementsGame;
 							v := ColorNumber(l, -1);
 							if (v = -128) then
 								Val(l, v, code);
-							for i := 1 to PALETTE_START do
+							for i := 1 to (PALETTE_START - 1) do
 								if ParamConfigs(i) = k then
 									ParamList[i] := v;
 						end else begin

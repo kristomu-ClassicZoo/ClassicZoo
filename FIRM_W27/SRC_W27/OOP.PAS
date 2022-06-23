@@ -41,6 +41,8 @@ interface
 	procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
 	function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 	procedure GetBoardStats;
+	function GetNumFlags: integer;
+	function WorldInfoFlags(flag: integer): string;
 
 implementation
 uses Sounds, TxtWind, Game, Elements;
@@ -475,7 +477,11 @@ function OopFindString(statId: integer; s: string): integer;
 				{ string matches }
 				OopReadChar(statId, cmpPos);
 				OopChar := UpCase(OopChar);
-				if ((OopChar >= 'A') and (OopChar <= 'Z')) or (OopChar = '_') then begin
+
+				if ((OopChar >= 'A') and (OopChar <= 'Z'))
+					or ((OopChar >= '0') and (OopChar <= '9'))
+					or (OopChar = '_') or (OopChar = '-')
+				then begin
 					{ word continues, match invalid }
 				end else begin
 					{ word complete, match valid }
@@ -606,35 +612,94 @@ function WorldGetBoardPosition(statId: integer; var position: integer): integer;
 			WorldGetBoardPosition := bpos;
 	end;
 
+function GetNumFlags: integer;
+	begin
+		if (ParamList[22] > 19) or (ParamList[22] < 3) then
+			GetNumFlags := 10
+		else
+		GetNumFlags := MAX_FLAG div ParamList[22];
+	end;
+
+function WorldInfoFlags(flag: integer): string;
+	var
+		i, j, p: integer;
+		s: string;
+	begin
+		s := '';
+		i := 1;
+		if (ParamList[22] > 19) or (ParamList[22] < 3) then begin
+			p := (21 * (flag - 1)) + 1;
+			j := 20;
+		end else begin
+			p := (ParamList[22] * (flag - 1));
+			j := ParamList[22];
+		end;
+		with World.Info do
+			while (((Flags[p + i] >= 'A') and (Flags[p + i] <= 'Z'))
+				or ((Flags[p + i] >= '0') and (Flags[p + i] <= '9'))
+				or (Flags[p + i] = '_') or (Flags[p + i] = '-'))
+				and (i <= j)
+			do begin
+				s := s + Flags[p + i];
+				Inc(i);
+			end;
+		WorldInfoFlags := s;
+	end;
+
 function WorldGetFlagPosition(name: TString50): integer;
 	var
 		i: integer;
 	begin
 		WorldGetFlagPosition := -1;
-		for i := 1 to MAX_FLAG do begin
-			if World.Info.Flags[i] = name then
+		for i := 1 to GetNumFlags do begin
+			if WorldInfoFlags(i) = name then
 				WorldGetFlagPosition := i;
 		end;
 	end;
 
 procedure WorldSetFlag(name: TString50);
 	var
-		i: integer;
+		i, j, p: integer;
 	begin
 		if WorldGetFlagPosition(name) < 0 then begin
 			i := 1;
-			while (i < MAX_FLAG) and (Length(World.Info.Flags[i]) <> 0) do
-				i := i + 1;
-			World.Info.Flags[i] := name;
+			while (i < GetNumFlags) and (WorldInfoFlags(i) <> '') do
+				Inc(i);
+			if (ParamList[22] > 19) or (ParamList[22] < 3) then begin
+				p := (21 * (i - 1)) + 1;
+				j := 20;
+			end else begin
+				p := (ParamList[22] * (i - 1));
+				j := ParamList[22];
+			end;
+			i := 1;
+			while (((name[i] >= 'A') and (name[i] <= 'Z'))
+				or ((name[i] >= '0') and (name[i] <= '9'))
+				or (name[i] = '_') or (name[i] = '-'))
+				and (i <= j)
+			do begin
+				World.Info.Flags[p + i] := name[i];
+				Inc(i);
+			end;
+			if i < j then
+				World.Info.Flags[p + i] := ' ';
+			if j = 20 then
+				World.Info.Flags[p] := Chr(i - 1);
 		end;
 	end;
 
 procedure WorldClearFlag(name: TString50);
 	var
-		i: integer;
+		i, p: integer;
 	begin
-		if WorldGetFlagPosition(name) >= 0 then
-			World.Info.Flags[WorldGetFlagPosition(name)] := '';
+		i := WorldGetFlagPosition(name);
+		if (i > 0) then begin
+			if (ParamList[22] > 19) or (ParamList[22] < 3) then
+				p := (21 * (i - 1)) + 2
+			else
+				p := ParamList[22] * (i - 1);
+			World.Info.Flags[p] := ' ';
+		end;
 	end;
 
 function ElementNumber(s: string): shortint;
@@ -751,12 +816,14 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				OopCheckCondition := not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable;
 			end else if OopWord = 'COLOR' then begin
 				OopReadDirection(statId, position, deltaX, deltaY);
+				{read X value}
 				OopReadValue(statId, position);
 				ix := OopValue;
 				if ix = 0 then
 					tile.setFG := true
 				else
 					tile.setFG := false;
+				{read Y value, if present. If not a detected color, reset code position.}
 				code := position;
 				OopReadValue(statId, position);
 				if OopValue = 0 then
@@ -768,11 +835,11 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					OopValue := 0;
 				end;
 				iy := OopValue;
-				if ( ix > -1 ) and ( ix < 16 ) then begin
-					if ( iy < 1 ) or ( iy > 15 ) then
-						iy := 0;
+				{if it's within range, make the color check.}
+				if (ix + (iy * 16) > -1) and (ix + (iy * 16) < 256) then begin
 					tile.Element := 2;
 					tile.Color := AsColor( ix, iy );
+
 					if (deltaX = 0) and (deltaY = 0) then
 						OopCheckCondition := MatchTiles(Under, tile)
 					else
@@ -810,7 +877,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					position := ix;
 					OopCheckCondition := (shortPtr^ > 0);
 				end;
-				elseCheck := elseCheck + tmpcond;
+				elseCheck := (elseCheck and $7F) + tmpcond;
 			end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 				ix := position;
 				OopReadWord(statId, position);
@@ -1045,6 +1112,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 		labelPtr: pointer;
 		labelDataPos: integer;
 		labelStatId: integer;
+		labelZap, labelUnzap, tmpchar: char;
 		counterPtr: cInt;
 		shortPtr: cShort;
 		counterSubtract: boolean;
@@ -1152,6 +1220,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							textLine := OopWord;
 							if ShortWord(OopWord) then begin
 								tmpcond := elseCheck and $80;
+								elsecheck := elsecheck and $7F;
 								OopGetShort(statId, OopWord, shortPtr);
 								OopReadValue(statId, position);
 								if OopValue <> -128 then
@@ -1179,9 +1248,11 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopReadWord(statId, position);
 							textLine := OopWord;
 							if ShortWord(OopWord) then begin
+								tmpcond := elseCheck and $80;
 								OopGetShort(statId, OopWord, shortPtr);
 								shortPtr^ := 0;
 								GameUpdateSidebar;
+								elsecheck := (elsecheck and $7F) + tmpcond;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 								counterPtr^ := 0;
 								GameUpdateSidebar;
@@ -1270,7 +1341,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = 'QUICKSAVE' then begin
 							OopReadWord(statId, position);
 							if OopWord <> '' then begin
-								if Length(OopWord) < 9 then
+								if (OopWord = 'STANDARD') then
+									GameWorldSave(ConfigList[78] + ':', SavedGameFileName, '.SAV')
+								else if Length(OopWord) < 9 then
 									WorldSave(OopWord,'.SAV');
 							end else begin
 								if CurrentSave = '' then
@@ -1449,54 +1522,43 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = 'RESTART' then begin
 							position := 0;
 							lineFinished := false;
-						end else if OopWord = 'ZAP' then begin
-							labelStatId := 0;
+						end else if (OopWord = 'ZAP') or (OopWord = 'RESTORE') then begin
+							textLine := OopWord;
 							repeat
 								OopReadChar(statId, position);
 							until OopChar <> ' ';
 							if OopChar = '!' then begin
-								OopReadWord(statId, position);
-								while OopFindLabel(statId, OopWord, labelStatId, labelDataPos, #13'!') do begin
-									labelPtr := Board.Stats[labelStatId].Data;
-									AdvancePointer(labelPtr, labelDataPos + 1);
-
-									Char(labelPtr^) := '@';
-								end;
+								labelZap := '@';
+								labelUnzap := '!';
+								ix := 1;
 							end else begin
 								Dec(position);
-								OopReadWord(statId, position);
-								while OopFindLabel(statId, OopWord, labelStatId, labelDataPos, #13':') do begin
-									labelPtr := Board.Stats[labelStatId].Data;
-									AdvancePointer(labelPtr, labelDataPos + 1);
-
-									Char(labelPtr^) := #39;
-								end;
+								labelZap := #39;
+								labelUnzap := ':';
+								ix := 99;
 							end;
-						end else if OopWord = 'RESTORE' then begin
-							labelStatId := 0;
-							repeat
-								OopReadChar(statId, position);
-							until OopChar <> ' ';
-							if OopChar = '!' then begin
-								OopReadWord(statId, position);
-								while OopFindLabel(statId, OopWord, labelStatId, labelDataPos, #13'@') do begin
+							if textLine = 'RESTORE' then begin
+								tmpchar := labelZap;
+								labelZap := labelUnzap;
+								labelUnzap := tmpchar;
+							end;
+							OopReadWord(statId, position);
+							textLine := OopWord;
+							OopReadValue(statId, position);
+							if OopValue < 0 then 
+								if textLine = 'RESTORE' then
+									OopValue := ix
+								else
+									OopValue := 1;
+							while (OopValue <> 0) do begin
+								labelStatId := 0;
+								OopWord := textLine;
+								while OopFindLabel(statId, OopWord, labelStatId, labelDataPos, #13 + labelUnzap) do begin
 									labelPtr := Board.Stats[labelStatId].Data;
 									AdvancePointer(labelPtr, labelDataPos + 1);
-
-									Char(labelPtr^) := '!';
+									Char(labelPtr^) := labelZap;
 								end;
-							end else begin
-								Dec(position);
-								OopReadWord(statId, position);
-								while OopFindLabel(statId, OopWord, labelStatId, labelDataPos, #13#39) do
-									repeat
-										labelPtr := Board.Stats[labelStatId].Data;
-										AdvancePointer(labelPtr, labelDataPos + 1);
-
-										Char(labelPtr^) := ':';
-
-										labelDataPos := OopFindString(labelStatId, #13#39 + OopWord + #13);
-									until labelDataPos <= 0;
+								Dec(OopValue);
 							end;
 						end else if (OopWord = 'UNLOCK') or (OopWord = 'LOCK') then begin
 							if OopWord = 'UNLOCK' then

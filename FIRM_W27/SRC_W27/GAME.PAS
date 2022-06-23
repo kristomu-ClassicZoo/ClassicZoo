@@ -210,16 +210,17 @@ function DefaultParamList(i: integer): integer;
 			5,8: DefaultParamList := 50;
 			9: DefaultParamList := 150;
 			10: DefaultParamList := 33;
-			11,16,20,22,23,24,25,26,28,30,31,35,36,38,42: DefaultParamList := 0;
+			11,16,20,23,24,25,26,27,29,31,32,36,37,39,43: DefaultParamList := 0;
 			14: DefaultParamList := 15;
 			15: DefaultParamList := 14;
 			17: DefaultParamList := 7;
 			18: DefaultParamList := 3;
 			19: DefaultParamList := 12;
 			21: DefaultParamList := -1;
-			27,29,32,33,34,37,39,40,43,44,45: DefaultParamList := 42;
-			41,46,47,48,49,50,52,54,55,59,60,62,66: DefaultParamList := 21;
-			51,53,56,57,58,61,63,64,65,67,68,69: DefaultParamList := 63;
+			22: DefaultParamList := 20;
+			28,30,33,34,35,38,40,41,44,45,46: DefaultParamList := 42;
+			42,47,48,49,50,51,53,55,56,60,61,63,67: DefaultParamList := 21;
+			52,54,57,58,59,62,64,65,66,68,69,70: DefaultParamList := 63;
 		else DefaultParamList := -128 end;
 	end;
 
@@ -231,12 +232,12 @@ procedure ParamsLoad;
 			ParamList[i] := DefaultParamList(i);
 		InitElementsGame;
 		ConfigStringsLoad;
-		if ParamList[THEME_START + 7] = 0 then
+		if ParamList[20] = 0 then
 			SetBlink(true)
 		else
 			SetBlink(false);
-		if (ParamList[THEME_START + 8] <> -1) and (World.Info.IsSave = false) then
-			World.Info.CurrentBoard := ParamList[THEME_START + 8];
+		if (ParamList[21] <> -1) and (World.Info.IsSave = false) then
+			World.Info.CurrentBoard := ParamList[21];
 	end;
 
 function OopConfigs (i: integer): string;
@@ -419,6 +420,8 @@ procedure CustomOOPLoad;
 			if IOResult <> 0 then begin end;
 		end;
 	end;
+
+
 
 procedure HighScoresLoad;
 	var
@@ -803,7 +806,7 @@ procedure WorldCreate;
 		for i := 1 to 7 do
 			World.Info.Keys[i] := 0;
 		for i := 1 to MAX_FLAG do
-			World.Info.Flags[i] := '';
+			World.Info.Flags[i] := ' ';
 		BoardChange(0);
 		Board.Name := 'Title screen';
 		LoadedGameFileName := '';
@@ -1497,7 +1500,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 				else
 					oldBgColor := Color and $F0;
 			end;
-			if ParamList[THEME_START + 7] = 0 then
+			if ParamList[20] = 0 then
 				oldBgColor := oldBgColor and $70;
 
 			iUnder := Under;
@@ -1909,14 +1912,25 @@ procedure CalcDirectionFind(x, y: integer; var deltaX, deltaY: integer);
 			CalcDirectionSearch(0,0,x,y,ix,iy);
 			deltaX := 0;
 			deltaY := 0;
-			if SearchArea[-1][0] <= SearchArea[0][0] then
-				deltaX := -1
-			else if SearchArea[0][-1] <= SearchArea[0][0] then
-				deltaY := -1
-			else if SearchArea[1][0] <= SearchArea[0][0] then
-				deltaX := 1
-			else if SearchArea[0][1] <= SearchArea[0][0] then
+			if SearchArea[-1][0] <= SearchArea[0][0] then begin
+				deltaX := -1;
+				SearchArea[0][0] := SearchArea[-1][0];
+			end;
+			if SearchArea[0][-1] <= SearchArea[0][0] then begin
+				deltaY := -1;
+				SearchArea[0][0] := SearchArea[0][-1];
+			end;
+			if SearchArea[1][0] <= SearchArea[0][0] then begin
+				deltaX := 1;
+				SearchArea[0][0] := SearchArea[1][0];
+			end;
+			if SearchArea[0][1] <= SearchArea[0][0] then
 				deltaY := 1;
+			if (deltaX <> 0) and (deltaY <> 0) then
+				if Random(Abs(x - Board.Stats[0].X) + Abs(y - Board.Stats[0].Y)) > Abs(x - Board.Stats[0].X) then
+					deltaX := 0
+				else
+					deltaY := 0;				
 		end;
 	end;
 
@@ -2087,9 +2101,9 @@ procedure GameDebugPrompt;
 			textWindow.Selectable := false;
 			textWindow.Title := 'List of Flags';
 			TextWindowAppend(textWindow, '$** Flags **');
-			for i := 1 to MAX_FLAG do
-				if World.Info.Flags[i] <> '' then
-					TextWindowAppend(textWindow, World.Info.Flags[i]);
+			for i := 1 to GetNumFlags do
+				if WorldInfoFlags(i) <> '' then
+					TextWindowAppend(textWindow, WorldInfoFlags(i));
 			TextWindowAppend(textWindow, '$** Keys **');
 			for i := 1 to 7 do
 				if World.Info.Keys[i] > 0 then begin

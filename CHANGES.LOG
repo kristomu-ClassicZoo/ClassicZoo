@@ -1,3 +1,30 @@
+6/22/2022: FirmWeave 2.7g
+Added:
+* other.flaglength configuration option that lets you set a shorter maximum flag length, giving you a higher flag limit.
+
+6/20/2022: FirmWeave 2.7f
+Fixed bugs:
+* Identifying text by char via #if color was not working.
+
+6/12/2022: FirmWeave 2.7e
+Modified:
+* Numbers in labels no longer behave any differently than letters in labels. 
+
+6/8/2022: FirmWeave 2.7d
+Improved:
+* The /FIND direction is now substantially better at reaching its target, at the expense of being a little more chaotic.
+
+New Features:
+* You can now use SPACE to select or close text boxes.
+
+6/8/2022: FirmWeave 2.7c
+Fixed Bugs:
+* The /FIND direction would struggle with wide open areas.
+
+6/2/2022: FirmWeave 2.7b
+Fixed bugs:
+* Tiny hotfix for Weave. In rare circumstances, #set <counter> ARRAY would result in a large negative value. 
+
 5/29/2022: FirmWeave 2.7
 New Commands:
 * #AND, the exact opposite of #ELSE - runs when the last IF statement was TRUE.

@@ -32,7 +32,7 @@ interface
 		TSTAT_OFFSET = 33;
 		MAX_ELEMENT = 53;
 		MAX_BOARD = 250;
-		MAX_FLAG = 10;
+		MAX_FLAG = 210;
 		BOARD_WIDTH = 60;
 		BOARD_HEIGHT = 25;
 		WORLD_FILE_HEADER_SIZE = 512;
@@ -46,8 +46,8 @@ interface
 		{.CFG FILE}
 		CONFIG_FILE_COUNT = 88;
 		THEME_START = 13;
-		PALETTE_START = 22;
-		PARAM_FILE_COUNT = 69;
+		PALETTE_START = 23;
+		PARAM_FILE_COUNT = 70;
 		{.INI FILE}
 		CUSTOM_OOP_COUNT = 19;
 		CUSTOM_KEY_COUNT = 24;
@@ -140,7 +140,7 @@ interface
 			GracePeriod: integer;
 			Score: integer;
 			Name: string[20];
-			Flags: array[1 .. MAX_FLAG] of string[20];
+			Flags: packed array[1 .. MAX_FLAG] of char;
 			BoardTimeSec: integer;
 			BoardTimeHsec: integer;
 			IsSave: boolean;
@@ -251,8 +251,7 @@ interface
 		HighScoreList: THighScoreList;
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
-		Accessibility: array[1..4] of TString50;		
-
+		Accessibility: array[1..4] of TString50;
 
 		BoardNames: array[0 .. MAX_BOARD] of TString50;
 	const

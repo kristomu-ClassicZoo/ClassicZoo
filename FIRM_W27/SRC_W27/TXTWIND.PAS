@@ -307,7 +307,7 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
 					Inc(newLinePos, InputDeltaY);
-				end else if InputShiftPressed or (InputKeyPressed = KEY_ENTER) then begin
+				end else if InputShiftPressed or (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = ' ') then begin
 					InputShiftAccepted := true;
 					if ((flags and TWS_IGNORE_HYPERLINKS) = 0) and ((Lines[LinePos]^[1]) = '!') then begin
 						pointerStr := Copy(Lines[LinePos]^, 2, Length(Lines[LinePos]^) - 1);
@@ -370,14 +370,16 @@ procedure TextWindowSelect(var state: TTextWindowState; flags: byte);
 					TextWindowDraw(state, false, viewingFile);
 					if (Lines[LinePos]^[1]) = '!' then
 						if (flags and TWS_HYPERLINK_AS_SELECT) <> 0 then
-							TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), #174'Press ENTER to select this'#175)
+							TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]),
+								#174'Press ENTER or SPACE to select'#175)
 						else
-							TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), #174'Press ENTER for more info'#175);
+							TextWindowDrawTitle(AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]),
+								#174'Press ENTER for more info'#175);
 				end;
 				if InputJoystickMoved then begin
 					Delay(35);
 				end;
-			until (InputKeyPressed = KEY_ESCAPE) or (InputKeyPressed = KEY_ENTER) or InputShiftPressed;
+			until (InputKeyPressed = KEY_ESCAPE) or (InputKeyPressed = KEY_ENTER) or InputShiftPressed or (InputKeyPressed = ' ');
 			if InputKeyPressed = KEY_ESCAPE then begin
 				InputKeyPressed := #0;
 				TextWindowRejected := true;
