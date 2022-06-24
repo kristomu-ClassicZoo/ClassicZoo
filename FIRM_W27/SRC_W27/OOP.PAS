@@ -676,7 +676,7 @@ procedure WorldSetFlag(name: TString50);
 			while (((name[i] >= 'A') and (name[i] <= 'Z'))
 				or ((name[i] >= '0') and (name[i] <= '9'))
 				or (name[i] = '_') or (name[i] = '-'))
-				and (i <= j)
+				and (i <= j) and (i <= Length(name))
 			do begin
 				World.Info.Flags[p + i] := name[i];
 				Inc(i);
