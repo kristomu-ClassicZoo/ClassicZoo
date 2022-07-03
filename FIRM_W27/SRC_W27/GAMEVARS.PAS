@@ -155,7 +155,7 @@ interface
 			Tiles: array[0 .. BOARD_WIDTH + 1] of array[0 .. BOARD_HEIGHT + 1] of TTile;
 			StatCount: integer;
 			Stats: array[0 .. MAX_STAT + 1] of TStat;
-			Info: TBoardInfo;      
+			Info: TBoardInfo;
 		end;
 		TWorld = record
 			BoardCount: integer;
@@ -179,7 +179,7 @@ interface
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
-		PMouseX, PMouseY, PPosX, PPosY, OPosX, OPosY: shortint;
+		PMouseX, PMouseY: shortint;
 
 		LoadedGameFileName: TString50;
 		SavedGameFileName: TString50;
@@ -252,7 +252,6 @@ interface
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
 		Accessibility: array[1..4] of TString50;
-
 		BoardNames: array[0 .. MAX_BOARD] of TString50;
 	const
 		E_EMPTY = 0;

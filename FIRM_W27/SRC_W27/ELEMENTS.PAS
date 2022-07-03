@@ -1008,8 +1008,6 @@ procedure ElementObjectTick(statId: integer);
 		rbrd: byte;
 	begin
 		with Board.Stats[statId] do begin
-			OPosX := X;
-			OPosY := Y;
 			rbrd := World.Info.CurrentBoard;
 			if DataPos >= 0 then
 				retVal := OopExecute(statId, DataPos, ConfigList[84])
@@ -1455,7 +1453,7 @@ procedure ElementTruePlayerTick;
 						if PlayerDirX = -1 then
 							if OopSend(0, InputTerminal+':SHIFTLEFT', false) then begin end;
 						if PlayerDirX = 1 then
-							if OopSend(0, InputTerminal+':SHIFTRIGHT', false) then begin end;						
+							if OopSend(0, InputTerminal+':SHIFTRIGHT', false) then begin end;
 					end;
 					if Board.Info.MaxShots = 0 then begin
 						if MessageNoShootingNotShown then
@@ -1496,7 +1494,7 @@ procedure ElementTruePlayerTick;
 					if InputDeltaX = -1 then
 						if OopSend(0, InputTerminal+':LEFT', false) then begin end;
 					if InputDeltaX = 1 then
-						if OopSend(0, InputTerminal+':RIGHT', false) then begin end;						
+						if OopSend(0, InputTerminal+':RIGHT', false) then begin end;
 				end;
 
 				PlayerDirX := InputDeltaX;
@@ -1648,8 +1646,6 @@ procedure ElementTruePlayerTick;
 			end;
 
 			BoardDrawTile(X, Y);
-			PPosX := X;
-			PPosY := Y;
 
 		end;
 	end;

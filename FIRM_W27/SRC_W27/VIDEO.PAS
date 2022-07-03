@@ -203,7 +203,7 @@ function VideoConfigure(SkipToTitle: boolean): boolean;
 				VideoMonochrome := false;
 			VideoConfigure := true;
 			exit;
-		end;	
+		end;
 		charTyped := ' ';
 		if LastMode = 7 then begin
 			VideoWriteText := VideoWriteTextFastBW;

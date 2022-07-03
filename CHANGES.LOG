@@ -1,3 +1,9 @@
+7/2/2022: FirmWeave 2.7i
+Bugs Fixed:
+* Raising the flag limit caused some flags to be set with incorrect names.
+* Using #TAKE to reduce a counter by ARRAY would cause the counter to increase instead of decrease.
+* Using #BOARD would cause PlayerX, PlayerY, ThisX, and ThisY to be incorrect for the remainder of the cycle.
+
 6/22/2022: FirmWeave 2.7g
 Added:
 * other.flaglength configuration option that lets you set a shorter maximum flag length, giving you a higher flag limit.

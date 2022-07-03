@@ -39,6 +39,8 @@ interface
 	function OopExecute(statId: integer; var position: integer; name: TString50): boolean;
 	function ShortWord(s: string): boolean;
 	procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
+	function ReadOnly(s: string): boolean;
+	function GetReadOnly(statId: integer; s: string): integer;
 	function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 	procedure GetBoardStats;
 	function GetNumFlags: integer;
@@ -135,7 +137,7 @@ function ShortWord(s: string): boolean;
 		i: integer;
 	begin
 		ShortWord := false;
-		for i := 5 to 19 do
+		for i := 5 to 15 do
 			if s = OopStringToWord(Ooplist[i]) then ShortWord := true;
 		for i := 7 to 9 do
 			if s = CustomObjList[i] then ShortWord := true;
@@ -168,20 +170,43 @@ procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
 			cPtr := @PMouseX
 		else if s = OopStringToWord(Ooplist[15]) then
 			cPtr := @PMouseY
-		else if s = OopStringToWord(Ooplist[16]) then
-			cPtr := @PPosX
-		else if s = OopStringToWord(Ooplist[17]) then
-			cPtr := @PPosY
-		else if s = OopStringToWord(OOPList[18]) then
-			cPtr := @OPosX
-		else if s = OopStringToWord(OOPList[19]) then
-			cPtr := @OPosY
 		else if s = 'ARRAY' then
 			cPtr := @Board.Stats[statId].elseCheck
 		else
 			for i := 7 to 9 do
 				if s = CustomObjList[i] then
 					cPtr := @Board.Stats[statId].ObjTiny[i - 6];
+	end;
+
+function ReadOnly(s: string): boolean;
+	var
+		i: integer;
+	begin
+		ReadOnly := false;
+		for i := 16 to 19 do
+			if s = OopStringToWord(Ooplist[i]) then ReadOnly := true;
+		if s = 'BOARDID' then ReadOnly := true;
+		if s = 'ARRAY' then ReadOnly := true;
+	end;
+
+function GetReadOnly(statId: integer; s: string): integer;
+	var
+		i: integer;
+	begin
+		if s = OopStringToWord(Ooplist[16]) then
+			GetReadOnly := Board.Stats[0].X
+		else if s = OopStringToWord(Ooplist[17]) then
+			GetReadOnly := Board.Stats[0].Y
+		else if s = OopStringToWord(OOPList[18]) then
+			GetReadOnly := Board.Stats[statId].X
+		else if s = OopStringToWord(OOPList[19]) then
+			GetReadOnly := Board.Stats[statId].Y
+		else if s = 'BOARDID' then
+			GetReadOnly := World.Info.CurrentBoard
+		else if s = 'ARRAY' then
+			GetReadOnly := Board.Stats[statId].elseCheck and $7F
+		else
+			GetReadOnly := -128;
 	end;
 
 function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
@@ -220,11 +245,11 @@ function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 			if s = CustomObjList[5] then begin
 				cPtr := @Board.Stats[statId].Leader;
 				OopGetCounter := true;
-			end;		
+			end;
 			if s = CustomObjList[6] then begin
 				cPtr := @Board.Stats[statId].Follower;
 				OopGetCounter := true;
-			end;		
+			end;
 			for i := 1 to CUSTOM_FLAG_COUNT do
 				if s = CustomFlagList[i] then begin
 					cPtr := @World.Info.CustomFlags[i];
@@ -326,8 +351,8 @@ procedure OopReadValue(statId: integer; var position: integer);
 				s := OopWord;
 				OopValue := OopRunFunc(statId, position);
 				OopWord := s;
-			end else if s = 'BOARDID' then
-				OopValue := World.Info.CurrentBoard
+			end else if ReadOnly(s) then
+				OopValue := GetReadOnly(statId, s)
 			else if ShortWord(s) then begin
 				OopGetShort(statId, s, shortPtr);
 				OopValue := shortPtr^;
@@ -681,7 +706,7 @@ procedure WorldSetFlag(name: TString50);
 				World.Info.Flags[p + i] := name[i];
 				Inc(i);
 			end;
-			if i < j then
+			if i <= j then
 				World.Info.Flags[p + i] := ' ';
 			if j = 20 then
 				World.Info.Flags[p] := Chr(i - 1);
@@ -697,7 +722,7 @@ procedure WorldClearFlag(name: TString50);
 			if (ParamList[22] > 19) or (ParamList[22] < 3) then
 				p := (21 * (i - 1)) + 2
 			else
-				p := ParamList[22] * (i - 1);
+				p := (ParamList[22] * (i - 1)) + 1;
 			World.Info.Flags[p] := ' ';
 		end;
 	end;
@@ -801,7 +826,6 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 		isCounter: boolean;
 		counterPtr: cInt;
 		shortPtr: cShort;
-		tmpcond: byte;
 	begin
 		with Board.Stats[statId] do begin
 			if OopWord = 'NOT' then begin
@@ -856,10 +880,18 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					OopCheckCondition := (X = ix) and (Y = iy)
 				else
 					OopError(statId,position, 'Bad condition');
-			end else if ShortWord(OopWord) then begin
-				tmpcond := elseCheck and $80;
-				elseCheck := elseCheck and $7F;
-				OopGetShort(statId, OopWord, shortPtr);				
+			end else if ReadOnly(OopWord)
+				or ShortWord(OopWord)
+				or OopGetCounter(statId, OopWord, counterPtr)
+			then begin
+				if ReadOnly(OopWord) then
+					iy := GetReadOnly(statId, OopWord)
+				else if OopGetCounter(statId, OopWord, counterPtr) then
+					iy := counterPtr^
+				else begin
+					OopGetShort(statId, OopWord, shortPtr);
+					iy := shortPtr^;
+				end;
 				ix := position;
 				OopReadWord(statId, position);
 				if (OopWord = 'ABOVE') or ((OopWord = 'BELOW') or (OopWord = 'IS')) then begin
@@ -868,33 +900,14 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 						OopError(statId,position, 'Could not read ' + OopWord + ' value');
 				end;
 				if (OopWord = 'ABOVE') then
-					OopCheckCondition := (shortPtr^ > OopValue)
+					OopCheckCondition := (iy > OopValue)
 				else if (OopWord = 'BELOW') then
-					OopCheckCondition := (shortPtr^ < OopValue)
+					OopCheckCondition := (iy < OopValue)
 				else if (OopWord = 'IS') then
-					OopCheckCondition := (shortPtr^ = OopValue)
+					OopCheckCondition := (iy = OopValue)
 				else begin
 					position := ix;
-					OopCheckCondition := (shortPtr^ > 0);
-				end;
-				elseCheck := (elseCheck and $7F) + tmpcond;
-			end else if OopGetCounter(statId, OopWord, counterPtr) then begin
-				ix := position;
-				OopReadWord(statId, position);
-				if (OopWord = 'ABOVE') or ((OopWord = 'BELOW') or (OopWord = 'IS')) then begin
-					OopReadValue(statId, position);
-					if OopValue = -128 then
-						OopError(statId,position, 'Could not read ' + OopWord + ' value');
-				end;
-				if (OopWord = 'ABOVE') then
-					OopCheckCondition := (counterPtr^ > OopValue)
-				else if (OopWord = 'BELOW') then
-					OopCheckCondition := (counterPtr^ < OopValue)
-				else if (OopWord = 'IS') then
-					OopCheckCondition := (counterPtr^ = OopValue)
-				else begin
-					position := ix;
-					OopCheckCondition := (counterPtr^ > 0);
+					OopCheckCondition := (iy > 0);
 				end;
 			end else if OopWord = 'RUN' then
 				OopCheckCondition := OopRunFunc(statId, position) > 0
@@ -915,7 +928,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 						OopCheckCondition := MatchTiles(Under, tile)
 					else
 						OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile);
-				end;					
+				end;
 			end else if OopWord = 'ANY' then begin
 				if not OopParseTile(statId, position, tile) then
 					OopError(statId,position, 'Bad object kind');
@@ -930,12 +943,17 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 
 function OopReadLineToEnd(statId: integer; var position: integer) : string;
 	var
-		s: string;
+		s,t: string;
 	begin
 		s := '';
 		OopReadChar(statId, position);
 		while (OopChar <> #0) and (OopChar <> #13) do begin
-			s := s + OopChar;
+			if (OopChar <> '^') or (Board.Stats[statId].elseCheck and $7F = 0) then
+				s := s + OopChar
+			else begin
+				Str(Board.Stats[statId].elseCheck and $7F, t);
+				s := s + t;
+			end;
 			OopReadChar(statId, position);
 		end;
 		OopReadLineToEnd := s;
@@ -1218,17 +1236,22 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = 'SET' then begin
 							OopReadWord(statId, position);
 							textLine := OopWord;
-							if ShortWord(OopWord) then begin
+							if OopWord = 'ARRAY' then begin
 								tmpcond := elseCheck and $80;
 								elsecheck := elsecheck and $7F;
+								OopReadValue(statId, position);
+								if OopValue <> -128 then
+									elseCheck := OopValue
+								else
+									elseCheck := 1;
+								elsecheck := (elsecheck and $7F) + tmpcond;
+							end else if ShortWord(OopWord) then begin
 								OopGetShort(statId, OopWord, shortPtr);
 								OopReadValue(statId, position);
 								if OopValue <> -128 then
 									shortPtr^ := OopValue
 								else
 									shortPtr^ := 1;
-								elsecheck := (elsecheck and $7F) + tmpcond;
-								GameUpdateSidebar;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 								OopReadValue(statId, position);
 								if OopValue <> -128 then
@@ -1247,12 +1270,11 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = 'CLEAR' then begin
 							OopReadWord(statId, position);
 							textLine := OopWord;
-							if ShortWord(OopWord) then begin
-								tmpcond := elseCheck and $80;
+							if OopWord = 'ARRAY' then
+								elsecheck := elseCheck and $80
+							else if ShortWord(OopWord) then begin
 								OopGetShort(statId, OopWord, shortPtr);
 								shortPtr^ := 0;
-								GameUpdateSidebar;
-								elsecheck := (elsecheck and $7F) + tmpcond;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 								counterPtr^ := 0;
 								GameUpdateSidebar;
@@ -1393,7 +1415,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									Board.Stats[ix].P3 := iy
 								else if OopWord = 'CYCLE' then
 									Board.Stats[ix].Cycle := iy
-								else if ShortWord(OopWord) then begin
+								else if OopWord = 'ARRAY' then begin
+									tmpcond := Board.Stats[ix].elseCheck and $80;
+									Board.Stats[ix].elsecheck := iy + tmpcond;
+								end else if ShortWord(OopWord) then begin
 									OopGetShort(ix, OopWord, shortPtr);
 									shortPtr^ := iy;
 								end else if OopGetCounter(ix, OopWord, counterPtr) then
@@ -1422,9 +1447,26 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopReadWord(statId, position);
 							textLine := OopWord;
 
-							if ShortWord(OopWord) then begin
+							if OopWord = 'ARRAY' then begin
 								tmpcond := elseCheck and $80;
 								elseCheck := elseCheck and $7F;
+								code := position;
+								OopReadValue(statId, position);
+								if OopValue = -128 then begin
+									position := code;
+									OopValue := 1;
+								end;
+								if counterSubtract then
+									OopValue := -OopValue;
+
+								if (elsecheck + OopValue) >= 0 then
+									elsecheck := elsecheck + OopValue
+								else begin
+									elsecheck := (elsecheck and $7F) + tmpcond;
+									goto ReadCommand;
+								end;
+								elsecheck := (elsecheck and $7F) + tmpcond;
+							end else if ShortWord(OopWord) then begin
 								OopGetShort(statId, OopWord, shortPtr);
 								code := position;
 								OopReadValue(statId, position);
@@ -1432,18 +1474,12 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									position := code;
 									OopValue := 1;
 								end;
-								if OopValue > 0 then begin
-									if counterSubtract then
-										OopValue := -OopValue;
-
-									if (shortPtr^ + OopValue) >= 0 then begin
-										shortPtr^ := shortPtr^ + OopValue;
-									end else begin
-										elsecheck := (elsecheck and $7F) + tmpcond;
-										goto ReadCommand;
-									end;
-								end;
-								elsecheck := (elsecheck and $7F) + tmpcond;
+								if counterSubtract then
+									OopValue := -OopValue;
+								if (shortPtr^ + OopValue) >= 0 then
+									shortPtr^ := shortPtr^ + OopValue
+								else
+									goto ReadCommand;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 								code := position;
 								OopReadValue(statId, position);
@@ -1451,15 +1487,13 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									position := code;
 									OopValue := 1;
 								end;
-								if OopValue > 0 then begin
-									if counterSubtract then
-										OopValue := -OopValue;
+								if counterSubtract then
+									OopValue := -OopValue;
 
-									if (counterPtr^ + OopValue) >= 0 then begin
-										counterPtr^ := counterPtr^ + OopValue;
-									end else begin
-										goto ReadCommand;
-									end;
+								if (counterPtr^ + OopValue) >= 0 then begin
+									counterPtr^ := counterPtr^ + OopValue;
+								end else begin
+									goto ReadCommand;
 								end;
 							end else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
@@ -1541,15 +1575,13 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								tmpchar := labelZap;
 								labelZap := labelUnzap;
 								labelUnzap := tmpchar;
-							end;
+							end else
+								ix := 1;
 							OopReadWord(statId, position);
 							textLine := OopWord;
 							OopReadValue(statId, position);
 							if OopValue < 0 then 
-								if textLine = 'RESTORE' then
-									OopValue := ix
-								else
-									OopValue := 1;
+								OopValue := ix;
 							while (OopValue <> 0) do begin
 								labelStatId := 0;
 								OopWord := textLine;

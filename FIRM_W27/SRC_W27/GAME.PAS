@@ -152,7 +152,9 @@ function ColorNumber(s: string; statId: integer): integer;
 		else ColorNumber := -128;
 
 		if statId <> -1 then begin
-			if ShortWord(s) then begin
+			if ReadOnly(s) then
+				ColorNumber := GetReadOnly(statId, s)
+			else if ShortWord(s) then begin
 				OopGetShort(statId, s, shortPtr);
 				if (shortPtr^ >= 0) and (shortPtr^ <= 127) then
 					ColorNumber := shortPtr^;
@@ -191,7 +193,7 @@ procedure InitPalette(reset: boolean);
 		for c := 0 to 15 do begin
 			r := c * 3;
 			g := (c * 3) + 1;
-			b := (c * 3) + 2;			
+			b := (c * 3) + 2;
 			if doInit or reset then begin
 				World.Info.CustomPalette[r] := ParamList[PALETTE_START + r];
 				World.Info.CustomPalette[g] := ParamList[PALETTE_START + g];
@@ -1323,7 +1325,7 @@ function FileLoadStatData(s: TString8; statId: integer): boolean;
 					if TmpString <> '' then begin
 						k := 0;
 						TmpString := TmpString + KEY_ENTER;
-						NumRead := NumRead + Length(TmpString);						
+						NumRead := NumRead + Length(TmpString);
 						for j := 1 to Length(TmpString) do begin
 							Char(TmpPtr^) := TmpString[j];
 							AdvancePointer(TmpPtr, 1);
@@ -1376,7 +1378,7 @@ function FileAppendStatData(s: TString8; statId: integer): boolean;
 					if TmpString <> '' then begin
 						k := 0;
 						TmpString := TmpString + KEY_ENTER;
-						NumRead := NumRead + Length(TmpString);						
+						NumRead := NumRead + Length(TmpString);
 						for j := 1 to Length(TmpString) do begin
 							Char(TmpPtr^) := TmpString[j];
 							AdvancePointer(TmpPtr, 1);
@@ -1587,7 +1589,7 @@ procedure GameUpdateSidebar;
 
 			Str(World.Info.Health, numStr);
 			if ConfigList[63] <> '' then {Health Sidebar}
-				VideoWriteText(72, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');		
+				VideoWriteText(72, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
 			Str(World.Info.Ammo, numStr);
 			if ConfigList[64] <> '' then {Ammo Sidebar}
 				VideoWriteText(72, 8, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + '  ');
@@ -1791,7 +1793,7 @@ procedure OopForceTile(x, y: integer; tile: TTile);
 						Color := tile.Color;
 					end;
 				end;
-				BoardDrawTile(x, y);					
+				BoardDrawTile(x, y);
 			end;
 		end;
 	end;
@@ -1885,7 +1887,7 @@ procedure CalcDirectionSearch(x, y, srcx, srcy, destx, desty: shortint);
 						if SearchArea[x + 1][y] < SearchArea[x][y] then	SearchArea[x][y] := SearchArea[x + 1][y];
 					end;
 					if (y <= 0) and (SearchArea[x][y - 1] = 99) then begin
-						CalcDirectionSearch(x, y - 1, srcx, srcy, destx, desty);			
+						CalcDirectionSearch(x, y - 1, srcx, srcy, destx, desty);
 						if SearchArea[x][y - 1] < SearchArea[x][y] then	SearchArea[x][y] := SearchArea[x][y - 1];
 					end;
 					if (y >= 0) and (SearchArea[x][y + 1] = 99)	then begin
@@ -1930,7 +1932,7 @@ procedure CalcDirectionFind(x, y: integer; var deltaX, deltaY: integer);
 				if Random(Abs(x - Board.Stats[0].X) + Abs(y - Board.Stats[0].Y)) > Abs(x - Board.Stats[0].X) then
 					deltaX := 0
 				else
-					deltaY := 0;				
+					deltaY := 0;
 		end;
 	end;
 
@@ -2364,7 +2366,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 							BoardDrawTile(X, Y);
 							BoardDrawTile(X - InputDeltaX, Y - InputDeltaY);
 						end;
-					end;						
+					end;
 				end else begin
 					if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
 						ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element].TouchProc(
