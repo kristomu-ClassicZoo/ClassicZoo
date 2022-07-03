@@ -14,6 +14,8 @@ TExtensionType = (
 	ExtFixPassageDestroy,
 	ExtFixPassageColorDamage,
 	ExtFixPlayerUnpauseDamage,
+	ExtFixTransporterCycleZeroCrash,
+	ExtFixSendExtraNewline,
 	ExtSuperzEnter, { ZZT only }
 	ExtDieItem,
 	ExtDieUnderTile,

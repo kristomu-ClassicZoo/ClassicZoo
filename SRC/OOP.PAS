@@ -688,18 +688,21 @@ function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boole
 		OopSend := false;
 		iStat := 0;
 
-		while OopFindLabel(statId, sendLabel, iStat, iDataPos, #13':') do begin
+		while OopFindLabel(statId, sendLabel, iStat, iDataPos, #13':') do
+		with Board.Stats[iStat] do begin
 {$IFDEF E_SUPERZ}
-			if ((Board.Stats[iStat].P3 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
+			if ((P3 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
 {$ELSE}
-			if ((Board.Stats[iStat].P2 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
+			if ((P2 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
 {$ENDIF}
 				if iStat = statId then
 					OopSend := true;
 
-				Board.Stats[iStat].DataPos := iDataPos;
+				DataPos := iDataPos;
+				if ExtensionEnabled[ExtFixSendExtraNewline] then
+					Inc(DataPos);
 {$IFDEF E_SUPERZ}
-				Board.Stats[iStat].P2 := 0;
+				P2 := 0;
 {$ENDIF}
 			end;
 		end;

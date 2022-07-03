@@ -60,7 +60,7 @@ const
 	TOGGLEABLE_FLAGS_PLAY = FZxtExtPlayingShould or FZxtExtPlayingMust;
 
 	HEADER_BAR_Y = 0;
-	EDITOR_ZXT_INFOS_COUNT = 16
+	EDITOR_ZXT_INFOS_COUNT = 18
 	{$IFNDEF E_SUPERZ} + 2 {$ENDIF}
 		;
 	EditorZxtInfos: array[1 .. EDITOR_ZXT_INFOS_COUNT] of TEditorZxtInfo =
@@ -80,6 +80,14 @@ const
 			EditCategory: EditorZxtCategoryWorld;
 			EditFlags: 0;
 			Name: 'Maximum stat count'
+		),
+		(
+			ExtType: ExtFixSendExtraNewline;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
+			EditCategory: EditorZxtCategoryFix;
+			EditFlags: 0;
+			Name: '#LABEL adds extra line'
 		),
 		(
 			ExtType: ExtFixPutBottomRow;
@@ -154,6 +162,14 @@ const
 			EditCategory: EditorZxtCategoryFix;
 			EditFlags: 0;
 			Name: 'Recursive element push'
+		),
+		(
+			ExtType: ExtFixTransporterCycleZeroCrash;
+			ExtAllowedFlags: ALLOWED_FLAGS_PLAY;
+			ExtToggleableFlags: TOGGLEABLE_FLAGS_PLAY;
+			EditCategory: EditorZxtCategoryFix;
+			EditFlags: 0;
+			Name: 'Transporter cycle 0 crash'
 		),
 		(
 			ExtType: ExtGMDirByAt;
