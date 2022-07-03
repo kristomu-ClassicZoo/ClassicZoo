@@ -56,8 +56,9 @@ SHOW [el]   | Make all tiles
 TOUCH [el]  | Touch all elm.
             | of type [el].
 NOSHOW ALL  | Undo all SHOW.
-NOCLIP      | Enable noclip.
-(CLIP)      | 
+(NO)CLIP    | Toggle noclip.
+(NO)SHOOT   | Toggle bullets
+(NO)STAR    | Toggle stars.
 (NO)FREEZE  | Freeze non-
             | player tiles.
 PASSAGE     | Teleport to

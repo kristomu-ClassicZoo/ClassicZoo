@@ -918,6 +918,14 @@ procedure BoardAttack(attackerStatId: integer; x, y: integer);
 
 function BoardShoot(element: byte; tx, ty, deltaX, deltaY: integer; source: integer): boolean;
 	begin
+{$IFDEF EXTCHEAT}
+		if CheatNoShoot or (CheatNoStar and (element = E_STAR)) then begin
+			if source <> SHOT_SOURCE_PLAYER then begin
+				BoardShoot := false;
+				exit;
+			end;
+		end;
+{$ENDIF}
 		if ElementDefs[Board.Tiles[tx + deltaX][ty + deltaY].Element].Walkable
 			or (Board.Tiles[tx + deltaX][ty + deltaY].Element = E_WATER) then
 		begin
