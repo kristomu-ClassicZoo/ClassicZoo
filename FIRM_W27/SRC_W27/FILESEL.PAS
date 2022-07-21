@@ -89,7 +89,7 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 				FindNext(fileSearchRec);
 			end;
 			lastDirLinePos := textWindow.LineCount;
-		
+
 			{ Files }
 			FindFirst('*' + extension, AnyFile, fileSearchRec);
 			while DosError = 0 do begin

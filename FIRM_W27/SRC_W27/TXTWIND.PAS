@@ -178,7 +178,7 @@ procedure TextWindowDrawClose(var state: TTextWindowState);
 	begin
 		with state do begin
 			for iy := 0 to (TextWindowHeight div 2) do begin
-				VideoWriteText(TextWindowX, TextWindowY + iy,	
+				VideoWriteText(TextWindowX, TextWindowY + iy,
 					AsColor(ParamList[THEME_START + 1],0), TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy,
 					AsColor(ParamList[THEME_START + 1],0), TextWindowStrBottom);

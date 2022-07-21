@@ -1119,7 +1119,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 						ExtMemWrite(World.BoardData[boardId], IoTmpBuf^, World.BoardLen[boardId]);
 					end else RunError(203);
 				end;
-			
+
 				ParamsLoad;
 				InitPalette(false);
 				BoardOpen(World.Info.CurrentBoard);
@@ -1314,36 +1314,41 @@ function FileLoadStatData(s: TString8; statId: integer): boolean;
 		Reset(f);
 		with Board.Stats[statId] do begin
 			FreeStatDataMem(statId);
-			NumRead := 0;
-			k := 0;
-			TmpPtr := ObjTmpBuf;
+			if s <> CurrentFile then begin
+				CurrentFile := s;
+				NumRead := 0;
+				k := 0;
+				TmpPtr := ObjTmpBuf;
 
-			for i := 1 to 1024 do begin
-				TmpString := '';
-				ReadLn(f, TmpString);
-				if NumRead < (LOAD_OBJ_LENGTH - 255) then begin
-					if TmpString <> '' then begin
-						k := 0;
-						TmpString := TmpString + KEY_ENTER;
-						NumRead := NumRead + Length(TmpString);
-						for j := 1 to Length(TmpString) do begin
-							Char(TmpPtr^) := TmpString[j];
+				for i := 1 to 1024 do begin
+					TmpString := '';
+					ReadLn(f, TmpString);
+					if NumRead < (LOAD_OBJ_LENGTH - 255) then begin
+						if TmpString <> '' then begin
+							k := 0;
+							TmpString := TmpString + KEY_ENTER;
+							NumRead := NumRead + Length(TmpString);
+							for j := 1 to Length(TmpString) do begin
+								Char(TmpPtr^) := TmpString[j];
+								AdvancePointer(TmpPtr, 1);
+							end;
+						end else begin
+							Inc(NumRead);
+							Inc(k);
+							Char(TmpPtr^) := KEY_ENTER;
 							AdvancePointer(TmpPtr, 1);
 						end;
-					end else begin
-						Inc(NumRead);
-						Inc(k);
-						Char(TmpPtr^) := KEY_ENTER;
-						AdvancePointer(TmpPtr, 1);
 					end;
 				end;
+				CurFileLen := NumRead -k;
 			end;
 
-			GetMem(Data, NumRead - k);
-			Move(ObjTmpBuf^, Data^, NumRead - k);
-			DataLen := NumRead - k;
+			GetMem(Data, CurFileLen);
+			Move(ObjTmpBuf^, Data^, CurFileLen);
+			DataLen := CurFileLen;
 			DataPos := 0;
 		end;
+
 		Close(f);
 		if IOResult <> 0 then begin end;
 	end;
@@ -1361,6 +1366,7 @@ function FileAppendStatData(s: TString8; statId: integer): boolean;
 		FileAppendStatData := true;
 		Assign(f, s + '.OBJ');
 		Reset(f);
+		CurrentFile := #0;
 		with Board.Stats[statId] do begin
 			TmpPtr := ObjTmpBuf;
 			Move(Data^, TmpPtr^, DataLen);
@@ -2440,7 +2446,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 		{ Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
 		BoardDrawTile(Board.Stats[0].X,Board.Stats[0].Y); }
-	
+
 		SoundBlockQueueing := false;
 	end;
 

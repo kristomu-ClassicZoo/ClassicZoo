@@ -1615,7 +1615,12 @@ procedure ElementTruePlayerTick;
 				end;
 
 			if P3 > 0 then begin
-				VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, 9 + ((P3 - 1) mod 7), ' '+Board.Info.Message+' ');
+				if TickSpeed < 3 then
+					i := 9 + ((P3 - 1) div 2) mod 7
+				else
+					i := 9 + (P3 - 1) mod 7;
+				VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, i,
+					' '+Board.Info.Message+' ');
 				if GameMove then
 					Dec(P3);
 			end else if Board.Info.Message <> '' then begin

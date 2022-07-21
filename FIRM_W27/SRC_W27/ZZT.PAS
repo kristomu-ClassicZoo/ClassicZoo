@@ -65,7 +65,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                                <=-  Weave  -=>');
 		TextColor(Yellow);
-		Writeln('                                 Version   2.7i');
+		Writeln('                                 Version   2.7k');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -150,7 +150,9 @@ begin
 
 		GameTitleLoop;
 
-		FreeMem(IoTmpBuf, IoTmpBufSize);
+		FreeMem(IoTmpBuf, LOAD_OBJ_LENGTH);
+		CurrentFile := #0;
+		FreeMem(ObjTmpBuf, IoTmpBufSize);
 		ExtMemUninstall;
 	end;
 

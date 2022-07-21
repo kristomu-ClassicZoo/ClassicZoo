@@ -236,6 +236,8 @@ interface
 		OopWord: string[20];
 		OopValue: integer;
 		CurrentSave: string[8];
+		CurrentFile: string[8];
+		CurFileLen: word;
 		InputTerminal: string[20];
 
 		DebugEnabled: boolean;
@@ -252,6 +254,7 @@ interface
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
 		Accessibility: array[1..4] of TString50;
+
 		BoardNames: array[0 .. MAX_BOARD] of TString50;
 	const
 		E_EMPTY = 0;

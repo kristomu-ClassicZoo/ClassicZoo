@@ -185,8 +185,11 @@ function ReadOnly(s: string): boolean;
 		ReadOnly := false;
 		for i := 16 to 19 do
 			if s = OopStringToWord(Ooplist[i]) then ReadOnly := true;
-		if s = 'BOARDID' then ReadOnly := true;
-		if s = 'ARRAY' then ReadOnly := true;
+		if (s = 'BOARDID')
+			or (s = 'ARRAY')
+			or (s = 'TICKSPEED')
+		then
+			ReadOnly := true;
 	end;
 
 function GetReadOnly(statId: integer; s: string): integer;
@@ -205,6 +208,8 @@ function GetReadOnly(statId: integer; s: string): integer;
 			GetReadOnly := World.Info.CurrentBoard
 		else if s = 'ARRAY' then
 			GetReadOnly := Board.Stats[statId].elseCheck and $7F
+		else if s = 'TICKSPEED' then
+			GetReadOnly := Tickspeed
 		else
 			GetReadOnly := -128;
 	end;
@@ -255,7 +260,7 @@ function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 					cPtr := @World.Info.CustomFlags[i];
 					OopGetCounter := true;
 				end;
-			
+
 		end;
 	end;
 
@@ -346,7 +351,7 @@ procedure OopReadValue(statId: integer; var position: integer);
 			end else if s = 'TRUE' then
 				OopValue := 1
 			else if s = 'FALSE' then
-				OopValue := 0				
+				OopValue := 0
 			else if s = 'RUN' then begin
 				s := OopWord;
 				OopValue := OopRunFunc(statId, position);
@@ -1107,7 +1112,7 @@ function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boole
 				if iStat = statId then
 					OopSend := true;
 
-				Board.Stats[iStat].DataPos := iDataPos;
+				Board.Stats[iStat].DataPos := iDataPos + 1;
 			end;
 		end;
 	end;
@@ -1802,7 +1807,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 					textLine := OopChar + OopReadLineToEnd(statId, position);
 					TextWindowAppend(textWindow, textLine);
 				end;
-				
+
 			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > ParamList[10]);
 
 			if OopWord = 'SAVEDGAMES' then goto StopExecution;
