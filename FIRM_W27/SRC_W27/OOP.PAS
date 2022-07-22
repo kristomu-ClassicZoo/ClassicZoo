@@ -209,7 +209,7 @@ function GetReadOnly(statId: integer; s: string): integer;
 		else if s = 'ARRAY' then
 			GetReadOnly := Board.Stats[statId].elseCheck and $7F
 		else if s = 'TICKSPEED' then
-			GetReadOnly := Tickspeed
+			GetReadOnly := Tickspeed + 1
 		else
 			GetReadOnly := -128;
 	end;

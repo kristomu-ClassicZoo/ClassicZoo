@@ -37,12 +37,12 @@ procedure ParseArguments;
 
 procedure GameConfigure;
 	var
-		i: integer;
+		i, j: integer;
 		joystickEnabled, mouseEnabled: boolean;
 		cfgFile: text;
 	begin
 		ConfigWorldFile := '';
-        Assign(cfgFile, 'zzt.cfg');
+        Assign(cfgFile, 'weavezzt.cfg');
         Reset(cfgFile);
         if IOResult = 0 then begin
             ReadLn(cfgFile, ConfigWorldFile);
@@ -96,7 +96,8 @@ procedure GameConfigure;
 				HearingImpaired :=	HearingConfigure;
 				Diffkeys := KeydiffConfigure;
 			end else begin
-				for i := 2 to 5 do begin
+				TickSpeed := 9;
+				for i := 2 to 6 do begin
 					if Accessibility[i] = 'NEUROMOTORASSIST' then
 						NeuromotorAssist :=	true;
 					if Accessibility[i] = 'VISUALSOUND' then
@@ -105,7 +106,11 @@ procedure GameConfigure;
 						Diffkeys :=	true;
 					if Accessibility[i] = 'SKIPTOTITLE' then
 						SkipToTitle :=	true;
+					for j := 49 to 57 do
+						if Accessibility[i] = 'SPEED ' + Chr(j) then
+							TickSpeed := j - 44;
 				end;
+				Dec(TickSpeed,5);
 			end;
 		end;
 		if not InputConfigure(SkipToTitle) then
@@ -141,7 +146,6 @@ begin
 		VideoHideCursor;
 		ClrScr;
 
-		TickSpeed := 4;
 		DebugEnabled := false;
 		SavedGameFileName := 'SAVED';
 		WorldCreate;
