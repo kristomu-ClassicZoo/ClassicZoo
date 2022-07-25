@@ -48,7 +48,7 @@ interface
 	procedure BoardDrawRow(row: integer);
 	procedure BoardDrawBorder;
 	procedure TransitionDrawToBoard;
-	procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
+	procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: shortint);
 	procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TString50);
 	function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
 	procedure SidebarPromptString(prompt: string; extension: TString50; var filename: string; promptMode: byte);
@@ -788,6 +788,7 @@ procedure WorldCreate;
 	var
 		i: integer;
 	begin
+		World.Info.Name := 'Template';
 		ParamsLoad;
 		InitPalette(true);
 		World.BoardCount := 0;
@@ -812,7 +813,7 @@ procedure WorldCreate;
 		BoardChange(0);
 		Board.Name := 'Title screen';
 		LoadedGameFileName := '';
-		World.Info.Name := '';
+		
 		for i := 1 to CUSTOM_FLAG_COUNT do
 			World.Info.CustomFlags[i] := 0;
 		CustomOOPLoad;
@@ -837,29 +838,35 @@ procedure BoardDrawTile(x, y: integer);
 	var
 		ch: byte;
 	begin
-		with Board.Tiles[x][y] do begin
-			if ((Board.Info.IsDark < 1) or (ElementDefs[Board.Tiles[x][y].Element].VisibleInDark = true))
-				or (
-					(World.Info.TorchTicks <> 0)
-					and (
-						(Sqr(Board.Stats[0].X-x)*ParamList[3])
-						+ (Sqr(Board.Stats[0].Y-y)*ParamList[4])
-						< ParamList[5]
-					)
-				) {Torch Radius}
-			then begin
-				if Element = E_EMPTY then
-					VideoWriteText(x - 1, y - 1, $0F, ' ')
-				else if ElementDefs[Element].HasDrawProc then begin
-					ElementDefs[Element].DrawProc(x, y, ch);
-					VideoWriteText(x - 1, y - 1, Color, Chr(ch));
-				end else if Element < E_TEXT_MIN then
-					VideoWriteText(x - 1, y - 1, Color, ElementDefs[Element].Character)
-				else
-					VideoWriteText(x - 1, y - 1, ElementDefs[Element].Color, Chr(Board.Tiles[x][y].Color));
-			end else begin
-				{ Darkness }
-				VideoWriteText(x - 1, y - 1, ElementDefs[E_DARKNESS].Color, ElementDefs[E_DARKNESS].Character); {Darkness}
+		if (y < BOARD_HEIGHT)
+			or (Board.Info.Message = '')
+			or (x <= (60 - Length(Board.Info.Message)) div 2)
+			or (x > (60 + Length(Board.Info.Message)) div 2)
+		then begin
+			with Board.Tiles[x][y] do begin
+				if ((Board.Info.IsDark < 1) or (ElementDefs[Board.Tiles[x][y].Element].VisibleInDark = true))
+					or (
+						(World.Info.TorchTicks <> 0)
+						and (
+							(Sqr(Board.Stats[0].X-x)*ParamList[3])
+							+ (Sqr(Board.Stats[0].Y-y)*ParamList[4])
+							< ParamList[5]
+						)
+					) {Torch Radius}
+				then begin
+					if Element = E_EMPTY then
+						VideoWriteText(x - 1, y - 1, $0F, ' ')
+					else if ElementDefs[Element].HasDrawProc then begin
+						ElementDefs[Element].DrawProc(x, y, ch);
+						VideoWriteText(x - 1, y - 1, Color, Chr(ch));
+					end else if Element < E_TEXT_MIN then
+						VideoWriteText(x - 1, y - 1, Color, ElementDefs[Element].Character)
+					else
+						VideoWriteText(x - 1, y - 1, ElementDefs[Element].Color, Chr(Board.Tiles[x][y].Color));
+				end else begin
+					{ Darkness }
+					VideoWriteText(x - 1, y - 1, ElementDefs[E_DARKNESS].Color, ElementDefs[E_DARKNESS].Character); {Darkness}
+				end;
 			end;
 		end;
 	end;
@@ -904,7 +911,7 @@ procedure TransitionDrawToBoard;
 	end;
 
 
-procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
+procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: shortint);
 	var
 		newValue: integer;
 		startChar, endChar: char;
@@ -1662,17 +1669,19 @@ procedure GameUpdateSidebar;
 
 procedure DisplayMessage(time: integer; message: string);
 	var
-		statId: integer;
+		statId: integer;		
 	begin
 		if Length(message) <> 0 then begin
 			if message = '$' then begin
 				Board.Stats[0].P3 := 0;
 				BoardDrawRow(BOARD_HEIGHT);
 			end else begin
-				if Length(Board.Info.Message) > Length(message) then
+				if Length(Board.Info.Message) > Length(message) then begin
+					Board.Info.Message := message;
 					BoardDrawRow(BOARD_HEIGHT);
+				end else
+					Board.Info.Message := message;
 				Board.Stats[0].P3 := time div (TickTimeDuration + 1);
-				Board.Info.Message := message;
 				VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, 9 + (Board.Stats[0].P3 mod 7), ' '+Board.Info.Message+' ');
 			end;
 		end;
@@ -2268,7 +2277,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(62, 7, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' W ');
 				VideoWriteText(65, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' World:');
 
-				if Length(World.Info.Name) <> 0 then
+				if (Length(World.Info.Name) <> 0 ) and (World.Info.Name <> 'Template') then
 					VideoWriteText(69, 8, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), World.Info.Name)
 				else
 					VideoWriteText(69, 8, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), 'Untitled');

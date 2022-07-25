@@ -142,6 +142,7 @@ function ShortWord(s: string): boolean;
 		for i := 7 to 9 do
 			if s = CustomObjList[i] then ShortWord := true;
 		if s = 'ARRAY' then ShortWord := true;
+		if s = 'TICKSPEED' then ShortWord := true;
 	end;
 
 procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
@@ -166,12 +167,10 @@ procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
 			cPtr := @World.Info.Keys[7]
 		else if s = OopStringToWord(Ooplist[13]) then
 			cPtr := @World.Info.KeySpeed
-		else if s = OopStringToWord(Ooplist[14]) then
-			cPtr := @PMouseX
-		else if s = OopStringToWord(Ooplist[15]) then
-			cPtr := @PMouseY
 		else if s = 'ARRAY' then
 			cPtr := @Board.Stats[statId].elseCheck
+		else if s = 'TICKSPEED' then
+			cPtr := @TickSpeed
 		else
 			for i := 7 to 9 do
 				if s = CustomObjList[i] then
@@ -188,6 +187,8 @@ function ReadOnly(s: string): boolean;
 		if (s = 'BOARDID')
 			or (s = 'ARRAY')
 			or (s = 'TICKSPEED')
+			or (s = OopStringToWord(Ooplist[14])) {'MOUSEX'}
+			or (s = OopStringToWord(Ooplist[15])) {'MOUSEY'}
 		then
 			ReadOnly := true;
 	end;
@@ -210,6 +211,10 @@ function GetReadOnly(statId: integer; s: string): integer;
 			GetReadOnly := Board.Stats[statId].elseCheck and $7F
 		else if s = 'TICKSPEED' then
 			GetReadOnly := Tickspeed + 1
+		else if s = OopStringToWord(Ooplist[14]) then {'MOUSEX'}
+			GetReadOnly := PMouseX
+		else if s = OopStringToWord(Ooplist[15]) then {'MOUSEY'}
+			GetReadOnly := PMouseY
 		else
 			GetReadOnly := -128;
 	end;
@@ -1272,6 +1277,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							if (textLine = OopStringToWord(Ooplist[5])) or
 								(textLine = OopStringToWord(Ooplist[4]))
 							then TransitionDrawToBoard;
+							if (textLine = 'TICKSPEED')	then begin
+								Dec(TickSpeed);
+								TickTimeDuration := TickSpeed * 2;
+							end;
 						end else if OopWord = 'CLEAR' then begin
 							OopReadWord(statId, position);
 							textLine := OopWord;
@@ -1289,6 +1298,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							if (textLine = OopStringToWord(Ooplist[5])) or
 								(textLine = OopStringToWord(Ooplist[4]))
 							then TransitionDrawToBoard;
+							if (textLine = 'TICKSPEED')	then TickTimeDuration := 0;
 						end else if OopWord = 'IF' then begin
 							elseCheck := (elseCheck and $7F);
 							OopReadWord(statId, position);
@@ -1506,6 +1516,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							if (textLine = OopStringToWord(Ooplist[5])) or
 								(textLine = OopStringToWord(Ooplist[4]))
 							then TransitionDrawToBoard;
+							if (textLine = 'TICKSPEED')	then
+								TickTimeDuration := TickSpeed * 2;
 							GameUpdateSidebar;
 						end else if OopWord = 'EDGE' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);

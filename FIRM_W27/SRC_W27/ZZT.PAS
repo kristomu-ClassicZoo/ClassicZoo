@@ -31,7 +31,9 @@ uses Crt, Dos, ExtMem, Video, Keys, Sounds, Input, TxtWind, GameVars, Elements, 
 procedure ParseArguments;
 	begin
 		if ParamStr(1) <> '' then
-			StartupWorldFileName := ParamStr(1);
+			StartupWorldFileName := ParamStr(1)
+		else
+			StartupWorldFileName := '';
 		ExtMemInstall(true, true);
 	end;
 
@@ -90,13 +92,13 @@ procedure GameConfigure;
 		HearingImpaired := false;
 		Diffkeys := false;
 		SkipToTitle := false;
+		TickSpeed := 9;
 		if Accessibility[1] = 'ACCESSIBLE' then begin
 			if Accessibility[2] = '' then begin
 				NeuromotorAssist :=	NeuromotorConfigure;
 				HearingImpaired :=	HearingConfigure;
 				Diffkeys := KeydiffConfigure;
-			end else begin
-				TickSpeed := 9;
+			end else
 				for i := 2 to 6 do begin
 					if Accessibility[i] = 'NEUROMOTORASSIST' then
 						NeuromotorAssist :=	true;
@@ -110,9 +112,8 @@ procedure GameConfigure;
 						if Accessibility[i] = 'SPEED ' + Chr(j) then
 							TickSpeed := j - 44;
 				end;
-				Dec(TickSpeed,5);
-			end;
 		end;
+		Dec(TickSpeed,5);
 		if not InputConfigure(SkipToTitle) then
 			GameTitleExitRequested := true
 		else begin
@@ -129,11 +130,10 @@ begin
 	SetCBreak(false);
 	InitialTextAttr := TextAttr;
 
-	StartupWorldFileName := '';
+	ParseArguments;
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
 	GameTitleExitRequested := false;
 	GameConfigure;
-	ParseArguments;
 
 	if not GameTitleExitRequested then begin
 		VideoInstall(80, Blue);

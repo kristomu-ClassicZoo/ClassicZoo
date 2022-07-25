@@ -1624,8 +1624,8 @@ procedure ElementTruePlayerTick;
 				if GameMove then
 					Dec(P3);
 			end else if Board.Info.Message <> '' then begin
-				BoardDrawRow(BOARD_HEIGHT);
 				Board.Info.Message := '';
+				BoardDrawRow(BOARD_HEIGHT);
 			end;
 
 			if HearingImpaired then begin

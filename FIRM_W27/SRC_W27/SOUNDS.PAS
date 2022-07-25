@@ -52,7 +52,7 @@ interface
 		TopTimer: integer;
 	procedure SoundQueue(priority: integer; pattern: string);
 	procedure SoundClearQueue;
-	function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
+	function SoundHasTimeElapsed(var counter: integer; duration: shortint): boolean;
 	procedure SoundUninstall;
 	function SoundParse(input: string): string;
 
@@ -157,7 +157,7 @@ procedure SoundCheckTimeIntr;
 		SoundTimeCheckHsec := Integer(hSec);
 	end;
 
-function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
+function SoundHasTimeElapsed(var counter: integer; duration: shortint): boolean;
 	var
 		hour, minute, sec, hSec: word;
 		hSecsDiff: word;

@@ -179,7 +179,7 @@ interface
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
-		PMouseX, PMouseY: shortint;
+		PMouseX, PMouseY, TickSpeed, TickTimeDuration: shortint;
 
 		LoadedGameFileName: TString50;
 		SavedGameFileName: TString50;
@@ -214,15 +214,12 @@ interface
 		GameStateElement: integer;
 		ReturnBoardId: integer;
 
-		TickSpeed: byte;
-
 		IoTmpBuf: pointer;
 		ObjTmpBuf: pointer;
 		PathTmpBuf: ^string;
 
 		ElementDefs: array[0 .. MAX_ELEMENT] of TElementDef;
 
-		TickTimeDuration: integer;
 		CurrentTick: integer;
 		CurrentStatTicked: integer;
 		OopFuncReturn: integer;
