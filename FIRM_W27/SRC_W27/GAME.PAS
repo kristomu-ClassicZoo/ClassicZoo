@@ -1918,7 +1918,7 @@ procedure CalcDirectionFind(x, y: integer; var deltaX, deltaY: integer);
 	var
 		ix, iy: shortint;
 	begin
-		if Random(6) < 1 then
+		if Random(9) < 1 then
 			CalcDirectionRnd(deltaX,deltaY)
 		else begin
 			for ix := -8 to 8 do

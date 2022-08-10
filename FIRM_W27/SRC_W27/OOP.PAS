@@ -487,6 +487,37 @@ procedure OopReadDirection(statId: integer; var position: integer; var dx, dy: i
 			OopError(statId,position, 'Bad direction ' + OopWord);
 	end;
 
+procedure OopReadDirectionRel(statId: integer; var position: integer; var dx, dy: integer;
+	ix, iy: integer; textLine: string);
+	begin
+		if (textLine = 'FIND') then begin
+			OopReadWord(statId, position);
+			OopReadDirection(statId, position, dx, dy);
+			Inc(dx,Board.Stats[statId].X);
+			Inc(dy,Board.Stats[statId].Y);
+			CalcDirectionFind(ix, iy, dx, dy);
+		end else if (textLine = 'TOWARD') then begin
+			OopReadWord(statId, position);
+			OopReadValue(statId, position);
+			dx := OopValue;
+			OopReadValue(statId, position);
+			dy := OopValue;
+			if ((dx <> -128) and (dy <> -128)) then
+				CalcDirectionToward(ix, iy, dx, dy)
+			else begin
+				dx := 0;
+				dy := 0;
+				OopError(statId, position, 'Bad direction TOWARD');
+			end;
+		end else begin
+			OopReadDirection(statId, position, dx, dy);
+			if (textLine = 'AT') then begin
+				Dec(dx,ix - Board.Stats[statId].X);
+				Dec(dy,iy - Board.Stats[statId].Y);
+			end;
+		end;
+	end;
+
 function OopFindString(statId: integer; s: string): integer;
 	var
 		pos, wordPos, cmpPos: integer;
@@ -815,16 +846,6 @@ function FindTileOnBoard(var x, y: integer; tile: TMatchTile): boolean;
 				FindTileOnBoard := true;
 				exit;
 			end;
-		end;
-	end;
-
-procedure SwapRelative(var dx, dy: integer; x, y: integer; line: string);
-	begin
-		if (line = 'AT')
-			or (line = 'FIND')
-		then begin
-			Dec(dx,x);
-			Dec(dy,y);
 		end;
 	end;
 
@@ -1652,9 +1673,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = 'STEP' then begin
 							OopReadDirection(statId, position, ix, iy);
 							textLine := OopNextWord(statId, position);
-							OopReadDirection(statId, position, deltaX, deltaY);
-							SwapRelative(deltaX,deltaY,ix,iy,textLine);
-							bindStatId := GetStatIdAt(X + ix, Y + iy);
+							Inc(ix,X);
+							Inc(iy,Y);
+							OopReadDirectionRel(statId, position, deltaX, deltaY, ix, iy, textLine);
+							bindStatId := GetStatIdAt(ix, iy);
 							if (bindStatId > -1) then begin
 								Board.Stats[bindStatId].StepX := deltaX;
 								Board.Stats[bindStatId].StepY := deltaY;
@@ -1668,10 +1690,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = 'SHOVE' then begin
 							OopReadDirection(statId, position, ix, iy);
 							textLine := OopNextWord(statId, position);
-							OopReadDirection(statId, position, deltaX, deltaY);
-							SwapRelative(deltaX,deltaY,ix,iy,textLine);
 							Inc(ix,X);
 							Inc(iy,Y);
+							OopReadDirectionRel(statId, position, deltaX, deltaY, ix, iy, textLine);
 							argTile.Element := Board.Tiles[ix][iy].Element;
 							if (((deltaX <> 0) or (deltaY <> 0)) and (argTile.Element <> E_EMPTY))
 								and (((ix + deltaX > 0) and (ix + deltaX <= BOARD_WIDTH))
@@ -1696,23 +1717,26 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							end;
 						end else if OopWord = 'PUT' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
-							if (deltaX = 0) and (deltaY = 0) then
-								OopError(statId,position, 'Bad #PUT')
-							else if not OopParseTile(statId, position, argTile) then
+							if not OopParseTile(statId, position, argTile) then
 								OopError(statId,position, 'Bad #PUT')
 							else if ((X + deltaX) > 0)
 								and ((X + deltaX) <= BOARD_WIDTH)
 								and ((Y + deltaY) > 0)
 								and ((Y + deltaY) <= BOARD_HEIGHT) then
 							begin
-								if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
-									ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
-								replaceTile.Element := argTile.Element;
-								replaceTile.Color := argTile.Color;
-								if (argTile.setFG = true) or (argTile.setBG = true) then
-									OopForceTile(X + deltaX, Y + deltaY, replaceTile)
-								else
-									OopPlaceTile(X + deltaX, Y + deltaY, replaceTile);
+								if (deltaX = 0) and (deltaY = 0) then begin
+									Under.Element := argTile.Element;
+									Under.Color := argTile.Color;
+								end else begin
+									if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
+										ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+									replaceTile.Element := argTile.Element;
+									replaceTile.Color := argTile.Color;
+									if (argTile.setFG = true) or (argTile.setBG = true) then
+										OopForceTile(X + deltaX, Y + deltaY, replaceTile)
+									else
+										OopPlaceTile(X + deltaX, Y + deltaY, replaceTile);
+								end;
 							end;
 						end else if OopWord = 'COLOR' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
@@ -1779,6 +1803,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							end;
 						end else if OopWord = 'DIE' then begin
 							replaceStat := true;
+							replaceForce := true;
 							replaceTile.Element := Under.Element;
 							replaceTile.Color := Under.Color;
 							OopReadWord(statId, position);

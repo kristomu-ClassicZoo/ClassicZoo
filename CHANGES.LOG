@@ -1,3 +1,12 @@
+8/9/2022: FirmWeave 2.7l
+Bugs Fixed:
+* #DUPLICATE was adding the object's X and Y position twice, confounding the result.
+* #DIE would cause the wrong color to appear underneath the object
+
+Improvements:
+* #PUT I no longer causes an error; instead, it places the given element and color underneath the object in question. (This will not cause a stat to be created.)
+
+
 7/21/2022: FirmWeave 2.7k
 Added:
 * TICKSPEED builtin counter that returns the current tick speed, from 1 (fastest) to 5 (normal) to 9 (slowest).
