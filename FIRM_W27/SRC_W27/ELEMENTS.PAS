@@ -777,7 +777,7 @@ procedure ElementEnergizerTouch(x, y: integer; sourceStatId: integer; var deltaX
 			+ SoundParse(ConfigList[9])
 			+ SoundParse(ConfigList[10]));
 
-		Board.Tiles[x][y].Element := E_EMPTY;
+		Board.Tiles[x][y].Element := ElementDefs[E_ENERGIZER].Param3;
 		BoardDrawTile(x, y);
 
 		World.Info.EnergizerTicks := ElementDefs[E_ENERGIZER].Param1; 
@@ -789,6 +789,8 @@ procedure ElementEnergizerTouch(x, y: integer; sourceStatId: integer; var deltaX
 		end;
 
 		if OopSend(0, 'ALL:ENERGIZE', false) then begin end;
+		if not ElementDefs[ElementDefs[E_ENERGIZER].Param3].Walkable then
+			MoveStat(0, x, y);
 	end;
 
 procedure ElementSlimeTick(statId: integer);
@@ -860,11 +862,6 @@ procedure ElementSharkTick(statId: integer);
 			else if Board.Tiles[X + deltaX][Y + deltaY].Element = E_PLAYER then
 				BoardAttack(statId, X + deltaX, Y + deltaY);
 		end;
-	end;
-
-procedure ElementBlinkWallDraw(x, y: integer; var ch: byte);
-	begin
-		ch := Ord(ElementDefs[E_BLINK_WALL].Character);
 	end;
 
 procedure ElementBlinkWallTick(statId: integer);
@@ -1140,10 +1137,12 @@ procedure ElementKeyTouch(x, y: integer; sourceStatId: integer; var deltaX, delt
 			SoundQueue(2, SoundParse(ConfigList[17]));
 		end else begin
 			Inc(World.Info.Keys[key]);
-			Board.Tiles[x][y].Element := E_EMPTY;
+			Board.Tiles[x][y].Element := ElementDefs[E_KEY].Param3;
 			GameUpdateSidebar;
 			DisplayMessage(200, ConfigList[12]+ColorNames[key]+ConfigList[13]); {You got the key}
 			SoundQueue(2, SoundParse(ConfigList[14]));
+			if not ElementDefs[ElementDefs[E_KEY].Param3].Walkable then
+				MoveStat(0, x, y);
 		end;
 	end;
 
@@ -1151,7 +1150,7 @@ procedure ElementAmmoTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 	begin
 		Inc(World.Info.Ammo, ElementDefs[E_AMMO].Param1); {Amount per ammo collected}
 
-		Board.Tiles[x][y].Element := E_EMPTY;
+		Board.Tiles[x][y].Element := ElementDefs[E_AMMO].Param3;
 		GameUpdateSidebar;
 		SoundQueue(2, SoundParse(ConfigList[25])); {Ammo Collect sound}
 
@@ -1159,6 +1158,8 @@ procedure ElementAmmoTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 			MessageAmmoNotShown := false;
 			DisplayMessage(200, ConfigList[24]); {"Ammunition - 5 shots per container"}
 		end;
+		if not ElementDefs[ElementDefs[E_AMMO].Param3].Walkable then
+			MoveStat(0, x, y);
 	end;
 
 procedure ElementGemTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -1167,7 +1168,7 @@ procedure ElementGemTouch(x, y: integer; sourceStatId: integer; var deltaX, delt
 		World.Info.Health := World.Info.Health + ElementDefs[E_GEM].Param2;
 		World.Info.Score := World.Info.Score + ElementDefs[E_GEM].ScoreValue;
 
-		Board.Tiles[x][y].Element := E_EMPTY;
+		Board.Tiles[x][y].Element := ElementDefs[E_GEM].Param3;
 		GameUpdateSidebar;
 		SoundQueue(2, SoundParse(ConfigList[27])); {Gem sound}
 
@@ -1175,6 +1176,8 @@ procedure ElementGemTouch(x, y: integer; sourceStatId: integer; var deltaX, delt
 			MessageGemNotShown := false;
 			DisplayMessage(200, ConfigList[26]); {"Gems give you Health!"}
 		end;
+		if not ElementDefs[ElementDefs[E_GEM].Param3].Walkable then
+			MoveStat(0, x, y);
 	end;
 
 procedure ElementPassageTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -1192,7 +1195,7 @@ procedure ElementDoorTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 		key := (Board.Tiles[x][y].Color div 16) and $07;
 
 		if World.Info.Keys[key] > 0 then begin
-			Board.Tiles[x][y].Element := E_EMPTY;
+			Board.Tiles[x][y].Element := ElementDefs[E_DOOR].Param3;
 			BoardDrawTile(x, y);
 
 			Dec(World.Info.Keys[key]);
@@ -1200,6 +1203,8 @@ procedure ElementDoorTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 
 			DisplayMessage(200, ConfigList[18]+ColorNames[key]+ConfigList[19]); {You opened the door}
 			SoundQueue(3, SoundParse(ConfigList[20]));
+			if not ElementDefs[ElementDefs[E_DOOR].Param3].Walkable then
+				MoveStat(0, x, y);
 		end else begin
 			DisplayMessage(200, ConfigList[21]+ColorNames[key]+ConfigList[22]); {The door is locked}
 			SoundQueue(3, SoundParse(ConfigList[23]));
@@ -1257,7 +1262,7 @@ procedure ElementPusherTick(statId: integer);
 procedure ElementTorchTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
 		Inc(World.Info.Torches, ElementDefs[E_TORCH].Param1);
-		Board.Tiles[x][y].Element := E_EMPTY;
+		Board.Tiles[x][y].Element := ElementDefs[E_TORCH].Param3;
 
 		BoardDrawTile(x, y);
 		GameUpdateSidebar;
@@ -1268,6 +1273,8 @@ procedure ElementTorchTouch(x, y: integer; sourceStatId: integer; var deltaX, de
 		MessageTorchNotShown := false;
 
 		SoundQueue(3, SoundParse(ConfigList[29])); {Torch sound}
+		if not ElementDefs[ElementDefs[E_TORCH].Param3].Walkable then
+			MoveStat(0, x, y);
 	end;
 
 procedure ElementInvisibleTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -1283,7 +1290,7 @@ procedure ElementInvisibleTouch(x, y: integer; sourceStatId: integer; var deltaX
 
 procedure ElementForestTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
-		Board.Tiles[x][y].Element := E_EMPTY;
+		Board.Tiles[x][y].Element := ElementDefs[E_FOREST].Param3;
 		BoardDrawTile(x, y);
 
 		SoundQueue(3, SoundParse(ConfigList[34])); {Forest sound}
@@ -1292,6 +1299,8 @@ procedure ElementForestTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 			DisplayMessage(200, ConfigList[33]); {"A path is cleared through the forest."}
 		end;
 		MessageForestNotShown := false;
+		if not ElementDefs[ElementDefs[E_FOREST].Param3].Walkable then
+			MoveStat(0, x, y);
 	end;
 
 procedure ElementFakeTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -1856,7 +1865,7 @@ procedure InitElementDefs;
 		ElementDefs[11].TouchProc := ElementPassageTouch;
 		ElementDefs[11].Name := 'PASSAGE';
 
-		ElementDefs[12].Character := #250;
+		ElementDefs[12].Character := ' ';
 		ElementDefs[12].Color := $0F;
 		ElementDefs[12].Cycle := 2;
 		ElementDefs[12].TickProc := ElementDuplicatorTick;
@@ -1879,7 +1888,7 @@ procedure InitElementDefs;
 		ElementDefs[14].Name := 'ENERGIZER';
 		ElementDefs[14].Param1 := 75;
 
-		ElementDefs[15].Character := 'S';
+		ElementDefs[15].Character := ' ';
 		ElementDefs[15].Color := $0F;
 		ElementDefs[15].Destructible := false;
 		ElementDefs[15].Cycle := 1;
@@ -1891,14 +1900,14 @@ procedure InitElementDefs;
 		ElementDefs[15].Param1 := 1;
 		ElementDefs[15].Param2 := 100;
 
-		ElementDefs[16].Character := '/';
+		ElementDefs[16].Character := ' ';
 		ElementDefs[16].Cycle := 3;
 		ElementDefs[16].HasDrawProc := true;
 		ElementDefs[16].TickProc := ElementConveyorCWTick;
 		ElementDefs[16].DrawProc := ElementConveyorCWDraw;
 		ElementDefs[16].Name := 'CLOCKWISE';
 
-		ElementDefs[17].Character := '\';
+		ElementDefs[17].Character := ' ';
 		ElementDefs[17].Cycle := 2;
 		ElementDefs[17].HasDrawProc := true;
 		ElementDefs[17].DrawProc := ElementConveyorCCWDraw;
@@ -1963,11 +1972,9 @@ procedure InitElementDefs;
 		ElementDefs[29].Character := #206;
 		ElementDefs[29].Cycle := 1;
 		ElementDefs[29].TickProc := ElementBlinkWallTick;
-		ElementDefs[29].HasDrawProc := true;
-		ElementDefs[29].DrawProc := ElementBlinkWallDraw;
 		ElementDefs[29].Name := 'BLINKWALL';
 
-		ElementDefs[30].Character := #197;
+		ElementDefs[30].Character := ' ';
 		ElementDefs[30].TouchProc := ElementTransporterTouch;
 		ElementDefs[30].HasDrawProc := true;
 		ElementDefs[30].DrawProc := ElementTransporterDraw;
@@ -1975,7 +1982,7 @@ procedure InitElementDefs;
 		ElementDefs[30].TickProc := ElementTransporterTick;
 		ElementDefs[30].Name := 'TRANSPORTER';
 
-		ElementDefs[31].Character := #206;
+		ElementDefs[31].Character := ' ';
 		ElementDefs[31].HasDrawProc := true;
 		ElementDefs[31].DrawProc := ElementLineDraw;
 		ElementDefs[31].Name := 'LINE';
@@ -2007,7 +2014,7 @@ procedure InitElementDefs;
 		ElementDefs[35].TouchProc := ElementDamagingTouch;
 		ElementDefs[35].Name := 'RUFFIAN';
 
-		ElementDefs[36].Character := #2;
+		ElementDefs[36].Character := ' ';
 		ElementDefs[36].Cycle := 1;
 		ElementDefs[36].HasDrawProc := true;
 		ElementDefs[36].DrawProc := ElementObjectDraw;
@@ -2029,14 +2036,14 @@ procedure InitElementDefs;
 		ElementDefs[38].TickProc := ElementSharkTick;
 		ElementDefs[38].Name := 'SHARK';
 
-		ElementDefs[39].Character := #24;
+		ElementDefs[39].Character := ' ';
 		ElementDefs[39].Cycle := 2;
 		ElementDefs[39].TickProc := ElementSpinningGunTick;
 		ElementDefs[39].HasDrawProc := true;
 		ElementDefs[39].DrawProc := ElementSpinningGunDraw;
 		ElementDefs[39].Name := 'SPINNINGGUN';
 
-		ElementDefs[40].Character := #16;
+		ElementDefs[40].Character := ' ';
 		ElementDefs[40].HasDrawProc := true;
 		ElementDefs[40].DrawProc := ElementPusherDraw;
 		ElementDefs[40].Cycle := 4;
@@ -2145,9 +2152,13 @@ procedure ElementMod(e: integer; par: string; op: string; statId: integer);
 		v := ColorNumber(op, statId);
 		if (v = -128) then
 			Val(op, v, code);
-		if par = 'CHAR' then
-			ElementDefs[e].Character := Chr(v)
-		else if par = 'FG' then
+		if par = 'CHAR' then begin
+			if (ElementDefs[e].Character = ' ') and ElementDefs[e].HasDrawProc then begin
+				ElementDefs[e].DrawProc := ElementDefaultDraw;
+				ElementDefs[e].HasDrawProc := false;
+			end;
+			ElementDefs[e].Character := Chr(v);
+		end else if par = 'FG' then
 			ElementDefs[e].Color := AsColor(v, ElementDefs[e].Color div 16)
 		else if par = 'BG' then
 			ElementDefs[e].Color := AsColor(ElementDefs[e].Color and $0F, v)
