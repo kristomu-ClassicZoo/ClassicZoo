@@ -19,6 +19,8 @@ $< ClassicZoo dev >
 * ?SPEED now uses the 1-9 range instead
   of 0-8.
 / [DOS] Improve joystick compatibility.
+/ [SDL2] Fixed high score loading.
+/ Fixed high score saving.
 
 $< ClassicZoo 4.35 >
 
