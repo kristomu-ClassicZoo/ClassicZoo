@@ -265,11 +265,11 @@ interface
 			BoardData: array[0 .. MAX_BOARD] of TExtMemBlock;
 			BoardLen: array[0 .. MAX_BOARD] of word;
 		end;
-		THighScoreEntry = record
+		THighScoreEntry = {$IFDEF FPC}packed{$ENDIF} record
 			Name: TString50;
 			Score: integer;
 		end;
-		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
+		THighScoreList = {$IFDEF FPC}packed{$ENDIF} array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;

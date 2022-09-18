@@ -258,11 +258,11 @@ interface
 			Info: TWorldInfo;
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
 		end;
-		THighScoreEntry = record
+		THighScoreEntry = {$IFDEF FPC}packed{$ENDIF} record
 			Name: string[60];
 			Score: integer;
 		end;
-		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
+		THighScoreList = {$IFDEF FPC}packed{$ENDIF} array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
 	var
 		ForestSoundTableIdx: integer;
 
