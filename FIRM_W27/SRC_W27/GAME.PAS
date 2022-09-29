@@ -423,8 +423,6 @@ procedure CustomOOPLoad;
 		end;
 	end;
 
-
-
 procedure HighScoresLoad;
 	var
 		f: file of THighScoreList;
@@ -434,14 +432,12 @@ procedure HighScoresLoad;
 		Reset(f);
 		if IOResult = 0 then begin
 			Read(f, HighScoreList);
-		end;
-		Close(f);
-		if IOResult <> 0 then begin
+			Close(f);
+		end else
 			for i := 1 to HIGH_SCORE_COUNT do begin
 				HighScoreList[i].Name := '';
 				HighScoreList[i].Score := -1;
 			end;
-		end;
 	end;
 
 procedure HighScoresSave;
@@ -468,7 +464,7 @@ procedure HighScoresInitTextWindow(var state: TTextWindowState);
 		TextWindowAppend(state, 'Score  Name');
 		TextWindowAppend(state, '-----  ----------------------------------');
 		for i := 1 to HIGH_SCORE_COUNT do begin
-			if Length(HighScoreList[i].Name) <> 0 then begin
+			if (Length(HighScoreList[i].Name) > 0) and (HighScoreList[i].Score > 0) then begin
 				Str(HighScoreList[i].Score:5, scoreStr);
 				TextWindowAppend(state, scoreStr + '  ' + HighScoreList[i].Name);
 			end;
@@ -688,6 +684,7 @@ procedure BoardOpen(boardId: integer);
 				AdvancePointer(ptr, SizeOf(rle));
 			end;
 			Board.Tiles[ix][iy] := rle.Tile;
+			if Board.Tiles[ix][iy].Element > MAX_ELEMENT then Board.Tiles[ix][iy].Element := 42;
 			Inc(ix);
 			if ix > BOARD_WIDTH then begin
 				ix := 1;
@@ -1841,34 +1838,40 @@ function BoardShoot(txelement: byte; tx, ty, deltaX, deltaY: integer; source: in
 	var
 		tile: TTile;
 	begin
-		with Board.Tiles[tx + deltaX][ty + deltaY] do begin
-			if ElementDefs[Element].PlaceableOnTop then begin
-				tile.Element := txelement;
-				tile.Color := ElementDefs[txelement].Color;
-				OopPlaceTile(tx + deltaX, ty + deltaY, tile);
-				with Board.Stats[Board.StatCount] do begin
-					P1 := source;
-					StepX := deltaX;
-					StepY := deltaY;
-					P2 := ElementDefs[txelement].Param2; {Projectile Health}
+		if ((tx + deltaX) > 0)
+			and ((tx + deltaX) <= BOARD_WIDTH)
+			and ((ty + deltaY) > 0)
+			and ((ty + deltaY) <= BOARD_HEIGHT)
+		then begin
+			with Board.Tiles[tx + deltaX][ty + deltaY] do begin
+				if ElementDefs[Element].PlaceableOnTop then begin
+					tile.Element := txelement;
+					tile.Color := ElementDefs[txelement].Color;
+					OopPlaceTile(tx + deltaX, ty + deltaY, tile);
+					with Board.Stats[Board.StatCount] do begin
+						P1 := source;
+						StepX := deltaX;
+						StepY := deltaY;
+						P2 := ElementDefs[txelement].Param2; {Projectile Health}
+					end;
+					BoardShoot := true;
+				end else if (
+						(Element = E_BREAKABLE)
+						or ((Element >= E_TEXT_MIN)
+						and (ElementDefs[Element].Destructible))
+					) or (
+						ElementDefs[Element].Destructible
+						and ((Element = E_PLAYER) = Boolean(source))
+						and (World.Info.EnergizerTicks <= 0)
+					) then
+				begin
+					BoardDamageTile(tx + deltaX, ty + deltaY);
+					BoardShoot := true;
+				end else begin
+					BoardShoot := false;
 				end;
-				BoardShoot := true;
-			end else if (
-					(Element = E_BREAKABLE)
-					or ((Element >= E_TEXT_MIN)
-					and (ElementDefs[Element].Destructible))
-				) or (
-					ElementDefs[Element].Destructible
-					and ((Element = E_PLAYER) = Boolean(source))
-					and (World.Info.EnergizerTicks <= 0)
-				) then
-			begin
-				BoardDamageTile(tx + deltaX, ty + deltaY);
-				BoardShoot := true;
-			end else begin
-				BoardShoot := false;
 			end;
-		end;
+		end else BoardShoot := false;
 	end;
 
 procedure CalcDirectionRnd(var deltaX, deltaY: integer);

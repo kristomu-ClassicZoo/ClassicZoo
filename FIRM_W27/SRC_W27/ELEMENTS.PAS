@@ -339,6 +339,7 @@ procedure ElementBulletTick(statId: integer);
 		TryMove:
 			ix := X + StepX;
 			iy := Y + StepY;
+			if (ix <= 0) or (ix > BOARD_WIDTH) or (iy <= 0) or (iy > BOARD_HEIGHT) then goto BulletExpire;
 			iElem := Board.Tiles[ix][iy].Element;
 
 			if ElementDefs[iElem].Walkable or (iElem = E_WATER) then begin

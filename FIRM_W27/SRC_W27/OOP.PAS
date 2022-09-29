@@ -868,38 +868,51 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				OopCheckCondition := (Sqr(X - Board.Stats[0].X) + Sqr(Y - Board.Stats[0].Y)) = 1;
 			end else if OopWord = 'BLOCKED' then begin
 				OopReadDirection(statId, position, deltaX, deltaY);
-				OopCheckCondition := not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable;
+				if ((X + deltaX) > 0)
+					and ((X + deltaX) <= BOARD_WIDTH)
+					and ((Y + deltaY) > 0)
+					and ((Y + deltaY) <= BOARD_HEIGHT)
+				then
+					OopCheckCondition := not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable
+				else
+					OopCheckCondition := false;
 			end else if OopWord = 'COLOR' then begin
 				OopReadDirection(statId, position, deltaX, deltaY);
-				{read X value}
-				OopReadValue(statId, position);
-				ix := OopValue;
-				if ix = 0 then
-					tile.setFG := true
-				else
-					tile.setFG := false;
-				{read Y value, if present. If not a detected color, reset code position.}
-				code := position;
-				OopReadValue(statId, position);
-				if OopValue = 0 then
-					tile.setBG := true
-				else
-					tile.setBG := false;
-				if OopValue = -128 then begin
-					position := code;
-					OopValue := 0;
-				end;
-				iy := OopValue;
-				{if it's within range, make the color check.}
-				if (ix + (iy * 16) > -1) and (ix + (iy * 16) < 256) then begin
-					tile.Element := 2;
-					tile.Color := AsColor( ix, iy );
-
-					if (deltaX = 0) and (deltaY = 0) then
-						OopCheckCondition := MatchTiles(Under, tile)
+				if ((X + deltaX) > 0)
+					and ((X + deltaX) <= BOARD_WIDTH)
+					and ((Y + deltaY) > 0)
+					and ((Y + deltaY) <= BOARD_HEIGHT)
+				then begin
+					{read X value}
+					OopReadValue(statId, position);
+					ix := OopValue;
+					if ix = 0 then
+						tile.setFG := true
 					else
-						OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile);
-				end else OopError(statId,position,'Unknown color');
+						tile.setFG := false;
+					{read Y value, if present. If not a detected color, reset code position.}
+					code := position;
+					OopReadValue(statId, position);
+					if OopValue = 0 then
+						tile.setBG := true
+					else
+						tile.setBG := false;
+					if OopValue = -128 then begin
+						position := code;
+						OopValue := 0;
+					end;
+					iy := OopValue;
+					{if it's within range, make the color check.}
+					if (ix + (iy * 16) > -1) and (ix + (iy * 16) < 256) then begin
+						tile.Element := 2;
+						tile.Color := AsColor( ix, iy );
+
+						if (deltaX = 0) and (deltaY = 0) then
+							OopCheckCondition := MatchTiles(Under, tile)
+						else
+							OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile);
+					end else OopError(statId,position,'Unknown color');
+				end else OopCheckCondition := false;
 			end else if OopWord = 'RND' then begin
 				OopCheckCondition := Random(2) = 0;
 			end else if OopWord = 'AT' then begin
@@ -955,10 +968,16 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					OopReadDirection(statId, position, deltaX, deltaY);
 					if not OopParseTile(statId, position, tile) then
 						OopError(statId,position, 'Bad object kind');
-					if (deltaX = 0) and (deltaY = 0) then
-						OopCheckCondition := MatchTiles(Under, tile)
-					else
-						OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile);
+					if ((X + deltaX) > 0)
+						and ((X + deltaX) <= BOARD_WIDTH)
+						and ((Y + deltaY) > 0)
+						and ((Y + deltaY) <= BOARD_HEIGHT)
+					then begin
+						if (deltaX = 0) and (deltaY = 0) then
+							OopCheckCondition := MatchTiles(Under, tile)
+						else
+							OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile)
+					end else OopCheckCondition := false;
 				end;
 			end else if OopWord = 'ANY' then begin
 				if not OopParseTile(statId, position, tile) then
@@ -1337,25 +1356,31 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							ix := OopRunFunc(statId, position);
 						end else if OopWord = 'LOAD' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
-							OopReadWord(statId, position);
-							if Board.Tiles[X + deltaX][Y + deltaY].element = E_OBJECT then begin
-								bindStatId := GetStatIdAt(X + deltaX, Y + deltaY);
-								textLine := OopWord;
-								if textLine = 'APPEND' then
-									OopReadWord(statId, position);
-								if (OopWord <> '') and (bindStatId > 0) then begin
-									if (textLine = 'APPEND') then begin
-										if FileAppendStatData(OopWord,bindStatId) then
-											goto ReadCommand
-										else
+							if ((X + deltaX) > 0)
+								and ((X + deltaX) <= BOARD_WIDTH)
+								and ((Y + deltaY) > 0)
+								and ((Y + deltaY) <= BOARD_HEIGHT)
+							then begin
+								OopReadWord(statId, position);
+								if Board.Tiles[X + deltaX][Y + deltaY].element = E_OBJECT then begin
+									bindStatId := GetStatIdAt(X + deltaX, Y + deltaY);
+									textLine := OopWord;
+									if textLine = 'APPEND' then
+										OopReadWord(statId, position);
+									if (OopWord <> '') and (bindStatId > 0) then begin
+										if (textLine = 'APPEND') then begin
+											if FileAppendStatData(OopWord,bindStatId) then
+												goto ReadCommand
+											else
+												OopError(statId,position, 'File not found ' + OopWord + '.OBJ');
+										end else if FileLoadStatData(OopWord,bindStatId) then begin
+											Board.Stats[bindStatId].DataPos := 0;
+											goto ReadCommand;
+										end else
 											OopError(statId,position, 'File not found ' + OopWord + '.OBJ');
-									end else if FileLoadStatData(OopWord,bindStatId) then begin
-										Board.Stats[bindStatId].DataPos := 0;
-										goto ReadCommand;
 									end else
-										OopError(statId,position, 'File not found ' + OopWord + '.OBJ');
-								end else
-									OopError(statId,position, 'LOAD needs a filename');
+										OopError(statId,position, 'LOAD needs a filename');
+								end;
 							end;
 						end else if OopWord = 'PALETTE' then begin
 							OopReadValue(statId, position);
@@ -1740,17 +1765,23 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							end;
 						end else if OopWord = 'COLOR' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
-							OopReadValue(statId, position);
-							ix := OopValue;
-							OopReadValue(statId, position);
-							iy := OopValue;
-							if ( iy < 1 ) or ( iy > 15 ) then
-								iy := 0;
-							if ((ix + (iy * 16)) > -1) and ((ix + (iy * 16)) < 256) then begin
-								Board.Tiles[X + deltaX][Y + deltaY].Color := AsColor(ix, iy);
-								BoardDrawTile(X + deltaX, Y + deltaY);
-							end else
-								OopError(statId,position, 'Unknown color.');
+							if ((X + deltaX) > 0)
+								and ((X + deltaX) <= BOARD_WIDTH)
+								and ((Y + deltaY) > 0)
+								and ((Y + deltaY) <= BOARD_HEIGHT) then
+							begin
+								OopReadValue(statId, position);
+								ix := OopValue;
+								OopReadValue(statId, position);
+								iy := OopValue;
+								if ( iy < 1 ) or ( iy > 15 ) then
+									iy := 0;
+								if ((ix + (iy * 16)) > -1) and ((ix + (iy * 16)) < 256) then begin
+									Board.Tiles[X + deltaX][Y + deltaY].Color := AsColor(ix, iy);
+									BoardDrawTile(X + deltaX, Y + deltaY);
+								end else
+									OopError(statId,position, 'Unknown color.');
+							end;
 						end else if OopWord = 'CHANGE' then begin
 							if not OopParseTile(statId, position, argTile) then
 								OopError(statId,position, 'Bad #CHANGE to ' + OopWord)

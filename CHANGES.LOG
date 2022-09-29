@@ -1,3 +1,46 @@
+9/29/2022: FirmWeave 2.7s
+Bug Fixes:
+* BoardShoot and ElementBulletTick needed additional bounds checking, lest they accidentally check outside of memory and happen upon a random byte matching E_RICOCHET (this was happening in several contexts)
+
+9/27/2022: FirmWeave 2.7r
+Bug Fixes:
+* There was no bounds checking on the following commands and conditionals:
+  - #COLOR
+  - #IF BLOCKED
+  - #IF COLOR
+  - #IF DETECT
+  - #LOAD
+
+9/15/2022: Firmweave 2.7q
+Bug Fixes:
+Zedit2's corrupted text (labeled "white text" and "blinking text" in zedit2) will now load in as customtext instead.
+
+
+8/17/2022: FirmWeave 2.7n
+Improvements:
+* You can now define the character for the following elements:
+   * pusher.char
+   * spinninggun.char
+   * object.char
+   * line.char
+   * transporter.char
+   * counter.char
+   * clockwise.char
+   * star.char
+   * duplicator.char
+
+
+8/12/2022: FirmWeave 2.7m
+Improvements:
+* Elements that previously became E_EMPTY on touch now become the element of their .param3 value (still defaulting to E_EMPTY). These are:
+   * ammo.param3
+   * torch.param3
+   * gem.param3
+   * key.param3
+   * door.param3
+   * energizer.param3
+   * forest.param3
+
 8/9/2022: FirmWeave 2.7l
 Bugs Fixed:
 * #DUPLICATE was adding the object's X and Y position twice, confounding the result.
