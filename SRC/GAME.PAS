@@ -46,10 +46,8 @@ interface
 	procedure BoardDrawTile(x, y: integer);
 	procedure BoardDrawBorder;
 	procedure TransitionDrawToBoard;
-	procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TString50; var value: byte);
 	procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
 	procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: string; var result: byte);
-	procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; var deltaX, deltaY: integer);
 	procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TString50);
 	function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
 	procedure SidebarPromptString(prompt: string; extension: TString50; var filename: string; promptMode: byte);
@@ -60,7 +58,6 @@ interface
 	procedure WorldSave(filename, extension: TString50);
 	procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: TString50);
 	function GameWorldLoad(extension: TString50): boolean;
-	procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState);
 	procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; template: TStat);
 	procedure RemoveStat(statId: integer);
 	function GetStatIdAt(x, y: integer): integer;
@@ -77,14 +74,12 @@ interface
 	procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 	procedure TransitionDrawBoardChange;
 	procedure GameUpdateSidebar;
-	procedure GameAboutScreen;
 	procedure GamePlayLoop(boardChanged: boolean);
 	procedure DisplayMessage(ticks: integer; message: string);
 	procedure BoardEnter;
 	procedure BoardPassageTeleport(x, y: integer);
 	procedure GameDebugPrompt;
 	procedure GameTitleLoop;
-	procedure GamePrintRegisterMessage;
 const
 	ProgressAnimColors: array[0 .. 7] of byte = ($14, $1C, $15, $1D, $16, $1E, $17, $1F);
 	ProgressAnimStrings: array[0 .. 7] of string[5] =
@@ -107,7 +102,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop;
+uses Dos, Crt, Video, Sounds, Input, Elements, Oop;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -328,10 +323,9 @@ procedure WorldCreate;
 	var
 		i: integer;
 	begin
-		InitElementsGame;
+		InitElementDefs;
 		World.BoardCount := 0;
 		World.BoardLen[0] := 0;
-		InitEditorStatSettings;
 		ResetMessageNotShownFlags;
 		BoardCreate;
 		World.Info.IsSave := false;
@@ -373,7 +367,7 @@ procedure BoardDrawTile(x, y: integer);
 				or (
 					(World.Info.TorchTicks > 0)
 					and ((Sqr(Board.Stats[0].X - x) + Sqr(Board.Stats[0].Y - y) * 2) < TORCH_DIST_SQR)
-				) or ForceDarknessOff then
+				) then
 			begin
 				if Element = E_EMPTY then
 					VideoWriteText(x - 1, y - 1, $0F, ' ')
@@ -424,37 +418,6 @@ procedure TransitionDrawToBoard;
 				BoardDrawTile(X, Y);
 	end;
 
-procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TString50; var value: byte);
-	var
-		i, newValue: integer;
-	begin
-		SidebarClearLine(y);
-		VideoWriteText(x, y, Integer(editable) + $1E, prompt);
-		SidebarClearLine(y + 1);
-		VideoWriteText(x + 5, y + 1, $9F, #31);
-		SidebarClearLine(y + 2);
-
-		repeat
-			for i := (value - 4) to (value + 4) do
-				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) mod $100));
-
-			if editable then begin
-				Delay(25);
-				InputUpdate;
-				if InputKeyPressed = KEY_TAB then
-					InputDeltaX := 9;
-
-				newValue := value + InputDeltaX;
-				if value <> newValue then begin
-					value := (newValue + $100) mod $100;
-					SidebarClearLine(y + 2);
-				end;
-			end;
-		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
-
-		VideoWriteText(x + 5, y + 1, $1F, #31);
-	end;
-
 procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
 	var
 		newValue: integer;
@@ -477,8 +440,6 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 
 		repeat
 			if editable then begin
-				if InputJoystickMoved then
-					Delay(45);
 				VideoWriteText(x + value + 1, y + 1, $9F, #31);
 
 				InputUpdate;
@@ -537,23 +498,6 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
 
 		VideoWriteText(62 + i, y + 1, $1F, #31);
-	end;
-
-procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; var deltaX, deltaY: integer);
-	var
-		choice: byte;
-	begin
-		if deltaY = -1 then
-			choice := 0
-		else if deltaY = 1 then
-			choice := 1
-		else if deltaX = -1 then
-			choice := 2
-		else
-			choice := 3;
-		SidebarPromptChoice(editable, y, prompt, #24' '#25' '#27' '#26, choice);
-		deltaX := NeighborDeltaX[choice];
-		deltaY := NeighborDeltaY[choice];
 	end;
 
 procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TString50);
@@ -753,8 +697,6 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 				LoadedGameFileName := filename;
 				WorldLoad := true;
 
-				HighScoresLoad;
-
 				SidebarClearLine(5);
 			end;
 		end;
@@ -764,7 +706,6 @@ procedure WorldSave(filename, extension: TString50);
 	var
 		f: file;
 		i: integer;
-		unk1: integer;
 		ptr: pointer;
 		version: integer;
 	label OnError;
@@ -844,11 +785,6 @@ function GameWorldLoad(extension: TString50): boolean;
 		FindFirst('*' + extension, AnyFile, fileSearchRec);
 		while DosError = 0 do begin
 			entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - 4);
-
-			for i := 1 to WorldFileDescCount do
-				if entryName = WorldFileDescKeys[i] then
-					entryName := WorldFileDescValues[i];
-
 			TextWindowAppend(textWindow, entryName);
 			FindNext(fileSearchRec);
 		end;
@@ -868,31 +804,6 @@ function GameWorldLoad(extension: TString50): boolean;
 		end;
 
 		TextWindowFree(textWindow);
-	end;
-
-procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState);
-	var
-		dataStr: string;
-		dataPtr: pointer;
-		dataChr: char;
-		i: integer;
-	begin
-		with Board.Stats[statId] do begin
-			TextWindowInitState(state);
-			dataStr := '';
-			dataPtr := Data;
-
-			for i := 0 to DataLen do begin
-				Move(dataPtr^, dataChr, 1);
-				if dataChr = KEY_ENTER then begin
-					TextWindowAppend(state, dataStr);
-					dataStr := '';
-				end else begin
-					dataStr := dataStr + dataChr;
-				end;
-				AdvancePointer(dataPtr, 1);
-			end;
-		end;
 	end;
 
 procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; template: TStat);
@@ -1408,11 +1319,6 @@ procedure GameDebugPrompt;
 		GameUpdateSidebar;
 	end;
 
-procedure GameAboutScreen;
-	begin
-		TextWindowDisplayFile('ABOUT.HLP', 'About ZZT...');
-	end;
-
 procedure GamePlayLoop(boardChanged: boolean);
 	var
 		exitLoop: boolean;
@@ -1441,8 +1347,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(62, 14, $70, ' T ');
 				VideoWriteText(65, 14, $1F, ' Torch');
 				VideoWriteText(62, 15, $30, ' B ');
-				VideoWriteText(62, 16, $70, ' H ');
-				VideoWriteText(65, 16, $1F, ' Help');
 				VideoWriteText(67, 18, $30, ' '#24#25#26#27' ');
 				VideoWriteText(72, 18, $1F, ' Move');
 				VideoWriteText(61, 19, $70, ' Shift '#24#25#26#27' ');
@@ -1470,15 +1374,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(65, 12, $1E, ' Restore game');
 				VideoWriteText(62, 13, $70, ' Q ');
 				VideoWriteText(65, 13, $1E, ' Quit');
-				VideoWriteText(62, 16, $30, ' A ');
-				VideoWriteText(65, 16, $1F, ' About ZZT!');
-				VideoWriteText(62, 17, $70, ' H ');
-				VideoWriteText(65, 17, $1E, ' High Scores');
-
-				if EditorEnabled then begin
-					VideoWriteText(62, 18, $30, ' E ');
-					VideoWriteText(65, 18, $1E, ' Board Editor');
-				end;
 			end;
 		end;
 	begin
@@ -1486,7 +1381,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 		GameUpdateSidebar;
 
 		if JustStarted then begin
-			GameAboutScreen;
 			if Length(StartupWorldFileName) <> 0 then begin
 				SidebarClearLine(8);
 				VideoWriteText(69, 8, $1F, StartupWorldFileName);
@@ -1593,11 +1487,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 		SoundClearQueue;
 
-		if GameStateElement = E_PLAYER then begin
-			if World.Info.Health <= 0 then begin
-				HighScoresAdd(World.Info.Score);
-			end;
-		end else if GameStateElement = E_MONITOR then begin
+		if GameStateElement = E_MONITOR then begin
 			SidebarClearLine(5);
 		end;
 
@@ -1644,14 +1534,6 @@ procedure GameTitleLoop;
 							BoardEnter;
 						end;
 					end;
-					'A': begin
-						GameAboutScreen;
-					end;
-					'E': if EditorEnabled then begin
-						EditorLoop;
-						ReturnBoardId := World.Info.CurrentBoard;
-						boardChanged := true;
-					end;
 					'S': begin
 						SidebarPromptSlider(true, 66, 21, 'Game speed:;FS', TickSpeed);
 						InputKeyPressed := #0;
@@ -1662,10 +1544,6 @@ procedure GameTitleLoop;
 							BoardChange(ReturnBoardId);
 							startPlay := true;
 						end;
-					end;
-					'H': begin
-						HighScoresLoad;
-						HighScoresDisplay(1);
 					end;
 					'|': begin
 						GameDebugPrompt;
@@ -1683,56 +1561,6 @@ procedure GameTitleLoop;
 				end;
 			until boardChanged or GameTitleExitRequested;
 		until GameTitleExitRequested;
-	end;
-
-procedure GamePrintRegisterMessage;
-	var
-		s: string;
-		f: file;
-		i: integer;
-		ix, iy: integer;
-		color: integer;
-		isReading: boolean;
-		strPtr: pointer;
-	begin
-		SetCBreak(false);
-		s := 'END' + Chr(49 + Random(4)) + '.MSG';
-		iy := 0;
-		color := $0F;
-
-		for i := 1 to ResourceDataHeader.EntryCount do begin
-			if ResourceDataHeader.Name[i] = s then begin
-				Assign(f, ResourceDataFileName);
-				Reset(f, 1);
-				Seek(f, ResourceDataHeader.FileOffset[i]);
-
-				isReading := true;
-				while (IOResult = 0) and isReading do begin
-					BlockRead(f, s, 1);
-					strPtr := Ptr(Seg(s), Ofs(s) + 1);
-					if Length(s) = 0 then begin
-						Dec(color);
-					end else begin
-						BlockRead(f, strPtr^, Length(s));
-						if s <> '@' then
-							VideoWriteText(0, iy, color, s)
-						else
-							isReading := false;
-					end;
-					Inc(iy);
-				end;
-
-				Close(f);
-				VideoWriteText(28, 24, $1F, 'Press any key to exit...');
-				TextColor(LightGray);
-
-				repeat until KeyPressed;
-				InputKeyPressed := ReadKey;
-
-				VideoWriteText(28, 24, $00, '                        ');
-				GotoXY(1, 23);
-			end;
-		end;
 	end;
 
 begin

@@ -262,7 +262,6 @@ function OopIterateStat(statId: integer; var iStat: integer; lookup: string): bo
 function OopFindLabel(statId: integer; sendLabel: string; var iStat, iDataPos: integer; labelPrefix: string): boolean;
 	var
 		targetSplitPos: integer;
-		unk1: integer;
 		targetLookup: string[20];
 		objectMessage: string[20];
 		foundStat: boolean;

@@ -123,10 +123,6 @@ interface
 			IsSave: boolean;
 			unkPad: array[0 .. 13] of byte;
 		end;
-		TEditorStatSetting = record
-			P1, P2, P3: byte;
-			StepX, StepY: integer;
-		end;
 		TBoard = record
 			Name: TString50;
 			Tiles: array[0 .. BOARD_WIDTH + 1] of array[0 .. BOARD_HEIGHT + 1] of TTile;
@@ -139,24 +135,15 @@ interface
 			BoardData: array[0 .. MAX_BOARD] of pointer;
 			BoardLen: array[0 .. MAX_BOARD] of integer;
 			Info: TWorldInfo;
-			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
 		end;
-		THighScoreEntry = record
-			Name: TString50;
-			Score: integer;
-		end;
-		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
 		TIoTmpBuf = array[0 .. 19999] of byte;
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
-		unkVar_0476: integer;
-		unkVar_0478: integer;
 
 		TransitionTable: array[1 .. 80*25] of TCoord;
 		LoadedGameFileName: TString50;
 		SavedGameFileName: TString50;
-		SavedBoardFileName: TString50;
 		StartupWorldFileName: TString50;
 		Board: TBoard;
 		World: TWorld;
@@ -171,7 +158,6 @@ interface
 		MessageFakeNotShown: boolean;
 		MessageGemNotShown: boolean;
 		MessageEnergizerNotShown: boolean;
-		unkVar_4ABA: array[0 .. 14] of byte;
 
 		GameTitleExitRequested: boolean;
 		GamePlayExitRequested: boolean;
@@ -184,8 +170,6 @@ interface
 		IoTmpBuf: ^TIoTmpBuf;
 
 		ElementDefs: array[0 .. MAX_ELEMENT] of TElementDef;
-		EditorPatternCount: integer;
-		EditorPatterns: array[1 .. 10] of byte;
 
 		TickTimeDuration: integer;
 		CurrentTick: integer;
@@ -193,7 +177,6 @@ interface
 		GamePaused: boolean;
 		TickTimeCounter: integer;
 
-		ForceDarknessOff: boolean;
 		InitialTextAttr: byte;
 
 		OopChar: char;
@@ -202,18 +185,7 @@ interface
 
 		DebugEnabled: boolean;
 
-		HighScoreList: THighScoreList;
-		ConfigRegistration: string;
-		ConfigWorldFile: TString50;
-		EditorEnabled: boolean;
-		GameVersion: TString50;
-		ParsingConfigFile: boolean;
-		ResetConfig: boolean; { This flag is a remnant from ZZT 3.0. }
 		JustStarted: boolean;
-
-		WorldFileDescCount: integer;
-		WorldFileDescKeys: array[1 .. 10] of TString50;
-		WorldFileDescValues: array[1 .. 10] of TString50;
 	const
 		E_EMPTY = 0;
 		E_BOARD_EDGE = 1;

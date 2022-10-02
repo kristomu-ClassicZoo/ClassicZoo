@@ -43,10 +43,7 @@ interface
 		SoundOldVector: pointer;
 		SoundBufferPos: integer;
 		SoundIsPlaying: boolean;
-		SoundTimeCheckCounter: integer;
-		UseSystemTimeForElapsed: boolean;
 		TimerTicks: word;
-		SoundTimeCheckHsec: integer;
 		SoundDrumTable: array[0 .. 9] of TDrumData;
 	procedure SoundQueue(priority: integer; pattern: string);
 	procedure SoundClearQueue;
@@ -141,37 +138,13 @@ procedure SoundPlayDrum(var drum: TDrumData);
 		NoSound;
 	end;
 
-procedure SoundCheckTimeIntr;
-	var
-		hour, minute, sec, hSec: word;
-	begin
-		GetTime(hour, minute, sec, hSec);
-		if (SoundTimeCheckHsec <> 0) and (Integer(hSec) <> SoundTimeCheckHsec) then begin
-			SoundTimeCheckCounter := 0;
-			UseSystemTimeForElapsed := true;
-		end;
-		SoundTimeCheckHsec := Integer(hSec);
-	end;
-
 function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 	var
-		hour, minute, sec, hSec: word;
 		hSecsDiff: word;
 		hSecsTotal: integer;
 	begin
-		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter mod 2) = 1) then begin
-			SoundTimeCheckCounter := SoundTimeCheckCounter - 1;
-			SoundCheckTimeIntr;
-		end;
-
-		if UseSystemTimeForElapsed then begin
-			GetTime(hour, minute, sec, hSec);
-			hSecsTotal := sec * 100 + hSec;
-			hSecsDiff := Word((hSecsTotal - counter) + 6000) mod 6000;
-		end else begin
-			hSecsTotal := TimerTicks * 6;
-			hSecsDiff := hSecsTotal - counter;
-		end;
+		hSecsTotal := (TimerTicks * 11) shr 1;
+		hSecsDiff := hSecsTotal - counter;
 
 		if hSecsDiff >= duration then begin
 			SoundHasTimeElapsed := true;
@@ -185,10 +158,6 @@ procedure SoundTimerHandler;
 	interrupt;
 	begin
 		Inc(TimerTicks);
-		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter mod 2) = 0) then begin
-			SoundTimeCheckCounter := SoundTimeCheckCounter - 1;
-		end;
-
 		if not SoundEnabled then begin
 			SoundIsPlaying := false;
 			NoSound;
@@ -341,10 +310,7 @@ function SoundParse(input: string): string;
 begin
 	SoundInitFreqTable;
 	SoundInitDrumTable;
-	SoundTimeCheckCounter := 36;
-	UseSystemTimeForElapsed := false;
 	TimerTicks := 0;
-	SoundTimeCheckHsec := 0;
 	SoundEnabled := true;
 	SoundBlockQueueing := false;
 	SoundClearQueue;

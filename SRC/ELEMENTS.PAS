@@ -34,12 +34,10 @@ interface
 	procedure DrawPlayerSurroundings(x, y: integer; bombPhase: integer);
 	procedure GamePromptEndPlay;
 	procedure ResetMessageNotShownFlags;
-	procedure InitElementsEditor;
-	procedure InitElementsGame;
-	procedure InitEditorStatSettings;
+	procedure InitElementDefs;
 
 implementation
-uses Crt, Video, Sounds, Input, TxtWind, Editor, Oop, Game;
+uses Crt, Video, Sounds, Input, TxtWind, Oop, Game;
 
 const
 	TransporterNSChars: string = '^~^-v_v-';
@@ -892,8 +890,6 @@ procedure ElementMove(oldX, oldY, newX, newY: integer);
 	end;
 
 procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
-	var
-		unk1: integer;
 	begin
 		with Board.Tiles[x][y] do begin
 			if ((Element = E_SLIDER_NS) and (deltaX = 0)) or ((Element = E_SLIDER_EW) and (deltaY = 0))
@@ -980,13 +976,11 @@ procedure ElementDuplicatorTick(statId: integer);
 					if Board.Tiles[X - StepX][Y - StepY].Element = E_EMPTY then begin
 						sourceStatId := GetStatIdAt(X + StepX, Y + StepY);
 						if sourceStatId > 0 then begin
-							if Board.StatCount < (MAX_STAT + 24) then begin
-								AddStat(X - StepX, Y - StepY,
-									Board.Tiles[X + StepX][Y + StepY].Element,
-									Board.Tiles[X + StepX][Y + StepY].Color,
-									Board.Stats[sourceStatId].Cycle, Board.Stats[sourceStatId]);
-								BoardDrawTile(X - StepX, Y - StepY);
-							end;
+							AddStat(X - StepX, Y - StepY,
+								Board.Tiles[X + StepX][Y + StepY].Element,
+								Board.Tiles[X + StepX][Y + StepY].Color,
+								Board.Stats[sourceStatId].Cycle, Board.Stats[sourceStatId]);
+							BoardDrawTile(X - StepX, Y - StepY);
 						end else if sourceStatId <> 0 then begin
 							Board.Tiles[X - StepX][Y - StepY]
 								:= Board.Tiles[X + StepX][Y + StepY];
@@ -1022,7 +1016,6 @@ procedure ElementScrollTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 	var
 		textWindow: TTextWindowState;
 		statId: integer;
-		unk1: integer;
 	begin
 		statId := GetStatIdAt(x, y);
 
@@ -1314,7 +1307,6 @@ procedure GamePromptEndPlay;
 
 procedure ElementPlayerTick(statId: integer);
 	var
-		unk1, unk2, unk3: integer;
 		i: integer;
 		bulletCount: integer;
 	begin
@@ -1443,12 +1435,6 @@ procedure ElementPlayerTick(statId: integer);
 					SoundClearQueue;
 					GameUpdateSidebar;
 					InputKeyPressed := ' ';
-				end;
-				'H': begin
-					TextWindowDisplayFile('GAME.HLP', 'Playing ZZT');
-				end;
-				'F': begin
-					TextWindowDisplayFile('ORDER.HLP', 'Order form');
 				end;
 				'?': begin
 					GameDebugPrompt;
@@ -1940,47 +1926,6 @@ procedure InitElementDefs;
 		ElementDefs[2].TickProc := ElementMessageTimerTick;
 
 		ElementDefs[1].TouchProc := ElementBoardEdgeTouch;
-
-		EditorPatternCount := 5;
-		EditorPatterns[1] := E_SOLID;
-		EditorPatterns[2] := E_NORMAL;
-		EditorPatterns[3] := E_BREAKABLE;
-		EditorPatterns[4] := E_EMPTY;
-		EditorPatterns[5] := E_LINE;
-	end;
-
-procedure InitElementsEditor;
-	begin
-		InitElementDefs;
-		ElementDefs[28].Character := #176;
-		ElementDefs[28].Color := COLOR_CHOICE_ON_BLACK;
-		ForceDarknessOff := true;
-	end;
-
-procedure InitElementsGame;
-	begin
-		InitElementDefs;
-		ForceDarknessOff := false;
-	end;
-
-procedure InitEditorStatSettings;
-	var
-		i: integer;
-	begin
-		PlayerDirX := 0;
-		PlayerDirY := 0;
-
-		for i := 0 to MAX_ELEMENT do
-			with World.EditorStatSettings[i] do begin
-				P1 := 4;
-				P2 := 4;
-				P3 := 0;
-				StepX := 0;
-				StepY := -1;
-			end;
-
-		World.EditorStatSettings[E_OBJECT].P1 := 1;
-		World.EditorStatSettings[E_BEAR].P1 := 8;
 	end;
 
 begin
