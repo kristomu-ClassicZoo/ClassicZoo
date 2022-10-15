@@ -1,3 +1,11 @@
+10/15/2022: FirmWeave 2.7t
+Bug Fixes:
+* Added a provision to require scores be > 0 to show up in the high score list
+
+Improvements:
+* ?inspect now shows an object's ARRAY value.
+
+
 9/29/2022: FirmWeave 2.7s
 Bug Fixes:
 * BoardShoot and ElementBulletTick needed additional bounds checking, lest they accidentally check outside of memory and happen upon a random byte matching E_RICOCHET (this was happening in several contexts)

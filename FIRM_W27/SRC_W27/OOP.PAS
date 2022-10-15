@@ -1105,6 +1105,8 @@ procedure InspectObjectCode(statId, PointPos: integer; ErrMsg: string);
 					Str(ObjTiny[i - 6],s);
 					TextWindowAppend(textWindow, CustomObjList[i] + ': ' + s);
 				end;
+				Str(elseCheck and $7F,s);
+				TextWindowAppend(textWindow, 'Array: ' + s);
 				s := '';
 				TextWindowAppend(textWindow, '$** Object Data: **');
 			end;

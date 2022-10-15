@@ -432,12 +432,14 @@ procedure HighScoresLoad;
 		Reset(f);
 		if IOResult = 0 then begin
 			Read(f, HighScoreList);
-			Close(f);
-		end else
+		end;
+		Close(f);
+		if IOResult <> 0 then begin
 			for i := 1 to HIGH_SCORE_COUNT do begin
 				HighScoreList[i].Name := '';
 				HighScoreList[i].Score := -1;
 			end;
+		end;
 	end;
 
 procedure HighScoresSave;
