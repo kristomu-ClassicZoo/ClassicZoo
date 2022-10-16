@@ -37,6 +37,7 @@ interface
 	procedure InspectObjectCode(statId, PointPos: integer; ErrMsg: string);
 	function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
 	function OopExecute(statId: integer; var position: integer; name: TString50): boolean;
+	function OopStringToWord(input: TString50): TString50;
 	function ShortWord(s: string): boolean;
 	procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
 	function ReadOnly(s: string): boolean;
@@ -116,19 +117,26 @@ function OopNextWord(statId: integer; var position: integer): string;
 		position := iPos;
 	end;
 
+
 function OopStringToWord(input: TString50): TString50;
 	var
 		output: TString50;
 		i: integer;
+		outPos: byte;
 	begin
 		output := '';
+		outPos := 0;
 		for i := 1 to Length(input) do begin
 			if ((input[i] >= 'A') and (input[i] <= 'Z'))
-				or ((input[i] >= '0') and (input[i] <= '9')) then
-				output := output + input[i]
-			else if ((input[i] >= 'a') and (input[i] <= 'z')) then
-				output := output + Chr(Ord(input[i]) - $20);
+				or ((input[i] >= '0') and (input[i] <= '9')) then begin
+				Inc(outPos);
+				output[outPos] := input[i];
+			end else if ((input[i] >= 'a') and (input[i] <= 'z')) then begin
+				Inc(outPos);
+				output[outPos] := Chr(Ord(input[i]) - $20);
+			end;
 		end;
+		output[0] := Chr(outPos);
 		OopStringToWord := output;
 	end;
 
@@ -138,7 +146,7 @@ function ShortWord(s: string): boolean;
 	begin
 		ShortWord := false;
 		for i := 5 to 15 do
-			if s = OopStringToWord(Ooplist[i]) then ShortWord := true;
+			if s = OOPList[i] then ShortWord := true;
 		for i := 7 to 9 do
 			if s = CustomObjList[i] then ShortWord := true;
 		if s = 'ARRAY' then ShortWord := true;
@@ -149,23 +157,23 @@ procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
 	var
 		i: integer;
 	begin
-		if s = OopStringToWord(Ooplist[5]) then
+		if s = OOPList[5] then
 			cPtr := @Board.Info.IsDark
-		else if s = OopStringToWord(Ooplist[6]) then
+		else if s = OOPList[6] then
 			cPtr := @World.Info.Keys[1]
-		else if s = OopStringToWord(Ooplist[7]) then
+		else if s = OOPList[7] then
 			cPtr := @World.Info.Keys[2]
-		else if s = OopStringToWord(Ooplist[8]) then
+		else if s = OOPList[8] then
 			cPtr := @World.Info.Keys[3]
-		else if s = OopStringToWord(Ooplist[9]) then
+		else if s = OOPList[9] then
 			cPtr := @World.Info.Keys[4]
-		else if s = OopStringToWord(Ooplist[10]) then
+		else if s = OOPList[10] then
 			cPtr := @World.Info.Keys[5]
-		else if s = OopStringToWord(Ooplist[11]) then
+		else if s = OOPList[11] then
 			cPtr := @World.Info.Keys[6]
-		else if s = OopStringToWord(Ooplist[12]) then
+		else if s = OOPList[12] then
 			cPtr := @World.Info.Keys[7]
-		else if s = OopStringToWord(Ooplist[13]) then
+		else if s = OOPList[13] then
 			cPtr := @World.Info.KeySpeed
 		else if s = 'ARRAY' then
 			cPtr := @Board.Stats[statId].elseCheck
@@ -183,12 +191,12 @@ function ReadOnly(s: string): boolean;
 	begin
 		ReadOnly := false;
 		for i := 16 to 19 do
-			if s = OopStringToWord(Ooplist[i]) then ReadOnly := true;
+			if s = OOPList[i] then ReadOnly := true;
 		if (s = 'BOARDID')
 			or (s = 'ARRAY')
 			or (s = 'TICKSPEED')
-			or (s = OopStringToWord(Ooplist[14])) {'MOUSEX'}
-			or (s = OopStringToWord(Ooplist[15])) {'MOUSEY'}
+			or (s = OOPList[14]) {'MOUSEX'}
+			or (s = OOPList[15]) {'MOUSEY'}
 		then
 			ReadOnly := true;
 	end;
@@ -197,13 +205,13 @@ function GetReadOnly(statId: integer; s: string): integer;
 	var
 		i: integer;
 	begin
-		if s = OopStringToWord(Ooplist[16]) then
+		if s = OOPList[16] then
 			GetReadOnly := Board.Stats[0].X
-		else if s = OopStringToWord(Ooplist[17]) then
+		else if s = OOPList[17] then
 			GetReadOnly := Board.Stats[0].Y
-		else if s = OopStringToWord(OOPList[18]) then
+		else if s = OOPList[18] then
 			GetReadOnly := Board.Stats[statId].X
-		else if s = OopStringToWord(OOPList[19]) then
+		else if s = OOPList[19] then
 			GetReadOnly := Board.Stats[statId].Y
 		else if s = 'BOARDID' then
 			GetReadOnly := World.Info.CurrentBoard
@@ -211,9 +219,9 @@ function GetReadOnly(statId: integer; s: string): integer;
 			GetReadOnly := Board.Stats[statId].elseCheck and $7F
 		else if s = 'TICKSPEED' then
 			GetReadOnly := Tickspeed + 1
-		else if s = OopStringToWord(Ooplist[14]) then {'MOUSEX'}
+		else if s = OOPList[14] then {'MOUSEX'}
 			GetReadOnly := PMouseX
-		else if s = OopStringToWord(Ooplist[15]) then {'MOUSEY'}
+		else if s = OOPList[15] then {'MOUSEY'}
 			GetReadOnly := PMouseY
 		else
 			GetReadOnly := -128;
@@ -236,9 +244,9 @@ function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 			cPtr := @World.Info.Score
 		else if s = 'TIME' then
 			cPtr := @World.Info.BoardTimeSec
-		else if s = OopStringToWord(Ooplist[3]) then
+		else if s = OOPList[3] then
 			cPtr := @World.Info.EnergizerTicks
-		else if s = OopStringToWord(Ooplist[4]) then
+		else if s = OOPList[4] then
 			cPtr := @World.Info.TorchTicks
 		else begin
 			OopGetCounter := false;
@@ -338,7 +346,7 @@ procedure OopReadValue(statId: integer; var position: integer);
 		if Length(s) <> 0 then begin
 			if isNumeric then
 				Val(s, OopValue, code)
-			else if s = OopStringToWord(Ooplist[2]) then begin {'RANDOM'}
+			else if s = OOPList[2] then begin {'RANDOM'}
 				OopReadValue(statId, position);
 				if OopValue <> -128 then begin
 					ix := OopValue;
@@ -1315,9 +1323,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								WorldSetFlag(OopWord)
 							else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
-							if textLine = OopStringToWord(Ooplist[13]) then KeyRepeat;
-							if (textLine = OopStringToWord(Ooplist[5])) or
-								(textLine = OopStringToWord(Ooplist[4]))
+							if textLine = OOPList[13] then KeyRepeat;
+							if (textLine = OOPList[5]) or
+								(textLine = OOPList[4])
 							then TransitionDrawToBoard;
 							if (textLine = 'TICKSPEED')	then begin
 								Dec(TickSpeed);
@@ -1336,9 +1344,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								GameUpdateSidebar;
 							end else
 								WorldClearFlag(OopWord);
-							if textLine = OopStringToWord(Ooplist[13]) then KeyRepeat;
-							if (textLine = OopStringToWord(Ooplist[5])) or
-								(textLine = OopStringToWord(Ooplist[4]))
+							if textLine = OOPList[13] then KeyRepeat;
+							if (textLine = OOPList[5]) or
+								(textLine = OOPList[4])
 							then TransitionDrawToBoard;
 							if (textLine = 'TICKSPEED')	then TickTimeDuration := 0;
 						end else if OopWord = 'IF' then begin
@@ -1560,9 +1568,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								end;
 							end else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
-							if textLine = OopStringToWord(Ooplist[13]) then KeyRepeat;
-							if (textLine = OopStringToWord(Ooplist[5])) or
-								(textLine = OopStringToWord(Ooplist[4]))
+							if textLine = OOPList[13] then KeyRepeat;
+							if (textLine = OOPList[5]) or
+								(textLine = OOPList[4])
 							then TransitionDrawToBoard;
 							if (textLine = 'TICKSPEED')	then
 								TickTimeDuration := TickSpeed * 2;
@@ -1605,7 +1613,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									end;
 								end else
 									stopRunning := true;
-								if OopSend(0, 'ALL:' + Ooplist[1], false) then begin end;
+								if OopSend(0, 'ALL:' + OOPList[1], false) then begin end;
 							end else
 								OopError(statId,position, 'No board label :' + OopWord);
 						end else if OopWord = 'END' then begin
