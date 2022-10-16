@@ -421,6 +421,8 @@ procedure CustomOOPLoad;
 			Close(f);
 			if IOResult <> 0 then begin end;
 		end;
+		for i := 1 to CUSTOM_OOP_COUNT do
+			OOPList[i] := OopStringToWord(OOPList[i]);
 	end;
 
 procedure HighScoresLoad;
