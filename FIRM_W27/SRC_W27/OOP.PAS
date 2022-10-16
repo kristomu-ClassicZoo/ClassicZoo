@@ -151,11 +151,11 @@ function ShortWord(s: string): boolean;
 	begin
 		ShortWord := false;
 		for i := 5 to 15 do
-			if s = OOPList[i] then ShortWord := true;
+			if s = OOPList[i] then begin ShortWord := true; exit; end;
 		for i := 7 to 9 do
-			if s = CustomObjList[i] then ShortWord := true;
-		if s = 'ARRAY' then ShortWord := true;
-		if s = 'TICKSPEED' then ShortWord := true;
+			if s = CustomObjList[i] then begin ShortWord := true; exit; end;
+		if s = 'ARRAY' then begin ShortWord := true; exit; end;
+		if s = 'TICKSPEED' then begin ShortWord := true; exit; end;
 	end;
 
 procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
@@ -186,8 +186,10 @@ procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
 			cPtr := @TickSpeed
 		else
 			for i := 7 to 9 do
-				if s = CustomObjList[i] then
+				if s = CustomObjList[i] then begin
 					cPtr := @Board.Stats[statId].ObjTiny[i - 6];
+					exit;
+				end;
 	end;
 
 function ReadOnly(s: string): boolean;
@@ -196,7 +198,7 @@ function ReadOnly(s: string): boolean;
 	begin
 		ReadOnly := false;
 		for i := 16 to 19 do
-			if s = OOPList[i] then ReadOnly := true;
+			if s = OOPList[i] then begin ReadOnly := true; exit; end;
 		if (s = 'BOARDID')
 			or (s = 'ARRAY')
 			or (s = 'TICKSPEED')
@@ -259,24 +261,29 @@ function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 				if s = CustomBoardList[i] then begin
 					cPtr := @Board.Info.Local[i];
 					OopGetCounter := true;
+					exit;
 				end;
 			for i := 1 to 4 do
 				if s = CustomObjList[i] then begin
 					cPtr := @Board.Stats[statId].ObjLocal[i];
 					OopGetCounter := true;
+					exit;
 				end;
 			if s = CustomObjList[5] then begin
 				cPtr := @Board.Stats[statId].Leader;
 				OopGetCounter := true;
+				exit;
 			end;
 			if s = CustomObjList[6] then begin
 				cPtr := @Board.Stats[statId].Follower;
 				OopGetCounter := true;
+				exit;
 			end;
 			for i := 1 to CUSTOM_FLAG_COUNT do
 				if s = CustomFlagList[i] then begin
 					cPtr := @World.Info.CustomFlags[i];
 					OopGetCounter := true;
+					exit;
 				end;
 
 		end;
@@ -793,7 +800,7 @@ function ElementNumber(s: string): shortint;
 	begin
 		ElementNumber := -1;
 		for i := 0 to MAX_ELEMENT do
-			if s = ElementDefs[i].Name then ElementNumber := i;
+			if s = ElementDefs[i].Name then begin ElementNumber := i; exit; end;
 	end;
 
 function OopParseTile(var statId, position: integer; var tile: TMatchTile): boolean;
