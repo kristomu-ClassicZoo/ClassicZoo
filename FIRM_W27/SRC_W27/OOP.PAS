@@ -78,9 +78,9 @@ procedure OopReadChar(statId: integer; var position: integer);
 procedure OopReadWord(statId: integer; var position: integer);
 	var
 		s: string;
-		i: integer;
+		wordPos: byte;
 	begin
-		OopWord := '';
+		wordPos := 0;
 		repeat
 			OopReadChar(statId, position);
 		until OopChar <> ' ';
@@ -94,12 +94,17 @@ procedure OopReadWord(statId: integer; var position: integer);
 		do begin
 			if OopChar = '^' then begin
 				Str(Board.Stats[statId].elseCheck and $7F, s);
+				OopWord[0] := Chr(wordPos);
 				OopWord := OopWord + s;
-			end else
-				OopWord := OopWord + OopChar;
+				wordPos := Ord(OopWord[0]);
+			end else if wordPos <= OOP_TOKEN_LENGTH then begin
+				Inc(wordPos);
+				OopWord[wordPos] := oopChar;
+			end;
 			OopReadChar(statId, position);
 			OopChar := UpCase(OopChar);
 		end;
+		OopWord[0] := Chr(wordPos);
 		if position > 0 then
 			Dec(position);
 	end;
@@ -308,6 +313,7 @@ function OopRunFunc(statId: integer; var position: integer): integer;
 procedure OopReadValue(statId: integer; var position: integer);
 	var
 		s: string[20];
+		wordPos: byte;
 		t: string;
 		ix, iy, code: integer;
 		isNumeric: boolean;
@@ -315,7 +321,7 @@ procedure OopReadValue(statId: integer; var position: integer);
 		shortPtr: cShort;
 		tmpCond: boolean;
 	begin
-		s := '';
+		wordPos := 0;
 		repeat
 			OopReadChar(statId, position)
 		until OopChar <> ' ';
@@ -332,13 +338,18 @@ procedure OopReadValue(statId: integer; var position: integer);
 				isNumeric := false;
 			if OopChar = '^' then begin
 				Str(Board.Stats[statId].elseCheck and $7F, t);
+				s[0] := Chr(wordPos);
 				s := s + t;
-			end else
-				s := s + OopChar;
+				wordPos := Ord(s[0]);
+			end else if wordPos <= OOP_TOKEN_LENGTH then begin
+				Inc(wordPos);
+				s[wordPos] := oopChar;
+			end;
 			OopReadChar(statId, position);
 			OopChar := UpCase(OopChar);
 		end;
 
+		s[0] := Chr(wordPos);
 		if position > 0 then
 			Dec(position);
 
