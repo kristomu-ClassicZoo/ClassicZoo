@@ -38,6 +38,10 @@ interface
 	procedure SidebarClear;
 	function EnsureIoTmpBufSize(newSize: word): integer;
 	procedure AdvancePointer(var address: pointer; count: integer);
+		inline(
+			$58/$5F/$07/ { POP AX, DI, ES }
+			$26/$01/$05 { ADD ES:[DI], AX }
+		);
 	procedure BoardClose;
 	procedure BoardOpen(boardId: integer);
 	procedure BoardChange(boardId: integer);
@@ -561,12 +565,6 @@ function EnsureIoTmpBufSize(newSize: word): integer;
 			EnsureIoTmpBufSize := 1;
 		end;
 	end;
-
-procedure AdvancePointer(var address: pointer; count: integer);
-	inline(
-		$58/$5F/$07/ { POP AX, DI, ES }
-		$26/$01/$05 { ADD ES:[DI], AX }
-	);
 
 procedure BoardClose;
 	var
