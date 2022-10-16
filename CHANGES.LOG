@@ -1,3 +1,12 @@
+10/16/2022: FirmWeave 2.6u
+Improvements:
+* Greatly improved performance because asie is a kind witch
+
+SoftWeave rc2, Fixweave 1.0g
+Improvements:
+* Improved file loading via an updated Advancepointer, see above
+
+
 10/15/2022: FirmWeave 2.7t
 Bug Fixes:
 * Added a provision to require scores be > 0 to show up in the high score list

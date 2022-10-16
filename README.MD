@@ -1,4 +1,4 @@
-# Weave ZZT 2.6
+# Weave ZZT 2.7
 
 Unlike previous versions of Weave, this version really is meant to be the forever version.
 
@@ -6,7 +6,7 @@ Designed with the full scope of the ZZTer audience in mind, this version hopes t
 
 ## Using
 
-The DOS executables provided in BIN are already ready to take on ZZT. With your own copy of Turbo Pascal 5.5, you can compile both executables yourself using the BUILDW26.BAT files provided in the different subdirectories.
+The DOS executables provided in BIN are already ready to take on ZZT. With your own copy of Turbo Pascal 5.5, you can compile both executables yourself using the BUILDW27.BAT files provided in the different subdirectories.
 
 ## SOFT and FIRM weaves
 
@@ -77,12 +77,12 @@ Below are listed the files in the various folders of the project.
 * SOFTDEMO.ZZT
     * The SoftWeave demo file.
 
-### FIRM_W26 directory
+### FIRM_W27 directory
 
 * TOOLS
     * LZEXE.EXE, LZEXE.DOC
         * For shrinking ZZT.EXE.
-* SRC_W26
+* SRC_W27
     * ALL .PAS FILES (ELEMENTS.PAS, EXTMEM.PAS, etc.)
         * Forked from the ZZT Reconstruction and ClassicZoo.
         * Reconstruction: github.com/asiekierka/reconstruction-of-zzt
@@ -103,7 +103,7 @@ Below are listed the files in the various folders of the project.
         * Counters and Keybinds for the FirmWeave demo.
     * TEMPLATE.INI
         * Standard Counters and Keybinds template file.
-* BUILDW26.BAT
+* BUILDW27.BAT
     * Used in DOS or DOSBox to build FirmWeave from source.
 * LICENSE.TXT
     * MIT License, required by reconstruction-of-zzt.
@@ -120,4 +120,4 @@ The completed releases as compiled by the above are provided here in the SOFT an
 
 Hit me up in the ZZT Discord if you've got feedback or there's something to add. I'm not married to anything here so if there's a better way to do something, or you REALLY have to have like, breakable linewalls or walkable ricochets or something like that, Later versions of Weave could open that up. If you want to be able to create your own custom elements from accessory files, you're not alone. HardWeave and FixWeave both have specs and are in development, providing the more hardcore modders with the extensible element platform of their dreams.
 
-Discord of ZZT Link: discord dot com slash invite slash Nar4Upf
+Discord of ZZT Link: museumofzzt dot com slash discord

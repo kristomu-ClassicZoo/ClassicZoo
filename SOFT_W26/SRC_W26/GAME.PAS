@@ -352,9 +352,10 @@ function EnsureIoTmpBufSize(newSize: word): integer;
 	end;
 
 procedure AdvancePointer(var address: pointer; count: integer);
-	begin
-		address := Ptr(Seg(address^), Ofs(address^) + count);
-	end;
+	inline(
+		$58/$5F/$07/ { POP AX, DI, ES }
+		$26/$01/$05 { ADD ES:[DI], AX }
+	);
 
 procedure BoardClose;
 	var
