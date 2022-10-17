@@ -515,8 +515,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 					canMove := false;
 				{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
 				{ Pre-find stat IDs to prevent such a scenario from occuring. }
-				if ElementDefs[Element].Cycle > -1 then
-					statIds[i] := GetStatIdAt(tx, ty);
+				statIds[i] := GetStatIdAt(tx, ty);
 			end;
 			Inc(i, direction);
 		until i = iMax;
@@ -531,7 +530,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 						tx := x + DiagonalDeltaX[i];
 						ty := y + DiagonalDeltaY[i];
 
-						if ElementDefs[Element].Cycle > -1 then begin
+						if statIds[i] >= 0 then begin
 							tmpTile := Board.Tiles[tx][ty];
 							Board.Tiles[tx][ty] := tiles[i];
 							Board.Tiles[ix][iy].Element := E_EMPTY;
@@ -911,7 +910,7 @@ procedure ElementBlinkWallTick(statId: integer);
 								if Board.Tiles[ix + 1][iy].Element = E_EMPTY then
 									MoveStat(playerStatId, ix + 1, iy)
 								else if Board.Tiles[ix - 1][iy].Element = E_EMPTY then
-									MoveStat(playerStatId, ix + 1, iy);
+									MoveStat(playerStatId, ix - 1, iy);
 							end;
 
 							if Board.Tiles[ix][iy].Element = E_PLAYER then begin

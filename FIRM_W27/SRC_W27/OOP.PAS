@@ -1752,20 +1752,19 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								and ((iy + deltaY > 0) and (iy + deltaY <= BOARD_HEIGHT)))
 							then begin
 								ElementPushablePush(ix, iy, deltaX, deltaY);
-								if (argTile.Element = Board.Tiles[ix][iy].Element)
-									and (Board.Tiles[ix + deltaX][iy + deltaY].Element <> E_PLAYER)
-								then begin
+								if (argTile.Element = Board.Tiles[ix][iy].Element) then begin
 									ElementPushablePush(ix + deltaX, iy + deltaY, deltaX, deltaY);
-									bindStatId := GetStatIdAt(ix,iy);
-									if (bindStatId > -1) then begin
-										if GetStatIdAt(ix + deltaX, iy + deltaY) < 0 then
-											MoveStat(bindStatId, ix + deltaX, iy + deltaY);
-									end else begin
-										Board.Tiles[ix + deltaX][iy + deltaY] := Board.Tiles[ix][iy];
-										Board.Tiles[ix][iy].Element := E_EMPTY;
+									if GetStatIdAt(ix + deltaX, iy + deltaY) < 0 then begin
+										bindStatId := GetStatIdAt(ix,iy);
+										if (bindStatId > -1) then
+											MoveStat(bindStatId, ix + deltaX, iy + deltaY)
+										else begin
+											Board.Tiles[ix + deltaX][iy + deltaY] := Board.Tiles[ix][iy];
+											Board.Tiles[ix][iy].Element := E_EMPTY;
+										end;
+										BoardDrawTile(ix, iy);
+										BoardDrawTile(ix + deltaX, iy + deltaY);
 									end;
-									BoardDrawTile(ix, iy);
-									BoardDrawTile(ix + deltaX, iy + deltaY);
 								end;
 							end;
 						end else if OopWord = 'PUT' then begin

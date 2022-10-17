@@ -1,3 +1,16 @@
+10/17/2022: FirmWeave 2.7w
+Bug Fixes:
+* A Conveyor would leave the stats from normally statless statted things behind.
+
+Improvements:
+* Additional optimizations to increase speed a further 25%.
+
+
+10/17/2022: FirmWeave 2.7v
+Bug Fixes:
+* #SHOVE could shove a statted thing onto the statless version of a normally statted element, such as a lion, and cause that lion to inconsistently come to life.
+
+
 10/16/2022: FirmWeave 2.7u
 Improvements:
 * Greatly improved performance because asie is a kind witch
