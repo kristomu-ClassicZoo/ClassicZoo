@@ -1,6 +1,7 @@
 10/17/2022: FirmWeave 2.7w
 Bug Fixes:
 * A Conveyor would leave the stats from normally statless statted things behind.
+* Blinkwall instant-kill bug from 3.2 fixed.
 
 Improvements:
 * Additional optimizations to increase speed a further 25%.
