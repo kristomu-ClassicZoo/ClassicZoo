@@ -30,6 +30,8 @@ interface
 	type
 		TVideoLine = string[80];
 		TVideoWriteTextProc = procedure(x, y, color: byte; text: TVideoLine);
+		TCharsetData = array[0 .. 3583] of byte;
+		PTCharsetData = ^TCharsetData;
 	const
 		PORT_CGA_MODE = $03D8;
 		PORT_CGA_PALETTE = $03D9;
@@ -53,11 +55,10 @@ interface
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure SetBlink(blinkState: boolean);
 	procedure SetAccKeys;
+	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 
 implementation
 uses Crt, Dos, AccKeys;
-
-{$F+}
 
 procedure SetAccKeys;
 	var
@@ -92,6 +93,52 @@ procedure SetBlink(blinkState: boolean);
 			regs.bx := $0000;
 		Intr($10, regs);
 	end;
+
+function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
+	var
+		regs: Registers;
+	begin
+		VideoSetCharset := false;
+		if not VideoEGAInstalled then exit;
+		if (height <> 14) and (height > 0) then exit;
+
+		if (data = nil) or (height <= 0) then begin
+			regs.AX := $1111;
+			regs.BL := $00;
+		end else begin
+			regs.BX := (height shl 8);
+			regs.CX := 256;
+			regs.DX := 0;
+
+			regs.AX := $1110;
+			regs.ES := Seg(data^);
+			regs.BP := Ofs(data^);
+		end;
+
+		Intr($10, regs);
+
+		VideoHideCursor;
+		VideoSetCharset := true;
+	end;
+
+function ColorToBW(color: byte): byte;
+	begin
+		if (color and $08) = $08 then begin
+			if (color and $F0) = 0 then
+				color := $0F
+			else
+				color := $7F;
+		end else begin
+			if (color and $07) <> 0 then
+				color := $07
+			else
+				color := $70;
+		end;
+		ColorToBW := color;
+	end;
+
+{ VideoWriteText procs need to be F+, as they are pointers }
+{$F+}
 
 procedure VideoWriteTextCGA(x, y, color: byte; text: TVideoLine);
 	begin
@@ -160,23 +207,6 @@ procedure VideoWriteTextFast(x, y, color: byte; text: TVideoLine);
 			$FB                  { STI }
 		{ finish: }
 		);
-	end;
-
-
-function ColorToBW(color: byte): byte;
-	begin
-		if (color and $08) = $08 then begin
-			if (color and $F0) = 0 then
-				color := $0F
-			else
-				color := $7F;
-		end else begin
-			if (color and $07) <> 0 then
-				color := $07
-			else
-				color := $70;
-		end;
-		ColorToBW := color;
 	end;
 
 procedure VideoWriteTextCGABW(x, y, color: byte; text: TVideoLine);

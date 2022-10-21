@@ -339,6 +339,24 @@ function DefaultOopList (i: integer): string;
 		else DefaultOopList := '_nil' end;
 	end;
 
+procedure CustomCharsetLoad;
+	var
+		f: file;
+		ch: TCharsetData;
+	begin
+		if (World.Info.Name <> '') and FileExists(World.Info.Name + '.CHR') then begin
+			Assign(f, World.Info.Name + '.CHR');
+			Reset(f, 1);
+			if IOResult = 0 then begin
+				BlockRead(f, ch, 3584);
+				if VideoSetCharset(@ch, 14) then exit;
+			end;
+		end;
+
+		{ Load default charset if failure/no charset }
+		if VideoSetCharset(nil, 0) then begin end;
+	end;
+
 procedure CustomOOPLoad;
 	var
 		s: string;
@@ -1137,6 +1155,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 
 				HighScoresLoad;
 				CustomOOPLoad;
+				CustomCharsetLoad;
 
 				SidebarClearLine(5);
 
