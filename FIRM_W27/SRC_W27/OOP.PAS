@@ -1202,7 +1202,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 		namePosition: integer;
 		lastPosition: integer;
 		repeatInsNextTick: boolean;
-		replaceStat, replaceForce, dieItem: boolean;
+		replaceBoard, replaceStat, replaceForce, dieItem: boolean;
 		MatchFG, MatchBG: boolean;
 		lineFinished: boolean;
 		labelPtr: pointer;
@@ -1228,6 +1228,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 			textWindow.Selectable := false;
 			stopRunning := false;
 			repeatInsNextTick := false;
+			replaceBoard := false;
 			replaceStat := false;
 			replaceForce := false;
 			dieItem := false;
@@ -1616,22 +1617,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								ix := OopValue;
 								OopReadValue(statId, position);
 								iy := OopValue;
-								BoardChange(deltaX);
-								TransitionDrawToBoard;
-								BoardEnter;
-								if (( ix > 0 ) and ( iy > 0 )) and
-									((Board.Stats[0].X <> ix) or
-										(Board.Stats[0].Y <> iy)) then
-									MoveStat(0, ix, iy);
-								if statId <= Board.StatCount then begin
-									if Board.Stats[statId].Datalen > 0 then begin
-										position := Board.Stats[statId].DataPos;
-										if position <> -1 then
-											lineFinished := false;
-									end;
-								end else
-									stopRunning := true;
-								if OopSend(0, 'ALL:' + OOPList[1], false) then begin end;
+								replaceBoard := true;
+								stopRunning := true;
 							end else
 								OopError(statId,position, 'No board label :' + OopWord);
 						end else if OopWord = 'END' then begin
@@ -1948,10 +1935,21 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 				if dieItem then
 					MoveStat(0, ix, iy);
 			end;
+
+			if replaceBoard then begin
+				BoardChange(deltaX);
+				TransitionDrawToBoard;
+				BoardEnter;
+				if (( ix > 0 ) and ( iy > 0 )) and
+					((Board.Stats[0].X <> ix) or
+						(Board.Stats[0].Y <> iy)) then
+					MoveStat(0, ix, iy);
+				if OopSend(0, 'ALL:' + OOPList[1], false) then begin end;
+			end;
 		end;
 
 		StopExecution:
-		OopExecute := not replaceStat;
+		OopExecute := not (replaceStat or replaceBoard);
 	end;
 
 begin

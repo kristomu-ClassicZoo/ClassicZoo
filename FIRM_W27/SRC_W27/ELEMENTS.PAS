@@ -1002,16 +1002,14 @@ procedure ElementDuplicatorDraw(x, y: integer; var ch: byte);
 procedure ElementObjectTick(statId: integer);
 	var
 		retVal: boolean;
-		rbrd: byte;
 	begin
 		with Board.Stats[statId] do begin
-			rbrd := World.Info.CurrentBoard;
 			if DataPos >= 0 then
 				retVal := OopExecute(statId, DataPos, ConfigList[84])
 			else
 				retVal := true;
 
-			if retVal and (rbrd = World.Info.CurrentBoard) then begin
+			if retVal then begin
 				if ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then
 					MoveStat(statId, X + StepX, Y + StepY)
 				else if (StepX <> 0) or (StepY <> 0) then

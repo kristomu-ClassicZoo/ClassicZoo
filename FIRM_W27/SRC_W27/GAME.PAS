@@ -479,8 +479,6 @@ procedure HighScoresSave;
 		end;
 	end;
 
-{$F+}
-
 procedure HighScoresInitTextWindow(var state: TTextWindowState);
 	var
 		i: integer;
