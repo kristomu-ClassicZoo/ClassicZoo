@@ -210,7 +210,7 @@ procedure InitPalette(reset: boolean);
 function DefaultParamList(i: integer): integer;
 	begin
 		case i of
-			1,3,6,12,13: DefaultParamList := 1;
+			1,3,6,12,13,71: DefaultParamList := 1;
 			2: DefaultParamList := 10;
 			4,7: DefaultParamList := 2;
 			5,8: DefaultParamList := 50;
@@ -829,7 +829,7 @@ procedure WorldCreate;
 		BoardChange(0);
 		Board.Name := 'Title screen';
 		LoadedGameFileName := '';
-		
+
 		for i := 1 to CUSTOM_FLAG_COUNT do
 			World.Info.CustomFlags[i] := 0;
 		CustomOOPLoad;
@@ -1686,7 +1686,7 @@ procedure GameUpdateSidebar;
 
 procedure DisplayMessage(time: integer; message: string);
 	var
-		statId: integer;		
+		statId: integer;
 	begin
 		if Length(message) <> 0 then begin
 			if message = '$' then begin

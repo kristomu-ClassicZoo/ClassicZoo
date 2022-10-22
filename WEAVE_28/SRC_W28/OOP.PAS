@@ -192,6 +192,66 @@ procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
 				end;
 	end;
 
+function GetShortBit(s: string): shortint;
+	begin
+	if s = 'BIT1' then
+		GetShortBit := $01
+	else if s = 'BIT2' then
+		GetShortBit := $02
+	else if s = 'BIT3' then
+		GetShortBit := $04
+	else if s = 'BIT4' then
+		GetShortBit := $08
+	else if s = 'BIT5' then
+		GetShortBit := $10
+	else if s = 'BIT6' then
+		GetShortBit := $20
+	else if s = 'BIT7' then
+		GetShortBit := $40
+	else if s = 'BIT8' then
+		GetShortBit := -$80
+	else
+		GetShortBit := $00;
+	end;
+
+function GetBit(s: string): integer;
+	begin
+	if s = 'BIT1' then
+		GetBit := $0001
+	else if s = 'BIT2' then
+		GetBit := $0002
+	else if s = 'BIT3' then
+		GetBit := $0004
+	else if s = 'BIT4' then
+		GetBit := $0008
+	else if s = 'BIT5' then
+		GetBit := $0010
+	else if s = 'BIT6' then
+		GetBit := $0020
+	else if s = 'BIT7' then
+		GetBit := $0040
+	else if s = 'BIT8' then
+		GetBit := $0080
+	else if s = 'BIT9' then
+		GetBit := $0100
+	else if s = 'BIT10' then
+		GetBit := $0200
+	else if s = 'BIT11' then
+		GetBit := $0400
+	else if s = 'BIT12' then
+		GetBit := $0800
+	else if s = 'BIT13' then
+		GetBit := $1000
+	else if s = 'BIT14' then
+		GetBit := $2000
+	else if s = 'BIT15' then
+		GetBit := $4000
+	else if s = 'BIT16' then
+		GetBit := -$8000
+	else
+		GetBit := $0000;
+	end;
+
 function ReadOnly(s: string): boolean;
 	var
 		i: integer;
@@ -204,13 +264,12 @@ function ReadOnly(s: string): boolean;
 			or (s = 'TICKSPEED')
 			or (s = OOPList[14]) {'MOUSEX'}
 			or (s = OOPList[15]) {'MOUSEY'}
+			or (GetBit(s) <> 0)
 		then
 			ReadOnly := true;
 	end;
 
 function GetReadOnly(statId: integer; s: string): integer;
-	var
-		i: integer;
 	begin
 		if s = OOPList[16] then
 			GetReadOnly := Board.Stats[0].X
@@ -230,6 +289,8 @@ function GetReadOnly(statId: integer; s: string): integer;
 			GetReadOnly := PMouseX
 		else if s = OOPList[15] then {'MOUSEY'}
 			GetReadOnly := PMouseY
+		else if GetBit(s) <> 0 then
+			GetReadOnly := -32768
 		else
 			GetReadOnly := -128;
 	end;
@@ -965,6 +1026,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				ix := position;
 				OopReadWord(statId, position);
 				if (OopWord = 'ABOVE') or ((OopWord = 'BELOW') or (OopWord = 'IS')) then begin
+					code := position;
 					OopReadValue(statId, position);
 					if OopValue = -128 then
 						OopError(statId,position, 'Could not read ' + OopWord + ' value');
@@ -973,9 +1035,14 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					OopCheckCondition := (iy > OopValue)
 				else if (OopWord = 'BELOW') then
 					OopCheckCondition := (iy < OopValue)
-				else if (OopWord = 'IS') then
-					OopCheckCondition := (iy = OopValue)
-				else begin
+				else if (OopWord = 'IS') then begin
+					if OopValue = -32768 then begin
+						position := code;
+						OopReadWord(statId, position);
+						OopCheckCondition := ((iy and GetBit(OopWord)) <> 0);
+					end else
+						OopCheckCondition := (iy = OopValue);
+				end else begin
 					position := ix;
 					OopCheckCondition := (iy > 0);
 				end;
@@ -1318,25 +1385,43 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							if OopWord = 'ARRAY' then begin
 								tmpcond := elseCheck and $80;
 								elsecheck := elsecheck and $7F;
+								code := position;
 								OopReadValue(statId, position);
-								if OopValue <> -128 then
+								if OopValue = -128 then
+									elseCheck := 1
+								else if OopValue <> -32768 then
 									elseCheck := OopValue
-								else
-									elseCheck := 1;
+								else begin
+									position := code;
+									OopReadWord(statId, position);
+									elseCheck := elseCheck or GetShortBit(OopWord);
+								end;
 								elsecheck := (elsecheck and $7F) + tmpcond;
 							end else if ShortWord(OopWord) then begin
 								OopGetShort(statId, OopWord, shortPtr);
+								code := position;
 								OopReadValue(statId, position);
-								if OopValue <> -128 then
+								if OopValue = -128 then
+									shortPtr^ := 1
+								else if OopValue <> -32768 then
 									shortPtr^ := OopValue
-								else
-									shortPtr^ := 1;
+								else begin
+									position := code;
+									OopReadWord(statId, position);
+									shortPtr^ := shortPtr^ or GetShortBit(OopWord);
+								end;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
+								code := position;
 								OopReadValue(statId, position);
-								if OopValue <> -128 then
+								if OopValue = -128 then
+									counterPtr^ := 1
+								else if OopValue <> -32768 then
 									counterPtr^ := OopValue
-								else
-									counterPtr^ := 1;
+								else begin
+									position := code;
+									OopReadWord(statId, position);
+									counterPtr^ := counterPtr^ or GetBit(OopWord);
+								end;
 								GameUpdateSidebar;
 							end else if OopNextWord(statId, position) = '' then
 								WorldSetFlag(OopWord)
@@ -1353,16 +1438,26 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = 'CLEAR' then begin
 							OopReadWord(statId, position);
 							textLine := OopWord;
-							if OopWord = 'ARRAY' then
-								elsecheck := elseCheck and $80
-							else if ShortWord(OopWord) then begin
-								OopGetShort(statId, OopWord, shortPtr);
-								shortPtr^ := 0;
-							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
-								counterPtr^ := 0;
+							OopReadWord(statId, position);
+							if textLine = 'ARRAY' then begin
+								if (GetShortBit(OopWord) > 0) then
+									elseCheck := elseCheck - (elseCheck and GetShortBit(OopWord))
+								else
+									elseCheck := elseCheck and $80;
+							end else if ShortWord(textLine) then begin
+								OopGetShort(statId, textLine, shortPtr);
+								if (GetShortBit(OopWord) <> 0) then
+									shortPtr^ := shortPtr^ - (shortPtr^ and GetShortBit(OopWord))
+								else
+									shortPtr^ := 0;
+							end else if OopGetCounter(statId, textLine, counterPtr) then begin
+								if (GetBit(OopWord) <> 0) then
+									counterPtr^ := counterPtr^ - (counterPtr^ and GetBit(OopWord))
+								else
+									counterPtr^ := 0;
 								GameUpdateSidebar;
 							end else
-								WorldClearFlag(OopWord);
+								WorldClearFlag(textLine);
 							if textLine = OOPList[13] then KeyRepeat;
 							if (textLine = OOPList[5]) or
 								(textLine = OOPList[4])
@@ -1444,12 +1539,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopReadValue(statId, position);
 							if ((( ix > -1 ) and ( ix < 16 ))
 								and (( iy > -1 ) and ( iy < 16 )))
-								and (( OopValue > -1 ) and ( OopValue < 256 ))
-							then begin
+							then
 								World.Info.PlayerColor := AsColor( ix, iy );
+							if (( OopValue > -1 ) and ( OopValue < 256 )) then 
 								World.Info.PlayerChar := Chr(OopValue);
-							end else
-								OopError(statId,position, 'Bad PLAYER Command');
 						end else if OopWord = 'QUICKSAVE' then begin
 							OopReadWord(statId, position);
 							if OopWord <> '' then begin
@@ -1546,6 +1639,19 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									position := code;
 									OopValue := 1;
 								end;
+								if OopValue = -32768 then begin
+									position := code;
+									OopReadWord(statId, position);
+									OopValue := GetShortBit(OopWord);
+									if counterSubtract and ((elseCheck and GetShortBit(OopWord)) = 0) then begin
+										elsecheck := (elsecheck and $7F) + tmpcond;
+										goto ReadCommand;
+									end;
+									if (not counterSubtract) and ((elseCheck and GetShortBit(OopWord)) <> 0) then begin
+										elsecheck := (elsecheck and $7F) + tmpcond;
+										goto ReadCommand;
+									end;
+								end;
 								if counterSubtract then
 									OopValue := -OopValue;
 
@@ -1564,6 +1670,15 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									position := code;
 									OopValue := 1;
 								end;
+								if OopValue = -32768 then begin
+									position := code;
+									OopReadWord(statId, position);
+									OopValue := GetShortBit(OopWord);
+									if counterSubtract and ((shortPtr^ and GetShortBit(OopWord)) = 0) then
+										goto ReadCommand;
+									if (not counterSubtract) and ((shortPtr^ and GetShortBit(OopWord)) <> 0) then
+										goto ReadCommand;
+								end;
 								if counterSubtract then
 									OopValue := -OopValue;
 								if (shortPtr^ + OopValue) >= 0 then
@@ -1576,6 +1691,15 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								if OopValue = -128 then begin
 									position := code;
 									OopValue := 1;
+								end;
+								if OopValue = -32768 then begin
+									position := code;
+									OopReadWord(statId, position);
+									OopValue := GetBit(OopWord);
+									if counterSubtract and ((counterPtr^ and GetBit(OopWord)) = 0) then
+										goto ReadCommand;
+									if (not counterSubtract) and ((counterPtr^ and GetBit(OopWord)) <> 0) then
+										goto ReadCommand;
 								end;
 								if counterSubtract then
 									OopValue := -OopValue;

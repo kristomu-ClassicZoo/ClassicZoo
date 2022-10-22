@@ -1510,7 +1510,7 @@ procedure ElementTruePlayerTick;
 				ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].TouchProc(
 					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					if SoundEnabled and not SoundIsPlaying then
+					if SoundEnabled and not SoundIsPlaying and not (ParamList[71] = 0) then
 						Sound(110);
 					if ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].Walkable then begin
 						if SoundEnabled and not SoundIsPlaying then
@@ -2140,6 +2140,7 @@ function ParamConfigs(i: integer): string;
 			20: ParamConfigs := 'THEME.BLINKING';
 			21: ParamConfigs := 'OTHER.STARTBOARD';
 			22: ParamConfigs := 'OTHER.FLAGLENGTH';
+			71: ParamConfigs := 'OTHER.FOOTSTEPS';
 		else ParamConfigs := '_nil' end;
 	end;
 
@@ -2267,6 +2268,8 @@ procedure InitElementsGame;
 							for i := 1 to (PALETTE_START - 1) do
 								if ParamConfigs(i) = k then
 									ParamList[i] := v;
+							if ParamConfigs(71) = k then
+								ParamList[71] := v;
 						end else begin
 							Inc(i);
 							while (s[i] <> '=') and (i <= Length(s)) do begin
