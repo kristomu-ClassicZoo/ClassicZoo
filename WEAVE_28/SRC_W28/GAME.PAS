@@ -2230,6 +2230,25 @@ procedure GameDrawCustomSidebar;
 		end;
 	end;
 
+procedure GoToDirectory(var input: string);
+	var
+		s, k: string;
+		i: integer;
+	begin
+		s := '';
+		k := '';
+		for i := 1 to Length(input) do begin
+			if Input[i] = '\' then
+				s := k;
+			k := k + Input[i];
+		end;
+		if Length(s) <> 0 then begin
+			Chdir(s);
+			input := Copy(input, Length(s) + 2, 12);
+		end;
+	end;
+			
+
 procedure GamePlayLoop(boardChanged: boolean);
 	var
 		f: file;
@@ -2324,6 +2343,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 		if JustStarted then begin
 			if Length(StartupWorldFileName) <> 0 then begin
+				GoToDirectory(StartupWorldFileName);
 				if (FileExists(StartupWorldFileName + '.ZZT')
 					and WorldLoad(StartupWorldFileName, '.ZZT'))
 					or (FileExists(StartupWorldFileName)

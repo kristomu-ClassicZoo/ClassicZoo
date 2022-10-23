@@ -1,3 +1,18 @@
+10/22/2022: WeaveZZT 2.8a
+Bug Fixes:
+* Improved #BOARD handling stops execution of object code upon changing boards.
+
+New Features:
+* .CHR files in the same directory as the .ZZT file will be loaded as charsets when loading the game.
+* You can now suppress the footstep noise by setting "other.footsteps = 0" in your .CFG file.
+
+Improvements:
+* Counters can now be #SET and #CLEARed as though they were 16 flags, using bit1-bit16 addressing.
+
+Updates:
+* SoftWeave and FirmWeave are deprecated. Instead, all updates will be to Weave.
+* A !HOW_TO.htm file will now be included with each download with some instructions on getting Weave to work with Zeta.
+
 10/17/2022: FirmWeave 2.7w
 Bug Fixes:
 * A Conveyor would leave the stats from normally statless statted things behind.

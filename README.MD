@@ -34,7 +34,7 @@ There are a few different kinds of files found in this project:
     * Custom keybinds.
 * BAT files:
     * Used to compile Weave in DOS or DOSBox.
-* TXT, DOC, and HTM files:
+* TXT, DOC, PNG and HTM files:
     * Documents designed to be shipped with Weave.
 * OBJ files:
     * ZZT-OOP code to be loaded into objects.
@@ -78,6 +78,8 @@ Below are listed the files in the various folders of the project.
         * Standard Counters and Keybinds template file.
     * Using_Weave_with_Zeta.htm
         * A simple tutorial to get you started using Weave with Zeta. Included with the Weave 2 download.
+    * howto1.png, howto2.png, howto3.png
+        * Companion images to the above tutorial.
 * BUILDW28.BAT
     * Used in DOS or DOSBox to build Weave from source.
 * LICENSE.TXT
