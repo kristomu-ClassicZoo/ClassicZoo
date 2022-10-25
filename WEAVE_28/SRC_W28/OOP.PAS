@@ -31,9 +31,12 @@ interface
 	type
 		cInt = ^integer;
 		cShort = ^shortint;
-	function WorldGetFlagPosition(name: TString50): integer;
-	procedure WorldSetFlag(name: TString50);
-	procedure WorldClearFlag(name: TString50);
+	function WorldGetFlagPosition(name: TString20): integer;
+	function GetCustomFlag(name: TString20): boolean;
+	procedure WorldSetFlag(name: TString20);
+	function CustomSetFlag(name: TString20): boolean;
+	procedure WorldClearFlag(name: TString20);
+	function CustomClearFlag(name: TString20): boolean;
 	procedure InspectObjectCode(statId, PointPos: integer; ErrMsg: string);
 	function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
 	function OopExecute(statId: integer; var position: integer; name: TString50): boolean;
@@ -49,6 +52,18 @@ interface
 
 implementation
 uses Sounds, TxtWind, Game, Elements;
+
+const
+	CFlagPos: array[1..32] of longint = (
+		$00000001, $00000002, $00000004, $00000008,
+		$00000010, $00000020, $00000040, $00000080,
+		$00000100, $00000200, $00000400, $00000800,
+		$00001000, $00002000, $00004000, $00008000,
+		$00010000, $00020000, $00040000, $00080000,
+		$00100000, $00200000, $00400000, $00800000,
+		$01000000, $02000000, $04000000, $08000000,
+		$10000000, $20000000, $40000000, -$80000000
+	);
 
 procedure OopError(statId, position: integer; message: string);
 	begin
@@ -179,7 +194,7 @@ procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
 		else if s = OOPList[12] then
 			cPtr := @World.Info.Keys[7]
 		else if s = OOPList[13] then
-			cPtr := @World.Info.KeySpeed
+			cPtr := @World.Info.IsSave
 		else if s = 'ARRAY' then
 			cPtr := @Board.Stats[statId].elseCheck
 		else if s = 'TICKSPEED' then
@@ -292,7 +307,7 @@ function GetReadOnly(statId: integer; s: string): integer;
 		else if GetBit(s) <> 0 then
 			GetReadOnly := -32768
 		else
-			GetReadOnly := -128;
+			GetReadOnly := -32767;
 	end;
 
 function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
@@ -340,13 +355,12 @@ function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 				OopGetCounter := true;
 				exit;
 			end;
-			for i := 1 to CUSTOM_FLAG_COUNT do
-				if s = CustomFlagList[i] then begin
-					cPtr := @World.Info.CustomFlags[i];
+			for i := 1 to CUSTOM_COUNTER_COUNT do
+				if s = CustomCounterList[i] then begin
+					cPtr := @World.Info.CustomCounters[i];
 					OopGetCounter := true;
 					exit;
 				end;
-
 		end;
 	end;
 
@@ -421,16 +435,16 @@ procedure OopReadValue(statId: integer; var position: integer);
 		if position > 0 then
 			Dec(position);
 
-		OopValue := -128;
+		OopValue := -32767;
 		if Length(s) <> 0 then begin
 			if isNumeric then
 				Val(s, OopValue, code)
 			else if s = OOPList[2] then begin {'RANDOM'}
 				OopReadValue(statId, position);
-				if OopValue <> -128 then begin
+				if OopValue <> -32767 then begin
 					ix := OopValue;
 					OopReadValue(statId, position);
-					if OopValue <> -128 then begin
+					if OopValue <> -32767 then begin
 						iy := OopValue;
 						if ix > iy then
 							OopValue := Random((ix - iy) + 1) + iy
@@ -484,7 +498,7 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 				dx := OopValue;
 				OopReadValue(statId, position);
 				dy := OopValue;
-				if ((dx <> -128) and (dy <> -128)) then begin
+				if ((dx <> -32767) and (dy <> -32767)) then begin
 					if (OopWord = 'AT') then begin 
 						dx := dx - X;
 						dy := dy - Y;
@@ -589,7 +603,7 @@ procedure OopReadDirectionRel(statId: integer; var position: integer; var dx, dy
 			dx := OopValue;
 			OopReadValue(statId, position);
 			dy := OopValue;
-			if ((dx <> -128) and (dy <> -128)) then
+			if ((dx <> -32767) and (dy <> -32767)) then
 				CalcDirectionToward(ix, iy, dx, dy)
 			else begin
 				dx := 0;
@@ -799,7 +813,7 @@ function WorldInfoFlags(flag: integer): string;
 		WorldInfoFlags := s;
 	end;
 
-function WorldGetFlagPosition(name: TString50): integer;
+function WorldGetFlagPosition(name: TString20): integer;
 	var
 		i: integer;
 	begin
@@ -810,7 +824,25 @@ function WorldGetFlagPosition(name: TString50): integer;
 		end;
 	end;
 
-procedure WorldSetFlag(name: TString50);
+function GetCustomFlag(name: TString20): boolean;
+	var
+		i,j: integer;
+	label
+		FlagFound;
+	begin
+		for j := 0 to 3 do
+			for i := 1 to 32 do
+				if CustomFlagList[(j * 32) + i] = name then Goto FlagFound;
+		GetCustomFlag := false;
+		exit;
+	FlagFound:
+		if ((CFlagPos[i] and World.Info.CustomFlags[j]) = 0) then
+			GetCustomFlag := false
+		else
+			GetCustomFlag := true;
+	end;
+
+procedure WorldSetFlag(name: TString20);
 	var
 		i, j, p: integer;
 	begin
@@ -841,7 +873,24 @@ procedure WorldSetFlag(name: TString50);
 		end;
 	end;
 
-procedure WorldClearFlag(name: TString50);
+function CustomSetFlag(name: TString20): boolean;
+	var
+		i,j: integer;
+	label
+		FlagFound;
+	begin
+		for j := 0 to 3 do
+			for i := 1 to 32 do
+				if CustomFlagList[(j * 32) + i] = name then Goto FlagFound;
+		CustomSetFlag := false;
+		exit;
+	FlagFound:
+		CustomSetFlag := true;
+		if ((CFlagPos[i] and World.Info.CustomFlags[j]) = 0) then
+			Inc(World.Info.CustomFlags[j], CFlagPos[i]);
+	end;
+
+procedure WorldClearFlag(name: TString20);
 	var
 		i, p: integer;
 	begin
@@ -853,6 +902,23 @@ procedure WorldClearFlag(name: TString50);
 				p := (ParamList[22] * (i - 1)) + 1;
 			World.Info.Flags[p] := ' ';
 		end;
+	end;
+
+function CustomClearFlag(name: TString20): boolean;
+	var
+		i,j: integer;
+	label
+		FlagFound;
+	begin
+		for j := 0 to 3 do
+			for i := 1 to 32 do
+				if CustomFlagList[(j * 32) + i] = name then Goto FlagFound;
+		CustomClearFlag := false;
+		exit;
+	FlagFound:
+		CustomClearFlag := true;
+		if ((CFlagPos[i] and World.Info.CustomFlags[j]) <> 0) then
+			Dec(World.Info.CustomFlags[j], CFlagPos[i]);
 	end;
 
 function ElementNumber(s: string): shortint;
@@ -878,7 +944,7 @@ function OopParseTile(var statId, position: integer; var tile: TMatchTile): bool
 		elem := ElementNumber(OopWord);
 		if elem <> -1 then goto FindElement;
 		i := ColorNumber(OopWord, statId);
-		if i = -128 then begin
+		if i = -32767 then begin
 			Val(OopWord, i, elem);
 			if not ((i > 15) and (i < 256)) then exit;
 		end;
@@ -890,7 +956,7 @@ function OopParseTile(var statId, position: integer; var tile: TMatchTile): bool
 		if elem <> -1 then goto FindElement;
 		if i < 16 then begin
 			j := ColorNumber(OopWord, statId);
-			if (j = -128) or (j > 15) then exit;
+			if (j = -32767) or (j > 15) then exit;
 		end;
 		if j = 0 then tile.SetBG := true;
 		tile.Color := AsColor(i,j);
@@ -984,7 +1050,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 						tile.setBG := true
 					else
 						tile.setBG := false;
-					if OopValue = -128 then begin
+					if OopValue = -32767 then begin
 						position := code;
 						OopValue := 0;
 					end;
@@ -1007,7 +1073,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				ix := OopValue;
 				OopReadValue(statId, position);
 				iy := OopValue;
-				if ((ix <> -128) and (iy <> -128)) then
+				if ((ix <> -32767) and (iy <> -32767)) then
 					OopCheckCondition := (X = ix) and (Y = iy)
 				else
 					OopError(statId,position, 'Bad condition');
@@ -1028,7 +1094,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				if (OopWord = 'ABOVE') or ((OopWord = 'BELOW') or (OopWord = 'IS')) then begin
 					code := position;
 					OopReadValue(statId, position);
-					if OopValue = -128 then
+					if OopValue = -32767 then
 						OopError(statId,position, 'Could not read ' + OopWord + ' value');
 				end;
 				if (OopWord = 'ABOVE') then
@@ -1078,9 +1144,11 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				ix := 0;
 				iy := 1;
 				OopCheckCondition := FindTileOnBoard(ix, iy, tile);
-			end else begin
-				OopCheckCondition := WorldGetFlagPosition(OopWord) >= 0;
-			end;
+			end else
+				if GetCustomFlag(OopWord) then
+					OopCheckCondition := true
+				else
+					OopCheckCondition := WorldGetFlagPosition(OopWord) >= 0;
 		end;
 	end;
 
@@ -1387,7 +1455,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								elsecheck := elsecheck and $7F;
 								code := position;
 								OopReadValue(statId, position);
-								if OopValue = -128 then
+								if OopValue = -32767 then
 									elseCheck := 1
 								else if OopValue <> -32768 then
 									elseCheck := OopValue
@@ -1401,7 +1469,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								OopGetShort(statId, OopWord, shortPtr);
 								code := position;
 								OopReadValue(statId, position);
-								if OopValue = -128 then
+								if OopValue = -32767 then
 									shortPtr^ := 1
 								else if OopValue <> -32768 then
 									shortPtr^ := OopValue
@@ -1413,7 +1481,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 								code := position;
 								OopReadValue(statId, position);
-								if OopValue = -128 then
+								if OopValue = -32767 then
 									counterPtr^ := 1
 								else if OopValue <> -32768 then
 									counterPtr^ := OopValue
@@ -1424,7 +1492,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								end;
 								GameUpdateSidebar;
 							end else if OopNextWord(statId, position) = '' then
-								WorldSetFlag(OopWord)
+								if not CustomSetFlag(OopWord) then WorldSetFlag(OopWord)
 							else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
 							if textLine = OOPList[13] then KeyRepeat;
@@ -1457,7 +1525,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									counterPtr^ := 0;
 								GameUpdateSidebar;
 							end else
-								WorldClearFlag(textLine);
+								if not CustomClearFlag(textLine) then WorldClearFlag(textLine);
 							if textLine = OOPList[13] then KeyRepeat;
 							if (textLine = OOPList[5]) or
 								(textLine = OOPList[4])
@@ -1525,9 +1593,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									deltaX := ParamList[PALETTE_START + (ix * 3) + 1];
 									deltaY := ParamList[PALETTE_START + (ix * 3) + 2];
 								end;
-								World.Info.CustomPalette[(ix * 3)] := iy;
-								World.Info.CustomPalette[(ix * 3) + 1] := deltaX;
-								World.Info.CustomPalette[(ix * 3) + 2] := deltaY;
+								World.Info.CustomPalette[ix] := iy div 2;
+								World.Info.CustomPalette[ix] := World.Info.CustomPalette[ix] + ((deltaX div 2) * 32);
+								World.Info.CustomPalette[ix] := World.Info.CustomPalette[ix] + ((deltaY div 2) * 1024);
 								BlockPalette(ix,iy,deltaX,deltaY);
 							end else
 								OopError(statId,position, 'Bad PALETTE Command');
@@ -1635,7 +1703,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								elseCheck := elseCheck and $7F;
 								code := position;
 								OopReadValue(statId, position);
-								if OopValue = -128 then begin
+								if OopValue = -32767 then begin
 									position := code;
 									OopValue := 1;
 								end;
@@ -1655,18 +1723,18 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								if counterSubtract then
 									OopValue := -OopValue;
 
-								if (elsecheck + OopValue) >= 0 then
-									elsecheck := elsecheck + OopValue
-								else begin
+								if elsecheck + OopValue >= 0 then begin
+									elsecheck := elsecheck + OopValue;
+									elsecheck := (elsecheck and $7F) + tmpcond;
+								end else begin
 									elsecheck := (elsecheck and $7F) + tmpcond;
 									goto ReadCommand;
 								end;
-								elsecheck := (elsecheck and $7F) + tmpcond;
 							end else if ShortWord(OopWord) then begin
 								OopGetShort(statId, OopWord, shortPtr);
 								code := position;
 								OopReadValue(statId, position);
-								if OopValue = -128 then begin
+								if OopValue = -32767 then begin
 									position := code;
 									OopValue := 1;
 								end;
@@ -1681,14 +1749,15 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								end;
 								if counterSubtract then
 									OopValue := -OopValue;
-								if (shortPtr^ + OopValue) >= 0 then
-									shortPtr^ := shortPtr^ + OopValue
-								else
+								shortPtr^ := shortPtr^ + OopValue;
+								if shortPtr^ < 0 then begin
+									shortPtr^ := shortPtr^ - OopValue;
 									goto ReadCommand;
+								end;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 								code := position;
 								OopReadValue(statId, position);
-								if OopValue = -128 then begin
+								if OopValue = -32767 then begin
 									position := code;
 									OopValue := 1;
 								end;
@@ -1704,11 +1773,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								if counterSubtract then
 									OopValue := -OopValue;
 
-								if (counterPtr^ + OopValue) >= 0 then begin
-									counterPtr^ := counterPtr^ + OopValue;
-								end else begin
+								if (counterPtr^ + OopValue) >= 0 then
+									counterPtr^ := counterPtr^ + OopValue
+								else
 									goto ReadCommand;
-								end;
 							end else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
 							if textLine = OOPList[13] then KeyRepeat;

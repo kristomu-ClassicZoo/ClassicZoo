@@ -2149,7 +2149,7 @@ procedure ElementMod(e: integer; par: string; op: string; statId: integer);
 		v, code: integer;
 	begin
 		v := ColorNumber(op, statId);
-		if (v = -128) then
+		if (v = -32767) then
 			Val(op, v, code);
 		if par = 'CHAR' then begin
 			if (ElementDefs[e].Character = ' ') and ElementDefs[e].HasDrawProc then begin
@@ -2229,7 +2229,7 @@ procedure InitElementsGame;
 								Inc(i);
 							end;
 							v := ColorNumber(k, -1);
-							if (v <> -128) then begin
+							if (v <> -32767) then begin
 								v := (v * 3) + PALETTE_START;
 								for q := 0 to 2 do begin
 									while (s[i] <> ',') and (i <= Length(s)) do begin
@@ -2263,7 +2263,7 @@ procedure InitElementsGame;
 								Inc(i);
 							end;
 							v := ColorNumber(l, -1);
-							if (v = -128) then
+							if (v = -32767) then
 								Val(l, v, code);
 							for i := 1 to (PALETTE_START - 1) do
 								if ParamConfigs(i) = k then

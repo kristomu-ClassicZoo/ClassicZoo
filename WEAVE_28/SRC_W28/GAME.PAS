@@ -123,13 +123,18 @@ const
 		Follower: -1; Leader: -1
 	);
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
+	PalFilter: array[0..2] of integer = ( 31, 992, 31744 );
 
 implementation
 uses Dos, FileSel, Crt, ExtMem, Video, Sounds, Input, Elements, Oop;
 
 procedure KeyRepeat;
 	begin
-		RepeatSpeed(World.Info.Keyspeed);
+		if World.Info.IsSave and 10 = 10 then
+			RepeatSpeed(World.Info.IsSave - 10)
+		else
+			RepeatSpeed(World.Info.IsSave);
+			World.Info.IsSave := World.Info.IsSave + 10;
 	end;
 
 function ColorNumber(s: string; statId: integer): integer;
@@ -153,7 +158,7 @@ function ColorNumber(s: string; statId: integer): integer;
 		else if (s = 'PURPLE') or (s = '13') then ColorNumber := 13
 		else if (s = 'YELLOW') or (s = '14') then ColorNumber := 14
 		else if (s = 'WHITE') or (s = '15') then ColorNumber := 15
-		else ColorNumber := -128;
+		else ColorNumber := -32767;
 
 		if statId <> -1 then begin
 			if ReadOnly(s) then
@@ -188,10 +193,10 @@ procedure BlockPalette(c,r,g,b: byte);
 procedure InitPalette(reset: boolean);
 	var
 		doInit: boolean;
-		c,r,g,b: byte;
+		c,r,g,b: integer;
 	begin
 		doInit := true;
-		for c := 0 to 47 do
+		for c := 0 to 15 do
 			if World.Info.CustomPalette[c] <> 0 then
 				doInit := false;
 		for c := 0 to 15 do begin
@@ -199,11 +204,14 @@ procedure InitPalette(reset: boolean);
 			g := (c * 3) + 1;
 			b := (c * 3) + 2;
 			if doInit or reset then begin
-				World.Info.CustomPalette[r] := ParamList[PALETTE_START + r];
-				World.Info.CustomPalette[g] := ParamList[PALETTE_START + g];
-				World.Info.CustomPalette[b] := ParamList[PALETTE_START + b];
+				World.Info.CustomPalette[c] := (ParamList[PALETTE_START + r] div 2);
+				World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((ParamList[PALETTE_START + g] div 2) * 32);
+				World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((ParamList[PALETTE_START + b] div 2) * 1024);
 			end;
-			BlockPalette(c,World.Info.CustomPalette[r],World.Info.CustomPalette[g],World.Info.CustomPalette[b]);
+			r := (World.Info.CustomPalette[c] and PalFilter[0]) * 2;
+			g := ((World.Info.CustomPalette[c] and PalFilter[1]) div 32) * 2;
+			b := ((World.Info.CustomPalette[c] and PalFilter[2]) div 1024) * 2;
+			BlockPalette(c,r,g,b);
 		end;
 	end;
 
@@ -227,7 +235,7 @@ function DefaultParamList(i: integer): integer;
 			28,30,33,34,35,38,40,41,44,45,46: DefaultParamList := 42;
 			42,47,48,49,50,51,53,55,56,60,61,63,67: DefaultParamList := 21;
 			52,54,57,58,59,62,64,65,66,68,69,70: DefaultParamList := 63;
-		else DefaultParamList := -128 end;
+		else DefaultParamList := -32767 end;
 	end;
 
 procedure ParamsLoad;
@@ -242,7 +250,7 @@ procedure ParamsLoad;
 			SetBlink(true)
 		else
 			SetBlink(false);
-		if (ParamList[21] <> -1) and (World.Info.IsSave = false) then
+		if (ParamList[21] <> -1) and (World.Info.IsSave and 10 = 10) then
 			World.Info.CurrentBoard := ParamList[21];
 	end;
 
@@ -309,8 +317,8 @@ function OopConfigs (i: integer): string;
 			58: OopConfigs := 'FLAG.OBJ.7';
 			59: OopConfigs := 'FLAG.OBJ.8';
 			60: OopConfigs := 'FLAG.OBJ.9';
-			61: OopConfigs := 'WORLD.FLAG';
-			62: OopConfigs := 'WORLD.COUNTER';
+			61: OopConfigs := 'WORLD.COUNTER';
+			62: OopConfigs := 'WORLD.FLAG';
 		else OopConfigs := '_nil' end;
 	end;
 
@@ -363,7 +371,7 @@ procedure CustomOOPLoad;
 		k, l: string[20];
 		c: char;
 		f: text;
-		i, j, v: integer;
+		i, j, m, n, v: integer;
 	begin
 		InputTerminal := '_nil';
 		KeyLimit := 0;
@@ -371,6 +379,10 @@ procedure CustomOOPLoad;
 			OOPList[i] := DefaultOopList(i);
 		for i := 0 to (CUSTOM_KEY_COUNT - 1) do
 			KeyList[i] := #2;
+		for i := 1 to CUSTOM_COUNTER_COUNT do begin
+			Str(i,s);
+			CustomCounterList[i] := 'COUNTER' + s;
+		end;
 		for i := 1 to CUSTOM_FLAG_COUNT do begin
 			Str(i,s);
 			CustomFlagList[i] := 'FLAG' + s;
@@ -389,6 +401,8 @@ procedure CustomOOPLoad;
 			if IOResult = 0 then begin
 				j := 0;
 				v := 1;
+				m := 1;
+				n := 1;
 				while j <= 64 do begin
 					s := '';
 					ReadLn(f, s);
@@ -432,11 +446,14 @@ procedure CustomOOPLoad;
 						for i := (CUSTOM_OBJ_OFFSET + 1) to CUSTOM_COUNTER_OFFSET do
 							if (OopConfigs(i) = k) and (l <> '') then
 								CustomObjList[i - CUSTOM_OBJ_OFFSET] := UpcaseString(l);
-						for i := CUSTOM_COUNTER_OFFSET to (CUSTOM_COUNTER_OFFSET + 1) do
-							if (OopConfigs(i) = k) and (l <> '') then begin
-								CustomFlagList[v] := UpcaseString(l);
-								Inc(v);
-							end;
+						if (OopConfigs(CUSTOM_COUNTER_OFFSET) = k) and (l <> '') then begin
+							CustomCounterList[v] := UpcaseString(l);
+							Inc(v);
+						end;
+						if (OopConfigs(CUSTOM_COUNTER_OFFSET + 1) = k) and (l <> '') then begin
+							CustomFlagList[m] := UpcaseString(l);
+							Inc(m);
+						end;
 					end;
 				end;
 			end;
@@ -811,7 +828,7 @@ procedure WorldCreate;
 		World.BoardLen[0] := 0;
 		ResetMessageNotShownFlags;
 		BoardCreate;
-		World.Info.IsSave := false;
+		World.Info.IsSave := 0;
 		World.Info.CurrentBoard := 0;
 		World.Info.Ammo := 0;
 		World.Info.Gems := 0;
@@ -830,8 +847,8 @@ procedure WorldCreate;
 		Board.Name := 'Title screen';
 		LoadedGameFileName := '';
 
-		for i := 1 to CUSTOM_FLAG_COUNT do
-			World.Info.CustomFlags[i] := 0;
+		for i := 1 to CUSTOM_COUNTER_COUNT do
+			World.Info.CustomCounters[i] := 0;
 		CustomOOPLoad;
 	end;
 
@@ -2154,15 +2171,15 @@ procedure GameDebugPrompt;
 						TextWindowAppend(textWindow, OOPList[i + 5]);
 				end;
 			TextWindowAppend(textWindow, '$** Custom World Parameters **');
-			for i := 1 to CUSTOM_FLAG_COUNT do
-				if World.Info.CustomFlags[i] <> 0 then begin
-					if World.Info.CustomFlags[i] = 1 then
-						TextWindowAppend(textWindow, CustomFlagList[i])
-					else begin
-						Str(World.Info.CustomFlags[i],s);
-						TextWindowAppend(textWindow, CustomFlagList[i] + ': ' + s);
-					end;
+			for i := 1 to CUSTOM_COUNTER_COUNT do
+				if World.Info.CustomCounters[i] <> 0 then begin
+					Str(World.Info.CustomCounters[i],s);
+					TextWindowAppend(textWindow, CustomCounterList[i] + ': ' + s);
 				end;
+			for i := 1 to CUSTOM_FLAG_COUNT do
+				if GetCustomFlag(CustomFlagList[i]) then
+					TextWindowAppend(textWindow, CustomFlagList[i]);
+
 			TextWindowDrawOpen(textWindow);
 			TextWindowSelect(textWindow, TWS_IGNORE_HYPERLINKS);
 			TextWindowDrawClose(textWindow);
@@ -2455,7 +2472,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 						GameDrawCustomSidebar;
 						CurrentTick := Board.Info.BoardTicks;
 						CurrentStatTicked := Board.StatCount + 1;
-						World.Info.IsSave := true;
+						if World.Info.IsSave and 10 = 0 then
+							World.Info.IsSave := World.Info.IsSave + 10;
 					end;
 				end;
 
@@ -2528,7 +2546,7 @@ procedure GameTitleLoop;
 						end;
 					end;
 					'P': begin
-						if World.Info.IsSave and not DebugEnabled then begin
+						if (World.Info.IsSave and 10 = 10) and not DebugEnabled then begin
 							startPlay := WorldLoad(World.Info.Name, '.ZZT');
 							ReturnBoardId := World.Info.CurrentBoard;
 						end else begin

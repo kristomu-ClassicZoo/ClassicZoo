@@ -1,3 +1,10 @@
+10/24/2022: WeaveZZT 2.8b
+Bug Fixes:
+* Added a check that will prevent an object from wrapping a large number around to a negative number (and will instead trigger a failed #give or #take)
+
+Improvements:
+* Instead of 64 shared custom counters/flags, there are now 99 of each.
+
 10/22/2022: WeaveZZT 2.8a
 Bug Fixes:
 * Improved #BOARD handling stops execution of object code upon changing boards.

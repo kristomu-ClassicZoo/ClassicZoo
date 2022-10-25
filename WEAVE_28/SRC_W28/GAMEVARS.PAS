@@ -54,7 +54,8 @@ interface
 		CUSTOM_LOCAL_OFFSET = CUSTOM_OOP_COUNT + CUSTOM_KEY_COUNT + 1;
 		CUSTOM_OBJ_OFFSET = CUSTOM_LOCAL_OFFSET + 7;
 		CUSTOM_COUNTER_OFFSET = CUSTOM_OBJ_OFFSET + 10;
-		CUSTOM_FLAG_COUNT = 64;
+		CUSTOM_COUNTER_COUNT = 99;
+		CUSTOM_FLAG_COUNT = 128;
 	type
 		TString50 = string[50];
 		TString20 = string[20];
@@ -74,7 +75,7 @@ interface
 			SetFG: boolean;
 			SetBG: boolean;
 		end;
-		TPalette = array[0..47] of byte;
+		TPalette = array[0..15] of integer;
 		TElementDrawProc = procedure(x, y: integer; var ch: byte);
 		TElementTickProc = procedure(statId: integer);
 		TElementTouchProc = procedure(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -137,18 +138,18 @@ interface
 			Torches: integer;
 			TorchTicks: integer;
 			EnergizerTicks: integer;
-			GracePeriod: integer;
+			PlayerColor: byte;
+			PlayerChar: char;
 			Score: integer;
 			Name: string[20];
 			Flags: packed array[1 .. MAX_FLAG] of char;
 			BoardTimeSec: integer;
 			BoardTimeHsec: integer;
-			IsSave: boolean;
-			CustomFlags: array[1 .. CUSTOM_FLAG_COUNT] of integer;
-			PlayerColor: byte;
-			PlayerChar: char;
+			IsSave: shortint;
+			GracePeriod: byte;
 			CustomPalette: TPalette;
-			KeySpeed: shortint;
+			CustomCounters: array[1 .. CUSTOM_COUNTER_COUNT] of integer;
+			CustomFlags: array[0..3] of longint;
 		end;
 		TBoard = record
 			Name: TString50;
@@ -169,6 +170,7 @@ interface
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
 		TConfigList = array[1 .. CONFIG_FILE_COUNT] of string[80];
+		TCustomCounterList = array[1 .. CUSTOM_COUNTER_COUNT] of TString20;
 		TCustomFlagList = array[1 .. CUSTOM_FLAG_COUNT] of TString20;
 		TCustomBoardList = array[1 .. 7] of TString20;
 		TCustomObjList = array[1 .. 10] of TString20;
@@ -239,6 +241,7 @@ interface
 
 		DebugEnabled: boolean;
 
+		CustomCounterList: TCustomCounterList;
 		CustomFlagList: TCustomFlagList;
 		CustomBoardList: TCustomBoardList;
 		CustomObjList: TCustomObjList;
