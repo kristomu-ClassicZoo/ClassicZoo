@@ -1,9 +1,16 @@
-10/24/2022: WeaveZZT 2.8b
+10/29/2022: WeaveZZT 2.8b
+Updates:
+* Updated WEAVEDMO to include all new innovations, improve descriptions, and fix bugs.
+
 Bug Fixes:
 * Added a check that will prevent an object from wrapping a large number around to a negative number (and will instead trigger a failed #give or #take)
+* If error messages are suppressed (error.msg = "") and a #RUN command fails to find the appropriate .OBJ file, the object's code is no longer erased.
+* #SET and #CLEAR on keys wouldn't show up in the sidebar.
 
 Improvements:
 * Instead of 64 shared custom counters/flags, there are now 99 of each.
+* #color player <fg> [bg] will now change the color of the tile under the player.
+* #put player <element> [color] [bgcolor] will now place at element underneath the player as well.
 
 10/22/2022: WeaveZZT 2.8a
 Bug Fixes:

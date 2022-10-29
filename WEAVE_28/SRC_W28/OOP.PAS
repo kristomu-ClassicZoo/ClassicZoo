@@ -382,12 +382,12 @@ function OopRunFunc(statId: integer; var position: integer): integer;
 			if FileLoadStatData(OopWord,statId) then begin
 				if OopExecute(statId,DataPos,'%%Function') then begin end;
 				FreeMem(Data,DataLen);
-				Data := labelPtr;
-				DataPos := ix;
-				DataLen := iy;
-				elseCheck := (elseCheck and $7F) + tmpcond;
 			end else 
 				OopError(statId,position, 'File not found ' + OopWord + '.OBJ');
+			Data := labelPtr;
+			DataPos := ix;
+			DataLen := iy;
+			elseCheck := (elseCheck and $7F) + tmpcond;
 		end;
 		OopRunFunc := OopFuncReturn;
 	end;
@@ -1478,6 +1478,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									OopReadWord(statId, position);
 									shortPtr^ := shortPtr^ or GetShortBit(OopWord);
 								end;
+								GameUpdateSidebar;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 								code := position;
 								OopReadValue(statId, position);
@@ -1491,9 +1492,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									counterPtr^ := counterPtr^ or GetBit(OopWord);
 								end;
 								GameUpdateSidebar;
-							end else if OopNextWord(statId, position) = '' then
-								if not CustomSetFlag(OopWord) then WorldSetFlag(OopWord)
-							else
+							end else if OopNextWord(statId, position) = '' then begin
+								if not CustomSetFlag(OopWord) then WorldSetFlag(OopWord);
+							end else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
 							if textLine = OOPList[13] then KeyRepeat;
 							if (textLine = OOPList[5]) or
@@ -1518,6 +1519,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									shortPtr^ := shortPtr^ - (shortPtr^ and GetShortBit(OopWord))
 								else
 									shortPtr^ := 0;
+								GameUpdateSidebar;
 							end else if OopGetCounter(statId, textLine, counterPtr) then begin
 								if (GetBit(OopWord) <> 0) then
 									counterPtr^ := counterPtr^ - (counterPtr^ and GetBit(OopWord))
@@ -1958,6 +1960,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								if (deltaX = 0) and (deltaY = 0) then begin
 									Under.Element := argTile.Element;
 									Under.Color := argTile.Color;
+								end else if GetStatIdAt(X + deltaX, Y + deltaY) = 0 then begin
+									Board.Stats[0].Under.Element := argtile.Element;
+									Board.Stats[0].Under.Color := argTile.Color;
 								end else begin
 									if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 										ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
@@ -1983,8 +1988,12 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								if ( iy < 1 ) or ( iy > 15 ) then
 									iy := 0;
 								if ((ix + (iy * 16)) > -1) and ((ix + (iy * 16)) < 256) then begin
-									Board.Tiles[X + deltaX][Y + deltaY].Color := AsColor(ix, iy);
-									BoardDrawTile(X + deltaX, Y + deltaY);
+									if GetStatIdAt(X + deltaX, Y + deltaY) = 0 then
+										Board.Stats[0].Under.Color := AsColor(ix, iy)
+									else begin
+										Board.Tiles[X + deltaX][Y + deltaY].Color := AsColor(ix, iy);
+										BoardDrawTile(X + deltaX, Y + deltaY);
+									end;
 								end else
 									OopError(statId,position, 'Unknown color.');
 							end;
