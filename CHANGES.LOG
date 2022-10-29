@@ -10,7 +10,7 @@ Bug Fixes:
 Improvements:
 * Instead of 64 shared custom counters/flags, there are now 99 of each.
 * #color player <fg> [bg] will now change the color of the tile under the player.
-* #put player <element> [color] [bgcolor] will now place at element underneath the player as well.
+* #put player <element> [color] [bgcolor] will now place that element underneath the player as well.
 
 10/22/2022: WeaveZZT 2.8a
 Bug Fixes:
