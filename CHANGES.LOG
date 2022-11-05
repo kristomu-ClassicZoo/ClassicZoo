@@ -1,3 +1,23 @@
+11/5/2022: WeaveZZT 2.8d
+New Features:
+* Can load .PAL files in the same manner as .CHR files.
+* SKIPTOTITLE config option now disables world menu selection.
+
+
+10/31/2022: WeaveZZT 2.8c
+Bug Fixes:
+* The following element properties were not being picked up in the sidebar:
+  * gem.fg
+  * gem.bg
+  * key.fg
+  * key.bg
+  * ammo.bg
+  * torch.bg
+
+Changes:
+* Modified the player shoot sound in WEAVEDMO.
+
+
 10/29/2022: WeaveZZT 2.8b
 Updates:
 * Updated WEAVEDMO to include all new innovations, improve descriptions, and fix bugs.

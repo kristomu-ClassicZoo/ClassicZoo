@@ -190,23 +190,40 @@ procedure BlockPalette(c,r,g,b: byte);
 		intr($10, regs);
 	end;
 
-procedure InitPalette(reset: boolean);
+procedure InitPalette(palrefresh: boolean);
 	var
-		doInit: boolean;
+		f: file;
+		doInit, palFile: boolean;
 		c,r,g,b: integer;
+		pal: array[0..47] of byte;
 	begin
 		doInit := true;
+		palFile := false;
 		for c := 0 to 15 do
 			if World.Info.CustomPalette[c] <> 0 then
 				doInit := false;
+		if doInit then
+			if (World.Info.Name <> '') and FileExists(World.Info.Name + '.PAL') then begin
+				Assign(f, World.Info.Name + '.PAL');
+				Reset(f, 1);
+				if IOResult = 0 then
+					BlockRead(f, pal, 48);
+				palFile := true;
+			end;
 		for c := 0 to 15 do begin
 			r := c * 3;
 			g := (c * 3) + 1;
 			b := (c * 3) + 2;
-			if doInit or reset then begin
-				World.Info.CustomPalette[c] := (ParamList[PALETTE_START + r] div 2);
-				World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((ParamList[PALETTE_START + g] div 2) * 32);
-				World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((ParamList[PALETTE_START + b] div 2) * 1024);
+			if doInit or palrefresh then begin
+				if palFile then begin
+					World.Info.CustomPalette[c] := pal[r] div 2;
+					World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((pal[g] div 2) * 32);
+					World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((pal[b] div 2) * 1024);
+				end else begin
+					World.Info.CustomPalette[c] := (ParamList[PALETTE_START + r] div 2);
+					World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((ParamList[PALETTE_START + g] div 2) * 32);
+					World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((ParamList[PALETTE_START + b] div 2) * 1024);
+				end;
 			end;
 			r := (World.Info.CustomPalette[c] and PalFilter[0]) * 2;
 			g := ((World.Info.CustomPalette[c] and PalFilter[1]) div 32) * 2;
@@ -2290,14 +2307,34 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(64, 12, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[68]); {Keys Sidebar}
 				if ConfigList[63] <> '' then  {Sidebar player}
 					VideoWriteText(62, 7, ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
-				if ConfigList[64] <> '' then  {Sidebar ammo}
-					VideoWriteText(62, 8, AsColor(ElementDefs[E_AMMO].Color and $0F,ParamList[THEME_START]), ElementDefs[E_AMMO].Character);
-				if ConfigList[65] <> '' then  {Sidebar Torch}
-					VideoWriteText(62, 9, AsColor(ElementDefs[E_TORCH].Color and $0F,ParamList[THEME_START]), ElementDefs[E_TORCH].Character);
-				if ConfigList[66] <> '' then  {Sidebar Gem}
-					VideoWriteText(62, 10, AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), ElementDefs[E_GEM].Character);
-				if ConfigList[68] <> '' then  {Sidebar key}
-					VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ElementDefs[E_KEY].Character);
+				if ConfigList[64] <> '' then begin {Sidebar ammo}
+					if ElementDefs[E_AMMO].Color and $F0 = 0 then
+						VideoWriteText(62, 8, AsColor(ElementDefs[E_AMMO].Color and $0F,ParamList[THEME_START]), ElementDefs[E_AMMO].Character)
+					else
+						VideoWriteText(62, 8, ElementDefs[E_AMMO].Color, ElementDefs[E_AMMO].Character);
+				end;
+				if ConfigList[65] <> '' then begin {Sidebar Torch}
+					if ElementDefs[E_TORCH].Color and $F0 = 0 then
+						VideoWriteText(62, 9, AsColor(ElementDefs[E_TORCH].Color and $0F,ParamList[THEME_START]), ElementDefs[E_TORCH].Character)
+					else
+						VideoWriteText(62, 9, ElementDefs[E_TORCH].Color, ElementDefs[E_TORCH].Character);
+				end;
+				if ConfigList[66] <> '' then begin {Sidebar Gem}
+					if ElementDefs[E_GEM].Color = 0 then
+						VideoWriteText(62, 10, AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), ElementDefs[E_GEM].Character)
+					else if ElementDefs[E_GEM].Color and $F0 = 0 then
+						VideoWriteText(62, 10, AsColor(ElementDefs[E_GEM].Color and $0F,ParamList[THEME_START]), ElementDefs[E_GEM].Character)
+					else
+						VideoWriteText(62, 10, ElementDefs[E_GEM].Color, ElementDefs[E_GEM].Character);
+				end;
+				if ConfigList[68] <> '' then begin {Sidebar key}
+					if ElementDefs[E_KEY].Color = 0 then
+						VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ElementDefs[E_KEY].Character)
+					else if ElementDefs[E_KEY].Color and $F0 = 0 then
+						VideoWriteText(62, 10, AsColor(ElementDefs[E_KEY].Color and $0F,ParamList[THEME_START]), ElementDefs[E_GEM].Character)
+					else
+						VideoWriteText(62, 10, ElementDefs[E_KEY].Color, ElementDefs[E_GEM].Character);
+				end;
 				if ConfigList[70] <> '' then begin  {'T' Torch hotkey}
 					VideoWriteText(62, 14, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[70] + ' ');
 					VideoWriteText(65, 14, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[71]);
@@ -2333,7 +2370,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end else if GameStateElement = E_MONITOR then begin
 				SidebarPromptSlider(false, 66, 21, 'Game speed:;FS', TickSpeed);
 				VideoWriteText(62, 21, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' S ');
-				VideoWriteText(62, 7, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' W ');
+				if not SkipToTitle then VideoWriteText(62, 7, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' W ');
 				VideoWriteText(65, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' World:');
 
 				if (Length(World.Info.Name) <> 0 ) and (World.Info.Name <> 'Template') then
@@ -2540,7 +2577,7 @@ procedure GameTitleLoop;
 
 				case UpCase(InputKeyPressed) of
 					'W': begin
-						if GameWorldLoad('.ZZT') then begin
+						if GameWorldLoad('.ZZT') and not SkipToTitle then begin
 							ReturnBoardId := World.Info.CurrentBoard;
 							boardChanged := true;
 						end;
