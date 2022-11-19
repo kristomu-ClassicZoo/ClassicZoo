@@ -137,6 +137,7 @@ function GameVideoInstall(videoMode, mode: integer): boolean;
 
 {$IFNDEF NEC98}
 {$IFNDEF BASICSYS}
+{$IFNDEF DSX86}
 		if UseCustomFont then
 			fileDataLen := ResourceDataReadBinaryFile('8X8.CHR', fileData, 0, 2048)
 		else
@@ -147,6 +148,7 @@ function GameVideoInstall(videoMode, mode: integer): boolean;
 			FreeMem(fileData, fileDataLen); 
 			if viResult then goto GameVideoInstalled;
 		end;
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 
@@ -180,6 +182,8 @@ GameVideoInstalled:
 {$ENDIF}
 			BOARD_DRAW_WIDTH := 24;
 			BOARD_DRAW_HEIGHT := 20;
+
+			BOARD_DRAW_Y := (VideoRows - BOARD_DRAW_HEIGHT) div 2;
 {$IFDEF EDITOR}
 			if mode = VIEW_EDITOR then begin
 				BOARD_DRAW_X := ((VideoColumns - 20 - BOARD_DRAW_WIDTH) div 2);
@@ -188,7 +192,6 @@ GameVideoInstalled:
 				BOARD_DRAW_X := 12 + ((VideoColumns - 12 - BOARD_DRAW_WIDTH) div 2);
 {$IFDEF EDITOR}
 			end;
-			BOARD_DRAW_Y := (VideoRows - BOARD_DRAW_HEIGHT) div 2;
 		end;
 {$ENDIF}
 		BOARD_DRAW_OX_MAX := BOARD_WIDTH - BOARD_DRAW_WIDTH + 1;

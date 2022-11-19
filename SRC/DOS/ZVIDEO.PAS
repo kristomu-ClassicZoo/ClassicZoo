@@ -85,6 +85,14 @@ const
 		56, 57, 58, 59, 60, 61, 62, 63
 	);
 
+{$IFDEF DSX86}
+{$DEFINE VNOCGA}
+{$DEFINE VNOSAFE}
+{$ENDIF}
+{$IFDEF ZETAEMU}
+{$DEFINE VNOCGA}
+{$ENDIF}
+
 function VideoGetBlinkMode: TVideoBlinkMode;
 	begin
 		if VideoBlink then
@@ -96,6 +104,7 @@ function VideoGetBlinkMode: TVideoBlinkMode;
 {$F+}
 
 {$IFNDEF FPC}
+{$IFNDEF VNOCGA}
 procedure VideoWriteTextCGA(x, y, color: byte; text: TVideoLine);
 	begin
 		inline(
@@ -136,6 +145,7 @@ procedure VideoWriteTextCGA(x, y, color: byte; text: TVideoLine);
 		{ finish: }
 		);
 	end;
+{$ENDIF}
 
 procedure VideoWriteTextFast(x, y, color: byte; text: TVideoLine);
 	begin
@@ -165,6 +175,7 @@ procedure VideoWriteTextFast(x, y, color: byte; text: TVideoLine);
 		);
 	end;
 {$ELSE}
+{$IFNDEF VNOCGA}
 procedure VideoWriteTextCGA(x, y, color: byte; text: TVideoLine);
 	assembler;
 	label next_char;
@@ -213,6 +224,7 @@ procedure VideoWriteTextCGA(x, y, color: byte; text: TVideoLine);
 		pop ds
 		pop es
 	end ['ax', 'bx', 'cx', 'dx', 'si', 'di'];
+{$ENDIF}
 
 procedure VideoWriteTextFast(x, y, color: byte; text: TVideoLine);
 	assembler;
@@ -276,16 +288,19 @@ function ColorToBW(color: byte): byte;
 
 {$F+}
 
+{$IFNDEF VNOCGA}
 procedure VideoWriteTextCGABW(x, y, color: byte; text: TVideoLine);
 	begin
 		VideoWriteTextCGA(x, y, ColorToBW(color), text);
 	end;
+{$ENDIF}
 
 procedure VideoWriteTextFastBW(x, y, color: byte; text: TVideoLine);
 	begin
 		VideoWriteTextFast(x, y, ColorToBW(color), text);
 	end;
 
+{$IFNDEF VNOSAFE}
 procedure VideoWriteTextSafe(x, y, color: byte; text: TVideoLine);
 	var
 		i: byte;
@@ -318,6 +333,7 @@ procedure VideoWriteTextSafeBW(x, y, color: byte; text: TVideoLine);
 	begin
 		VideoWriteTextSafe(x, y, ColorToBW(color), text);
 	end;
+{$ENDIF}
 
 {$F-}
 
@@ -350,7 +366,8 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 	label FinishVideoInstall;
 	begin
 		VideoInstall := false;
-		if (mode = VideoCurrentMode) and (charsetHeight = -1) then goto FinishVideoInstall;
+		if (mode = VideoCurrentMode) and (charsetHeight = VIDEO_CHARSET_UNCHANGED) then
+			goto FinishVideoInstall;
 		if (mode >= VIDEO_MODE_80X43) and (not VideoEGAInstalled) then exit;
 		if (mode >= VIDEO_MODE_80X50) and (not VideoVGAInstalled) then exit;
 
@@ -417,6 +434,7 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 		end;
 
 		if VideoEGAInstalled then begin
+{$IFNDEF DSX86}
 			if charsetHeight <= 0 then begin
 				{ set default charset }
 				if VideoRows >= 43 then
@@ -426,6 +444,7 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 				regs.BL := $00;
 				Intr($10, regs);
 			end;
+{$ENDIF}
 
 			{ set palette }
 			{ regs.AX := $1002;
@@ -438,19 +457,31 @@ function VideoInstall(mode: integer; charsetData: PTCharsetData; charsetHeight: 
 
 FinishVideoInstall:
 		if VideoMonochrome then begin
-			if VideoForceSafe then
-				VideoWriteText := VideoWriteTextSafeBW
-			else if VideoEGAInstalled or VideoMDAInstalled or VideoForceNoSnow then
+{$IFDEF VNOCGA}
+			VideoWriteText := VideoWriteTextFastBW;
+{$ELSE}
+			if VideoEGAInstalled or VideoMDAInstalled or VideoForceNoSnow then
 				VideoWriteText := VideoWriteTextFastBW
 			else
 				VideoWriteText := VideoWriteTextCGABW;
-		end else begin
+{$ENDIF}
+{$IFNDEF VNOSAFE}
 			if VideoForceSafe then
-				VideoWriteText := VideoWriteTextSafe
-			else if VideoEGAInstalled or VideoForceNoSnow then
+				VideoWriteText := VideoWriteTextSafeBW;
+{$ENDIF}
+		end else begin
+{$IFDEF VNOCGA}
+			VideoWriteText := VideoWriteTextFast;
+{$ELSE}
+			if VideoEGAInstalled or VideoForceNoSnow then
 				VideoWriteText := VideoWriteTextFast
 			else
 				VideoWriteText := VideoWriteTextCGA;
+{$ENDIF}
+{$IFNDEF VNOSAFE}
+			if VideoForceSafe then
+				VideoWriteText := VideoWriteTextSafe;
+{$ENDIF}
 		end;
 
 		VideoClear(borderColor);
@@ -462,6 +493,7 @@ FinishVideoInstall:
 			if not VideoSetCharset(charsetData, charsetHeight) then exit;
 		end;
 
+{$IFNDEF DSX86}
 		if VideoVGAInstalled then begin
 			{ Set 8-dot-clock character mode.  }
 			Port[$3C4] := $01;
@@ -474,6 +506,7 @@ FinishVideoInstall:
 				Port[$3D4] := $09;
 			end;
 		end;
+{$ENDIF}
 
 		VideoCurrentMode := mode;
 		VideoInstall := true;
@@ -487,10 +520,11 @@ procedure VideoUninstall;
 			regs.AX := $1201;
 			regs.BL := $30;
 			Intr($10, regs);
-
+{$IFNDEF DSX86}
 			regs.AX := $1111;
 			regs.BL := $00;
 			Intr($10, regs);
+{$ENDIF}
 		end;
 
 		TextBackground(0);
@@ -526,15 +560,21 @@ procedure VideoHideCursor;
 
 procedure VideoSetBorderColor(value: integer);
 	begin
+{$IFNDEF DSX86}
 		if not VideoForceSafe then begin
 			Port[PORT_CGA_PALETTE] := value;
 		end;
+{$ENDIF}
 	end;
 
 procedure VideoSetBlink(value: boolean);
 	var
 		regs: Registers;
 	begin
+{$IFDEF DSX86}
+		{ DSx86 does not emulate blinking. }
+		VideoBlink := false;
+{$ELSE}
 		VideoBlink := value;
 		{ CGA route }
 		if not VideoForceSafe then begin
@@ -548,12 +588,17 @@ procedure VideoSetBlink(value: boolean);
 		regs.BH := 0;
 		regs.BL := Byte(value);
 		Intr($10, regs);
+{$ENDIF}
 	end;
 
 function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 	var
 		regs: Registers;
 	begin
+{$IFDEF DSX86}
+		{ DSx86 only has a default character set. }
+		VideoSetCharset := (data = nil);
+{$ELSE}
 		VideoSetCharset := false;
 		if not VideoEGAInstalled then exit;
 		if (height <> 8) and (height <> 14) then exit;
@@ -574,6 +619,7 @@ function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 
 		VideoHideCursor;
 		VideoSetCharset := true;
+{$ENDIF}
 	end;
 
 function VideoSetPaletteColor(idx, r, g, b: byte): boolean;
@@ -609,6 +655,7 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 		regs: Registers;
 		i, offset: integer;
 	begin
+{$IFNDEF VNOSAFE}
 		if VideoForceSafe then begin
 			offset := 0;
 			for i := 1 to chars do begin
@@ -641,7 +688,7 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 
 			exit;
 		end;
-
+{$ENDIF}
 		offset := (y * VideoColumns + x) * 2;
 		if toVideo then
 			Move(data^, Ptr(VideoTextSegment, offset)^, chars * 2)
@@ -731,7 +778,11 @@ procedure VideoScroll(x, y, width, height, dx, dy: integer);
 begin
 	VideoColumns := 80;
 	VideoRows := 25;
+{$IFDEF VNOCGA}
+	VideoWriteText := VideoWriteTextFast;
+{$ELSE}
 	VideoWriteText := VideoWriteTextCGA;
+{$ENDIF}
 	VideoLastMode := LastMode;
 	if VideoLastMode = 7 then begin
 		VideoTextSegment := $B000;
@@ -742,7 +793,11 @@ begin
 	end;
 	VideoForceNoSnow := false;
 	VideoForceSafe := false;
+{$IFDEF DSX86}
+	VideoBlink := false;
+{$ELSE}
 	VideoBlink := true;
+{$ENDIF}
 	VideoCurrentMode := -1;
 
 	VideoPreInstall;

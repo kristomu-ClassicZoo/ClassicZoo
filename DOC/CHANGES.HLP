@@ -6,11 +6,13 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
-$< ClassicZoo dev >
+$< ClassicZoo 4.36 >
 
 + New cheats:
   + ?(NO)SHOOT - toggle enemy bullets.
   + ?(NO)STAR - toggle enemy stars.
++ New build: DSx86 - dedicated build for
+  the DSx86 emulator. 
 + Editor improvements.
   / Fixed the paste preview rectangle
     being too large by one row/column.
@@ -18,6 +20,7 @@ $< ClassicZoo dev >
   considerably.
 * ?SPEED now uses the 1-9 range instead
   of 0-8.
+/ SZRUN now renders board correctly.
 / [DOS] Improve joystick compatibility.
 / [SDL2] Fixed high score loading.
 / Fixed high score saving.
