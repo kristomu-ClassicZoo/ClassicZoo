@@ -18,10 +18,13 @@ $< ClassicZoo 4.36 >
     being too large by one row/column.
 * [SDL2] Reduced default audio volume
   considerably.
+* [Windows] Updated SDL2 to 2.24.2.
 * ?SPEED now uses the 1-9 range instead
   of 0-8.
 / SZRUN now renders board correctly.
 / [DOS] Improve joystick compatibility.
+/ [PC-9801] Widechar drawing fixes.
+  (GreaseMonkey)
 / [SDL2] Fixed high score loading.
 / Fixed high score saving.
 
