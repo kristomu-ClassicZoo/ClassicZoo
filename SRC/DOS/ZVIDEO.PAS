@@ -149,6 +149,11 @@ procedure VideoWriteTextCGA(x, y, color: byte; text: TVideoLine);
 
 procedure VideoWriteTextFast(x, y, color: byte; text: TVideoLine);
 	begin
+{$IFDEF DSX86}
+		{ HACK: DSx86 does not properly emulate blinking attributes. }
+		if VideoBlink then
+			color := color and $7F;
+{$ENDIF}
 		inline(
 			$8B/$06/VideoTextSegment/{ MOV AX, VideoTextSegment }
 			$8E/$C0/             { MOV ES, AX }
@@ -571,11 +576,8 @@ procedure VideoSetBlink(value: boolean);
 	var
 		regs: Registers;
 	begin
-{$IFDEF DSX86}
-		{ DSx86 does not emulate blinking. }
-		VideoBlink := false;
-{$ELSE}
 		VideoBlink := value;
+{$IFNDEF DSX86}
 		{ CGA route }
 		if not VideoForceSafe then begin
 			if value then

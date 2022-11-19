@@ -225,10 +225,8 @@ procedure GameDebugPrompt;
 				Board.Info.IsDark := isYes;
 				TransitionDrawToBoard;
 {$ENDIF}
-{$IFNDEF DSX86}
 			end else if input = 'BLINK' then begin
 				VideoSetBlink(isYes);
-{$ENDIF}
 			end else if input = 'DEBUG' then begin
 				DebugEnabled := isYes;
 {$IFDEF E_ZZT}

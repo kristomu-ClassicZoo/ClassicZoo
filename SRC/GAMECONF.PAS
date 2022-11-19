@@ -382,7 +382,6 @@ function ConfigSoundShowValue: string;
 		ConfigSoundShowValue := ConfigShowOnOffValue(SoundEnabled);
 	end;
 
-{$IFNDEF DSX86}
 function ConfigVideoBlinkGetValue: integer;
 	begin
 		ConfigVideoBlinkGetValue := Byte(VideoBlink);
@@ -397,7 +396,11 @@ procedure ConfigVideoBlinkSetValue(value: integer);
 function ConfigVideoBlinkShowValue: string;
 	begin
 		if VideoBlink then
+{$IFDEF DSX86}
+			ConfigVideoBlinkShowValue := 'Disabled (Low Colors)'
+{$ELSE}
 			ConfigVideoBlinkShowValue := 'Enabled'
+{$ENDIF}
 		else
 {$IFDEF NEC98}
 			ConfigVideoBlinkShowValue := 'Disabled';
@@ -405,7 +408,6 @@ function ConfigVideoBlinkShowValue: string;
 			ConfigVideoBlinkShowValue := 'Disabled (High Colors)';
 {$ENDIF}
 	end;
-{$ENDIF}
 {$ENDIF}
 
 {$IFDEF PLAYSTEP}
@@ -753,7 +755,7 @@ function ConfigInputCustomAction: boolean;
 
 const
 	ConfigEntryCount = 8
-	{$IFDEF MSDOS} + 2 {$IFNDEF DSX86} + 1 {$ENDIF} {$ENDIF}
+	{$IFDEF MSDOS} + 3 {$ENDIF}
 	{$IFDEF PLAYSTEP} + 1 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
 	{$IFDEF DEBUGWND} + 3 {$ENDIF}
@@ -927,7 +929,6 @@ procedure GameConfigInit;
 		end;
 		ConfigEntryInputPos := i;
 		Inc(i);
-{$IFNDEF DSX86}
 		with ConfigEntries[i] do begin
 			Category := CCFrontend;
 			Key := 'FVidBlnk';
@@ -937,7 +938,6 @@ procedure GameConfigInit;
 			ShowValue := ConfigVideoBlinkShowValue;
 		end;
 		Inc(i);
-{$ENDIF}
 {$ENDIF}
 {$IFDEF PLAYSTEP}
 		with ConfigEntries[i] do begin
