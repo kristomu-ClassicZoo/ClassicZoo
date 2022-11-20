@@ -6,6 +6,10 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
+$< ClassicZoo 4.37 >
+
+/ Fixed configuration option list bug.
+
 $< ClassicZoo 4.36 >
 
 + New cheats:

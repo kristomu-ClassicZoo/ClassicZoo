@@ -754,7 +754,7 @@ function ConfigInputCustomAction: boolean;
 {$ENDIF}
 
 const
-	ConfigEntryCount = 8
+	ConfigEntryCount = 9
 	{$IFDEF MSDOS} + 3 {$ENDIF}
 	{$IFDEF PLAYSTEP} + 1 {$ENDIF}
 	{$IFDEF FASTVID} + 2 {$ENDIF}
