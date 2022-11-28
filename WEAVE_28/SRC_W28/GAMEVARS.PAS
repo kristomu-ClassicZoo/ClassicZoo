@@ -112,6 +112,7 @@ interface
 			DataLen: integer;
 			ObjLocal: array[1 .. 4] of integer;
 			Data: ^string;
+			Flashing: integer;
 		end;
 		TRleTile = record
 			Count: byte;
@@ -215,6 +216,7 @@ interface
 		GamePlayExitRequested: boolean;
 		GameStateElement: integer;
 		ReturnBoardId: integer;
+		GlobalArg: integer;
 
 		IoTmpBuf: pointer;
 		ObjTmpBuf: pointer;
@@ -238,6 +240,7 @@ interface
 		CurrentFile: string[8];
 		CurFileLen: word;
 		InputTerminal: string[20];
+		InputDesignateShift: boolean;
 
 		DebugEnabled: boolean;
 

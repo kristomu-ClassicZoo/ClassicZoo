@@ -64,8 +64,8 @@ interface
 	procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: TString50);
 	function GameWorldLoad(extension: TString50): boolean;
 	procedure AddStat(tx, ty: integer; txelement, txcolor: byte; tcycle: integer; template: TStat);
-	function FileLoadStatData(s: TString8; statId: integer): boolean;
-	function FileAppendStatData(s: TString8; statId: integer): boolean;
+	function FileLoadStatData(s: TString20; statId: integer): boolean;
+	function FileAppendStatData(s: TString20; statId: integer): boolean;
 	procedure FreeStatDataMem(statId: integer);
 	procedure RemoveStat(statId: integer);
 	function GetStatIdAt(x, y: integer): integer;
@@ -391,6 +391,7 @@ procedure CustomOOPLoad;
 		i, j, m, n, v: integer;
 	begin
 		InputTerminal := '_nil';
+		InputDesignateShift := false;
 		KeyLimit := 0;
 		for i := 1 to CUSTOM_OOP_COUNT do
 			OOPList[i] := DefaultOopList(i);
@@ -450,25 +451,29 @@ procedure CustomOOPLoad;
 								OOPList[i] := l;
 						if OopConfigs(CUSTOM_OOP_COUNT + 1) = k then
 							if l <> '' then
-								InputTerminal := UpcaseString(l);
+								InputTerminal := UpcaseString(l, false);
 						for i := 0 to (CUSTOM_KEY_COUNT - 1) do
 							if OopConfigs(CUSTOM_OOP_COUNT + 2 + i) = k then begin
 								KeyList[i] := l;
 								if KeyLimit <= (i div 3) then
 									KeyLimit := (i div 3) + 1;
+								if (i mod 3 = 0)
+									and ((Copy(l, 1, 5) = 'Shift') or (Copy(l, 1, 5) = 'SHIFT'))
+								then
+									InputDesignateShift := true;
 							end;
 						for i := (CUSTOM_LOCAL_OFFSET + 1) to CUSTOM_OBJ_OFFSET do
 							if (OopConfigs(i) = k) and (l <> '') then
-								CustomBoardList[i - CUSTOM_LOCAL_OFFSET] := UpcaseString(l);
+								CustomBoardList[i - CUSTOM_LOCAL_OFFSET] := UpcaseString(l, false);
 						for i := (CUSTOM_OBJ_OFFSET + 1) to CUSTOM_COUNTER_OFFSET do
 							if (OopConfigs(i) = k) and (l <> '') then
-								CustomObjList[i - CUSTOM_OBJ_OFFSET] := UpcaseString(l);
+								CustomObjList[i - CUSTOM_OBJ_OFFSET] := UpcaseString(l, false);
 						if (OopConfigs(CUSTOM_COUNTER_OFFSET) = k) and (l <> '') then begin
-							CustomCounterList[v] := UpcaseString(l);
+							CustomCounterList[v] := UpcaseString(l, false);
 							Inc(v);
 						end;
 						if (OopConfigs(CUSTOM_COUNTER_OFFSET + 1) = k) and (l <> '') then begin
-							CustomFlagList[m] := UpcaseString(l);
+							CustomFlagList[m] := UpcaseString(l, false);
 							Inc(m);
 						end;
 					end;
@@ -757,6 +762,7 @@ procedure BoardOpen(boardId: integer);
 				Move(ptr^, Board.Stats[ix], TSTAT_OFFSET);
 				AdvancePointer(ptr, TSTAT_OFFSET);
 				Data := nil;
+				Flashing := 0;
 				if DataLen > 0 then begin
 					if MaxAvail < DataLen then begin
 					end;
@@ -908,7 +914,8 @@ procedure BoardDrawTile(x, y: integer);
 						VideoWriteText(x - 1, y - 1, $0F, ' ')
 					else if ElementDefs[Element].HasDrawProc then begin
 						ElementDefs[Element].DrawProc(x, y, ch);
-						VideoWriteText(x - 1, y - 1, Color, Chr(ch));
+						if (Element <> E_OBJECT) then
+							VideoWriteText(x - 1, y - 1, Color, Chr(ch));
 					end else if Element < E_TEXT_MIN then
 						VideoWriteText(x - 1, y - 1, Color, ElementDefs[Element].Character)
 					else
@@ -1326,6 +1333,7 @@ procedure AddStat(tx, ty: integer; txelement, txcolor: byte; tcycle: integer; te
 				end;
 				Under := Board.Tiles[tx][ty];
 				Data := nil;
+				Flashing := 0;
 				DataPos := 0;
 			end;
 
@@ -1357,7 +1365,7 @@ procedure FreeStatDataMem(statId: integer);
 		end;
 	end;
 
-function FileLoadStatData(s: TString8; statId: integer): boolean;
+function FileLoadStatData(s: TString20; statId: integer): boolean;
 	var
 		TmpString: string;
 		f: text;
@@ -1411,7 +1419,7 @@ function FileLoadStatData(s: TString8; statId: integer): boolean;
 		if IOResult <> 0 then begin end;
 	end;
 
-function FileAppendStatData(s: TString8; statId: integer): boolean;
+function FileAppendStatData(s: TString20; statId: integer): boolean;
 	var
 		TmpString: string;
 		f: text;
@@ -2240,23 +2248,18 @@ procedure GameDebugPrompt;
 
 procedure GameDrawCustomSidebar;
 	var
-		i, y, code: integer;
+		i, j, y, code: integer;
+		m: char;
 	begin
 		i := 0;
 		while i < KeyLimit do begin
 			Val(KeyList[(i * 3) + 2],y,code);
 			if (y > 2) and (y < 25) then begin
-				if ((y mod 2) = 1) then
-					VideoWriteText(62, y,
-						AsColor(ParamList[THEME_START + 3],
-						ParamList[THEME_START + 4]),
-						' ' + KeyList[i * 3][1] + ' ')
-				else
-					VideoWriteText(62, y,
-						AsColor(ParamList[THEME_START + 3],
-						ParamList[THEME_START + 5]),
-						' ' + KeyList[i * 3][1] + ' ');
-				VideoWriteText(65, y,
+				VideoWriteText(62, y,
+					AsColor(ParamList[THEME_START + 3],
+					ParamList[THEME_START + 5 - (y mod 2)]),
+					' ' + UpCaseString(KeyList[i * 3], true) + ' ');
+				VideoWriteText(64 + Length(KeyList[i * 3]), y,
 					AsColor(ParamList[THEME_START + 1],
 					ParamList[THEME_START]), ' '+ KeyList[(i * 3) + 1]);
 			end;
@@ -2577,10 +2580,11 @@ procedure GameTitleLoop;
 
 				case UpCase(InputKeyPressed) of
 					'W': begin
-						if GameWorldLoad('.ZZT') and not SkipToTitle then begin
-							ReturnBoardId := World.Info.CurrentBoard;
-							boardChanged := true;
-						end;
+						if not SkipToTitle then
+							if GameWorldLoad('.ZZT') then begin
+								ReturnBoardId := World.Info.CurrentBoard;
+								boardChanged := true;
+							end;
 					end;
 					'P': begin
 						if (World.Info.IsSave and 10 = 10) and not DebugEnabled then begin

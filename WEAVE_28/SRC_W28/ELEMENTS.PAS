@@ -1015,12 +1015,21 @@ procedure ElementObjectTick(statId: integer);
 				else if (StepX <> 0) or (StepY <> 0) then
 					retVal := OopSend(-statId, 'THUD', false);
 			end;
+			if Flashing > 0 then begin
+				BoardDrawTile(X, Y);
+				Dec(Flashing);
+			end
 		end;
 	end;
 
 procedure ElementObjectDraw(x, y: integer; var ch: byte);
 	begin
-		ch := Board.Stats[GetStatIdAt(x, y)].P1;
+		with Board.Stats[GetStatIdAt(x, y)] do
+			if Flashing mod 6 > 2
+				then
+					VideoWriteText(x - 1, y - 1, $E0, Chr(P1))
+				else
+					VideoWriteText(x - 1, y - 1, Board.Tiles[x][y].Color, Chr(P1));
 	end;
 
 procedure ElementObjectTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -1577,12 +1586,17 @@ procedure ElementTruePlayerTick;
 				and (World.Info.Health > 0))
 			then begin
 				GamePaused := true;
-			end else if InputTerminal <> '_nil' then begin
+			end else if (InputTerminal <> '_nil') and (KeyLimit > 0) then begin {.INI keyboard inputs}
 				i := 0;
+				if InputDesignateShift then
+					inputC := InputKeyPressed;
 				while i < KeyLimit do begin
-					if inputC = UpCase(KeyList[i * 3][1]) then begin
+					if (inputC = UpCase(KeyList[i * 3][Length(KeyList[i * 3])]))
+						or (inputC = KeyList[i * 3][Length(KeyList[i * 3])])
+					then begin
 						GameMove := true;
-						if OopSend(0, InputTerminal + ':' + UpCaseString(KeyList[(i * 3) + 1]), false) then begin end; {.INI keyboard inputs}
+						if OopSend(0, InputTerminal + ':' + UpCaseString(KeyList[(i * 3) + 1], false), false) then begin end;
+						i := KeyLimit + 1;
 					end;
 					Inc(i);
 				end;

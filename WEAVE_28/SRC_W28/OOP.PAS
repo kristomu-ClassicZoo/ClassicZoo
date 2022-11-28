@@ -277,6 +277,7 @@ function ReadOnly(s: string): boolean;
 		if (s = 'BOARDID')
 			or (s = 'ARRAY')
 			or (s = 'TICKSPEED')
+			or (s = 'ARG')
 			or (s = OOPList[14]) {'MOUSEX'}
 			or (s = OOPList[15]) {'MOUSEY'}
 			or (GetBit(s) <> 0)
@@ -300,6 +301,8 @@ function GetReadOnly(statId: integer; s: string): integer;
 			GetReadOnly := Board.Stats[statId].elseCheck and $7F
 		else if s = 'TICKSPEED' then
 			GetReadOnly := Tickspeed + 1
+		else if s = 'ARG' then
+			GetReadOnly := GlobalArg
 		else if s = OOPList[14] then {'MOUSEX'}
 			GetReadOnly := PMouseX
 		else if s = OOPList[15] then {'MOUSEY'}
@@ -392,6 +395,16 @@ function OopRunFunc(statId: integer; var position: integer): integer;
 		OopRunFunc := OopFuncReturn;
 	end;
 
+function OopRunFuncWith(statId: integer; var position: integer; var arg: integer): integer;
+	var
+		tempArg: integer;
+	begin
+		tempArg := GlobalArg;
+		GlobalArg := arg;
+		OopRunFuncWith := OopRunFunc(statId, position);
+		GlobalArg := tempArg;
+	end;
+
 procedure OopReadValue(statId: integer; var position: integer);
 	var
 		s: string[20];
@@ -461,6 +474,14 @@ procedure OopReadValue(statId: integer; var position: integer);
 			else if s = 'RUN' then begin
 				s := OopWord;
 				OopValue := OopRunFunc(statId, position);
+				OopWord := s;
+			end else if s = 'RUNWITH' then begin
+				s := OopWord;
+				OopReadValue(statId, position);
+				if OopValue <> -32767 then begin
+					ix := OopValue;
+					OopValue := OopRunFuncWith(statId, position, ix);
+				end;
 				OopWord := s;
 			end else if ReadOnly(s) then
 				OopValue := GetReadOnly(statId, s)
@@ -1114,7 +1135,13 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				end;
 			end else if OopWord = 'RUN' then
 				OopCheckCondition := OopRunFunc(statId, position) > 0
-			else if OopWord = 'WITHIN' then begin
+			else if OopWord = 'RUNWITH' then begin
+				OopReadValue(statId, position);
+				if OopValue <> -32767 then 
+					OopCheckCondition := OopRunFuncWith(statId, position, OopValue) > 0
+				else
+					OopError(statId,position, 'Could not read ' + OopWord + ' value');
+			end else if OopWord = 'WITHIN' then begin
 				OopReadValue(statId, position);
 				OopCheckCondition := ((Sqr(Board.Stats[0].X - x) + Sqr(Board.Stats[0].Y - y) * 7 / 4) <= (Sqr(OopValue)));
 			end else if OopWord = 'DETECT' then begin
@@ -1541,13 +1568,17 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							else
 								elseCheck := (elseCheck and $7F) + $80;
 						end else if OopWord = 'ELSE' then begin
-							if (elseCheck and $80) = $80 then
-								goto ReadCommand;
+							if (elseCheck and $80) = $80 then goto ReadCommand;
 						end else if OopWord = 'AND' then begin
-							if (elseCheck and $80) = 0 then
-								goto ReadCommand;
+							if (elseCheck and $80) = 0 then goto ReadCommand;
 						end else if OopWord = 'RUN' then begin
 							ix := OopRunFunc(statId, position);
+						end else if OopWord = 'RUNWITH' then begin
+							OopReadValue(statId, position);
+								if OopValue <> -32767 then
+									ix := OopRunFuncWith(statId, position, OopValue)
+								else
+									OopError(statId,position, 'Could not read ' + OopWord + ' value');
 						end else if OopWord = 'LOAD' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
 							if ((X + deltaX) > 0)
@@ -1555,27 +1586,38 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								and ((Y + deltaY) > 0)
 								and ((Y + deltaY) <= BOARD_HEIGHT)
 							then begin
-								OopReadWord(statId, position);
-								if Board.Tiles[X + deltaX][Y + deltaY].element = E_OBJECT then begin
-									bindStatId := GetStatIdAt(X + deltaX, Y + deltaY);
-									textLine := OopWord;
-									if textLine = 'APPEND' then
-										OopReadWord(statId, position);
-									if (OopWord <> '') and (bindStatId > 0) then begin
-										if (textLine = 'APPEND') then begin
-											if FileAppendStatData(OopWord,bindStatId) then
-												goto ReadCommand
-											else
-												OopError(statId,position, 'File not found ' + OopWord + '.OBJ');
-										end else if FileLoadStatData(OopWord,bindStatId) then begin
-											Board.Stats[bindStatId].DataPos := 0;
-											goto ReadCommand;
-										end else
-											OopError(statId,position, 'File not found ' + OopWord + '.OBJ');
+								bindStatId := GetStatIdAt(X + deltaX, Y + deltaY);
+								if (Board.Tiles[X + deltaX][Y + deltaY].element = E_OBJECT)
+									and (bindStatId > 0)
+								then begin
+									ix := position;
+									OopReadWord(statId, position);
+									if OopWord <> 'APPEND' then
+										position := ix;
+									Inc(position);
+									textLine := OopReadLineToEnd(statId, position);
+									Dec(position);
+									if (OopWord = 'APPEND') then begin
+										if FileAppendStatData(textLine,bindStatId) then
+											goto ReadCommand
+										else
+											OopError(statId,position, 'Unable to load ' + textLine + '.OBJ');
+									end else if FileLoadStatData(textLine,bindStatId) then begin
+										Board.Stats[bindStatId].DataPos := 0;
+										goto ReadCommand;
 									end else
-										OopError(statId,position, 'LOAD needs a filename');
+										OopError(statId,position, 'Unable to load ' + textLine + '.OBJ');
 								end;
 							end;
+						end else if OopWord = 'FLASHINPUT' then begin
+							OopReadValue(statId, position);
+							if OopValue < 1 then
+								OopValue := 1;
+							for ix := 1 to Board.StatCount do
+								if (OopFindString(ix, ':TOUCH') > -1)
+									and (Board.Stats[ix].P2 = 0)
+								then
+									Board.Stats[ix].Flashing := OopValue;
 						end else if OopWord = 'PALETTE' then begin
 							OopReadValue(statId, position);
 							ix := OopValue;
