@@ -1,3 +1,26 @@
+12/1/2022: Weave 2.8f
+Bugfixes:
+* #put <dir> <element>, if blocked in <dir> by the player, would always place under the player rather than pushing the player.
+
+11/28/2022: ​Weave 2.8e
+New Features:
+* ​​Load from subdirectories
+    * You can now include subdirectories when you are loading a file.
+    * Usage: #load i objects\myobject
+* Case sensitive keybinds
+    * By prepending "Shift-" to a keybind, you make it (and all other keybinds) case sensitive.
+    * For explanation and example, see TEMPLATE.INI
+* #FLASHINPUT command
+    * Usage: #FLASHINPUT <duration>
+    * Flashes all objects on the screen able to be :touch-ed (not #locked, and the :touch is not #zap-ped)
+    * Continues flashing for <duration> ticks (~9 ticks = 1 second at normal speed)
+* #RUNWITH + ARG readonly counter
+    * Usage: #RUNWITH <value> <function>
+    * Usage: #IF RUNWITH <value> <function>
+    * Usage: #GIVE <counter> RUNWITH <value> <function>
+    * Passes a value to a function, readable with readonly counter ARG from within the function itself.
+    
+
 11/5/2022: WeaveZZT 2.8d
 New Features:
 * Can load .PAL files in the same manner as .CHR files.

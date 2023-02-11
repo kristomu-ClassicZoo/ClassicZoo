@@ -106,6 +106,7 @@ procedure OopReadWord(statId: integer; var position: integer);
 			or (OopChar = ':')
 			or (OopChar = '-')
 			or (OopChar = '^')
+			or (OopChar = '\')
 		do begin
 			if OopChar = '^' then begin
 				Str(Board.Stats[statId].elseCheck and $7F, s);
@@ -287,11 +288,13 @@ function ReadOnly(s: string): boolean;
 
 function GetReadOnly(statId: integer; s: string): integer;
 	begin
-		if s = OOPList[16] then
-			GetReadOnly := Board.Stats[0].X
-		else if s = OOPList[17] then
-			GetReadOnly := Board.Stats[0].Y
-		else if s = OOPList[18] then
+		if s = OOPList[16] then begin
+			GetReadOnly := Board.Stats[0].X;
+			PlayerDirUsed := true;
+		end else if s = OOPList[17] then begin
+			GetReadOnly := Board.Stats[0].Y;
+			PlayerDirUsed := true;
+		end else if s = OOPList[18] then
 			GetReadOnly := Board.Stats[statId].X
 		else if s = OOPList[19] then
 			GetReadOnly := Board.Stats[statId].Y
@@ -508,6 +511,7 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 		with Board.Stats[statId] do begin
 			OopParseDirection := true;
 			if OopWord = 'PLAYER' then begin
+				PlayerDirUsed := true;
 				dx := Board.Stats[0].X - X;
 				dy := Board.Stats[0].Y - Y;
 			end else if
@@ -1149,7 +1153,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					OopReadWord(statId, position);
 					if not OopParseTile(statId, position, tile) then
 						OopError(statId,position, 'Bad object kind');
-					OopCheckCondition := MatchTiles(Board.Stats[0].Under, tile);
+					
 				end else begin
 					OopReadDirection(statId, position, deltaX, deltaY);
 					if not OopParseTile(statId, position, tile) then
@@ -1161,6 +1165,11 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					then begin
 						if (deltaX = 0) and (deltaY = 0) then
 							OopCheckCondition := MatchTiles(Under, tile)
+						else if PlayerDirUsed
+							and (X + deltaX = Board.Stats[0].X)
+							and (Y + deltaY = Board.Stats[0].Y)
+						then
+							OopCheckCondition := MatchTiles(Board.Stats[0].Under, tile)
 						else
 							OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile)
 					end else OopCheckCondition := false;
@@ -1398,6 +1407,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 			insCount := 1;
 			repeat
 		ReadInstruction:
+				PlayerDirUsed := false;
 				lineFinished := true;
 				lastPosition := position;
 				OopReadChar(statId, position);
@@ -2002,7 +2012,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								if (deltaX = 0) and (deltaY = 0) then begin
 									Under.Element := argTile.Element;
 									Under.Color := argTile.Color;
-								end else if GetStatIdAt(X + deltaX, Y + deltaY) = 0 then begin
+								end else if (GetStatIdAt(X + deltaX, Y + deltaY) = 0) and PlayerDirUsed then begin
 									Board.Stats[0].Under.Element := argtile.Element;
 									Board.Stats[0].Under.Color := argTile.Color;
 								end else begin

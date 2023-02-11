@@ -64,8 +64,8 @@ interface
 	procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: TString50);
 	function GameWorldLoad(extension: TString50): boolean;
 	procedure AddStat(tx, ty: integer; txelement, txcolor: byte; tcycle: integer; template: TStat);
-	function FileLoadStatData(s: TString20; statId: integer): boolean;
-	function FileAppendStatData(s: TString20; statId: integer): boolean;
+	function FileLoadStatData(s: TString50; statId: integer): boolean;
+	function FileAppendStatData(s: TString50; statId: integer): boolean;
 	procedure FreeStatDataMem(statId: integer);
 	procedure RemoveStat(statId: integer);
 	function GetStatIdAt(x, y: integer): integer;
@@ -1365,7 +1365,7 @@ procedure FreeStatDataMem(statId: integer);
 		end;
 	end;
 
-function FileLoadStatData(s: TString20; statId: integer): boolean;
+function FileLoadStatData(s: TString50; statId: integer): boolean;
 	var
 		TmpString: string;
 		f: text;
@@ -1419,7 +1419,7 @@ function FileLoadStatData(s: TString20; statId: integer): boolean;
 		if IOResult <> 0 then begin end;
 	end;
 
-function FileAppendStatData(s: TString20; statId: integer): boolean;
+function FileAppendStatData(s: TString50; statId: integer): boolean;
 	var
 		TmpString: string;
 		f: text;

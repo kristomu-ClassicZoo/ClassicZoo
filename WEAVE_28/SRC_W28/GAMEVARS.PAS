@@ -228,6 +228,7 @@ interface
 		CurrentStatTicked: integer;
 		OopFuncReturn: integer;
 		GamePaused: boolean;
+		PlayerDirUsed: boolean;
 		TickTimeCounter: integer;
 		KeyLimit: integer;
 
