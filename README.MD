@@ -1,12 +1,12 @@
-# WeaveZZT 2.8
+# WeaveZZT 3.0
 
-Unlike previous versions of Weave, this version really is meant to be the forever version.
+With Weave 3, all previous recommendations for Weave have been addressed and the design specifications are frozen. It is the culmination of the Weave 2 project.
 
 Designed with the full scope of the ZZTer audience in mind, this version hopes to supply the needs of anyone that wants to tweak something about ZZT. Weave 2 makes extensive use of accessory files to allow ZZTers to enhance their game's experience without diving into the Pascal code.
 
 ## Using
 
-The DOS executables provided in BIN are already ready to take on ZZT. With your own copy of Turbo Pascal 5.5, you can compile both executables yourself using the BUILDW28.BAT files provided in the different subdirectories.
+The DOS executables provided in BIN are already ready to take on ZZT. With your own copy of Turbo Pascal 5.5, you can compile both executables yourself using the BUILDW30.BAT files provided in the different subdirectories.
 
 ## Types of weaving
 
@@ -41,31 +41,36 @@ There are a few different kinds of files found in this project:
 * ZZT files
     * Demonstration ZZT worlds for Weave.
 * EXE files
-    * WEAVE28 is the Weave ZZT executable.
+    * WEAVE3 is the Weave ZZT executable.
     * LZEXE is the tool used to compress the weave EXE.
+* ZIP files
+    * Additional tools are provided to help newcomers with Weave.
+    * The source code to produce these is also available.
 
 ## Files in this project:
 
 Below are listed the files in the various folders of the project.
 
-### WEAVE_28 directory
+### WEAVE_30 directory
 
 * TOOLS
-    * LZEXE.EXE, LZEXE.DOC
+    * UPX.EXE
         * For shrinking ZZT.EXE.
-* SRC_W28
+    * LOOMZZT.zip
+        * For editing ZZT files with Weave 3 considerations.
+        * Source is included.
+    * WEBWEAVE.ZIP
+        * For distributing WeaveZZT worlds on the web.
+        * Instructions are included.
+    * WEBZZT32.ZIP
+        * For distributing ZZT 3.2 worlds on the web.
+* SRC_W30
     * ALL .PAS FILES (ELEMENTS.PAS, EXTMEM.PAS, etc.)
         * Forked from the ZZT Reconstruction and ClassicZoo.
         * Reconstruction: github.com/asiekierka/reconstruction-of-zzt
         * ClassicZoo: github.com/OpenZoo/ClassicZoo
-    * EXAMPLE.OBJ
-        * Example object used in the WeaveZZT demo.
-    * ANGRY.OBJ, GREET.OBJ
-        * Appended code used in the WeaveZZT demo.
-    * THING.OBJ
-        * Function code used in the WeaveZZT demo.
-    * BEARBUL.OBJ, WONKY.OBJ
-        * Custom bullets from the WeaveZZT demo.
+    * ALL .OBJ FILES (ANGRY.OBJ, WONKY.OBJ, etc.)
+        * Example objects and code used in the WeaveZZT demo.
     * WEAVEDMO.CFG
         * Element parameters for the WeaveZZT demo.
     * TEMPLATE.CFG
@@ -80,7 +85,7 @@ Below are listed the files in the various folders of the project.
         * A simple tutorial to get you started using Weave with Zeta. Included with the Weave 2 download.
     * howto1.png, howto2.png, howto3.png
         * Companion images to the above tutorial.
-* BUILDW28.BAT
+* BUILDW30.BAT
     * Used in DOS or DOSBox to build Weave from source.
 * LICENSE.TXT
     * MIT License, required by reconstruction-of-zzt.

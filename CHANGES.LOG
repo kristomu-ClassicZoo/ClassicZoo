@@ -1,3 +1,34 @@
+2/11/2022: Weave 3.0a
+Removed Features:
+* IS BIT#, SET BIT# and CLEAR BIT# functionality removed.
+* Automatic blinking removed.
+* Short counters are removed.
+* obj7-obj9 are removed.
+* other.flaglength is removed.
+* Customizing the names of builtin counters, :ENTER, readonly counters, and @INPUT removed.
+
+Updated Features:
+* ARRAY is now able to represent and substitute values from -32766 to 32767.
+* In the absence of a .INI file, WeaveZZT will not execute extended ZZT-OOP functions and instead behave as ZZT 3.2.
+
+New Features:
+* PSET now has aliases for P1, P2 and P3, and includes special syntax:
+ - #PSET <dir> STEP <dir> to set step values
+ - #PSET <dir> DESTINATION <boardlabel> to set passage destinations.
+* Elements 128-255 are now custom text of every available non-blinking color.
+ - They use the "CUSTOMTEXT" element table parameters to determine their behavior.
+* OUT and XOUT permit the writing of files with #PUT instructions to replicate board contents.
+
+Added Tools:
+* LOOMZZT, a hacked version of Kevedit is now available with source code.
+* WEBWEAVE, a drag-and-drop tool to publish WeaveZZT games to web, is available.
+* WEBZZT32, a drag-and-drop tool to publish ZZT 3.2 games to web, is available.
+* 
+
+Fixed Bugs:
+* Change <text> <text> would change the text in question all to the same character.
+
+
 12/1/2022: Weave 2.8f
 Bugfixes:
 * #put <dir> <element>, if blocked in <dir> by the player, would always place under the player rather than pushing the player.
