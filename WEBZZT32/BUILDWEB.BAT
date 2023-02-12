@@ -1,0 +1,8 @@
+if not exist BIN mkdir BIN
+del BIN\*.*
+del WEBZZT.EXE
+TPC /B /EBIN /GD /ISRC /USRC SRC\ZZT.PAS
+cd BIN
+..\TOOLS\UPX.EXE --8086 ZZT.EXE
+cd ..
+copy BIN\ZZT.EXE WEBZZT.EXE
