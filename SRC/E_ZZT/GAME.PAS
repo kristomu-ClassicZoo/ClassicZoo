@@ -1161,6 +1161,12 @@ procedure GamePlayLoop(boardChanged: boolean);
 						DrawPlayerSurroundings(Board.Stats[0].X - InputDeltaX, Board.Stats[0].Y - InputDeltaY, 0);
 					end;
 
+					{ Fix bug where the unpause movement is not taken into account for SPACE. }
+					if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+						PlayerDirX := InputDeltaX;
+						PlayerDirY := InputDeltaY;
+					end;
+
 					{ Unpause }
 					GamePaused := false;
 					SidebarClearLine(5);

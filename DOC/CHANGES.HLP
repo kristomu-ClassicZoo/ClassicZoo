@@ -6,6 +6,12 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
+$< ClassicZoo dev >
+
+/ {ZZT} Fixed bug where the on-unpause
+  player movement was not taken into
+  account for handling SPACE shooting. 
+
 $< ClassicZoo 4.37 >
 
 / Fixed configuration option list bug.
