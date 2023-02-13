@@ -2411,6 +2411,12 @@ procedure GamePlayLoop(boardChanged: boolean);
 					InputKeyPressed := #0;
 				end;
 
+				{ Fix bug where the unpause movement is not taken into account for SPACE. }
+				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+					PlayerDirX := InputDeltaX;
+					PlayerDirY := InputDeltaY;
+				end;
+
 				if NoClip then begin
 					if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
 						with Board.Stats[0] do begin
