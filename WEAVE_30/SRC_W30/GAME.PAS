@@ -2402,7 +2402,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(64, 5, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ConfigList[81]); {"Pausing..."}
 				InputUpdate;
 
-
 				if InputKeyPressed = KEY_ESCAPE then
 					GamePromptEndPlay;
 
@@ -2495,6 +2494,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 		if GameStateElement = E_PLAYER then begin
 			if (World.Info.Health <= 0) then begin
+				HighScoresLoad;
 				HighScoresAdd(World.Info.Score);
 			end;
 		end else if GameStateElement = E_MONITOR then begin

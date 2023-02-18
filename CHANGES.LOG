@@ -1,4 +1,9 @@
-2/11/2022: Weave 3.0a
+2/18/2023: Weave 3.0b
+Fixed Bugs:
+* Movement while paused would not update the player's shooting direction (used with SPACE)
+* Loading a .HI file would sometimes result in the first name on the list being length 0, causing name corruption.
+
+2/11/2023: Weave 3.0a
 Removed Features:
 * IS BIT#, SET BIT# and CLEAR BIT# functionality removed.
 * Automatic blinking removed.
@@ -23,7 +28,6 @@ Added Tools:
 * LOOMZZT, a hacked version of Kevedit is now available with source code.
 * WEBWEAVE, a drag-and-drop tool to publish WeaveZZT games to web, is available.
 * WEBZZT32, a drag-and-drop tool to publish ZZT 3.2 games to web, is available.
-* 
 
 Fixed Bugs:
 * Change <text> <text> would change the text in question all to the same character.
