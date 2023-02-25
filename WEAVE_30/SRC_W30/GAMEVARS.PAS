@@ -205,6 +205,7 @@ interface
 		HearingImpaired: boolean;
 		Diffkeys: boolean;
 		SkipToTitle: boolean;
+		IsRelease: boolean;
 		GameMove: boolean;
 		HasINI: boolean;
 		IoTmpBufSize: word;
@@ -260,7 +261,7 @@ interface
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
 		ExtendedFlags: TExtendedFlagList;
-		Accessibility: array[1..4] of TString50;
+		Accessibility: array[1..7] of TString50;
 
 		BoardNames: array[0 .. MAX_BOARD] of TString50;
 	const

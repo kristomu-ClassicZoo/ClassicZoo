@@ -48,7 +48,7 @@ procedure GameConfigure;
         Reset(cfgFile);
         if IOResult = 0 then begin
             ReadLn(cfgFile, ConfigWorldFile);
-			for i := 1 to 5 do
+			for i := 1 to 7 do
 				ReadLn(cfgFile, Accessibility[i]);
 		end;
         if Length(ConfigWorldFile) <> 0 then begin
@@ -67,7 +67,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                                <=-  Weave  -=>');
 		TextColor(Yellow);
-		Writeln('                                 Version  3.0a');
+		Writeln('                                 Version  3.0c');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -92,6 +92,7 @@ procedure GameConfigure;
 		HearingImpaired := false;
 		Diffkeys := false;
 		SkipToTitle := false;
+		IsRelease := false;
 		TickSpeed := 9;
 		if Accessibility[1] = 'ACCESSIBLE' then begin
 			if Accessibility[2] = '' then begin
@@ -99,7 +100,7 @@ procedure GameConfigure;
 				HearingImpaired :=	HearingConfigure;
 				Diffkeys := KeydiffConfigure;
 			end else
-				for i := 2 to 6 do begin
+				for i := 2 to 7 do begin
 					if Accessibility[i] = 'NEUROMOTORASSIST' then
 						NeuromotorAssist :=	true;
 					if Accessibility[i] = 'VISUALSOUND' then
@@ -107,7 +108,9 @@ procedure GameConfigure;
 					if Accessibility[i] = 'KEYSHAPES' then
 						Diffkeys :=	true;
 					if Accessibility[i] = 'SKIPTOTITLE' then
-						SkipToTitle :=	true;
+						SkipToTitle := true;
+					if Accessibility[i] = 'RELEASE' then
+						IsRelease := true;						
 					for j := 49 to 57 do
 						if Accessibility[i] = 'SPEED ' + Chr(j) then
 							TickSpeed := j - 44;

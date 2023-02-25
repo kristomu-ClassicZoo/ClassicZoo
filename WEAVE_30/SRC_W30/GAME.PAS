@@ -2242,6 +2242,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 			VideoWriteText(61, 0, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), '    - - - - -      ');
 			VideoWriteText(62, 1, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), '      ZZT      ');
 			VideoWriteText(62, 1, AsColor(ParamList[THEME_START + 5],ParamList[THEME_START + 4]), ' Weave');
+			if not HasINI then VideoWriteText(74, 1, AsColor(ParamList[THEME_START + 5],ParamList[THEME_START + 4]), '3.2');
 			VideoWriteText(61, 2, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), '    - - - - -      ');
 			if GameStateElement = E_PLAYER then begin
 				VideoWriteText(64, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[63]); {Health Sidebar}
@@ -2315,7 +2316,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end else if GameStateElement = E_MONITOR then begin
 				SidebarPromptSlider(false, 66, 21, 'Game speed:;FS', TickSpeed);
 				VideoWriteText(62, 21, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' S ');
-				if not SkipToTitle then VideoWriteText(62, 7, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' W ');
+				if not IsRelease then VideoWriteText(62, 7, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' W ');
 				VideoWriteText(65, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' World:');
 
 				if (Length(World.Info.Name) <> 0 ) and (World.Info.Name <> 'Template') then
@@ -2528,7 +2529,7 @@ procedure GameTitleLoop;
 
 				case UpCase(InputKeyPressed) of
 					'W': begin
-						if not SkipToTitle then
+						if not IsRelease then
 							if GameWorldLoad('.ZZT') then begin
 								ReturnBoardId := World.Info.CurrentBoard;
 								boardChanged := true;

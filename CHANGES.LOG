@@ -1,3 +1,12 @@
+2/25/2023: Weave 3.0c
+Changes:
+* (W)orld selection on the title screen menu will only be removed if your WEAVEZZT.CFG indicates you're distributing a RELEASE.
+* When playing .ZZT files without a .INI, a 3.2 indicator in the top corner will indicate that Compatibility Mode is on.
+* WEAVEDMO has been updated to address both of the above.
+* Additionally, a COMPAT.ZZT world has been added to the WEAVEDMO directory discussing and demonstrating Compatibility Mode.
+* LOOMZZT is now version 1.1.3b, with a small quality-of-life fix for custom text with default color mode off. (no longer messes with the CHAR of the text, only the color.)
+
+
 2/18/2023: Weave 3.0b
 Fixed Bugs:
 * Movement while paused would not update the player's shooting direction (used with SPACE)

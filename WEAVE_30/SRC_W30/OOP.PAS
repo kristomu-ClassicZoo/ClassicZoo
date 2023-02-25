@@ -1171,10 +1171,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					else
 						OopCheckCondition := WorldGetFlagPosition(OopWord) > 0;
 			end else
-				if GetCustomFlag(OopWord) then
-					OopCheckCondition := true
-				else
-					OopCheckCondition := WorldGetFlagPosition(OopWord) > 0;
+				OopCheckCondition := WorldGetFlagPosition(OopWord) > 0;
 		end;
 	end;
 
@@ -1478,7 +1475,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = 'SET' then begin
 							OopReadWord(statId, position);
 							textLine := OopWord;
-							if ShortWord(OopWord) then begin
+							if not HasINI then
+								WorldSetFlag(OopWord)
+							else if ShortWord(OopWord) then begin
 								OopGetShort(statId, OopWord, shortPtr);
 								OopReadValue(statId, position);
 								if OopValue = -32767 then
@@ -1507,22 +1506,22 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							end;
 						end else if OopWord = 'CLEAR' then begin
 							OopReadWord(statId, position);
-							textLine := OopWord;
-							OopReadWord(statId, position);
-							if ShortWord(textLine) then begin
-								OopGetShort(statId, textLine, shortPtr);
+							if not HasINI then
+								WorldClearFlag(OopWord)
+							else if ShortWord(OopWord) then begin
+								OopGetShort(statId, OopWord, shortPtr);
 								shortPtr^ := 0;
 								GameUpdateSidebar;
-							end else if OopGetCounter(statId, textLine, counterPtr) then begin
+							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 								counterPtr^ := 0;
 								GameUpdateSidebar;
 							end else
-								WorldClearFlag(textLine);
-							if textLine = 'KEYSPEED' then KeyRepeat;
-							if (textLine = 'ISDARK') or
-								(textLine = 'WICK')
+								WorldClearFlag(OopWord);
+							if OopWord = 'KEYSPEED' then KeyRepeat;
+							if (OopWord = 'ISDARK') or
+								(OopWord = 'WICK')
 							then TransitionDrawToBoard;
-							if (textLine = 'TICKSPEED')	then TickTimeDuration := 0;
+							if (OopWord = 'TICKSPEED') then TickTimeDuration := 0;
 						end else if OopWord = 'IF' then begin
 							elseCheck := false;
 							OopReadWord(statId, position);

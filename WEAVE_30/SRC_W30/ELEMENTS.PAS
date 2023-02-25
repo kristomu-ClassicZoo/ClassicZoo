@@ -1314,7 +1314,7 @@ procedure ElementFakeTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 
 procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	var
-		neighborId, e: integer;
+		neighborId: integer;
 		boardId: integer;
 		entryX, entryY: integer;
 	begin
@@ -1334,20 +1334,18 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 			entryX := 1;
 		end;
 
-		e := Enum(Board.Tiles[entryX][entryY].Element);
-
 		if Board.Info.NeighborBoards[neighborId] <> 0 then begin
 			boardId := World.Info.CurrentBoard;
 			BoardChange(Board.Info.NeighborBoards[neighborId]);
-			if e <> E_PLAYER then begin
-				ElementDefs[e].TouchProc(
+			if Enum(Board.Tiles[entryX][entryY].Element) <> E_PLAYER then begin
+				ElementDefs[Enum(Board.Tiles[entryX][entryY].Element)].TouchProc(
 					entryX, entryY, sourceStatId, InputDeltaX, InputDeltaY);
 			end;
 
-			if ElementDefs[e].Walkable
-				or (e = E_PLAYER) then
+			if ElementDefs[Enum(Board.Tiles[entryX][entryY].Element)].Walkable
+				or (Enum(Board.Tiles[entryX][entryY].Element) = E_PLAYER) then
 			begin
-				if e <> E_PLAYER then
+				if Enum(Board.Tiles[entryX][entryY].Element) <> E_PLAYER then
 					MoveStat(0, entryX, entryY);
 
 				TransitionDrawBoardChange;
@@ -1709,12 +1707,10 @@ procedure ElementCloneTick(statId: integer);
 				PlayerDirX := InputDeltaX;
 				PlayerDirY := InputDeltaY;
 
-				e := Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element);
-
-				ElementDefs[e].TouchProc(
+				ElementDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].TouchProc(
 					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					if ElementDefs[e].Walkable then
+					if ElementDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].Walkable then
 						MoveStat(0, X + InputDeltaX, Y + InputDeltaY);
 				end;
 			end;
