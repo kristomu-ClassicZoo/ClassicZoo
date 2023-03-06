@@ -1,3 +1,10 @@
+3/5/2023: Weave 3.0d
+Bug Fixes:
+* In 3.2 compatibility mode, Keys and doors were missing a space from their messages, resulting in things like TheGreen Key and TheBlue Door.
+
+Other Changes:
+* Small modifications and typo fixes in COMPAT and WEAVEDMO.
+
 2/25/2023: Weave 3.0c
 Changes:
 * (W)orld selection on the title screen menu will only be removed if your WEAVEZZT.CFG indicates you're distributing a RELEASE.
