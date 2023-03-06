@@ -39,11 +39,20 @@ For further explanation about any of the above, see the WEAVEDMO.ZZT file.
 
 There are tools provided along with Weave 3 for use in creating Weave and Web-playable ZZT games. They are in the TOOLS folder as follows:
 
-WEBZZT32.ZIP
- - A quick drag-and-drop utility to turn your ZZT files into web-playable content.
-
 LOOMZZT.ZIP
  - A hacked version of KevEdit to make Weave 3 game creation easier, with syntax highlighting, limit removal and custom text support.
+
+WEBWEAVE.ZIP
+ - A quick drag-and-drop utility to turn your WeaveZZT files into web-playable content.
+
+WEBZZT32.ZIP
+ - Same as above, but for ZZT 3.2 files.
+
+--> What Software License does this use?
+
+With the exception of LOOMZZT, Weave 3 is MIT licensed. See LICENSE.TXT for details.
+
+LOOMZZT is GPL-licensed. For details about its license, see the README.MD file included in the LOOMZZT source, provided with the program.
 
 
 --> I still have questions.

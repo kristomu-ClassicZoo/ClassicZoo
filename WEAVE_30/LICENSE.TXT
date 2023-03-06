@@ -1,3 +1,5 @@
+[This license covers all files and software in the project apart from the LOOMZZT source.]
+
 Reconstruction of ZZT Copyright (c) 2021 Adrian "asie" Siekierka
 Weave 3 Copyright (c) 2023 WiL "WiL" Whitlark
 
