@@ -1140,31 +1140,24 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					OopReadValue(statId, position);
 					OopCheckCondition := ((Sqr(Board.Stats[0].X - x) + Sqr(Board.Stats[0].Y - y) * 7 / 4) <= (Sqr(OopValue)));
 				end else if OopWord = 'DETECT' then begin
-					if OopNextWord(statId, position) = 'PLAYER' then begin
-						OopReadWord(statId, position);
-						if not OopParseTile(statId, position, tile) then
-							OopError(statId,position, 'Bad object kind');
-						
-					end else begin
-						OopReadDirection(statId, position, deltaX, deltaY);
-						if not OopParseTile(statId, position, tile) then
-							OopError(statId,position, 'Bad object kind');
-						if ((X + deltaX) > 0)
-							and ((X + deltaX) <= BOARD_WIDTH)
-							and ((Y + deltaY) > 0)
-							and ((Y + deltaY) <= BOARD_HEIGHT)
-						then begin
-							if (deltaX = 0) and (deltaY = 0) then
-								OopCheckCondition := MatchTiles(Under, tile)
-							else if PlayerDirUsed
-								and (X + deltaX = Board.Stats[0].X)
-								and (Y + deltaY = Board.Stats[0].Y)
-							then
-								OopCheckCondition := MatchTiles(Board.Stats[0].Under, tile)
-							else
-								OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile)
-						end else OopCheckCondition := false;
-					end;
+					OopReadDirection(statId, position, deltaX, deltaY);
+					if not OopParseTile(statId, position, tile) then
+						OopError(statId,position, 'Bad object kind');
+					if ((X + deltaX) > 0)
+						and ((X + deltaX) <= BOARD_WIDTH)
+						and ((Y + deltaY) > 0)
+						and ((Y + deltaY) <= BOARD_HEIGHT)
+					then begin
+						if (deltaX = 0) and (deltaY = 0) then
+							OopCheckCondition := MatchTiles(Under, tile)
+						else if PlayerDirUsed
+							and (X + deltaX = Board.Stats[0].X)
+							and (Y + deltaY = Board.Stats[0].Y)
+						then 
+							OopCheckCondition := ((MatchTiles(Board.Stats[0].Under, tile)) OR (tile.Element = E_PLAYER))
+						else
+							OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile)
+					end else OopCheckCondition := false;
 				end else
 					if GetCustomFlag(OopWord) then
 						OopCheckCondition := true
@@ -1466,7 +1459,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								MoveStat(statId, X + deltaX, Y + deltaY);
 								stopRunning := true;
 							end else begin
-								goto ReadCommand;
+								OopReadChar(statId, position);
+								Dec(position);
+								if (OopChar <> #13) then
+									goto ReadCommand;
 							end;
 						end else if OopWord = 'WALK' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
@@ -1525,9 +1521,12 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = 'IF' then begin
 							elseCheck := false;
 							OopReadWord(statId, position);
-							if OopCheckCondition(statId, position) then
-								goto ReadCommand
-							else
+							if OopCheckCondition(statId, position) then begin
+								OopReadChar(statId, position);
+								Dec(position);
+								if (OopChar <> #13) then
+									goto ReadCommand;
+							end else
 								elseCheck := true;
 						end else if OopWord = 'SHOOT' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
@@ -1561,7 +1560,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								shortPtr^ := shortPtr^ + OopValue;
 								if shortPtr^ < 0 then begin
 									shortPtr^ := shortPtr^ - OopValue;
-									goto ReadCommand;
+									OopReadChar(statId, position);
+									Dec(position);
+									if (OopChar <> #13) then
+										goto ReadCommand;
 								end;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
 								code := position;
@@ -1575,8 +1577,12 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 
 								if (counterPtr^ + OopValue) >= 0 then
 									counterPtr^ := counterPtr^ + OopValue
-								else
-									goto ReadCommand;
+								else begin
+									OopReadChar(statId, position);
+									Dec(position);
+									if (OopChar <> #13) then
+										goto ReadCommand;
+								end;
 							end else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
 							if textLine = 'KEYSPEED' then KeyRepeat;

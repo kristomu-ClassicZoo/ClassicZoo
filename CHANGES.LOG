@@ -1,3 +1,14 @@
+3/11/2023: Weave 3.0e
+Bug Fixes:
+* When using #TAKE, #GIVE, #TRY and #IF conditionals, in the event there is no followup command, a blank space would be inserted. This is no longer the case.
+* #if detect player <type> was not detecting the tile underneath the player.
+
+Updated:
+* WEAVEDMO has been updated to reflect '#if detect player'.
+
+Added:
+* ZLoom2, a hacked zedit2 that uses custom text.
+
 3/5/2023: Weave 3.0d
 Bug Fixes:
 * In 3.2 compatibility mode, Keys and doors were missing a space from their messages, resulting in things like TheGreen Key and TheBlue Door.
