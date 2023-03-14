@@ -59,6 +59,9 @@ interface
 implementation
 uses Crt, Dos;
 
+const
+	SoundParseNoteTable: array['A' .. 'G'] of byte = (9, 11, 0, 2, 4, 5, 7);
+
 procedure SoundQueue(priority: integer; pattern: string);
 	begin
 		if pattern <> '' then begin
@@ -276,58 +279,26 @@ function SoundParse(input: string): string;
 					Inc(inPos);
 				end;
 				'+': begin
-					if noteOctave < 6 then
-						noteOctave := noteOctave + 1;
+					if noteOctave < 6 then Inc(noteOctave);
 					Inc(inPos);
 				end;
 				'-': begin
-					if noteOctave > 1 then
-						noteOctave := noteOctave - 1;
+					if noteOctave > 1 then Dec(noteOctave);
 					Inc(inPos);
 				end;
 				'A'..'G': begin
-					case UpCase(input[inPos]) of
-						'C': begin
-							noteTone := 0;
-							Inc(inPos);
-						end;
-						'D': begin
-							noteTone := 2;
-							Inc(inPos);
-						end;
-						'E': begin
-							noteTone := 4;
-							Inc(inPos);
-						end;
-						'F': begin
-							noteTone := 5;
-							Inc(inPos);
-						end;
-						'G': begin
-							noteTone := 7;
-							Inc(inPos);
-						end;
-						'A': begin
-							noteTone := 9;
-							Inc(inPos);
-						end;
-						'B': begin
-							noteTone := 11;
-							Inc(inPos);
-						end;
-					end;
-
-					case UpCase(input[inPos]) of
+					noteTone := SoundParseNoteTable[UpCase(input[inPos])];
+					Inc(inPos);
+					if inPos <= Length(input) then case UpCase(input[inPos]) of
 						'!': begin
-							noteTone := noteTone - 1;
+							Dec(noteTone);
 							Inc(inPos);
 						end;
 						'#': begin
-							noteTone := noteTone + 1;
+							Inc(noteTone);
 							Inc(inPos);
 						end;
 					end;
-
 					Inc(outPos);
 					output[outPos] := Chr((noteOctave shl 4) + noteTone);
 					if outPos = 255 then goto SoundParseFinish;

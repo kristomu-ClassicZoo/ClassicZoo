@@ -1,3 +1,10 @@
+3/13/2023: Weave 3.0f
+Bug Fixes:
+#PLAY commands were reading garbage data from the end, resulting in some notes being incorrect.
+
+Updates:
+Updated the WEAVEDMO.INI file to 3.0 format.
+
 3/11/2023: Weave 3.0e
 Bug Fixes:
 * When using #TAKE, #GIVE, #TRY and #IF conditionals, in the event there is no followup command, a blank space would be inserted. This is no longer the case.
