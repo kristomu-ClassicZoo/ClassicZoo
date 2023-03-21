@@ -6,8 +6,10 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
-$< ClassicZoo dev >
+$< ClassicZoo 4.38 >
 
+/ [SDL2] Fixed the built-in Museum of
+  ZZT browser's search functionality.
 / {ZZT} Fixed bug where the on-unpause
   player movement was not taken into
   account for handling SPACE shooting. 
