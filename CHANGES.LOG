@@ -1,9 +1,22 @@
+3/22/2023: Weave 3.0g
+Bug Fixes:
+* The first world.flag defined in the .INI file was not able to be #SET or #CLEARed.
+* Defining key.fg and key.bg did not correctly change the appearance of the key in the sidebar.
+* In some circumstances, the @INPUT object was unable to receive messages from other objects.
+* #put <dir> AMMO and #put <dir> <fg> AMMO would both fail due to AMMO counter interpolation. When parsing tiles, AMMO will always default to the element and no longer attempt to interpolate.
+
+New Features:
+* Setting predefined flags HIDELINE3 through HIDELINE24 will hide those particular lines of the sidebar until the flag is cleared.
+
+Other Changes:
+* Outside of compatibility mode, #DUPLICATE (as well as duplicator elements) will now use the PLACEABLEONTOP property to determine if the destination is eligible, similar to checks done for #SHOOT and #THROWSTAR.
+
 3/13/2023: Weave 3.0f
 Bug Fixes:
-#PLAY commands were reading garbage data from the end, resulting in some notes being incorrect.
+* #PLAY commands were reading garbage data from the end, resulting in some notes being incorrect.
 
 Updates:
-Updated the WEAVEDMO.INI file to 3.0 format.
+* Updated the WEAVEDMO.INI file to 3.0 format.
 
 3/11/2023: Weave 3.0e
 Bug Fixes:

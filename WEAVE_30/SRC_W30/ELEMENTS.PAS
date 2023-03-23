@@ -1055,7 +1055,9 @@ function ElementDuplicate(srcX, srcY, dstX, dstY, statId: integer): boolean;
 					if Element <> E_EMPTY then
 						ElementPushablePush(X + dstX, Y + dstY, dstX, dstY);
 
-					if Element = E_EMPTY then begin
+					if (Element = E_EMPTY)
+						or (HasINI and ElementDefs[ENum(Element)].PlaceableOnTop = true)
+					then begin
 						sourceStatId := GetStatIdAt(X + srcX, Y + srcY);
 						if sourceStatId > 0 then begin
 							ElementDuplicate := true;

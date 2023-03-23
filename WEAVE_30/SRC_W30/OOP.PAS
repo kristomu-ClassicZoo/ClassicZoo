@@ -28,6 +28,17 @@ unit Oop;
 
 interface
 	uses GameVars;
+	const
+		CFlagPos: array[1..32] of longint = (
+			$00000001, $00000002, $00000004, $00000008,
+			$00000010, $00000020, $00000040, $00000080,
+			$00000100, $00000200, $00000400, $00000800,
+			$00001000, $00002000, $00004000, $00008000,
+			$00010000, $00020000, $00040000, $00080000,
+			$00100000, $00200000, $00400000, $00800000,
+			$01000000, $02000000, $04000000, $08000000,
+			$10000000, $20000000, $40000000, -$80000000
+		);
 	type
 		cInt = ^integer;
 		cShort = ^shortint;
@@ -50,18 +61,6 @@ interface
 
 implementation
 uses Sounds, TxtWind, Game, Elements;
-
-const
-	CFlagPos: array[1..32] of longint = (
-		$00000001, $00000002, $00000004, $00000008,
-		$00000010, $00000020, $00000040, $00000080,
-		$00000100, $00000200, $00000400, $00000800,
-		$00001000, $00002000, $00004000, $00008000,
-		$00010000, $00020000, $00040000, $00080000,
-		$00100000, $00200000, $00400000, $00800000,
-		$01000000, $02000000, $04000000, $08000000,
-		$10000000, $20000000, $40000000, -$80000000
-	);
 
 procedure OopError(statId, position: integer; message: string);
 	begin
@@ -513,6 +512,10 @@ function OopGetColor(statId: integer; var position: integer; var tile: TMatchTil
 		OopGetColor := -1;
 		p := position;
 		OopReadWord(statId, position);
+		if OopWord = 'AMMO' then begin
+			position := p;
+			exit;
+		end;
 		i := ColorNumber(OopWord, statId);
 		if i < 0 then begin
 			position := p;
@@ -523,6 +526,12 @@ function OopGetColor(statId: integer; var position: integer; var tile: TMatchTil
 		if i < 16 then begin
 			p := position;
 			OopReadWord(statId, position);
+			if OopWord = 'AMMO' then begin
+				OopGetColor := i;
+				tile.Color := AsColor(i, 0);
+				position := p;
+				exit;
+			end;
 			j := ColorNumber(OopWord, statId) mod 16;
 			if (j = 0) and doFind then
 				tile.SetBG := true
@@ -802,7 +811,6 @@ function OopIterateStat(statId: integer; var iStat: integer; lookup: string): bo
 function OopFindLabel(statId: integer; sendLabel: string; var iStat, iDataPos: integer; labelPrefix: string): boolean;
 	var
 		targetSplitPos: integer;
-		unk1: integer;
 		targetLookup: string[20];
 		objectMessage: string[20];
 		foundStat: boolean;
@@ -900,8 +908,6 @@ function WorldGetFlagPosition(name: TString20): integer;
 function CustomGetFlagPosition(name: TString20): integer;
 	var
 		i: integer;
-	label
-		FlagFound;
 	begin
 		CustomGetFlagPosition := -1;
 		for i := 1 to CUSTOM_FLAG_COUNT do
@@ -914,7 +920,7 @@ function GetCustomFlag(name: TString20): boolean;
 	begin
 		GetCustomFlag := false;
 		k := CustomGetFlagPosition(name) - 1;
-		if k > 0 then begin
+		if k >= 0 then begin
 			j := k div 32;
 			i := (k mod 32) + 1;
 			if ((CFlagPos[i] and World.Info.CustomFlags[j]) <> 0) then
@@ -922,16 +928,22 @@ function GetCustomFlag(name: TString20): boolean;
 		end;
 	end;
 
-procedure CustomSetFlag(name: TString20);
+function CustomSetFlag(name: TString20): boolean;
 	var
 		i,j,k: integer;
 	begin
+		CustomSetFlag := false;
 		k := CustomGetFlagPosition(name) - 1;
-		if k > 0 then begin
+		if k >= 0 then begin
+			CustomSetFlag := true;
 			j := k div 32;
 			i := (k mod 32) + 1;
 			if ((CFlagPos[i] and World.Info.CustomFlags[j]) = 0) then
 				Inc(World.Info.CustomFlags[j], CFlagPos[i]);
+			if (k >= (CUSTOM_FLAG_COUNT - 22)) then begin
+				GameDrawMainSidebar;
+				GameDrawCustomSidebar;
+			end;
 		end;
 	end;
 
@@ -939,9 +951,7 @@ procedure WorldSetFlag(name: TString20);
 	var
 		i: integer;
 	begin
-		if CustomGetFlagPosition(name) > 0 then
-			CustomSetFlag(name)
-		else begin
+		if not CustomSetFlag(name) then begin
 			if WorldGetFlagPosition(name) < 0 then begin
 				i := 1;
 				while (i < GetNumFlags) and (Length(WorldInfoFlags(i)) <> 0) do
@@ -954,16 +964,22 @@ procedure WorldSetFlag(name: TString20);
 		end;
 	end;
 
-procedure CustomClearFlag(name: TString20);
+function CustomClearFlag(name: TString20): boolean;
 	var
 		i,j,k: integer;
 	begin
+		CustomClearFlag := false;
 		k := CustomGetFlagPosition(name) - 1;
-		if k > 0 then begin
+		if k >= 0 then begin
+			CustomClearFlag := true;
 			j := k div 32;
 			i := (k mod 32) + 1;
 			if ((CFlagPos[i] and World.Info.CustomFlags[j]) <> 0) then
 				Dec(World.Info.CustomFlags[j], CFlagPos[i]);
+			if (k >= (CUSTOM_FLAG_COUNT - 22)) then begin
+				GameDrawMainSidebar;
+				GameDrawCustomSidebar;
+			end;
 		end;
 	end;
 
@@ -971,9 +987,7 @@ procedure WorldClearFlag(name: TString20);
 	var
 		i: integer;
 	begin
-		if CustomGetFlagPosition(name) > 0 then
-			CustomClearFlag(name)
-		else begin
+		if not CustomClearFlag(name) then begin
 			i := WorldGetFlagPosition(name);
 			if (i > 0) then begin
 				if i > MAX_FLAG then
@@ -1634,11 +1648,14 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							while (OopValue <> 0) do begin
 								labelStatId := 0;
 								OopWord := textLine;
+								iy := 1;
 								while OopFindLabel(statId, OopWord, labelStatId, labelDataPos, #13 + labelUnzap) do begin
+									iy := OopValue;
 									labelPtr := Board.Stats[labelStatId].Data;
 									AdvancePointer(labelPtr, labelDataPos + 1);
 									Char(labelPtr^) := labelZap;
 								end;
+								OopValue := iy;
 								Dec(OopValue);
 							end;
 						end else if (OopWord = 'UNLOCK') or (OopWord = 'LOCK') then begin

@@ -86,6 +86,7 @@ interface
 	procedure CalcDirectionFind(x, y: integer; var deltaX, deltaY: integer);
 	procedure TransitionDrawBoardChange;
 	procedure GameUpdateSidebar;
+	procedure GameDrawMainSidebar;
 	procedure GameDrawCustomSidebar;
 	procedure GamePlayLoop(boardChanged: boolean);
 	procedure DisplayMessage(time: integer; message: string);
@@ -103,6 +104,9 @@ const
 
 	ColorList: array[0..15] of byte = (
 		0,1,2,3,4,5,20,7,56,57,58,59,60,61,62,63
+	);
+	MainSidebarList: array[1..15] of integer = (
+		6,7,8,9,10,11,12,14,15,16,18,19,21,22,23
 	);
 
 	NeighborArrowList: array[0..3] of char = (
@@ -353,9 +357,13 @@ procedure CustomOOPLoad;
 			Str(i,s);
 			CustomCounterList[i] := 'COUNTER' + s;
 		end;
-		for i := 1 to CUSTOM_FLAG_COUNT do begin
+		for i := 1 to (CUSTOM_FLAG_COUNT - 22) do begin
 			Str(i,s);
 			CustomFlagList[i] := 'FLAG' + s;
+		end;
+		for i := 3 to 24 do begin
+			Str(i,s);
+			CustomFlagList[104 + i] := 'HIDELINE' + s;
 		end;
 		for i := 1 to 7 do begin
 			Str(i,s);
@@ -1588,69 +1596,91 @@ procedure GameUpdateSidebar;
 	var
 		keyChar: char;
 		numStr: TString8;
-		i: integer;
+		i, j, y: integer;
 	begin
 		if GameStateElement = E_PLAYER then begin
-			if ConfigList[69] <> '' then {Time Sidebar}
-				if Board.Info.TimeLimitSec > 0 then begin
-					VideoWriteText(64, 6, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[69]);
-					Str(Board.Info.TimeLimitSec - World.Info.BoardTimeSec, numStr);
-					VideoWriteText(72, 6, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
-				end else SidebarClearLine(6);
-
 			if World.Info.Health < 0 then
 				World.Info.Health := 0;
-
-			Str(World.Info.Health, numStr);
-			if ConfigList[63] <> '' then {Health Sidebar}
-				VideoWriteText(72, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
-			Str(World.Info.Ammo, numStr);
-			if ConfigList[64] <> '' then {Ammo Sidebar}
-				VideoWriteText(72, 8, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + '  ');
-			Str(World.Info.Gems, numStr);
-			if ConfigList[66] <> '' then {Gems Sidebar}
-				VideoWriteText(72, 10, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
-			Str(World.Info.Score, numStr);
-			if ConfigList[67] <> '' then {Score Sidebar}
-				VideoWriteText(72, 11, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
-
-			if ConfigList[65] <> '' then begin {Torches Sidebar}
-				Str(World.Info.Torches, numStr);
-				VideoWriteText(72, 9, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
-				if World.Info.TorchTicks <= 0 then
-					VideoWriteText(75, 9, AsColor(ElementDefs[E_TORCH].Color and $0F,ParamList[THEME_START]), '    ')
-				else begin
-					for i := 2 to 5 do begin
-						if i <= ((World.Info.TorchTicks * 5) div ElementDefs[E_TORCH].Param2) then
-							VideoWriteText(73 + i, 9, AsColor(ElementDefs[E_TORCH].Color and $0F,ParamList[THEME_START]), #177)
-						else
-							VideoWriteText(73 + i, 9, AsColor(ElementDefs[E_TORCH].Color and $0F,ParamList[THEME_START]), #176);
+			for j := 1 to 9 do begin
+				y := MainSidebarList[j];
+				if ((CFlagPos[8 + y] and World.Info.CustomFlags[3]) = 0) then begin
+					case y of
+						6: if ConfigList[69] <> '' then {Time Sidebar}
+							if Board.Info.TimeLimitSec > 0 then begin
+								VideoWriteText(64, 6, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[69]);
+								Str(Board.Info.TimeLimitSec - World.Info.BoardTimeSec, numStr);
+								VideoWriteText(72, 6, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+							end else SidebarClearLine(6);
+						7: begin
+							Str(World.Info.Health, numStr);
+							if ConfigList[63] <> '' then {Health Sidebar}
+								VideoWriteText(72, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+						end;
+						8: begin
+							Str(World.Info.Ammo, numStr);
+							if ConfigList[64] <> '' then {Ammo Sidebar}
+								VideoWriteText(72, 8, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + '  ');
+						end;
+						9: begin
+							if ConfigList[65] <> '' then begin {Torches Sidebar}
+								Str(World.Info.Torches, numStr);
+								VideoWriteText(72, 9, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+								if World.Info.TorchTicks <= 0 then
+									VideoWriteText(75, 9, AsColor(ElementDefs[E_TORCH].Color and $0F,ParamList[THEME_START]), '    ')
+								else begin
+									for i := 2 to 5 do begin
+										if i <= ((World.Info.TorchTicks * 5) div ElementDefs[E_TORCH].Param2) then
+											VideoWriteText(
+												73 + i,
+												9,
+												AsColor(ElementDefs[E_TORCH].Color and $0F, ParamList[THEME_START]),
+												#177
+											)
+										else
+											VideoWriteText(
+												73 + i,
+												9,
+												AsColor(ElementDefs[E_TORCH].Color and $0F, ParamList[THEME_START]),
+												#176
+											);
+									end;
+								end;
+							end;
+						end;
+						10: begin
+							Str(World.Info.Gems, numStr);
+							if ConfigList[66] <> '' then {Gems Sidebar}
+								VideoWriteText(72, 10, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+						end;
+						11: begin
+							Str(World.Info.Score, numStr);
+							if ConfigList[67] <> '' then {Score Sidebar}
+								VideoWriteText(72, 11, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+						end;
+						12: if ConfigList[68] <> '' then {Keys Sidebar}
+								for i := 1 to 7 do begin
+									if Diffkeys then
+										keyChar := Chr(139 + i)
+									else
+										keyChar := Chr(Ord(ElementDefs[E_KEY].Character) + (i * ElementDefs[E_KEY].Param2));
+									if World.Info.Keys[i] > 0 then begin
+										if World.Info.Keys[i] = 1 then
+											VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), keyChar)
+										else if World.Info.Keys[i] < 10 then
+											VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), Chr(World.Info.Keys[i] + 48))
+										else 
+											VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), '*')
+									end else
+										VideoWriteText(71 + i, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ');
+								end;
+						15: if ConfigList[72] <> '' then begin {Sound toggle sidebar}
+								if SoundEnabled then
+									VideoWriteText(65, 15, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[73])
+								else
+									VideoWriteText(65, 15, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[74]);
+							end;
 					end;
-				end;
-			end;
-
-			if ConfigList[68] <> '' then {Keys Sidebar}
-				for i := 1 to 7 do begin
-					if Diffkeys then
-						keyChar := Chr(139 + i)
-					else
-						keyChar := Chr(Ord(ElementDefs[E_KEY].Character) + (i * ElementDefs[E_KEY].Param2));
-					if World.Info.Keys[i] > 0 then begin
-						if World.Info.Keys[i] = 1 then
-							VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), keyChar)
-						else if World.Info.Keys[i] < 10 then
-							VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), Chr(World.Info.Keys[i] + 48))
-						else 
-							VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), '*')
-					end else
-						VideoWriteText(71 + i, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ');
-				end;
-
-			if ConfigList[72] <> '' then begin {Sound toggle sidebar}
-				if SoundEnabled then
-					VideoWriteText(65, 15, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[73])
-				else
-					VideoWriteText(65, 15, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[74]);
+				end else SideBarClearLine(y);
 			end;
 
 			if DebugEnabled then begin
@@ -2184,8 +2214,112 @@ procedure GameDebugPrompt;
 		SoundQueue(10, SoundParse(ConfigList[59])); {Cheat sound}
 		SidebarClearLine(4);
 		SidebarClearLine(5);
-		GameUpdateSidebar;
+		GameDrawMainSidebar;
 		GameDrawCustomSidebar;
+		GameUpdateSidebar;
+	end;
+
+procedure GameDrawMainSidebarElement(y: integer);
+	begin
+		if ((CFlagPos[8 + y] and World.Info.CustomFlags[3]) = 0) then begin
+			case y of
+				7: begin
+					VideoWriteText(64, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[63]); {Health Sidebar}
+					if (ConfigList[63] <> '') then  {Sidebar player}
+						VideoWriteText(62, 7, ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
+				end;
+				8: begin
+					VideoWriteText(64, 8, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[64]); {Ammo Sidebar}
+					if ConfigList[64] <> '' then begin {Sidebar ammo}
+						if ElementDefs[E_AMMO].Color and $F0 = 0 then
+							VideoWriteText(62, 8, AsColor(ElementDefs[E_AMMO].Color and $0F,ParamList[THEME_START]), ElementDefs[E_AMMO].Character)
+						else
+							VideoWriteText(62, 8, ElementDefs[E_AMMO].Color, ElementDefs[E_AMMO].Character);
+					end;
+				end;
+				9: begin
+					VideoWriteText(64, 9, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[65]); {Torches Sidebar}
+					if ConfigList[65] <> '' then begin {Sidebar Torch}
+						if ElementDefs[E_TORCH].Color and $F0 = 0 then
+							VideoWriteText(
+								62, 9,
+								AsColor(ElementDefs[E_TORCH].Color and $0F,ParamList[THEME_START]),
+								ElementDefs[E_TORCH].Character
+							)
+						else
+							VideoWriteText(
+								62, 9,
+								ElementDefs[E_TORCH].Color,
+								ElementDefs[E_TORCH].Character
+							);
+					end;
+				end;
+				10: begin
+					if ConfigList[66] <> '' then begin {Sidebar Gem}
+						if ElementDefs[E_GEM].Color = 0 then
+							VideoWriteText(62, 10, AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), ElementDefs[E_GEM].Character)
+						else if ElementDefs[E_GEM].Color and $F0 = 0 then
+							VideoWriteText(62, 10, AsColor(ElementDefs[E_GEM].Color and $0F,ParamList[THEME_START]), ElementDefs[E_GEM].Character)
+						else
+							VideoWriteText(62, 10, ElementDefs[E_GEM].Color, ElementDefs[E_GEM].Character);
+					end;
+					VideoWriteText(64, 10, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[66]); {Gems Sidebar}
+				end;
+				11: VideoWriteText(64, 11, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[67]); {Score Sidebar}
+				12: begin
+					VideoWriteText(64, 12, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[68]); {Keys Sidebar}
+					if ConfigList[68] <> '' then begin {Sidebar key}
+						if ElementDefs[E_KEY].Color = 0 then
+							VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ElementDefs[E_KEY].Character)
+						else if ElementDefs[E_KEY].Color and $F0 = 0 then
+							VideoWriteText(62, 12, AsColor(ElementDefs[E_KEY].Color and $0F,ParamList[THEME_START]), ElementDefs[E_KEY].Character)
+						else
+							VideoWriteText(62, 12, ElementDefs[E_KEY].Color, ElementDefs[E_KEY].Character);
+					end;
+				end;
+				14: if ConfigList[70] <> '' then begin  {'T' Torch hotkey}
+						VideoWriteText(62, 14, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[70] + ' ');
+						VideoWriteText(65, 14, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[71]);
+					end;
+				15: if ConfigList[72] <> '' then {'B' Toggle Sounds hotkey}
+						VideoWriteText(62, 15, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' ' + ConfigList[72] + ' ');
+				16: if ConfigList[75] <> '' then begin {'H' Help hotkey}
+						VideoWriteText(62, 16, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[75] + ' ');
+						VideoWriteText(65, 16, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[76]);
+					end;
+				18: if ConfigList[86] <> '' then begin {' Move'}
+						VideoWriteText(67, 18, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' '#24#25#26#27' ');
+						VideoWriteText(72, 18, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ConfigList[86]);
+					end;
+				19: if ConfigList[87] <> '' then begin {' Shoot'}
+						VideoWriteText(61, 19, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ConfigList[88] + #24#25#26#27' ');
+						VideoWriteText(72, 19, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ConfigList[87]);
+					end;
+				21: if ConfigList[77] <> '' then begin {'S' Save gave hotkey}
+						VideoWriteText(62, 21, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' ' + ConfigList[77] + ' ');
+						VideoWriteText(65, 21, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[78]);
+					end;
+				22:	if NeuromotorAssist then begin
+						VideoWriteText(62, 22, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' P ');
+						VideoWriteText(65, 22, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Proceed')
+					end else if ConfigList[79] <> '' then begin {'P' Pause game hotkey}
+						VideoWriteText(62, 22, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[79] + ' ');
+						VideoWriteText(65, 22, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[80]);
+					end;
+				23: begin
+					VideoWriteText(62, 23, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' Q ');
+					VideoWriteText(65, 23, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Quit');
+				end;
+			end;
+		end else SideBarClearLine(y);
+	end;
+
+procedure GameDrawMainSidebar;
+	var
+		i: integer;
+	begin
+		for i := 2 to 15 do
+			GameDrawMainSidebarElement(MainSidebarList[i]);
 	end;
 
 procedure GameDrawCustomSidebar;
@@ -2194,16 +2328,19 @@ procedure GameDrawCustomSidebar;
 		m: char;
 	begin
 		i := 0;
+		{ Custom Key elements }
 		while i < KeyLimit do begin
 			Val(KeyList[(i * 3) + 2],y,code);
 			if (y > 2) and (y < 25) then begin
-				VideoWriteText(62, y,
-					AsColor(ParamList[THEME_START + 3],
-					ParamList[THEME_START + 5 - (y mod 2)]),
-					' ' + UpCaseString(KeyList[i * 3], true) + ' ');
-				VideoWriteText(64 + Length(KeyList[i * 3]), y,
-					AsColor(ParamList[THEME_START + 1],
-					ParamList[THEME_START]), ' '+ KeyList[(i * 3) + 1]);
+				if ((CFlagPos[y + 8] and World.Info.CustomFlags[3]) = 0) then begin
+					VideoWriteText(62, y,
+						AsColor(ParamList[THEME_START + 3],
+						ParamList[THEME_START + 5 - (y mod 2)]),
+						' ' + UpCaseString(KeyList[i * 3], true) + ' ');
+					VideoWriteText(64 + Length(KeyList[i * 3]), y,
+						AsColor(ParamList[THEME_START + 1],
+						ParamList[THEME_START]), ' '+ KeyList[(i * 3) + 1]);
+				end else SideBarClearLine(y);
 			end;
 			Inc(i);
 		end;
@@ -2245,73 +2382,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 			if not HasINI then VideoWriteText(74, 1, AsColor(ParamList[THEME_START + 5],ParamList[THEME_START + 4]), '3.2');
 			VideoWriteText(61, 2, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), '    - - - - -      ');
 			if GameStateElement = E_PLAYER then begin
-				VideoWriteText(64, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[63]); {Health Sidebar}
-				VideoWriteText(64, 8, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[64]); {Ammo Sidebar}
-				VideoWriteText(64, 9, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[65]); {Torches Sidebar}
-				VideoWriteText(64, 10, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[66]); {Gems Sidebar}
-				VideoWriteText(64, 11, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[67]); {Score Sidebar}
-				VideoWriteText(64, 12, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[68]); {Keys Sidebar}
-				if ConfigList[63] <> '' then  {Sidebar player}
-					VideoWriteText(62, 7, ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
-				if ConfigList[64] <> '' then begin {Sidebar ammo}
-					if ElementDefs[E_AMMO].Color and $F0 = 0 then
-						VideoWriteText(62, 8, AsColor(ElementDefs[E_AMMO].Color and $0F,ParamList[THEME_START]), ElementDefs[E_AMMO].Character)
-					else
-						VideoWriteText(62, 8, ElementDefs[E_AMMO].Color, ElementDefs[E_AMMO].Character);
-				end;
-				if ConfigList[65] <> '' then begin {Sidebar Torch}
-					if ElementDefs[E_TORCH].Color and $F0 = 0 then
-						VideoWriteText(62, 9, AsColor(ElementDefs[E_TORCH].Color and $0F,ParamList[THEME_START]), ElementDefs[E_TORCH].Character)
-					else
-						VideoWriteText(62, 9, ElementDefs[E_TORCH].Color, ElementDefs[E_TORCH].Character);
-				end;
-				if ConfigList[66] <> '' then begin {Sidebar Gem}
-					if ElementDefs[E_GEM].Color = 0 then
-						VideoWriteText(62, 10, AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), ElementDefs[E_GEM].Character)
-					else if ElementDefs[E_GEM].Color and $F0 = 0 then
-						VideoWriteText(62, 10, AsColor(ElementDefs[E_GEM].Color and $0F,ParamList[THEME_START]), ElementDefs[E_GEM].Character)
-					else
-						VideoWriteText(62, 10, ElementDefs[E_GEM].Color, ElementDefs[E_GEM].Character);
-				end;
-				if ConfigList[68] <> '' then begin {Sidebar key}
-					if ElementDefs[E_KEY].Color = 0 then
-						VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ElementDefs[E_KEY].Character)
-					else if ElementDefs[E_KEY].Color and $F0 = 0 then
-						VideoWriteText(62, 10, AsColor(ElementDefs[E_KEY].Color and $0F,ParamList[THEME_START]), ElementDefs[E_GEM].Character)
-					else
-						VideoWriteText(62, 10, ElementDefs[E_KEY].Color, ElementDefs[E_GEM].Character);
-				end;
-				if ConfigList[70] <> '' then begin  {'T' Torch hotkey}
-					VideoWriteText(62, 14, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[70] + ' ');
-					VideoWriteText(65, 14, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[71]);
-				end;
-				if ConfigList[72] <> '' then  {'B' Toggle Sounds hotkey}
-					VideoWriteText(62, 15, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' ' + ConfigList[72] + ' ');
-				if ConfigList[75] <> '' then begin {'H' Help hotkey}
-					VideoWriteText(62, 16, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[75] + ' ');
-					VideoWriteText(65, 16, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[76]);
-				end;
-				if ConfigList[86] <> '' then begin {' Move'}
-					VideoWriteText(67, 18, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' '#24#25#26#27' ');
-					VideoWriteText(72, 18, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ConfigList[86]);
-				end;
-				if ConfigList[87] <> '' then begin {' Shoot'}
-					VideoWriteText(61, 19, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ConfigList[88] + #24#25#26#27' ');
-					VideoWriteText(72, 19, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ConfigList[87]);
-				end;
-				if ConfigList[77] <> '' then begin {'S' Save gave hotkey}
-					VideoWriteText(62, 21, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' ' + ConfigList[77] + ' ');
-					VideoWriteText(65, 21, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[78]);
-				end;
-				if NeuromotorAssist then begin
-					VideoWriteText(62, 22, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' P ');
-					VideoWriteText(65, 22, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Proceed')
-				end else if ConfigList[79] <> '' then begin {'P' Pause game hotkey}
-					VideoWriteText(62, 22, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[79] + ' ');
-					VideoWriteText(65, 22, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[80]);
-				end;
-				VideoWriteText(62, 23, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' Q ');
-				VideoWriteText(65, 23, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Quit');
+				GameDrawMainSidebar;
 				GameDrawCustomSidebar;
 			end else if GameStateElement = E_MONITOR then begin
 				SidebarPromptSlider(false, 66, 21, 'Game speed:;FS', TickSpeed);
