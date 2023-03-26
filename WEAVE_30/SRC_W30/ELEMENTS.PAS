@@ -1339,15 +1339,15 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 		if Board.Info.NeighborBoards[neighborId] <> 0 then begin
 			boardId := World.Info.CurrentBoard;
 			BoardChange(Board.Info.NeighborBoards[neighborId]);
-			if Enum(Board.Tiles[entryX][entryY].Element) <> E_PLAYER then begin
+			if Board.Tiles[entryX][entryY].Element <> E_PLAYER then begin
 				ElementDefs[Enum(Board.Tiles[entryX][entryY].Element)].TouchProc(
 					entryX, entryY, sourceStatId, InputDeltaX, InputDeltaY);
 			end;
 
 			if ElementDefs[Enum(Board.Tiles[entryX][entryY].Element)].Walkable
-				or (Enum(Board.Tiles[entryX][entryY].Element) = E_PLAYER) then
+				or (Board.Tiles[entryX][entryY].Element = E_PLAYER) then
 			begin
-				if Enum(Board.Tiles[entryX][entryY].Element) <> E_PLAYER then
+				if Board.Tiles[entryX][entryY].Element <> E_PLAYER then
 					MoveStat(0, entryX, entryY);
 
 				TransitionDrawBoardChange;

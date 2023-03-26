@@ -1056,7 +1056,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				then
 					OopCheckCondition := not ElementDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable
 				else
-					OopCheckCondition := false;
+					OopCheckCondition := true;
 			end else if OopWord = 'ANY' then begin
 				if not OopParseTile(statId, position, tile) then
 					OopError(statId,position, 'Bad object kind');

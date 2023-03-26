@@ -734,8 +734,10 @@ procedure BoardOpen(boardId: integer);
 
 procedure BoardChange(boardId: integer);
 	begin
-		BoardClose;
-		BoardOpen(boardId);
+		if World.Info.CurrentBoard <> boardId then begin
+			BoardClose;
+			BoardOpen(boardId);
+		end;
 	end;
 
 procedure BoardCreate;
