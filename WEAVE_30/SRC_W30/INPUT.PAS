@@ -57,6 +57,7 @@ interface
 		InputDeltaX, InputDeltaY: integer;
 		InputShiftPressed: boolean;
 		RMouseX, RMouseY: shortint;
+		RMouseButL, RMouseButR: boolean;
 		InputShiftAccepted: boolean;
 		InputJoystickEnabled: boolean;
 		InputMouseEnabled: boolean;
@@ -312,13 +313,25 @@ procedure InputUpdate;
 				InputShiftAccepted := false;
 			end;
 		end else begin
+
 			regs.AX := $0B;
 			Intr($33, regs);
 			Inc(InputMouseX, Integer(regs.CX));
 			Inc(InputMouseY, Integer(regs.DX));
 
-			Inc(RMouseX,Integer(regs.CX) div 16);
+			{ Inc(RMouseX,Integer(regs.CX) div 16);
 			Inc(RMouseY,Integer(regs.DX) div 16);
+			if RMouseX > 60 then RMouseX := 60;
+			if RMouseX < 1 then RMouseX := 1;
+			if RMouseY > 25 then RMouseY := 25;
+			if RMouseY < 1 then RMouseY := 1; }
+
+			{ CX = X position, in chars; DX = Y position, in chars; BX = mouse buttons }
+			regs.AX := $03;
+			Intr($33, regs);
+
+			RMouseX := (regs.CX div 8) + 1;
+			RMouseY := (regs.DX div 8) + 1;
 			if RMouseX > 60 then RMouseX := 60;
 			if RMouseX < 1 then RMouseX := 1;
 			if RMouseY > 25 then RMouseY := 25;
@@ -343,9 +356,6 @@ procedure InputUpdate;
 					end;
 				end;
 
-				regs.AX := $03;
-				Intr($33, regs);
-
 				{ left mouse button }
 				if (regs.BX and 1) <> 0 then begin
 					if not InputShiftAccepted then
@@ -367,6 +377,9 @@ procedure InputUpdate;
 					InputMouseButtonX := 0;
 					InputMouseButtonY := 0;
 				end;
+			end else begin
+				RMouseButL := ((regs.BX and 1) <> 0);
+				RMouseButR := ((regs.BX and 6) <> 0);
 			end;
 		end;
 

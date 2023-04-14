@@ -51,7 +51,7 @@ interface
 	function OopExecute(statId: integer; var position: integer; name: TString50): boolean;
 	function OopStringToWord(input: TString50): TString50;
 	function ShortWord(s: string): boolean;
-	procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
+	procedure OopGetShort(s: string; var cPtr: cShort);
 	function ReadOnly(s: string): boolean;
 	function GetReadOnly(statId: integer; s: string): integer;
 	function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
@@ -176,9 +176,7 @@ function ShortWord(s: string): boolean;
 			ShortWord := false;
 	end;
 
-procedure OopGetShort(statId: integer; s: string; var cPtr: cShort);
-	var
-		i: integer;
+procedure OopGetShort(s: string; var cPtr: cShort);
 	begin
 		if s = 'ISDARK' then
 			cPtr := @Board.Info.IsDark
@@ -495,7 +493,7 @@ procedure OopReadValue(statId: integer; var position: integer);
 			end else if ReadOnly(s) then
 				OopValue := GetReadOnly(statId, s)
 			else if ShortWord(s) then begin
-				OopGetShort(statId, s, shortPtr);
+				OopGetShort(s, shortPtr);
 				OopValue := shortPtr^;
 			end else if OopGetCounter(statId, s, counterPtr) then
 				OopValue := counterPtr^
@@ -1121,7 +1119,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					else if OopGetCounter(statId, OopWord, counterPtr) then
 						iy := counterPtr^
 					else begin
-						OopGetShort(statId, OopWord, shortPtr);
+						OopGetShort(OopWord, shortPtr);
 						iy := shortPtr^;
 					end;
 					ix := position;
@@ -1488,7 +1486,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							if not HasINI then
 								WorldSetFlag(OopWord)
 							else if ShortWord(OopWord) then begin
-								OopGetShort(statId, OopWord, shortPtr);
+								OopGetShort(OopWord, shortPtr);
 								OopReadValue(statId, position);
 								if OopValue = -32767 then
 									shortPtr^ := 1
@@ -1519,7 +1517,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							if not HasINI then
 								WorldClearFlag(OopWord)
 							else if ShortWord(OopWord) then begin
-								OopGetShort(statId, OopWord, shortPtr);
+								OopGetShort(OopWord, shortPtr);
 								shortPtr^ := 0;
 								GameUpdateSidebar;
 							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
@@ -1562,7 +1560,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							textLine := OopWord;
 
 							if ShortWord(OopWord) then begin
-								OopGetShort(statId, OopWord, shortPtr);
+								OopGetShort(OopWord, shortPtr);
 								code := position;
 								OopReadValue(statId, position);
 								if OopValue = -32767 then begin
@@ -1993,7 +1991,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 										else if OopWord = 'CYCLE' then
 											Board.Stats[bindStatId].Cycle := iy										
 										else if ShortWord(OopWord) then begin
-											OopGetShort(bindStatId, OopWord, shortPtr);
+											OopGetShort(OopWord, shortPtr);
 											shortPtr^ := iy;
 										end else if OopGetCounter(bindStatId, OopWord, counterPtr) then
 											counterPtr^ := iy;

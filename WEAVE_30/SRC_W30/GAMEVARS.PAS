@@ -184,6 +184,7 @@ interface
 		PlayerDirX: integer;
 		PlayerDirY: integer;
 		PMouseX, PMouseY, TickSpeed, TickTimeDuration: shortint;
+		PMouseButL, PMouseButR: boolean;
 
 		LoadedGameFileName: TString50;
 		SavedGameFileName: TString50;

@@ -1,3 +1,18 @@
+4/13/2023: Weave 3.0i
+Improvements:
+* Mouse movement now correctly matches placement on screen regardless of platform.
+
+New features:
+* #Input:LMouseB and #Input:RMouseB are now sent when the Left and Right mouse buttons are pressed (Only when (M)ouse movement is disabled)
+
+3/26/2023: Weave 3.0h
+Bug fixes:
+* Out-of-bounds checks for #IF BLOCKED returned FALSE instead of TRUE.
+
+Improvements:
+* COMPAT.ZZT includes more description.
+
+
 3/22/2023: Weave 3.0g
 Bug Fixes:
 * The first world.flag defined in the .INI file was not able to be #SET or #CLEARed.

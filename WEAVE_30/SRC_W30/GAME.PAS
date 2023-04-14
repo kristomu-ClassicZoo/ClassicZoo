@@ -173,7 +173,7 @@ function ColorNumber(s: string; statId: integer): integer;
 			if ReadOnly(s) then
 				ColorNumber := GetReadOnly(statId, s)
 			else if ShortWord(s) then begin
-				OopGetShort(statId, s, shortPtr);
+				OopGetShort(s, shortPtr);
 				if (shortPtr^ >= 0) and (shortPtr^ <= 127) then
 					ColorNumber := shortPtr^;
 			end else if OopGetCounter(statId, s, counterPtr) then begin

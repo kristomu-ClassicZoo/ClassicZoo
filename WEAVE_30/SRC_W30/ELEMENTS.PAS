@@ -1730,6 +1730,18 @@ procedure ElementPlayerTick(statId: integer);
 	begin
 		PMouseX := RMouseX;
 		PMouseY := RMouseY;
+		if HasINI then begin
+			if (RMouseButL <> PMouseButL) then begin
+				PMouseButL := RMouseButL;
+				if RMouseButL then
+					if OopSend(0, 'INPUT:LMOUSEB', false) then begin end;
+			end;
+			if (RMouseButR <> PMouseButR) then begin
+				PMouseButR := RMouseButR;
+				if RMouseButR then
+					if OopSend(0, 'INPUT:RMOUSEB', false) then begin end;
+			end;
+		end;
 		if statId = 0 then
 			ElementTruePlayerTick
 		else
@@ -1760,6 +1772,8 @@ procedure ResetMessageNotShownFlags;
 		MessageEnergizerNotShown := true;
 		InspectNext := false;
 		NoClip := false;
+		PMouseButL := false;
+		PMouseButR := false;
 	end;
 
 function Enum(elem: integer): integer;
