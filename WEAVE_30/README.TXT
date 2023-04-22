@@ -13,7 +13,7 @@ Almost all crashes are gone, conveyors aren't bugged, #put no longer leaves hole
 
 --> How is it the same?
 
-In all the ways that matter, it is the same as playing in ZZT 3.2 - You can use WEAVE3.EXE as your main ZZT executable, and unless you're playing an old game that relies on obscure ZZT bugs to work, you will have the same or better experience.
+In all the ways that matter, it is the same as playing in ZZT 3.2 - You can use WEAVE3.EXE as your main ZZT executable, and unless you're playing a small handful of known old games that rely on obscure ZZT bugs to work, you will have the same or better experience.
 
 --> What should I watch out for?
 
@@ -27,11 +27,11 @@ For a sampling of what you can do with Weave3, check out the WEAVEDMO.ZZT file i
 
 You can add a .CFG file if you want to change the way ZZT sounds, the messages it displays, or the look of default items, terrains and text.
 
-You can add a .INI file if you want to change elements of ZZT-OOP
+You can add a .INI file if you want to change elements of ZZT-OOP - you can add new flags, new counters, execute new commands, and load external files.
 
 You can add a WEAVEZZT.CFG file if you want to play regular ZZT games with accessibility options like unique keyshapes and visual representations of sound.
 
-You can add .OBJ files if you want to load or run ZZT-OOP code in real time.
+If you have a .INI file added to your game already, you can add .OBJ files to load or run ZZT-OOP code in real time.
 
 For further explanation about any of the above, see the WEAVEDMO.ZZT file.
 
@@ -47,6 +47,9 @@ WEBWEAVE.ZIP
 
 WEBZZT32.ZIP
  - Same as above, but for ZZT 3.2 files.
+
+ZLOOM2.ZIP
+ - A hacked version of zedit2 with custom text support.
 
 --> What Software License does this use?
 

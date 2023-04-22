@@ -1,3 +1,7 @@
+4/22/2023: Weave 3.0j
+Fixed bugs:
+* Memory management caused a runtime error in FreeDOS when using Weave 3. Thanks to asie who took time to provide this fix.
+
 4/13/2023: Weave 3.0i
 Improvements:
 * Mouse movement now correctly matches placement on screen regardless of platform.

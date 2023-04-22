@@ -1,21 +1,25 @@
 # WeaveZZT 3.0
 
-With Weave 3, all previous recommendations for Weave have been addressed and the design specifications are frozen. It is the culmination of the Weave 2 project.
+With Weave 3, all previous recommendations for Weave have been addressed and the design specifications are frozen. It is the culmination of the Weave project.
 
-Designed with the full scope of the ZZTer audience in mind, this version hopes to supply the needs of anyone that wants to tweak something about ZZT. Weave 2 makes extensive use of accessory files to allow ZZTers to enhance their game's experience without diving into the Pascal code.
+Designed with the full scope of the ZZTer audience in mind, this version hopes to supply the needs of anyone that wants to tweak something about ZZT. Weave 2 made use of several accessory files to allow ZZTers to enhance their game's experience without diving into the Pascal code. Weave 3 restricts this to just two, with the following goals:
+
+ - .CFG file weaving: To make cosmetic and rule changes about ZZT without expanding ZZT-OOP.
+ - .INI file weaving: To expand ZZT-OOP with more counters, commands, and keybind inputs.
+
+In the absence of any accompanying .CFG or .INI file, WEAVE3.EXE is designed to play normal ZZT games with sufficiently faithful accuracy that players won't be able to tell the difference. The exception is the removal of bugs that crash or softlock the game (as opposed to bugs frequently abused by adept ZZTers).
 
 ## Using
 
-The DOS executables provided in BIN are already ready to take on ZZT. With your own copy of Turbo Pascal 5.5, you can compile both executables yourself using the BUILDW30.BAT files provided in the different subdirectories.
+With your own copy of Turbo Pascal 5.5, you can compile WEAVE3.EXE yourself using the BUILDW30.BAT file provided in the WEAVE_30 subdirectory. Just make sure the TPC.EXE and TURBO.TPL files are in the same directory as the BUILDW30.BAT file. (These are DOS executables you will need a DOS emulator to compile.)
 
 ## Types of weaving
 
-There are two primary types of weaving. WeaveZZT 2.8 supports both.  They are referred to as "Soft" and "Firm" weaving.
+There are two primary types of weaving, as noted above. These center around the .CFG and .INI files that can accompany a Weave game.
 
-"Soft" weaving is for making cosmetic and numeric changes to ZZT without changing the code. To "Soft" weave, you will use a .CFG file, examples of which are included in this repository.
+For examples of .CFG weaving, look at the TEMPLATE.CFG and EXTENDED.CFG example files in the WEAVE_30/SRC_W30 subdirectory.
 
-"Firm" weaving adds functions, conditionals, directions, colors, and other beneficial changes to ZZT. To "Firm" weave, you will use .CFG, .INI, and sometimes .OBJ files, examples of which are all included with this repository.
-
+For examples of .INI weaving, look at the TEMPLATE.INI file in the WEAVE_30/SRC_W30 subdirectory. Additionally, the inclusion of a .INI file unlocks new ZZT-OOP commands, some of which allow you to use other external files. For examples of those, have a look at the .OBJ files in that same subdirectory.
 ## File types in this project:
 
 There are a few different kinds of files found in this project:
@@ -41,8 +45,7 @@ There are a few different kinds of files found in this project:
 * ZZT files
     * Demonstration ZZT worlds for Weave.
 * EXE files
-    * WEAVE3 is the Weave ZZT executable.
-    * LZEXE is the tool used to compress the weave EXE.
+    * LZEXE.EXE is the tool used to compress the weave EXE.
 * ZIP files
     * Additional tools are provided to help newcomers with Weave.
     * The source code to produce these is also available.
@@ -63,7 +66,7 @@ Below are listed the files in the various folders of the project.
         * For distributing WeaveZZT worlds on the web.
         * Instructions are included.
     * WEBZZT32.ZIP
-        * For distributing ZZT 3.2 worlds on the web.
+        * Uses a very slightly modified ZZT.EXE to distribute ZZT 3.2 worlds on the web.
 * SRC_W30
     * ALL .PAS FILES (ELEMENTS.PAS, EXTMEM.PAS, etc.)
         * Forked from the ZZT Reconstruction and ClassicZoo.
@@ -96,6 +99,6 @@ Below are listed the files in the various folders of the project.
 
 ## Questions
 
-Hit me up in the ZZT Discord if you've got feedback or there's something to add. I'm not married to anything here so if there's a better way to do something, or you REALLY have to have like, breakable linewalls or walkable ricochets or something like that, Later versions of Weave could open that up. If you want to be able to create your own custom elements from accessory files, you're not alone. HardWeave and FixWeave both have specs and are in development, providing the more hardcore modders with the extensible element platform of their dreams.
+Hit me up in the ZZT Discord if you've got feedback or there's something to add. I'm not married to anything here so if there's a better way to do something, please ping the discord in #zzt-programs and throw a suggestion in there. You may have also seen a FIX_F10 directory in the source code; this is for FixWeave, a project that has stalled and whose future is uncertain. A companion page for FixWeave is available on Itch at **meangirls dot itch dot io slash fixweave-2**
 
-Discord of ZZT Link: museumofzzt dot com slash discord
+Discord of ZZT Link: **museumofzzt dot com slash discord**
