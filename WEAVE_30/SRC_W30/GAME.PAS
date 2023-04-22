@@ -2031,7 +2031,7 @@ procedure TransitionDrawBoardChange;
 
 procedure BoardEnter;
 	begin
-		FillChar(PathTmpBuf^, 1500, 0);
+		FillChar(PathTmpBuf^, BOARD_TILE_COUNT, 0);
 
 		Board.Info.StartPlayerX := Board.Stats[0].X;
 		Board.Info.StartPlayerY := Board.Stats[0].Y;

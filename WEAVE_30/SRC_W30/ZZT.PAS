@@ -143,7 +143,7 @@ begin
 		TextWindowInit;
 		GetMem(IoTmpBuf, IoTmpBufSize);
 		GetMem(ObjTmpBuf, LOAD_OBJ_LENGTH);
-		GetMem(PathTmpBuf, 1500);
+		GetMem(PathTmpBuf, BOARD_TILE_COUNT);
 		CurrentSave := '';
 
 		{OUTPUT}
@@ -160,9 +160,10 @@ begin
 
 		GameTitleLoop;
 
-		FreeMem(IoTmpBuf, LOAD_OBJ_LENGTH);
+		FreeMem(PathTmpBuf, BOARD_TILE_COUNT);
+		FreeMem(ObjTmpBuf, LOAD_OBJ_LENGTH);
+		FreeMem(IoTmpBuf, IoTmpBufSize);
 		CurrentFile := #0;
-		FreeMem(ObjTmpBuf, IoTmpBufSize);
 		ExtMemUninstall;
 	end;
 

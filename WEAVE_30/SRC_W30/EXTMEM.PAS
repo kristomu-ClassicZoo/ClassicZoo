@@ -43,6 +43,7 @@ interface
 	procedure ExtMemRead(var block: TExtMemBlock; var data; count: word);
 	procedure ExtMemFree(var block: TExtMemBlock; size: word);
 	procedure ExtMemUninstall;
+	procedure ExtMemMoveBlockPtr(var blockFrom, blockTo: TExtMemBlock);
 	function ExtMemEmsActive: boolean;
 	function ExtMemXmsActive: boolean;
 implementation
@@ -449,6 +450,32 @@ procedure XmsFree(var block: TExtMemBlock; size: word);
 		end;
 	end;
 
+procedure XmsOnMoveBlockPtr(var blockFrom, blockTo: TExtMemBlock);
+	var
+		blockPtr: TExtMemBlockPtr;
+	begin
+		if @blockFrom = XmsHead then begin
+			XmsHead := @blockTo;
+		end else begin
+			blockPtr := XmsHead;
+			while blockPtr <> nil do begin
+				if @blockFrom = blockPtr^.Next then begin
+					blockPtr^.Next := @blockTo;
+					exit;
+				end;
+				blockPtr := blockPtr^.Next;
+			end;
+		end;
+	end;
+
+procedure ExtMemMoveBlockPtr(var blockFrom, blockTo: TExtMemBlock);
+	begin
+		case blockFrom.MemType of
+			Xms: XmsOnMoveBlockPtr(blockFrom, blockTo);
+		end;
+		blockTo := blockFrom;
+	end;
+	
 function ExtMemXmsAvail: longint;
 	begin
 		if XmsControl <> nil then
@@ -801,6 +828,14 @@ procedure ExtMemInstall(useEms: boolean; useXms: boolean);
 		ReturnNilIfGrowHeapfails := false;
 {$ENDIF}
 
+		{$IFDEF EXT_MEM_DEBUG}
+		ExtMemInstalled := true;
+		Assign(ExtMemDebug, 'MEMDEBUG.LOG');
+		Append(ExtMemDebug);
+		if IOResult <> 0 then Rewrite(ExtMemDebug);
+		WriteLn(ExtMemDebug, '---------- ExtMemInstall ----------');
+		ExtMemDebugState;
+		{$ENDIF}
 	end;
 
 function ExtMemGet(var block: TExtMemBlock; size: word): boolean;
