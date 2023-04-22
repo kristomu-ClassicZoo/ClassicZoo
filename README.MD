@@ -61,12 +61,17 @@ Below are listed the files in the various folders of the project.
         * For shrinking ZZT.EXE.
     * LOOMZZT.zip
         * For editing ZZT files with Weave 3 considerations.
+        * Modification of cknave's KevEdit: https://github.com/cknave/kevedit
         * Source is included.
-    * WEBWEAVE.ZIP
+    * WEBWEAVE.zip
         * For distributing WeaveZZT worlds on the web.
         * Instructions are included.
     * WEBZZT32.ZIP
         * Uses a very slightly modified ZZT.EXE to distribute ZZT 3.2 worlds on the web.
+    * ZLOOM2.zip
+        * For editing ZZT files with Weave 3 considerations.
+        * Modification of DrLancer-X's zedit2: https://github.com/DrLancer-X/zedit2
+        * Source is included in the parent directory under zloom2-source.
 * SRC_W30
     * ALL .PAS FILES (ELEMENTS.PAS, EXTMEM.PAS, etc.)
         * Forked from the ZZT Reconstruction and ClassicZoo.
