@@ -215,8 +215,10 @@ procedure InitPalette(palrefresh: boolean);
 			if (World.Info.Name <> '') and FileExists(World.Info.Name + '.PAL') then begin
 				Assign(f, World.Info.Name + '.PAL');
 				Reset(f, 1);
-				if IOResult = 0 then
+				if IOResult = 0 then begin
 					BlockRead(f, pal, 48);
+					Close(f);
+				end;
 				palFile := true;
 			end;
 		for c := 0 to 15 do begin
@@ -334,6 +336,7 @@ procedure CustomCharsetLoad;
 			Reset(f, 1);
 			if IOResult = 0 then begin
 				BlockRead(f, ch, 3584);
+				Close(f);
 				if VideoSetCharset(@ch, 14) then exit;
 			end;
 		end;
@@ -430,9 +433,8 @@ procedure CustomOOPLoad;
 						end;
 					end;
 				end;
+				Close(f);
 			end;
-			Close(f);
-			if IOResult <> 0 then begin end;
 		end;
 	end;
 
@@ -445,9 +447,8 @@ procedure HighScoresLoad;
 		Reset(f);
 		if IOResult = 0 then begin
 			Read(f, HighScoreList);
-		end;
-		Close(f);
-		if IOResult <> 0 then begin
+			Close(f);
+		end else begin
 			for i := 1 to HIGH_SCORE_COUNT do begin
 				HighScoreList[i].Name := '';
 				HighScoreList[i].Score := -1;
@@ -1108,6 +1109,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 					if World.BoardCount <> -1 then begin
 						VideoWriteText(63, 5, $1E, 'You need a newer');
 						VideoWriteText(63, 6, $1E, ' version of ZZT!');
+						Close(f);
 						goto OnError;
 					end else begin
 						Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
@@ -1154,9 +1156,9 @@ function WorldLoad(filename, extension: TString50): boolean;
 				SidebarClearLine(5);
 
 			end;
+		OnError:
+			Close(f);
 		end;
-	OnError:
-		Close(f);
 	end;
 
 procedure WorldSave(filename, extension: TString50);

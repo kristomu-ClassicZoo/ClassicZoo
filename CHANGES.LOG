@@ -1,3 +1,8 @@
+7/16/2023: Weave 3.0k
+Fixed bugs:
+* Closing and reopening a ZZT world many times would cause the file handles to max out on Zeta and DOSBox, leading to errors.
+
+
 4/22/2023: Weave 3.0j
 Fixed bugs:
 * Memory management caused a runtime error in FreeDOS when using Weave 3. Thanks to asie who took time to provide this fix.

@@ -46,9 +46,7 @@ function FileExists(name: TFilenameString): boolean;
 		if IOResult = 0 then begin
 			Close(f);
 			FileExists := true;
-		end else begin
-			FileExists := false;
-		end;
+		end else FileExists := false;
 	end;
 
 function FileSelect(title, extension: TString50; var cachedLinePos: integer): TFilenameString;

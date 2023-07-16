@@ -50,6 +50,7 @@ procedure GameConfigure;
             ReadLn(cfgFile, ConfigWorldFile);
 			for i := 1 to 7 do
 				ReadLn(cfgFile, Accessibility[i]);
+			Close(cfgFile);
 		end;
         if Length(ConfigWorldFile) <> 0 then begin
             StartupWorldFileName := ConfigWorldFile;
@@ -67,7 +68,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                                <=-  Weave  -=>');
 		TextColor(Yellow);
-		Writeln('                                 Version  3.0j');
+		Writeln('                                 Version  3.0k');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);

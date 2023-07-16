@@ -60,9 +60,7 @@ function FileExists(name: TFilenameString): boolean;
 		if IOResult = 0 then begin
 			FileExists := true;
 			Close(f);
-		end else begin
-			FileExists := false;
-		end;
+		end else FileExists := false;
 	end;
 
 function AsColor(fg, bg: integer): byte;
@@ -2591,7 +2589,7 @@ procedure ConfigStringsLoad;
 							end;
 					end;
 				end;
-			Close(f);
+				Close(f);
 			end;
 		end;
 	end;
