@@ -1,3 +1,21 @@
+9/23/2023: Weave 3.2
+Removed:
+* KEYSPEED has been removed.
+
+Changed:
+* Key repeat is now set to 500ms in Compat mode and 250ms in all other modes.
+
+Updated:
+* OOP-QR has been updated to include descriptions of more of Weave's features.
+* LOOMzzt can now load .CHR and .PAL files in Windows, Mac OS, and AppImage-installed Linux.
+* You can now use international characters on the Windows/Linux LOOMzzt, if your keyboard has them mapped.
+* Cycle can now be set to values over 255 in LOOMzzt.
+
+Added:
+* sidebar.N.counter - Adds a custom counter to the sidebar at row N.
+* Board .CHR loading - will attempt to load BOARDLBL.CHR in the same directory as the .ZZT file when switching to a board labeled :BOARDLBL.
+
+
 7/16/2023: Weave 3.0k
 Fixed bugs:
 * Closing and reopening a ZZT world many times would cause the file handles to max out on Zeta and DOSBox, leading to errors.
