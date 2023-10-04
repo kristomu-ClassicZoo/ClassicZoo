@@ -88,7 +88,6 @@ interface
 	procedure GameUpdateSidebar;
 	procedure GameDrawMainSidebar;
 	procedure GameDrawCustomSidebar;
-	procedure GamePlayLoop(boardChanged: boolean);
 	procedure DisplayMessage(time: integer; message: string);
 	procedure BoardEnter;
 	procedure BoardPassageTeleport(x, y: integer);
@@ -201,12 +200,12 @@ procedure BlockPalette(c,r,g,b: byte);
 procedure InitPalette(palrefresh: boolean);
 	var
 		f: file;
-		doInit, palFile: boolean;
+		doInit, HasPAL: boolean;
 		c,r,g,b: integer;
 		pal: array[0..47] of byte;
 	begin
 		doInit := true;
-		palFile := false;
+		HasPAL := false;
 		for c := 0 to 15 do
 			if World.Info.CustomPalette[c] <> 0 then
 				doInit := false;
@@ -218,17 +217,20 @@ procedure InitPalette(palrefresh: boolean);
 					BlockRead(f, pal, 48);
 					Close(f);
 				end;
-				palFile := true;
+				HasPAL := true;
 			end;
 		for c := 0 to 15 do begin
 			r := c * 3;
 			g := (c * 3) + 1;
 			b := (c * 3) + 2;
 			if doInit or palrefresh then begin
-				if palFile then begin
+				if HasPAL then begin
 					World.Info.CustomPalette[c] := pal[r] div 2;
+					ParamList[PALETTE_START + r] := pal[r];
 					World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((pal[g] div 2) * 32);
+					ParamList[PALETTE_START + g] := pal[g];
 					World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((pal[b] div 2) * 1024);
+					ParamList[PALETTE_START + b] := pal[b];
 				end else begin
 					World.Info.CustomPalette[c] := (ParamList[PALETTE_START + r] div 2);
 					World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((ParamList[PALETTE_START + g] div 2) * 32);
@@ -240,6 +242,18 @@ procedure InitPalette(palrefresh: boolean);
 			b := ((World.Info.CustomPalette[c] and PalFilter[2]) div 1024) * 2;
 			BlockPalette(c,r,g,b);
 		end;
+	end;
+
+procedure TempPaletteStore;
+	begin
+		TempPalette := World.Info.CustomPalette;
+		InitPalette(true);
+	end;
+
+procedure TempPaletteGet;
+	begin
+		World.Info.CustomPalette := TempPalette;
+		InitPalette(false);
 	end;
 
 function DefaultParamList(i: integer): integer;
@@ -330,10 +344,12 @@ procedure CustomCharsetLoad(chrfile: string);
 		f: file;
 		ch: TCharsetData;
 	begin
+		HasCHR := false;
 		if (chrfile <> '') and FileExists(chrfile + '.CHR') then begin
 			Assign(f, chrfile + '.CHR');
 			Reset(f, 1);
 			if IOResult = 0 then begin
+				HasCHR := true;
 				BlockRead(f, ch, 3584);
 				Close(f);
 				if VideoSetCharset(@ch, 14) then exit;
@@ -738,7 +754,6 @@ procedure BoardOpen(boardId: integer);
 		ptr: pointer;
 		ix, iy: integer;
 		rle: TRleTile;
-		lstring: string[8];
 	begin
 		if boardId > World.BoardCount then
 			boardId := World.Info.CurrentBoard;
@@ -753,25 +768,6 @@ procedure BoardOpen(boardId: integer);
 		ptr := IoTmpBuf;
 
 		Move(ptr^, Board.Name, SizeOf(Board.Name));
-
-		if Board.Name[1] = ':' then begin
-			iy := 1;
-			lstring := '';
-			while iy < 9 do begin
-				if ((Board.Name[iy + 1] >= 'A') and (Board.Name[iy + 1] <= 'Z'))
-					or ((Board.Name[iy + 1] >= 'a') and (Board.Name[iy + 1] <= 'z'))
-					or ((Board.Name[iy + 1] >= '0') and (Board.Name[iy + 1] <= '9'))
-				then begin
-					lstring[0] := Chr(iy);
-					lstring[iy] := Board.Name[iy + 1];
-				end else
-					iy := 8;
-				inc(iy);
-			end;
-			if lstring <> '' then
-				CustomCharsetLoad(lstring);
-		end;
-
 		AdvancePointer(ptr, SizeOf(Board.Name));
 
 		ix := 1;
@@ -824,12 +820,34 @@ procedure BoardOpen(boardId: integer);
 	end;
 
 procedure BoardChange(boardId: integer);
+	var
+		iy: integer;
+		lstring: string;
 	begin
 		if World.Info.CurrentBoard <> boardId then begin
 			BoardClose;
 			BoardOpen(boardId);
 			If HasCustomSidebar and (boardId <> 0) then GameDrawCustomSidebar;
 		end;
+		if HasCHR then
+			if (Board.Name[1] = ':') then begin
+				iy := 1;
+				lstring := '';
+				while iy < 9 do begin
+					if ((Board.Name[iy + 1] >= 'A') and (Board.Name[iy + 1] <= 'Z'))
+						or ((Board.Name[iy + 1] >= 'a') and (Board.Name[iy + 1] <= 'z'))
+						or ((Board.Name[iy + 1] >= '0') and (Board.Name[iy + 1] <= '9'))
+					then begin
+						lstring[0] := Chr(iy);
+						lstring[iy] := Board.Name[iy + 1];
+					end else
+						iy := 8;
+					inc(iy);
+				end;
+				if lstring <> '' then
+					CustomCharsetLoad(lstring);
+			end else
+				CustomCharsetLoad(World.Info.Name);
 	end;
 
 procedure BoardCreate;
@@ -1116,9 +1134,11 @@ function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
 		VideoWriteText(63, 5, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), message);
 		VideoWriteText(63 + Length(message), 5, AsColor(ParamList[THEME_START + 2],8 + ParamList[THEME_START]), '_');
 
+		TempPaletteStore;
 		repeat
 			InputReadWaitKey;
 		until UpCase(InputKeyPressed) in [KEY_ESCAPE, 'N', 'Y'];
+		TempPaletteGet;
 		if UpCase(InputKeyPressed) = 'Y' then
 			defaultReturn := true
 		else
@@ -1315,7 +1335,9 @@ procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: T
 		newFilename: TString50;
 	begin
 		newFilename := filename;
+		TempPaletteStore;
 		SidebarPromptString(prompt, extension, newFilename, PROMPT_ALPHANUM);
+		TempPaletteGet;
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(newFilename) <> 0) then begin
 			filename := newFilename;
 			if extension = '.ZZT' then
@@ -2695,7 +2717,6 @@ procedure GameTitleLoop;
 		startPlay: boolean;
 	begin
 		GameTitleExitRequested := false;
-		JustStarted := true;
 		ReturnBoardId := 0;
 		boardChanged := true;
 		repeat

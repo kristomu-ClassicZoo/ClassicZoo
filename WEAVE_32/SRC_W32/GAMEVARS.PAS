@@ -215,9 +215,11 @@ interface
 		GameMove: boolean;
 		HasINI: boolean;
 		HasCustomSidebar: boolean;
+		HasCHR: boolean;
 		IoTmpBufSize: word;
 		FileWorldCachedLinePos: integer; 
 		FileSaveCachedLinePos: integer;
+		TempPalette: TPalette;
 
 		InspectNext: boolean;
 		NoClip: boolean;

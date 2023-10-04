@@ -1902,6 +1902,11 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 										deltaX := ParamList[PALETTE_START + (ix * 3) + 1];
 										deltaY := ParamList[PALETTE_START + (ix * 3) + 2];
 									end;
+									if (iy + deltaX + deltaY < 4) then begin
+										Inc(iy);
+										Inc(DeltaX);
+										Inc(DeltaY);
+									end;
 									World.Info.CustomPalette[ix] := iy div 2;
 									World.Info.CustomPalette[ix] := World.Info.CustomPalette[ix] + ((deltaX div 2) * 32);
 									World.Info.CustomPalette[ix] := World.Info.CustomPalette[ix] + ((deltaY div 2) * 1024);

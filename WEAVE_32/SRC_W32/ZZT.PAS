@@ -68,7 +68,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                                <=-  Weave  -=>');
 		TextColor(Yellow);
-		Writeln('                                 Version  3.2');
+		Writeln('                                 Version  3.2a');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -138,6 +138,7 @@ begin
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
 	GameTitleExitRequested := false;
 	GameConfigure;
+	JustStarted := true;
 
 	if not GameTitleExitRequested then begin
 		VideoInstall(80, Blue);

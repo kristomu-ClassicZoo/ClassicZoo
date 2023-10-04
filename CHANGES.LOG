@@ -1,3 +1,14 @@
+10/4/2023: Weave 3.2a
+Bugfixes:
+* Title screen .PAL loading now consistent.
+* In-game .PAL manipulation now consistent.
+* Game correctly returns to .PAL file colors when prompted to save or quit.
+* Title screen/initial board .CHR loading now consistent.
+* per-board .CHR files now correctly isolated to their specific board.
+* Saving and loading ZZT worlds now correctly restores .CHR and .PAL as well as changes due to #PALETTE.
+* Updated documentation.
+
+
 9/23/2023: Weave 3.2
 Removed:
 * KEYSPEED has been removed.
