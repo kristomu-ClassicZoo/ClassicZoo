@@ -1,3 +1,8 @@
+10/8/2023: Weave 3.2b
+Bugfixes:
+* When attempting to load a [H]elp file that does not exist, .CHR loading would become disabled until the world file was closed and reopened.
+
+
 10/4/2023: Weave 3.2a
 Bugfixes:
 * Title screen .PAL loading now consistent.

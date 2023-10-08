@@ -1558,30 +1558,31 @@ procedure ElementTruePlayerTick;
 						end;
 					end;
 				end;
-			end else if ((inputC = #27) or (inputC = 'Q')) then begin
-				GamePromptEndPlay;
-			end else if inputC = UpCase(ConfigList[77][1]) then begin {'S' Save game hotkey }
-				GameWorldSave(ConfigList[78] + ':', SavedGameFileName, '.SAV');
-			end else if inputC = UpCase(ConfigList[72][1]) then begin {'B' Sound toggle hotkey}
+			end else if ((inputC = #27) or (inputC = 'Q')) then
+				GamePromptEndPlay
+			else if inputC = UpCase(ConfigList[77][1]) then {'S' Save game hotkey }
+				GameWorldSave(ConfigList[78] + ':', SavedGameFileName, '.SAV')
+			else if inputC = UpCase(ConfigList[72][1]) then begin {'B' Sound toggle hotkey}
 				SoundEnabled := not SoundEnabled;
 				SoundClearQueue;
 				GameUpdateSidebar;
 				InputKeyPressed := ' ';
-			end else if inputC = UpCase(ConfigList[75][1]) then begin {'H' Help file hotkey}
-				TextWindowDisplayFile(World.Info.Name + '.HLP', 'Help for '+ World.Info.Name);
-			end else if inputC = UpCase(ConfigList[83][1]) then begin {'?' Debug prompt hotkey}
+			end else if inputC = UpCase(ConfigList[75][1]) then {'H' Help file hotkey}
+				if FileExists(World.Info.Name + '.HLP') then
+					TextWindowDisplayFile(World.Info.Name + '.HLP', 'Help for '+ World.Info.Name)
+			else if inputC = UpCase(ConfigList[83][1]) then begin {'?' Debug prompt hotkey}
 				World.Info.PlayerChar := ElementDefs[E_PLAYER].Character;
 				World.Info.PlayerColor := ElementDefs[E_PLAYER].Color;
 				GameDebugPrompt;
 				InputKeyPressed := #0;
-			end else if (NeuromotorAssist = true) and (inputC = 'P') then begin
-				GameMove := true;
-			end else if (NeuromotorAssist = false)
+			end else if (NeuromotorAssist = true) and (inputC = 'P') then
+				GameMove := true
+			else if (NeuromotorAssist = false)
 				and ((inputC = UpCase(ConfigList[79][1]))
 				and (World.Info.Health > 0))
-			then begin
-				GamePaused := true;
-			end else if HasINI and (KeyLimit > 0) then begin {.INI keyboard inputs}
+			then
+				GamePaused := true
+			else if HasINI and (KeyLimit > 0) then begin {.INI keyboard inputs}
 				i := 0;
 				while i < KeyLimit do begin
 					if (inputC = UpCase(KeyList[i * 3][Length(KeyList[i * 3])]))
@@ -1622,9 +1623,8 @@ procedure ElementTruePlayerTick;
 					if (Board.Info.TimeLimitSec - 10) = World.Info.BoardTimeSec then begin
 						DisplayMessage(200, ConfigList[54]); {"Running out of time!"}
 						SoundQueue(3, SoundParse(ConfigList[55])); {Time running out sound}
-					end else if World.Info.BoardTimeSec > Board.Info.TimeLimitSec then begin
+					end else if World.Info.BoardTimeSec > Board.Info.TimeLimitSec then
 						DamageStat(0);
-					end;
 					GameUpdateSidebar;
 				end;
 
