@@ -210,6 +210,11 @@ Notes:
  -By default, builtin keys do not stack with each other, but this behavior can be changed in your .CFG file.
  -Modifying key amounts via OOP ignores the limit, and doors don't care how many you have.
 
+Elements:
+ - The sidebar displays the element associated with a given counter. A Torch element is displayed next to the "Torches:" counter display, a Gem next to the "Gems:" display, and so forth.
+ - if the element has no color info (like gems), then it will display using the theme's "Special" color (like gems do by default)
+ - if the element has a foreground color but no background color (like ammo), then it will display the correct foreground color but on the theme's sidebar background (as ammo does by default)
+ - if the element has both a foreground and background color (like the player does) then it will display using those.
 
 
 === 5) NEW ELEMENT NAMES ===
