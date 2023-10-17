@@ -1531,6 +1531,7 @@ procedure ElementTruePlayerTick;
 			if (P2 = 1) {Locked players have limited input options}
 				and (inputC <> #27) and (inputC <> 'Q')
 				and (inputC <> UpCase(ConfigList[72][1]))
+				and (inputC <> UpCase(ConfigList[75][1]))
 				and (inputC <> UpCase(ConfigList[77][1]))
 				and (inputC <> UpCase(ConfigList[83][1]))
 			then
@@ -1567,10 +1568,10 @@ procedure ElementTruePlayerTick;
 				SoundClearQueue;
 				GameUpdateSidebar;
 				InputKeyPressed := ' ';
-			end else if inputC = UpCase(ConfigList[75][1]) then {'H' Help file hotkey}
+			end else if inputC = UpCase(ConfigList[75][1]) then begin {'H' Help file hotkey}
 				if FileExists(World.Info.Name + '.HLP') then
-					TextWindowDisplayFile(World.Info.Name + '.HLP', 'Help for '+ World.Info.Name)
-			else if inputC = UpCase(ConfigList[83][1]) then begin {'?' Debug prompt hotkey}
+					TextWindowDisplayFile(World.Info.Name + '.HLP', 'Help for '+ World.Info.Name);
+			end else if inputC = UpCase(ConfigList[83][1]) then begin {'?' Debug prompt hotkey}
 				World.Info.PlayerChar := ElementDefs[E_PLAYER].Character;
 				World.Info.PlayerColor := ElementDefs[E_PLAYER].Color;
 				GameDebugPrompt;

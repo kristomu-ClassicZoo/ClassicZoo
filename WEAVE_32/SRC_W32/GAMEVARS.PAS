@@ -184,6 +184,7 @@ interface
 		TSidebar = record
 			Disp: TString8;
 			Ident: shortint;
+			Elmt: shortint;
 		end;
 	var
 		PlayerDirX: integer;

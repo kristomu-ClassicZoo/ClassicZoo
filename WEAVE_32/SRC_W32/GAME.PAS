@@ -395,6 +395,7 @@ procedure CustomOOPLoad;
 		for i := 3 to 24 do begin
 			CustomSidebar[i].Disp := '';
 			CustomSidebar[i].Ident := -8;
+			CustomSidebar[i].Elmt := -1;
 		end;
 		HasINI := false;
 		if (World.Info.Name <> '') and FileExists(World.Info.Name + '.INI') then begin
@@ -464,7 +465,7 @@ procedure CustomSidebarLoad;
 		l, t: string[20];
 		c: char;
 		f: text;
-		i, j, k: integer;
+		h, i, j, k: integer;
 	begin
 		HasCustomSidebar := false;
 		if HasINI then begin
@@ -482,16 +483,26 @@ procedure CustomSidebarLoad;
 						for i := 1 to 7 do
 							t[i] := s[i];
 						if (t = 'SIDEBAR') or (t = 'sidebar') then begin
-							if s[10] = '.' then
-								j := Ord(s[9]) - 48
-							else begin
-								j := Ord(s[10]) - 48;
-								inc(j, (Ord(s[9]) - 48) * 10);
+							j := Ord(s[9]) - 48;
+							if s[10] <> '.' then begin
+								j := j * 10;
+								inc(j, Ord(s[10]) - 48);
 							end;
 							if (j > 2) and (j < 25) then begin
 								i := 11;
-								while (s[i] <> #34) and (i <= Length(s)) do
+								h := -2;
+								while (s[i] <> #34) and (i <= Length(s)) do begin
+									if h <> -1 then
+										if s[i] = '-' then
+											h := -1
+										else if (s[i] >= '0') and (s[i] <= '9') then begin
+											if h = -2 then Inc(h,2);
+											h := h * 10;
+											h := h + Ord(s[i]) - 48;
+										end;
 									Inc(i);
+								end;
+								CustomSidebar[j].Elmt := h;
 								Inc(i);
 								l := '';
 								t := '';
@@ -2465,15 +2476,32 @@ procedure GameDrawCustomSidebar;
 		end;
 		{ Custom Sidebar Counters }
 		for i := 3 to 24 do
-			if CustomSidebar[i].Ident > -8 then begin
-				if ((CFlagPos[i + 8] and World.Info.CustomFlags[3]) = 0) then begin
-					VideoWriteText(64, i, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), CustomSidebar[i].Disp);
-					if CustomSidebar[i].Ident < 0 then
-						Str(Board.Info.Local[-CustomSidebar[i].Ident], numStr)
-					else
-						Str(World.Info.CustomCounters[CustomSidebar[i].Ident], numStr);
-					VideoWriteText(72, i, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
-				end else SideBarClearLine(i);
+			with CustomSidebar[i] do begin
+				if Ident > -8 then begin
+					if ((CFlagPos[i + 8] and World.Info.CustomFlags[3]) = 0) then begin
+						VideoWriteText(64, i, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), Disp);
+						if Ident < 0 then
+							Str(Board.Info.Local[-Ident], numStr)
+						else
+							Str(World.Info.CustomCounters[Ident], numStr);
+						VideoWriteText(72, i, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+						if Elmt > -1 then {Sidebar Element}
+							if ElementDefs[Enum(Elmt)].Color = 0 then
+								VideoWriteText(62, i,
+									AsColor(ParamList[THEME_START + 6],
+									ParamList[THEME_START]),
+									ElementDefs[Enum(Elmt)].Character)
+							else if ElementDefs[Enum(Elmt)].Color and $F0 = 0 then
+								VideoWriteText(62, i,
+									AsColor(ElementDefs[Enum(Elmt)].Color and $0F,
+									ParamList[THEME_START]),
+									ElementDefs[Enum(Elmt)].Character)
+							else
+								VideoWriteText(62, i,
+									ElementDefs[Enum(Elmt)].Color,
+									ElementDefs[Enum(Elmt)].Character);
+					end else SideBarClearLine(i);
+				end;
 			end;
 	end;
 
