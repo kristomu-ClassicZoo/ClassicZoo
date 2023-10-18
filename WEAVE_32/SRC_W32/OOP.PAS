@@ -208,6 +208,10 @@ function ReadOnly(s: string): boolean;
 			or (s = 'PLAYERY') 
 			or (s = 'THISX')
 			or (s = 'THISY')
+			or (s = 'EDGEN')
+			or (s = 'EDGES')
+			or (s = 'EDGEW')
+			or (s = 'EDGEE')
 		then
 			ReadOnly := true
 		else
@@ -236,6 +240,14 @@ function GetReadOnly(statId: integer; s: string): integer;
 			GetReadOnly := PMouseX
 		else if s = 'MOUSEY' then {'MOUSEY'}
 			GetReadOnly := PMouseY
+		else if s = 'EDGEN' then
+			GetReadOnly := Board.Info.NeighborBoards[0]
+		else if s = 'EDGES' then
+			GetReadOnly := Board.Info.NeighborBoards[1]
+		else if s = 'EDGEW' then
+			GetReadOnly := Board.Info.NeighborBoards[2]
+		else if s = 'EDGEE' then
+			GetReadOnly := Board.Info.NeighborBoards[3]
 		else
 			GetReadOnly := -32767;
 	end;

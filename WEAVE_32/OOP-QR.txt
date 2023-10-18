@@ -196,19 +196,30 @@ Notes:
 
 === 4) BUILT-IN COUNTERS ===
 
+These can be modified with #set, #give, #take, and #clear:
+
 ENERGIZED	-- How much energizer time you have left.
 WICK		-- How much torch time you have left.
 <color>KEY	-- How many of this key you have. See below.
 TICKSPEED	-- How fast the game runs. This is the same as setting in-game speed, and ranges from 1 to 9, with 1 being the fastest.
+
+In addition, there are read-only counters that can't be changed but still can be used:
+
 THISX THISY	-- The object's X or Y coordinate.
 PLAYERX PLAYERY -- The player's X or Y coordinate.
 MOUSEX MOUSEY   -- The mouse's X or Y coordinate, which is what tile your mouse is currently hovering over.
+BOARDID         -- The current board being played.
+EDGEN           -- The board link to the North.
+EDGES           -- The board link to the South.
+EDGEW           -- The board link to the West.
+EDGEE           -- The board link to the East.
 
 Notes:
  -#GIVE'n energizer time does not start the music. You'll still get the sound for when it's about to end, though.
  -The key counters can be #GIVE'n and #TAKE'n from like any other counter. The game is able to display key amounts up to 9. (After that it displays * instead of a number.)
  -By default, builtin keys do not stack with each other, but this behavior can be changed in your .CFG file.
  -Modifying key amounts via OOP ignores the limit, and doors don't care how many you have.
+ -EdgeN, EdgeS, EdgeE and EdgeW are 0 for unlinked board edges.
 
 Elements:
  - The sidebar displays the element associated with a given counter. A Torch element is displayed next to the "Torches:" counter display, a Gem next to the "Gems:" display, and so forth.
