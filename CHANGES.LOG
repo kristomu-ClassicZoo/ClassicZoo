@@ -1,3 +1,10 @@
+10/22/2023: Weave 3.2e
+Improvements:
+* QUICKSAVE and QUICKLOAD now let you save and load files in subdirectories.
+* WEAVEDMO is expanded with new information about #BOARD and EDGE<dir>
+* The intro HTML file is updated.
+
+
 10/18/2023: Weave 3.2d
 Additions:
 * Added EDGEN, EDGES, EDGEE and EDGEW read-only counters to grab the Board IDs for linked boards. (unlinked boards have an ID of 0.)

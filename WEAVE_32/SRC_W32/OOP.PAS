@@ -1938,34 +1938,53 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								if (( OopValue > -1 ) and ( OopValue < 256 )) then 
 									World.Info.PlayerChar := Chr(OopValue);
 							end else if OopWord = 'QUICKSAVE' then begin
-								OopReadWord(statId, position);
-								if OopWord <> '' then begin
-									if (OopWord = 'STANDARD') then
-										GameWorldSave(ConfigList[78] + ':', SavedGameFileName, '.SAV')
-									else if Length(OopWord) < 9 then
-										WorldSave(OopWord,'.SAV');
-								end else begin
+								ix := position;
+								OopReadChar(statId, position);
+								while OopChar = ' ' do
+									OopReadChar(statId, position);
+								Dec(position);
+								if position = ix then begin
 									if CurrentSave = '' then
 										CurrentSave := World.Info.Name;
 									WorldSave(CurrentSave,'.SAV');
+								end else begin
+									textLine := OopReadLineToEnd(statId, position);
+									if (textLine = 'STANDARD') then
+										GameWorldSave(ConfigList[78] + ':', SavedGameFileName, '.SAV')
+									else WorldSave(textLine,'.SAV');
+									Dec(position);
 								end;
 								stopRunning := true;
 							end else if OopWord = 'QUICKLOAD' then begin
-								OopReadWord(statId, position);
-								if OopWord <> '' then begin
-									if WorldLoad(OopWord, '.SAV') then begin
+								ix := position;
+								OopReadChar(statId, position);
+								while OopChar = ' ' do
+									OopReadChar(statId, position);
+								Dec(position);
+								if position = ix then begin
+									if CurrentSave = '' then begin
+										if GameWorldLoad('.SAV') then begin
+											ReturnBoardId := World.Info.CurrentBoard;
+											BoardChange(ReturnBoardId);
+											TransitionDrawToBoard;
+										end;
+									end else if WorldLoad(CurrentSave, '.SAV') then
+										TransitionDrawToBoard;
+								end else begin
+									textLine := OopReadLineToEnd(statId, position);
+									if (textLine = 'STANDARD') then begin
+										if GameWorldLoad('.SAV') then begin
+											ReturnBoardId := World.Info.CurrentBoard;
+											BoardChange(ReturnBoardId);
+											TransitionDrawToBoard;
+										end;
+									end else if WorldLoad(textLine, '.SAV') then begin
 										ReturnBoardId := World.Info.CurrentBoard;
 										BoardChange(ReturnBoardId);
 										TransitionDrawToBoard;
 									end;
-								end else if CurrentSave = '' then begin
-									if GameWorldLoad('.SAV') then begin
-										ReturnBoardId := World.Info.CurrentBoard;
-										BoardChange(ReturnBoardId);
-										TransitionDrawToBoard;
-									end;
-								end else if WorldLoad(CurrentSave, '.SAV') then
-									TransitionDrawToBoard;
+ 									Dec(position);
+								end;
 								stopRunning := true;
 							end else if OopWord = 'STEP' then begin
 								OopReadDirection(statId, position, ix, iy);

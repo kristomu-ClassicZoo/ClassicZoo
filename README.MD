@@ -1,6 +1,7 @@
-# WeaveZZT 3.0
+# WeaveZZT 3.2
 
 With Weave 3, all previous recommendations for Weave have been addressed and the design specifications are frozen. It is the culmination of the Weave project.
+With Weave 3.2, we are experimenting with a couple possible final tweaks while spinning up work on a SuperZZT version of Weave.
 
 Designed with the full scope of the ZZTer audience in mind, this version hopes to supply the needs of anyone that wants to tweak something about ZZT. Weave 2 made use of several accessory files to allow ZZTers to enhance their game's experience without diving into the Pascal code. Weave 3 restricts this to just two, with the following goals:
 
