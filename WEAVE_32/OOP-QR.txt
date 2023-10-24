@@ -156,11 +156,14 @@ ISDARK						- True if the board is dark.
 #ELSE <cmd>			--
  -Like #AND, except only runs if the last #IF command ran was fale.
 
+#SEND OBJECT:END
+ -Like #SEND OBJECT:RESTART, will cause an object to stop executing code as though it had issued a #END command.
+ -Works with #ALL, #OTHERS, and #SELF as well.
+
 Notes:
  -DETECT i will check underneath the object.
  -DETECT player will check underneath the player.
  -ISDARK can be set and cleared to toggle the room's dark state.
-
 
 
 === 3) NEW DIRECTIONS ===

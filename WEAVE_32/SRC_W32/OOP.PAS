@@ -843,6 +843,8 @@ function OopFindLabel(statId: integer; sendLabel: string; var iStat, iDataPos: i
 		if foundStat then begin
 			if objectMessage = 'RESTART' then begin
 				iDataPos := 0;
+			end else if HasINI and (objectMessage = 'END') then begin
+				iDataPos := Board.Stats[iStat].DataLen;
 			end else begin
 				iDataPos := OopFindString(iStat, labelPrefix + objectMessage);
 				{ if lookup target exists, there may be more stats }
