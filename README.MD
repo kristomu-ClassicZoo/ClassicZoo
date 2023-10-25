@@ -18,7 +18,7 @@ With your own copy of Turbo Pascal 5.5, you can compile WEAVE3.EXE yourself usin
 
 There are two primary types of weaving, as noted above. These center around the .CFG and .INI files that can accompany a Weave game.
 
-For examples of .CFG weaving, look at the TEMPLATE.CFG and EXTENDED.CFG example files in the WEAVE_30/SRC_W30 subdirectory.
+For examples of .CFG weaving, look at the TEMPLATE.CFG example file in the WEAVE_30/SRC_W30 subdirectory.
 
 For examples of .INI weaving, look at the TEMPLATE.INI file in the WEAVE_30/SRC_W30 subdirectory. Additionally, the inclusion of a .INI file unlocks new ZZT-OOP commands, some of which allow you to use other external files. For examples of those, have a look at the .OBJ files in that same subdirectory.
 ## File types in this project:
@@ -83,9 +83,7 @@ Below are listed the files in the various folders of the project.
     * WEAVEDMO.CFG
         * Element parameters for the WeaveZZT demo.
     * TEMPLATE.CFG
-        * Basic parameters file with common options.
-    * EXTENDED.CFG
-        * Extended parameters file with more options.
+        * Parameters file with configuration options.
     * WEAVEDMO.INI
         * Counters and Keybinds for the WeaveZZT demo.
     * TEMPLATE.INI

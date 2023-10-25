@@ -367,8 +367,7 @@ IF RUNWITH <value> <function> <cmd>--
  -Companion files have the following extensions: .CFG, .INI, .CHR, .PAL, and .HLP.
  -If you want to use them in your game and your game is named MYGAME.ZZT, you would name your companion files MYGAME.INI, MYGAME.CHR, MYGAME.PAL etc.
  -The .CFG files modify the default behavior of built-ins and can change or remove default messages and sounds.
- -To use, simply clone TEMPLATE.CFG or EXTENDED.CFG and rename the copy to the name of your ZZT world. It will be automatically read when WeaveZZT loads your world, and will change its look and behavior based on the contents of your .CFG file.
- -A complete explanation of what can be done with .CFG files is included in EXTENDED.CFG.
+ -To use, simply clone TEMPLATE.CFG and rename the copy to the name of your ZZT world. It will be automatically read when WeaveZZT loads your world, and will change its look and behavior based on the contents of your .CFG file.
  -The .INI files unlock Weave's extended ZZT-OOP capability, including local counters, predefined flags (that don't take up a flag slot), key binds, and custom sidebar counters.
  -To use, simply clone TEMPLATE.INI and rename the copy to the name of your ZZT world. It will be automatically read when WeaveZZT loads your world, and will unlock the extended ZZT-OOP functions as well as the additional counters, flags, and sidebar extensions.
  -A complete explanation of what can be done with .INI files is included in TEMPLATE.INI.
