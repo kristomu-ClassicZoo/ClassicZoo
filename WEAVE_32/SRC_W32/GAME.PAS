@@ -858,6 +858,8 @@ procedure BoardChange(boardId: integer);
 				if lstring <> '' then
 					CustomCharsetLoad(lstring);
 			end else
+				HasCHR := false;
+			if not HasCHR then
 				CustomCharsetLoad(World.Info.Name);
 	end;
 

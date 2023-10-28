@@ -1,9 +1,15 @@
-UNRELEASED: Weave 3.2f
+10/28/2023: Weave 3.2f
 Additions:
 * #Send Object:End now causes the object to stop executing code as though it had just issued a #END command.
 
 Removals:
 * TEMPLATE.CFG has been removed. EXTENDED.CFG has been renamed to TEMPLATE.CFG.
+
+Changes:
+* INSTRUCTIONS.TXT for WEBWEAVE has been updated.
+
+Bugfixes:
+* .CHR-per-board loading failed on future boards if it failed to find a file on a previous board.
 
 10/22/2023: Weave 3.2e
 Improvements:
