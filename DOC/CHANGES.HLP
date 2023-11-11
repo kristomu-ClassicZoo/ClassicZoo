@@ -6,6 +6,11 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
+$< ClassicZoo dev >
+
+/ Fixed cheats and other options being
+  randomly initialized on start.
+
 $< ClassicZoo 4.38 >
 
 / [SDL2] Fixed the built-in Museum of

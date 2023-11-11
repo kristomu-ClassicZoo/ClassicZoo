@@ -448,8 +448,8 @@ interface
 
 implementation
 
-{$IFDEF MEMBOUND}
 begin
+{$IFDEF MEMBOUND}
 	with Board.Stats[-1] do begin
 		X := 0;
 		Y := 1;
@@ -466,5 +466,20 @@ begin
 		DataPos := 1;
 		DataLen := 1;
 	end;
+{$ENDIF}
+{$IFDEF PLAYSTEP}
+	PlayerStepEnabled := false;
+{$ENDIF}
+{$IFDEF EXTCHEAT}
+	FillChar(CheatColorModifiers, SizeOf(CheatColorModifiers), 0);
+	FillChar(CheatCharModifiers, SizeOf(CheatCharModifiers), 0);
+	CheatNoClip := false;
+	CheatNoShoot := false;
+	CheatNoStar := false;
+	CheatFreeze := false;
+{$ENDIF}
+{$IFDEF DEBUGWND}
+	DebugCompatEnabled := false;
+	DebugUndefEnabled := false;
 {$ENDIF}
 end.
