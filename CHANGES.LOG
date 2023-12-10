@@ -1,3 +1,8 @@
+12/10/2023: Weave 3.2g
+Fixes:
+* Games without .CHR files would try to load GAMENAME.CHR after every board transition.
+
+
 10/28/2023: Weave 3.2f
 Additions:
 * #Send Object:End now causes the object to stop executing code as though it had just issued a #END command.
