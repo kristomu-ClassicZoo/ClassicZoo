@@ -859,7 +859,7 @@ procedure BoardChange(boardId: integer);
 					CustomCharsetLoad(lstring);
 			end else
 				HasCHR := false;
-			if not HasCHR then
+			if (HasCHR = false) and (NoCHR = false) then
 				CustomCharsetLoad(World.Info.Name);
 	end;
 
@@ -948,6 +948,7 @@ procedure WorldCreate;
 		for i := 1 to CUSTOM_COUNTER_COUNT do
 			World.Info.CustomCounters[i] := 0;
 		CustomOOPLoad;
+		NoCHR := false;
 	end;
 
 procedure TransitionDrawToFill(chr: char; color: integer);
@@ -1276,7 +1277,10 @@ function WorldLoad(filename, extension: TString50): boolean;
 				HighScoresLoad;
 				CustomOOPLoad;
 				CustomSidebarLoad;
+				NoCHR := false;
 				CustomCharsetLoad(World.Info.Name);
+				if not HasCHR then
+					NoCHR := true;
 
 				SidebarClearLine(5);
 

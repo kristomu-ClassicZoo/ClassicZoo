@@ -217,6 +217,7 @@ interface
 		HasINI: boolean;
 		HasCustomSidebar: boolean;
 		HasCHR: boolean;
+		NoCHR: boolean;
 		IoTmpBufSize: word;
 		FileWorldCachedLinePos: integer; 
 		FileSaveCachedLinePos: integer;
