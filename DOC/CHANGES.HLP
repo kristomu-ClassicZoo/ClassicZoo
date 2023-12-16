@@ -13,6 +13,7 @@ $< ClassicZoo dev >
   checks for ZZT 3.2 compatibility:
   / Dead smiley
   / Duplicate transport
+  / Everzap player clone
 / Fixed cheats and other options being
   randomly initialized on start.
 

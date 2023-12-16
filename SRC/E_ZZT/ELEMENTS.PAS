@@ -932,8 +932,16 @@ procedure ElementBlinkWallTick(statId: integer);
 									end;
 
 									if Element = E_PLAYER then begin
-										while World.Info.Health > 0 do
+										while World.Info.Health > 0 do begin
 											DamageStat(playerStatId);
+											if playerStatId > 0 then begin
+{$IFDEF DEBUGWND}
+												if DebugCompatEnabled then
+													DebugShowElementMessage('Illegal statless player damage', x, y);
+{$ENDIF}
+												exit;
+											end;
+										end;
 										hitBoundary := true;
 									end;
 {$IFDEF DEBUGWND}
