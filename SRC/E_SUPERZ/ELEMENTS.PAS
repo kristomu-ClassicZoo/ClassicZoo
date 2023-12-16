@@ -984,22 +984,27 @@ procedure ElementBlinkWallTick(statId: integer);
 
 						if Board.Tiles[ix][iy].Element = E_PLAYER then begin
 							playerStatId := GetStatIdAt(ix, iy);
-							if StepX <> 0 then begin
-								if Board.Tiles[ix][iy - 1].Element = E_EMPTY then
-									MoveStat(playerStatId, ix, iy - 1)
-								else if Board.Tiles[ix][iy + 1].Element = E_EMPTY then
-									MoveStat(playerStatId, ix, iy + 1);
-							end else begin
-								if Board.Tiles[ix + 1][iy].Element = E_EMPTY then
-									MoveStat(playerStatId, ix + 1, iy)
-								else if Board.Tiles[ix - 1][iy].Element = E_EMPTY then
-									MoveStat(playerStatId, ix + 1, iy);
-							end;
 
-							if Board.Tiles[ix][iy].Element = E_PLAYER then begin
-								while World.Info.Health > 0 do
-									DamageStat(playerStatId);
-								hitBoundary := true;
+							if playerStatId >= 0 then begin
+								if StepX <> 0 then begin
+									if Board.Tiles[ix][iy - 1].Element = E_EMPTY then
+										MoveStat(playerStatId, ix, iy - 1)
+									else if Board.Tiles[ix][iy + 1].Element = E_EMPTY then
+										MoveStat(playerStatId, ix, iy + 1);
+								end else begin
+									if Board.Tiles[ix + 1][iy].Element = E_EMPTY then
+										MoveStat(playerStatId, ix + 1, iy)
+									else if Board.Tiles[ix - 1][iy].Element = E_EMPTY then
+										MoveStat(playerStatId, ix + 1, iy);
+								end;
+
+								if Board.Tiles[ix][iy].Element = E_PLAYER then begin
+									while World.Info.Health > 0 do
+										DamageStat(playerStatId);
+									hitBoundary := true;
+								end;
+							end else begin
+								{ TODO: Should destroying a statless player have any special behaviour? }
 							end;
 						end;
 
@@ -1054,8 +1059,9 @@ procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 						ElementPushablePush(x + deltaX, y + deltaY, deltaX, deltaY);
 {$IFDEF DEBUGWND}
 					end else begin
+						{ TODO: Should destroying a statless player have any special behaviour? }
 						if DebugCompatEnabled then
-							DebugShowElementMessage('Illegal pushable movement', x, y);
+							DebugShowElementMessage('Illegal statless player damage', x, y);
 {$ENDIF}
 					end;
 				end;
