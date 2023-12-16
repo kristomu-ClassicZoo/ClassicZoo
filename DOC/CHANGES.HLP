@@ -8,6 +8,11 @@ Legend:
 
 $< ClassicZoo dev >
 
+/ Fixed the following Crashopedia
+  crashes, and added appropriate
+  checks for ZZT 3.2 compatibility:
+  / Dead smiley
+  / Duplicate transport
 / Fixed cheats and other options being
   randomly initialized on start.
 
