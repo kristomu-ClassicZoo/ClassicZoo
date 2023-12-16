@@ -6,7 +6,7 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
-$< ClassicZoo dev >
+$< ClassicZoo 4.39 >
 
 / Fixed the following Crashopedia
   crashes, and added appropriate
