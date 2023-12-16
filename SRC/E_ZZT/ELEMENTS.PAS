@@ -650,6 +650,14 @@ procedure ElementTransporterMove(x, y, deltaX, deltaY: integer);
 	begin
 		with Board.Stats[GetStatIdAt(x + deltaX, y + deltaY)] do begin
 			if (deltaX = StepX) and (deltaY = StepY) then begin
+				if (deltaX = 0) and (deltaY = 0) then begin
+	{$IFDEF DEBUGWND}
+					if DebugCompatEnabled then
+						DebugShowElementMessage('Illegal transporter movement', x, y);
+	{$ENDIF}
+					exit;
+				end;
+
 				ix := X;
 				iy := Y;
 				isValidDest := true;
