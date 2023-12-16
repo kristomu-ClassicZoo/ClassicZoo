@@ -988,49 +988,51 @@ procedure ElementBlinkWallTick(statId: integer);
 				if ((X + StepX) = ix) and ((Y + StepY) = iy) then begin
 					hitBoundary := false;
 					repeat
-						if (Board.Tiles[ix][iy].Element <> E_EMPTY) and (ElementDefs[Board.Tiles[ix][iy].Element].Destructible) then
-							BoardDamageTile(ix, iy);
+						with Board.Tiles[ix][iy] do begin
+							if (Element <> E_EMPTY) and (ElementDefs[Element].Destructible) then
+								BoardDamageTile(ix, iy);
 
-						if Board.Tiles[ix][iy].Element = E_PLAYER then begin
-							playerStatId := GetStatIdAt(ix, iy);
+							if Element = E_PLAYER then begin
+								playerStatId := GetStatIdAt(ix, iy);
 
-							if playerStatId >= 0 then begin
-								if StepX <> 0 then begin
-									if Board.Tiles[ix][iy - 1].Element = E_EMPTY then
-										MoveStat(playerStatId, ix, iy - 1)
-									else if Board.Tiles[ix][iy + 1].Element = E_EMPTY then
-										MoveStat(playerStatId, ix, iy + 1);
-								end else begin
-									if Board.Tiles[ix + 1][iy].Element = E_EMPTY then
-										MoveStat(playerStatId, ix + 1, iy)
-									else if Board.Tiles[ix - 1][iy].Element = E_EMPTY then
-										MoveStat(playerStatId, ix + 1, iy);
-								end;
-
-								if Board.Tiles[ix][iy].Element = E_PLAYER then begin
-									while World.Info.Health > 0 do begin
-										DamageStat(playerStatId);
-										if playerStatId > 0 then begin
-{$IFDEF DEBUGWND}
-											if DebugCompatEnabled then
-												DebugShowElementMessage('Illegal statless player damage', x, y);
-{$ENDIF}
-											exit;
-										end;
+								if playerStatId >= 0 then begin
+									if StepX <> 0 then begin
+										if Board.Tiles[ix][iy - 1].Element = E_EMPTY then
+											MoveStat(playerStatId, ix, iy - 1)
+										else if Board.Tiles[ix][iy + 1].Element = E_EMPTY then
+											MoveStat(playerStatId, ix, iy + 1);
+									end else begin
+										if Board.Tiles[ix + 1][iy].Element = E_EMPTY then
+											MoveStat(playerStatId, ix + 1, iy)
+										else if Board.Tiles[ix - 1][iy].Element = E_EMPTY then
+											MoveStat(playerStatId, ix + 1, iy);
 									end;
-									hitBoundary := true;
-								end;
-							end else begin
-								{ TODO: Should destroying a statless player have any special behaviour? }
-							end;
-						end;
 
-						if Board.Tiles[ix][iy].Element = E_EMPTY then begin
-							Board.Tiles[ix][iy].Element := el;
-							Board.Tiles[ix][iy].Color := Board.Tiles[X][Y].Color;
-							BoardDrawTile(ix, iy);
-						end else begin
-							hitBoundary := true;
+									if Element = E_PLAYER then begin
+										while World.Info.Health > 0 do begin
+											DamageStat(playerStatId);
+											if playerStatId > 0 then begin
+{$IFDEF DEBUGWND}
+												if DebugCompatEnabled then
+													DebugShowElementMessage('Illegal statless player damage', x, y);
+{$ENDIF}
+												exit;
+											end;
+										end;
+										hitBoundary := true;
+									end;
+								end else begin
+									{ TODO: Should destroying a statless player have any special behaviour? }
+								end;
+							end;
+
+							if Element = E_EMPTY then begin
+								Element := el;
+								Color := Board.Tiles[X][Y].Color;
+								BoardDrawTile(ix, iy);
+							end else begin
+								hitBoundary := true;
+							end;
 						end;
 
 						Inc(ix, StepX);
