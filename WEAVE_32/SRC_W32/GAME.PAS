@@ -2562,8 +2562,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 				VideoWriteText(62, 11, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' P ');
 				VideoWriteText(65, 11, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Play');
-				VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' R ');
-				VideoWriteText(65, 12, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' Restore game');
+				if ((ConfigList[77][1] <> #1) or (IsRelease = false)) then begin
+					VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' R ');
+					VideoWriteText(65, 12, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' Restore game');
+				end;
 				VideoWriteText(62, 13, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' Q ');
 				VideoWriteText(65, 13, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' Quit');
 				VideoWriteText(62, 16, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' A ');
@@ -2789,11 +2791,12 @@ procedure GameTitleLoop;
 						InputKeyPressed := #0;
 					end;
 					'R': begin
-						if GameWorldLoad('.SAV') then begin
-							ReturnBoardId := World.Info.CurrentBoard;
-							BoardChange(ReturnBoardId);
-							startPlay := true;
-						end;
+						if ((ConfigList[77][1] <> #1) or (IsRelease = false)) then
+							if GameWorldLoad('.SAV') then begin
+								ReturnBoardId := World.Info.CurrentBoard;
+								BoardChange(ReturnBoardId);
+								startPlay := true;
+							end;
 						KeyRepeat;
 					end;
 					'H': begin

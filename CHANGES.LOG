@@ -1,3 +1,8 @@
+12/22/2023: Weave 3.2h
+Changes:
+* Games in a 'RELEASE' configuration that have no 'S'ave keybind in-game also no longer have a 'R'estore keybind on their title screen.
+
+
 12/10/2023: Weave 3.2g
 Fixes:
 * Games without .CHR files would try to load GAMENAME.CHR after every board transition.
