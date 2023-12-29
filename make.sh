@@ -17,6 +17,9 @@ PLATFORM_UNIT=DOS
 EXTMEM_STUB=
 DEBUG_BUILD=
 NATIVE_TOOLS_BUILD=
+TPC_ARGS=""
+FPC_ARGS=""
+NATIVE_BUILD=
 
 # Parse arguments
 
@@ -41,6 +44,17 @@ while getopts "a:d:e:n:o:p:rg" opt; do
 		case "$ARCH" in
 		native)
 			FPC_BINARY=fpc
+			NATIVE_BUILD=yes
+			;;
+		native_x86_64)
+			FPC_BINARY=fpc
+			FPC_ARGS="$FPC_ARGS"' '"-Px86_64"
+			NATIVE_BUILD=yes
+			;;
+		native_aarch64)
+			FPC_BINARY=fpc
+			FPC_ARGS="$FPC_ARGS"' '"-Paarch64"
+			NATIVE_BUILD=yes
 			;;
 		i8086)
 			FPC_BINARY=ppcross8086
@@ -123,8 +137,6 @@ else
 fi
 
 # Populate TPC_ARGS and FPC_ARGS.
-TPC_ARGS=""
-FPC_ARGS=""
 if [ -z "$DEBUG_BUILD" ]; then
 	TPC_ARGS='/$D- /$L- /$S-'
 fi
@@ -280,6 +292,10 @@ if [ -n "$FREE_PASCAL" ]; then
 	fi
 
 	cd SRC
+	if [ -n "$NATIVE_BUILD" ]; then
+		mv fpc.cfg fpc2.cfg
+		FPC_ARGS="$FPC_ARGS"' '"@fpc2.cfg"
+	fi
 	echo "[ Building ZZT.EXE ]"
 	"$FPC_BINARY_PATH"/bin/"$FPC_BINARY" $FPC_ARGS ZZT.PAS
 	if [ -f ZZT.exe ]; then
