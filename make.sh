@@ -203,13 +203,14 @@ if [ -z "$FPC_LIBRARY_PATH" ]; then
 	FPC_LIBRARY_PATH="$FPC_PATH"/lib
 fi
 
-sed -i -e 's#%COMPARGS%#'"$TPC_ARGS"'#g' "$TEMP_PATH"/BUILD.BAT
-sed -i -e 's#%ENGINE%#'"$ENGINE"'#g' "$TEMP_PATH"/BUILD.BAT
+sed -i -e 's#%COMPARGS%#'"$TPC_ARGS"'#g' \
+       -e 's#%ENGINE%#'"$ENGINE"'#g' "$TEMP_PATH"/BUILD.BAT
 sed -i -e 's#%ENGINE%#'"$ENGINE"'#g' "$TEMP_PATH"/RUNTOOLS.BAT
 sed -i -e 's#%FPC_PATH%#'"$FPC_BINARY_PATH"'#g' "$TEMP_PATH"/SYSTEM/fpc.datpack.cfg
 for i in `ls "$TEMP_PATH"/SYSTEM/fpc.*.cfg`; do
-	sed -i -e 's#%FPC_PATH%#'"$FPC_BINARY_PATH"'#g' "$i"
-	sed -i -e 's#%FPC_LIBRARY_PATH%#'"$FPC_LIBRARY_PATH"'#g' "$i"
+	sed -i -e 's#%FPC_PATH%#'"$FPC_BINARY_PATH"'#g' \
+	       -e 's#%FPC_LIBRARY_PATH%#'"$FPC_LIBRARY_PATH"'#g' \
+	       -e 's#%HOME%#'"$HOME"'#g' "$i"
 done
 echo "Compiling Pascal code..."
 

@@ -23,7 +23,7 @@ jobs:
       - name: Download Win64 syslibs
         run: sudo sh -c "curl https://asie.pl/files/czoo-syslibs-20220703.tar.gz | tar xzvf -"
       - name: Build
-        run: ./build.sh build-ci-windows.releases
+        run: ./build.sh .github/build-ci-windows.releases
       - name: Archive artifact
         uses: actions/upload-artifact@v3
         with:
@@ -43,7 +43,7 @@ jobs:
       - name: Set up Ubuntu packages
         run: sudo apt-get install -y fp-compiler-3.2.2 fp-units-base-3.2.2 fp-units-fcl-3.2.2 fp-units-net-3.2.2 fp-units-rtl-3.2.2 fp-utils-3.2.2 git zip libsdl2-dev
       - name: Build
-        run: ./build.sh build-ci-linux.releases
+        run: ./build.sh .github/build-ci-linux.releases
       - name: Archive artifact
         uses: actions/upload-artifact@v3
         with:
@@ -52,18 +52,24 @@ jobs:
 
   build_macos:
     runs-on: macos-latest
+    env:
+      FPC_PATH: /usr/local
+      HOME: /Users/runner
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: Install Free Pascal
-        run: brew install fpc bash coreutils gnu-sed
+      - name: Install Free Pascal and other dependencies
+        run: brew install fpc bash coreutils gnu-sed dylibbundler && sed -i -e "s@/bin/bash@/usr/local/bin/bash@g" build.sh make.sh
+      - name: Install SDL2
+        uses: BrettDong/setup-sdl2-frameworks@053eecc57e2b020e3f289ce4d54a3745465833a8
       - name: Build
-        run: sed -i -e "s@/bin/bash@/usr/local/bin/bash@g" build.sh make.sh && FPC_PATH=/usr/local PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/gnu-sed/libexec/gnubin:$PATH" ./build.sh build-ci-macos.releases
+        run: PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/gnu-sed/libexec/gnubin:$PATH" ./build.sh .github/build-ci-macos-x64.releases
+      - name: Package (x86_64)
+        run: cd OUTPUT && unzip zztmacx64.zip && cd .. && mkdir -p dist/ClassicZoo.app/Contents/MacOS && mkdir -p dist/ClassicZoo.app/Contents/libs/x86_64 && dylibbundler -od -b -x OUTPUT/ZZT -d dist/ClassicZoo.app/Contents/libs/x86_64/ -p @executable_path/../libs/x86_64/
       - name: Archive artifact
         uses: actions/upload-artifact@v3
         with:
           name: ClassicZoo (macOS)
           path: |
-            OUTPUT/zztmacx64.zip
-            OUTPUT/zztmaca64.zip
+            dist/ClassicZoo.app

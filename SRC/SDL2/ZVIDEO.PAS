@@ -153,6 +153,7 @@ var
 	usingCustomPalette: boolean;
 	windowedLastWidth, windowedLastHeight: Int32;
 
+{ macOS expects the SDL2 framework symbols. }
 {$IFDEF darwin}
 {$LINKFRAMEWORK SDL2}
 {$ENDIF}
