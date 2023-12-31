@@ -153,6 +153,10 @@ var
 	usingCustomPalette: boolean;
 	windowedLastWidth, windowedLastHeight: Int32;
 
+{$IFDEF darwin}
+{$LINKFRAMEWORK SDL2}
+{$ENDIF}
+
 function VideoGetActiveScalingMode: TSDLScalingMode;
 	begin
 		if VideoCurrentMode = VIDEO_MODE_RESIZABLE then

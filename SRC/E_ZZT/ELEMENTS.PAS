@@ -30,6 +30,7 @@ unit Elements;
 
 interface
 	uses GameVars;
+	procedure ElementMonitorTick(statId: integer);
 	procedure ElementMove(oldX, oldY, newX, newY: integer);
 	procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 	procedure DrawPlayerSurroundings(x, y: integer; bombPhase: integer);
@@ -1449,6 +1450,8 @@ procedure ElementPlayerTick(statId: integer);
 		i: integer;
 		bulletCount: integer;
 	begin
+		GameControllerHasTicked := true;
+
 		with Board.Stats[statId] do begin
 			with Board.Tiles[X][Y] do begin
 				if World.Info.EnergizerTicks > 0 then begin
@@ -1659,6 +1662,8 @@ procedure ElementPlayerTick(statId: integer);
 
 procedure ElementMonitorTick(statId: integer);
 	begin
+		GameControllerHasTicked := true;
+
 		if UpCase(InputKeyPressed) in [#27, 'A', 'E', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|'] then
 			GamePlayExitRequested := true;
 	end;

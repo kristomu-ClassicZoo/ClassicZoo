@@ -1320,6 +1320,7 @@ procedure GamePlayLoop(isTitle: boolean);
 
 		TickTimeDuration := TickSpeed * 2;
 		GamePlayExitRequested := false;
+		GameControllerHasTicked := true;
 		exitLoop := false;
 
 		CurrentTick := ZRandom(100);
@@ -1385,6 +1386,7 @@ procedure GamePlayLoop(isTitle: boolean);
 
 					{ Unpause }
 					GamePaused := false;
+					GameControllerHasTicked := true;
 					CurrentTick := ZRandom(100);
 					CurrentStatTicked := Board.StatCount + 1;
 					World.Info.IsSave := true;
@@ -1408,6 +1410,17 @@ procedure GamePlayLoop(isTitle: boolean);
 
 			if (CurrentStatTicked > Board.StatCount) and not GamePlayExitRequested then begin
 				{ all stats ticked }
+				if not GameControllerHasTicked then begin
+					if GameStateElement = E_MONITOR then begin
+						ElementMonitorTick(-1);
+					end else begin
+						case UpCase(InputKeyPressed) of KEY_ESCAPE, 'Q': begin
+							GamePromptEndPlay;
+						end; end;
+					end;
+				end;
+				GameControllerHasTicked := true;
+
 				if SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
 					InputUpdate;
 					if (GameStateELement = E_PLAYER) and NeuromotorAssist and (InputKeyPressed = #0) then begin

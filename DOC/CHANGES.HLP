@@ -6,6 +6,13 @@ Legend:
 - Removals          / Bugfixes
 [] Platform         {} Engine
 
+$< ClassicZoo dev >
+
+/ Fixed the following Crashopedia
+  crashes:
+  / Monitor zero
+  / Player zero
+
 $< ClassicZoo 4.39 >
 
 / Fixed the following Crashopedia

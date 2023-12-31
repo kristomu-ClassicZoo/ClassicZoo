@@ -354,6 +354,7 @@ interface
 
 		WorldExt: TWorldExt;
 
+		GameControllerHasTicked: boolean;
 {$IFDEF PLAYSTEP}
 		PlayerStepEnabled: boolean;
 {$ENDIF}

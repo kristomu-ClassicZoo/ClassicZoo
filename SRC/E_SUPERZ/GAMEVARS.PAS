@@ -349,6 +349,7 @@ interface
 		MenuScrLen: word; }
 		UseCustomFont: boolean;
 
+		GameControllerHasTicked: boolean;
 {$IFDEF DEBUGWND}
 		DebugCompatEnabled: boolean;
 		DebugUndefEnabled: boolean;

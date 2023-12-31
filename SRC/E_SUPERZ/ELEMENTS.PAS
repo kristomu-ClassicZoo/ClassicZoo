@@ -30,6 +30,7 @@ unit Elements;
 
 interface
 	uses GameVars;
+	procedure ElementMonitorTick(statId: integer);
 	procedure ElementMove(oldX, oldY, newX, newY: integer);
 	procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 	procedure DrawPlayerSurroundings(x, y: integer; bombPhase: integer);
@@ -1602,6 +1603,8 @@ procedure ElementPlayerTick(statId: integer);
 		bulletCount: integer;
 		playerColor: integer;
 	begin
+		GameControllerHasTicked := true;
+
 		with Board.Stats[statId] do begin
 			if Under.Element = E_EMPTY then
 				playerColor := $0F
@@ -1787,6 +1790,8 @@ procedure ElementPlayerTick(statId: integer);
 
 procedure ElementMonitorTick(statId: integer);
 	begin
+		GameControllerHasTicked := true;
+
 		if UpCase(InputKeyPressed) in [#13, #27] then
 			GamePlayExitRequested := true;
 
