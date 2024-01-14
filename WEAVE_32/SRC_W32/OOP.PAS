@@ -169,6 +169,7 @@ function ShortWord(s: string): boolean;
 			or (s = 'YELLOWKEY')
 			or (s = 'WHITEKEY') 
 			or (s = 'TICKSPEED')
+			or (s = 'MAXBULLETS')
 		then
 			ShortWord := true
 		else
@@ -194,7 +195,9 @@ procedure OopGetShort(s: string; var cPtr: cShort);
 		else if s = 'WHITEKEY' then
 			cPtr := @World.Info.Keys[7]
 		else if s = 'TICKSPEED' then
-			cPtr := @TickSpeed;
+			cPtr := @TickSpeed
+		else if s = 'MAXBULLETS' then
+			cPtr := @Board.Info.MaxShots;
 	end;
 
 function ReadOnly(s: string): boolean;
@@ -273,6 +276,8 @@ function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 			cPtr := @World.Info.EnergizerTicks
 		else if s = 'WICK' then
 			cPtr := @World.Info.TorchTicks
+		else if s = 'TIMELIMIT' then
+			cPtr := @Board.Info.TimeLimitSec
 		else begin
 			OopGetCounter := false;
 			for i := 1 to 7 do
@@ -1239,8 +1244,12 @@ procedure GetBoardStats;
 			Str(StartPlayerX,t);
 			Str(StartPlayerY,s);
 			TextWindowAppend(textWindow, 'Re-enter at: ' + t + ', ' + s);
-			Str(MaxShots,s);
-			TextWindowAppend(textWindow, 'Max Shots: ' + s);
+			if MaxShots < 0 then
+				TextWindowAppend(textWindow, 'Max Shots: Unlimited')
+			else begin
+				Str(MaxShots,s);
+				TextWindowAppend(textWindow, 'Max Shots: ' + s);
+			end;
 			if (TimeLimitSec > 0) and (World.Info.BoardTimeSec >= 0) then begin
 				Str(TimeLimitSec,s);
 				Str(TimeLimitSec - World.Info.BoardTimeSec,t);

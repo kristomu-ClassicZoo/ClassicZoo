@@ -1482,7 +1482,7 @@ procedure ElementTruePlayerTick;
 							then
 								bulletCount := bulletCount + 1;
 
-						if bulletCount < Board.Info.MaxShots then begin
+						if ((bulletCount < Board.Info.MaxShots) or (Board.Info.MaxShots < 0)) then begin
 							if BoardShoot(E_BULLET, X, Y, PlayerDirX, PlayerDirY, SHOT_SOURCE_PLAYER) then begin
 								World.Info.Ammo := World.Info.Ammo - 1;
 								GameUpdateSidebar;
@@ -1541,7 +1541,7 @@ procedure ElementTruePlayerTick;
 				if World.Info.TorchTicks = 0 then begin
 					if World.Info.Torches > 0 then begin
 						if Board.Info.IsDark > 0 then begin
-							World.Info.Torches := World.Info.Torches - 1;
+							World.Info.Torches := World.Info.Torches - Board.Info.IsDark;
 							World.Info.TorchTicks := ElementDefs[E_TORCH].Param2;
 
 							TransitionDrawToBoard;
@@ -1683,7 +1683,7 @@ procedure ElementCloneTick(statId: integer);
 				end;
 
 				if (PlayerDirX <> 0) or (PlayerDirY <> 0) then begin
-					if (Board.Info.MaxShots > 0) and (World.Info.Ammo > 0) then begin
+					if (Board.Info.MaxShots <> 0) and (World.Info.Ammo > 0) then begin
 						bulletCount := 0;
 						for i := 0 to Board.StatCount do
 							if (Board.Tiles[Board.Stats[i].X][Board.Stats[i].Y].Element = E_BULLET)
@@ -1691,7 +1691,7 @@ procedure ElementCloneTick(statId: integer);
 							then
 								bulletCount := bulletCount + 1;
 
-						if bulletCount < Board.Info.MaxShots then begin
+						if ((bulletCount < Board.Info.MaxShots) or (Board.Info.MaxShots < 0)) then begin
 							if BoardShoot(E_BULLET, X, Y, PlayerDirX, PlayerDirY, SHOT_SOURCE_PLAYER) then begin
 								Dec(World.Info.Ammo);
 								GameUpdateSidebar;

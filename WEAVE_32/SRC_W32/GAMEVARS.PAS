@@ -121,7 +121,7 @@ interface
 			Tile: TTile;
 		end;
 		TBoardInfo = record
-			MaxShots: byte;
+			MaxShots: shortint;
 			IsDark: shortint;
 			NeighborBoards: array[0 .. 3] of byte;
 			ReenterWhenZapped: boolean;

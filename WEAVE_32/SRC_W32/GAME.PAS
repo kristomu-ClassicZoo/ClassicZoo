@@ -869,7 +869,7 @@ procedure BoardCreate;
 	begin
 		Board.Name := '';
 		Board.Info.Message := '';
-		Board.Info.MaxShots := 255;
+		Board.Info.MaxShots := -1;
 		Board.Info.IsDark := 0;
 		Board.Info.ReenterWhenZapped := false;
 		Board.Info.TimeLimitSec := 0;

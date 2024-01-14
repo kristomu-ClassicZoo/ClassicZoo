@@ -1,3 +1,10 @@
+1/14/2024: Weave 3.2i
+Added:
+* ISDARK with values greater than 1 drains torches faster.
+* MAXBULLETS can be set to values 0-127, or -1 for unlimited.
+* TIMELIMIT will set the board time limit to a different value.
+
+
 12/22/2023: Weave 3.2h
 Changes:
 * Games in a 'RELEASE' configuration that have no 'S'ave keybind in-game also no longer have a 'R'estore keybind on their title screen.

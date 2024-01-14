@@ -148,6 +148,7 @@ WITHIN <range>					- True if within <range> spaces of the player.
 ISDARK						- True if the board is dark.
 :ENTER						- Sent when the player enters the board.
 
+
 #AND <cmd>			--
  -A special command that prefixes another command. #AND commands only execute if the last #IF command ran was true. (As in, #IF CONTACT executed while the player was touching the object.)
  -If the last #IF command was false, this command is skipped.
@@ -164,7 +165,7 @@ Notes:
  -DETECT i will check underneath the object.
  -DETECT player will check underneath the player.
  -ISDARK can be set and cleared to toggle the room's dark state.
-
+ -ISDARK can be set to values greater than 1 and the board will drain torches faster.
 
 === 3) NEW DIRECTIONS ===
 
@@ -201,6 +202,8 @@ Notes:
 
 These can be modified with #set, #give, #take, and #clear:
 
+MAXBULLETS  -- The maximum player bullets allowed on the board.
+TIMELIMIT   -- The time limit for the board, in seconds.
 ENERGIZED	-- How much energizer time you have left.
 WICK		-- How much torch time you have left.
 <color>KEY	-- How many of this key you have. See below.
@@ -223,6 +226,8 @@ Notes:
  -By default, builtin keys do not stack with each other, but this behavior can be changed in your .CFG file.
  -Modifying key amounts via OOP ignores the limit, and doors don't care how many you have.
  -EdgeN, EdgeS, EdgeE and EdgeW are 0 for unlinked board edges.
+ -MAXBULLETS can be set to any value 0-127. For any values less than 0 or greater than 127 (such as setting to 255 in modern editors) assume no limit.
+
 
 Elements:
  - The sidebar displays the element associated with a given counter. A Torch element is displayed next to the "Torches:" counter display, a Gem next to the "Gems:" display, and so forth.
