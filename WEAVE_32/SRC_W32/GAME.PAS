@@ -129,7 +129,7 @@ const
 	PalFilter: array[0..2] of integer = ( 31, 992, 31744 );
 
 implementation
-uses Dos, FileSel, Crt, ExtMem, Video, Sounds, Input, Elements, Oop;
+uses Dos, FileSel, Crt, ExtMem, Video, Sounds, Input, Elements, Oop, Counter;
 
 procedure KeyRepeat;
 	begin
@@ -141,8 +141,7 @@ procedure KeyRepeat;
 
 function ColorNumber(s: string; statId: integer): integer;
 	var
-		counterPtr: cInt;
-		shortPtr: cShort;
+		counter: TCounter;
 		i, code: integer;
 	begin
 		ColorNumber := -32767;
@@ -168,15 +167,10 @@ function ColorNumber(s: string; statId: integer): integer;
 		else if (s = 'YELLOW') then ColorNumber := 14
 		else if (s = 'WHITE') then ColorNumber := 15
 		else if statId <> -1 then begin
-			if ReadOnly(s) then
-				ColorNumber := GetReadOnly(statId, s)
-			else if ShortWord(s) then begin
-				OopGetShort(s, shortPtr);
-				if (shortPtr^ >= 0) and (shortPtr^ <= 127) then
-					ColorNumber := shortPtr^;
-			end else if OopGetCounter(statId, s, counterPtr) then begin
-				if (counterPtr^ >= 0) and (counterPtr^ <= 255) then
-					ColorNumber := counterPtr^;
+			if CounterFromWord(counter, statId, s) then begin
+				CounterReadValue(counter);
+				if counter.Value >= 0 then
+					ColorNumber := counter.Value;
 			end;
 		end;
 	end;

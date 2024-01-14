@@ -39,9 +39,6 @@ interface
 			$01000000, $02000000, $04000000, $08000000,
 			$10000000, $20000000, $40000000, -$80000000
 		);
-	type
-		cInt = ^integer;
-		cShort = ^shortint;
 	function WorldGetFlagPosition(name: TString20): integer;
 	function GetCustomFlag(name: TString20): boolean;
 	procedure WorldSetFlag(name: TString20);
@@ -50,17 +47,12 @@ interface
 	function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
 	function OopExecute(statId: integer; var position: integer; name: TString50): boolean;
 	function OopStringToWord(input: TString50): TString50;
-	function ShortWord(s: string): boolean;
-	procedure OopGetShort(s: string; var cPtr: cShort);
-	function ReadOnly(s: string): boolean;
-	function GetReadOnly(statId: integer; s: string): integer;
-	function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
 	procedure GetBoardStats;
 	function GetNumFlags: integer;
 	function WorldInfoFlags(flag: integer): string;
 
 implementation
-uses Sounds, TxtWind, Game, Elements;
+uses Sounds, TxtWind, Game, Elements, Counter;
 
 procedure OopError(statId, position: integer; message: string);
 	begin
@@ -156,164 +148,6 @@ function OopStringToWord(input: TString50): TString50;
 		end;
 		output[0] := Chr(outPos);
 		OopStringToWord := output;
-	end;
-
-function ShortWord(s: string): boolean;
-	begin
-		if (s = 'ISDARK')
-			or (s = 'BLUEKEY')
-			or (s = 'GREENKEY')
-			or (s = 'CYANKEY')
-			or (s = 'REDKEY') 
-			or (s = 'PURPLEKEY') 
-			or (s = 'YELLOWKEY')
-			or (s = 'WHITEKEY') 
-			or (s = 'TICKSPEED')
-			or (s = 'MAXBULLETS')
-		then
-			ShortWord := true
-		else
-			ShortWord := false;
-	end;
-
-procedure OopGetShort(s: string; var cPtr: cShort);
-	begin
-		if s = 'ISDARK' then
-			cPtr := @Board.Info.IsDark
-		else if s = 'BLUEKEY' then
-			cPtr := @World.Info.Keys[1]
-		else if s = 'GREENKEY' then
-			cPtr := @World.Info.Keys[2]
-		else if s = 'CYANKEY' then
-			cPtr := @World.Info.Keys[3]
-		else if s = 'REDKEY' then
-			cPtr := @World.Info.Keys[4]
-		else if s = 'PURPLEKEY' then
-			cPtr := @World.Info.Keys[5]
-		else if s = 'YELLOWKEY' then
-			cPtr := @World.Info.Keys[6]
-		else if s = 'WHITEKEY' then
-			cPtr := @World.Info.Keys[7]
-		else if s = 'TICKSPEED' then
-			cPtr := @TickSpeed
-		else if s = 'MAXBULLETS' then
-			cPtr := @Board.Info.MaxShots;
-	end;
-
-function ReadOnly(s: string): boolean;
-	begin
-		if (s = 'BOARDID')
-			or (s = 'TICKSPEED')
-			or (s = 'ARG')
-			or (s = 'MOUSEX') 
-			or (s = 'MOUSEY') 
-			or (s = 'PLAYERX')
-			or (s = 'PLAYERY') 
-			or (s = 'THISX')
-			or (s = 'THISY')
-			or (s = 'EDGEN')
-			or (s = 'EDGES')
-			or (s = 'EDGEW')
-			or (s = 'EDGEE')
-		then
-			ReadOnly := true
-		else
-			ReadOnly := false;
-	end;
-
-function GetReadOnly(statId: integer; s: string): integer;
-	begin
-		if s = 'PLAYERX' then begin
-			GetReadOnly := Board.Stats[0].X;
-			PlayerDirUsed := true;
-		end else if s = 'PLAYERY' then begin
-			GetReadOnly := Board.Stats[0].Y;
-			PlayerDirUsed := true;
-		end else if s = 'THISX' then
-			GetReadOnly := Board.Stats[statId].X
-		else if s = 'THISY' then
-			GetReadOnly := Board.Stats[statId].Y
-		else if s = 'BOARDID' then
-			GetReadOnly := World.Info.CurrentBoard
-		else if s = 'TICKSPEED' then
-			GetReadOnly := Tickspeed + 1
-		else if s = 'ARG' then
-			GetReadOnly := GlobalArg
-		else if s = 'MOUSEX' then {'MOUSEX'}
-			GetReadOnly := PMouseX
-		else if s = 'MOUSEY' then {'MOUSEY'}
-			GetReadOnly := PMouseY
-		else if s = 'EDGEN' then
-			GetReadOnly := Board.Info.NeighborBoards[0]
-		else if s = 'EDGES' then
-			GetReadOnly := Board.Info.NeighborBoards[1]
-		else if s = 'EDGEW' then
-			GetReadOnly := Board.Info.NeighborBoards[2]
-		else if s = 'EDGEE' then
-			GetReadOnly := Board.Info.NeighborBoards[3]
-		else
-			GetReadOnly := -32767;
-	end;
-
-function OopGetCounter(statId: integer; s: string; var cPtr: cInt): boolean;
-	var
-		i: integer;
-	begin
-		OopGetCounter := true;
-		if s = 'HEALTH' then
-			cPtr := @World.Info.Health
-		else if s = 'AMMO' then
-			cPtr := @World.Info.Ammo
-		else if s = 'GEMS' then
-			cPtr := @World.Info.Gems
-		else if s = 'TORCHES' then
-			cPtr := @World.Info.Torches
-		else if s = 'SCORE' then
-			cPtr := @World.Info.Score
-		else if s = 'TIME' then
-			cPtr := @World.Info.BoardTimeSec
-		else if s = 'ENERGIZED' then
-			cPtr := @World.Info.EnergizerTicks
-		else if s = 'WICK' then
-			cPtr := @World.Info.TorchTicks
-		else if s = 'TIMELIMIT' then
-			cPtr := @Board.Info.TimeLimitSec
-		else begin
-			OopGetCounter := false;
-			for i := 1 to 7 do
-				if s = CustomBoardList[i] then begin
-					cPtr := @Board.Info.Local[i];
-					OopGetCounter := true;
-					exit;
-				end;
-			for i := 1 to 4 do
-				if s = CustomObjList[i] then begin
-					cPtr := @Board.Stats[statId].ObjLocal[i];
-					OopGetCounter := true;
-					exit;
-				end;
-			if s = CustomObjList[5] then begin
-				cPtr := @Board.Stats[statId].Leader;
-				OopGetCounter := true;
-				exit;
-			end;
-			if s = CustomObjList[6] then begin
-				cPtr := @Board.Stats[statId].Follower;
-				OopGetCounter := true;
-				exit;
-			end;
-			if s = 'ARRAY' then begin
-				cPtr := @Board.Stats[statId].ObjArray;
-				OopGetCounter := true;
-				exit;
-			end;
-			for i := 1 to CUSTOM_COUNTER_COUNT do
-				if s = CustomCounterList[i] then begin
-					cPtr := @World.Info.CustomCounters[i];
-					OopGetCounter := true;
-					exit;
-				end;
-		end;
 	end;
 
 {OUTPUT}
@@ -433,8 +267,7 @@ procedure OopReadValue(statId: integer; var position: integer);
 		t: string;
 		ix, iy, code: integer;
 		isNumeric: boolean;
-		counterPtr: cInt;
-		shortPtr: cShort;
+		counter: TCounter;
 		tmpCond: boolean;
 	begin
 		wordPos := 0;
@@ -504,14 +337,10 @@ procedure OopReadValue(statId: integer; var position: integer);
 					OopValue := OopRunFuncWith(statId, position, ix);
 				end;
 				OopWord := s;
-			end else if ReadOnly(s) then
-				OopValue := GetReadOnly(statId, s)
-			else if ShortWord(s) then begin
-				OopGetShort(s, shortPtr);
-				OopValue := shortPtr^;
-			end else if OopGetCounter(statId, s, counterPtr) then
-				OopValue := counterPtr^
-			else OopValue := ColorNumber(s, -1);
+			end else if CounterFromWord(counter, statId, s) then begin
+				CounterReadValue(counter);
+				OopValue := counter.Value;
+			end else OopValue := ColorNumber(s, -1);
 		end;
 	end;
 
@@ -1050,8 +879,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 		tile: TMatchTile;
 		code, ix, iy: integer;
 		isCounter: boolean;
-		counterPtr: cInt;
-		shortPtr: cShort;
+		counter: TCounter;
 	begin
 		with Board.Stats[statId] do begin
 			if OopWord = 'NOT' then begin
@@ -1126,18 +954,9 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 						OopCheckCondition := (X = ix) and (Y = iy)
 					else
 						OopError(statId,position, 'Bad condition');
-				end else if ReadOnly(OopWord)
-					or ShortWord(OopWord)
-					or OopGetCounter(statId, OopWord, counterPtr)
-				then begin
-					if ReadOnly(OopWord) then
-						iy := GetReadOnly(statId, OopWord)
-					else if OopGetCounter(statId, OopWord, counterPtr) then
-						iy := counterPtr^
-					else begin
-						OopGetShort(OopWord, shortPtr);
-						iy := shortPtr^;
-					end;
+				end else if CounterFromWord(counter, statId, OopWord) then begin
+					CounterReadValue(counter);
+					iy := counter.Value;
 					ix := position;
 					OopReadWord(statId, position);
 					if (OopWord = 'ABOVE') or ((OopWord = 'BELOW') or (OopWord = 'IS')) then begin
@@ -1395,8 +1214,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 		labelDataPos: integer;
 		labelStatId: integer;
 		labelZap, labelUnzap, tmpchar: char;
-		counterPtr: cInt;
-		shortPtr: cShort;
+		counter: TCounter;
 		counterSubtract: boolean;
 		bindStatId: integer;
 		insCount: integer;
@@ -1505,50 +1323,29 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							textLine := OopWord;
 							if not HasINI then
 								WorldSetFlag(OopWord)
-							else if ShortWord(OopWord) then begin
-								OopGetShort(OopWord, shortPtr);
+							else if CounterFromWord(counter, statId, OopWord) then begin
 								OopReadValue(statId, position);
 								if OopValue = -32767 then
-									shortPtr^ := 1
+									counter.Value := 1
 								else
-									shortPtr^ := OopValue;
-								GameUpdateSidebar;
-							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
-								OopReadValue(statId, position);
-								if OopValue = -32767 then
-									counterPtr^ := 1
-								else
-									counterPtr^ := OopValue;
+									counter.Value := OopValue;
+								if CounterWriteValue(counter) then begin end;
 								GameUpdateSidebar;
 							end else if OopNextWord(statId, position) = '' then begin
 								WorldSetFlag(OopWord);
 							end else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
-							if (textLine = 'ISDARK') or
-								(textLine = 'WICK')
-							then TransitionDrawToBoard;
-							if (textLine = 'TICKSPEED')	then begin
-								Dec(TickSpeed);
-								TickTimeDuration := TickSpeed * 2;
-							end;
 							If HasCustomSidebar then GameDrawCustomSidebar;
 						end else if OopWord = 'CLEAR' then begin
 							OopReadWord(statId, position);
 							if not HasINI then
 								WorldClearFlag(OopWord)
-							else if ShortWord(OopWord) then begin
-								OopGetShort(OopWord, shortPtr);
-								shortPtr^ := 0;
-								GameUpdateSidebar;
-							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
-								counterPtr^ := 0;
+							else if CounterFromWord(counter, statId, OopWord) then begin
+								counter.Value := 0;
+								if CounterWriteValue(counter) then begin end;
 								GameUpdateSidebar;
 							end else
 								WorldClearFlag(OopWord);
-							if (OopWord = 'ISDARK') or
-								(OopWord = 'WICK')
-							then TransitionDrawToBoard;
-							if (OopWord = 'TICKSPEED') then TickTimeDuration := 0;
 							If HasCustomSidebar then GameDrawCustomSidebar;
 						end else if OopWord = 'IF' then begin
 							elseCheck := false;
@@ -1579,8 +1376,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopReadWord(statId, position);
 							textLine := OopWord;
 
-							if ShortWord(OopWord) then begin
-								OopGetShort(OopWord, shortPtr);
+							if CounterFromWord(counter, statId, OopWord) then begin
+								CounterReadValue(counter);
 								code := position;
 								OopReadValue(statId, position);
 								if OopValue = -32767 then begin
@@ -1589,39 +1386,15 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								end;
 								if counterSubtract then
 									OopValue := -OopValue;
-								shortPtr^ := shortPtr^ + OopValue;
-								if shortPtr^ < 0 then begin
-									shortPtr^ := shortPtr^ - OopValue;
+								counter.Value := counter.Value + OopValue;
+								if counter.Value < 0 then begin
 									OopReadChar(statId, position);
 									Dec(position);
 									if (OopChar <> #13) then
 										goto ReadCommand;
-								end;
-							end else if OopGetCounter(statId, OopWord, counterPtr) then begin
-								code := position;
-								OopReadValue(statId, position);
-								if OopValue = -32767 then begin
-									position := code;
-									OopValue := 1;
-								end;
-								if counterSubtract then
-									OopValue := -OopValue;
-
-								if (counterPtr^ + OopValue) >= 0 then
-									counterPtr^ := counterPtr^ + OopValue
-								else begin
-									OopReadChar(statId, position);
-									Dec(position);
-									if (OopChar <> #13) then
-										goto ReadCommand;
-								end;
+								end else if CounterWriteValue(counter) then begin end;
 							end else
 								OopError(statId,position, 'Unknown counter ' + OopWord);
-							if (textLine = 'ISDARK') or
-								(textLine = 'WICK')
-							then TransitionDrawToBoard;
-							if (textLine = 'TICKSPEED')	then
-								TickTimeDuration := TickSpeed * 2;
 							GameUpdateSidebar;
 							If HasCustomSidebar then GameDrawCustomSidebar;
 						end else if OopWord = 'END' then begin
@@ -2034,11 +1807,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 											Board.Stats[bindStatId].P3 := iy
 										else if OopWord = 'CYCLE' then
 											Board.Stats[bindStatId].Cycle := iy										
-										else if ShortWord(OopWord) then begin
-											OopGetShort(OopWord, shortPtr);
-											shortPtr^ := iy;
-										end else if OopGetCounter(bindStatId, OopWord, counterPtr) then
-											counterPtr^ := iy;
+										else if CounterFromWord(counter, bindStatId, OopWord) then begin
+											counter.Value := iy;
+											if CounterWriteValue(counter) then begin end;
+										end;
 									end;
 								end;
 							end else if OopWord = 'EDGE' then begin
