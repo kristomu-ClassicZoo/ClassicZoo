@@ -1,4 +1,4 @@
-WeaveZZT 3.2
+WeaveZZT 3.3
 Part of the WeaveZZT Project
 
 - - - - -

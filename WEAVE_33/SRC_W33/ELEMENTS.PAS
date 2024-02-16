@@ -39,7 +39,6 @@ interface
 	procedure InitElementsGame;
 	procedure ConfigStringsLoad;
 	procedure ElementMod(e: integer; par: string; op: string; statId: integer);
-	function ParamConfigs(i: integer): string;
 	function Enum(elem: integer): integer;
 	function ElementDefColor(elem: integer): byte;
 
@@ -65,7 +64,7 @@ function FileExists(name: TFilenameString): boolean;
 
 function AsColor(fg, bg: integer): byte;
 	begin
-		AsColor := ((bg * 16) + fg) + $00;
+		AsColor := ((bg * 16) + fg) and $FF;
 	end;
 
 procedure ElementDefaultTick(statId: integer);
@@ -389,7 +388,7 @@ procedure ElementBulletTick(statId: integer);
 
 		BulletExpire:
 			if (iElem = E_OBJECT) or (iElem = E_SCROLL) then begin
-				if (P1 = ParamList[12]) or (P1 = SHOT_SOURCE_PLAYER) then begin {Friendly Fire}
+				if (P1 = ExtendedData.Params[12]) or (P1 = SHOT_SOURCE_PLAYER) then begin {Friendly Fire}
 					iStat := GetStatIdAt(ix, iy);
 					if OopSend(-iStat, 'SHOT', false) then begin end;
 				end;
@@ -738,7 +737,7 @@ procedure ElementPlayerDraw(x, y: integer; var ch: byte);
 			if World.Info.EnergizerTicks > 0 then begin
 				Board.Tiles[x][y].Color := AsColor(World.Info.PlayerColor and $0F,(CurrentTick mod 7) + 1);
 				if (CurrentTick mod 2) <> 0 then
-					ch := ParamList[1];
+					ch := ExtendedData.Params[1];
 			end;
 		end;
 	end;
@@ -1375,7 +1374,7 @@ procedure DrawBombSurroundings(x, y: integer; bombPhase: integer);
 		for ix := 1 to BOARD_WIDTH do {Bomb Radius}
 			for iy := 1 to BOARD_HEIGHT do
 				with Board.Tiles[ix][iy] do begin
-					if ((Sqr(ix-x)*ParamList[6]) + (Sqr(iy-y)*ParamList[7])) < ParamList[8] then begin
+					if ((Sqr(ix-x)*ExtendedData.Params[6]) + (Sqr(iy-y)*ExtendedData.Params[7])) < ExtendedData.Params[8] then begin
 						if bombPhase = 1 then begin
 							if Element = E_OBJECT then begin
 								istat := GetStatIdAt(ix, iy);
@@ -1399,7 +1398,7 @@ procedure DrawBombSurroundings(x, y: integer; bombPhase: integer);
 
 procedure GamePromptEndPlay;
 	begin
-		if (World.Info.Health <= 0) and (World.Info.GracePeriod >= ParamList[11]) then begin
+		if (World.Info.Health <= 0) and (World.Info.GracePeriod >= ExtendedData.Params[11]) then begin
 			GamePlayExitRequested := true;
 			BoardDrawBorder;
 		end else begin
@@ -1426,15 +1425,15 @@ procedure ElementTruePlayerTick;
 			end;
 
 			if (World.Info.Health <= 0) then begin
-				if World.Info.GracePeriod < ParamList[11] then begin
+				if World.Info.GracePeriod < ExtendedData.Params[11] then begin
 					Inc(World.Info.GracePeriod);
-					if World.Info.GracePeriod = ParamList[11] - 1 then begin
+					if World.Info.GracePeriod = ExtendedData.Params[11] - 1 then begin
 						InputDeltaX := 0;
 						InputDeltaY := 0;
 						InputShiftPressed := false;
 					end;
 				end else begin
-					if World.Info.GracePeriod = ParamList[11] then begin
+					if World.Info.GracePeriod = ExtendedData.Params[11] then begin
 						Inc(World.Info.GracePeriod);
 						SoundQueue(5, SoundParse(ConfigList[39])); {Game over song}
 						SoundBlockQueueing := true;
@@ -1514,7 +1513,7 @@ procedure ElementTruePlayerTick;
 				ElementDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].TouchProc(
 					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					if SoundEnabled and not SoundIsPlaying and not (ParamList[71] = 0) then
+					if SoundEnabled and not SoundIsPlaying and not (ExtendedData.Params[71] = 0) then
 						Sound(110);
 					if ElementDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].Walkable then begin
 						if SoundEnabled and not SoundIsPlaying then
@@ -2153,38 +2152,6 @@ procedure InitElementDefs;
 
 	end;
 
-function ParamConfigs(i: integer): string;
-	var
-		s: string;
-		j: integer;
-	begin
-		case i of
-			1: ParamConfigs := 'OTHER.ALTCHAR';
-			2: ParamConfigs := 'OTHER.OUCHDAMAGE';
-			3: ParamConfigs := 'OTHER.TORCHRATIOX';
-			4: ParamConfigs := 'OTHER.TORCHRATIOY';
-			5: ParamConfigs := 'OTHER.TORCHSIZE';
-			6: ParamConfigs := 'OTHER.BOMBRATIOX';
-			7: ParamConfigs := 'OTHER.BOMBRATIOY';
-			8: ParamConfigs := 'OTHER.BOMBSIZE';
-			9: ParamConfigs := 'OTHER.MAXSTATS';
-			10: ParamConfigs := 'OTHER.MAXOOPLINES';
-			11: ParamConfigs := 'OTHER.GRACEPERIOD';
-			12: ParamConfigs := 'OTHER.FRIENDLYFIRE';
-			13: ParamConfigs := 'THEME.BG.SIDEBAR';
-			14: ParamConfigs := 'THEME.FG.TEXT1';
-			15: ParamConfigs := 'THEME.FG.TEXT2';
-			16: ParamConfigs := 'THEME.FG.ALT';
-			17: ParamConfigs := 'THEME.BG.ALT1';
-			18: ParamConfigs := 'THEME.BG.ALT2';
-			19: ParamConfigs := 'THEME.FG.SPECIAL';
-			20: ParamConfigs := 'THEME.BLINKING';
-			21: ParamConfigs := 'OTHER.STARTBOARD';
-			22: ParamConfigs := 'OTHER.EXTRAFLAGS';
-			71: ParamConfigs := 'OTHER.FOOTSTEPS';
-		else ParamConfigs := '_nil' end;
-	end;
-
 procedure ElementMod(e: integer; par: string; op: string; statId: integer);
 	var
 		v, code: integer;
@@ -2279,7 +2246,7 @@ procedure InitElementsGame;
 										Inc(i);
 									end;
 									if l <> '' then
-										Val(l, Paramlist[v + q], code);
+										Val(l, SourcePalette[v + q - PALETTE_START], code);
 									l := '';
 									Inc(i);
 								end;
@@ -2308,9 +2275,9 @@ procedure InitElementsGame;
 								Val(l, v, code);
 							for i := 1 to (PALETTE_START - 1) do
 								if ParamConfigs(i) = k then
-									ParamList[i] := v;
+									ExtendedData.Params[i] := v;
 							if ParamConfigs(71) = k then
-								ParamList[71] := v;
+								ExtendedData.Params[71] := v;
 						end else begin
 							Inc(i);
 							while (s[i] <> '=') and (i <= Length(s)) do begin

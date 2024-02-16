@@ -1,6 +1,6 @@
 WeaveZZT Extended ZZT-OOP Quick Reference
-v0.7
-For WeaveZZT v3.2
+v0.9
+For WeaveZZT v3.3
 
 === INDEX ===
 
@@ -84,7 +84,7 @@ For WeaveZZT v3.2
  -Like #LOCK, but unlocks the target object instead.
 
 #ZAP <label> <value>		--
- -ZAPping multiple labels with a single command also works by specifying a number after the label. "#ZAP blah 3" will zap the first 3 instances of the :blah label. #RESTORE works the same way: "#RESTORE blah 2" will restore the first 2 instances of a zapped :blah label.
+ -ZAPping multiple labels with a single command also works by specifying a number after the label. "#ZAP blah 3" will zap the first 3 instances of the :blah label. #RESTORE works the same way: "#RESTORE blah 2" will restore the first 2 instances of a zapped :blah label. Using negative numbers works in reverse: #ZAP blah -3 will zap the LAST 3 instances of :blah and #RESTORE blah -1 will restore the LAST 'blah label encountered.
 
 #ZAP ![objname:]<link>		--
  -#ZAP has been upgraded to be able to zap message links as well. "#ZAP !option" will zap the first instance of "!option;message" from the object, removing it from the text box.
@@ -92,6 +92,8 @@ For WeaveZZT v3.2
  -Adding an object name and a colon before the message link will zap the link from the given object instead of itself.
 #RESTORE ![objname:]<link>	--
  -Restores a zapped message option.
+
+Note: You can follow up #zap and #restore !link with positive and negative numbers for the same effect.
 
 #DIE ITEM			--
  -Dies as an item. Removes itself, and then puts the player at its space.
@@ -103,16 +105,15 @@ For WeaveZZT v3.2
 #BGPLAY <sound>			--
  -Like #PLAY, but behaves like built-in sound effects. Such sounds won't overwrite #PLAY sounds, (but will overwrite other #BGPLAY sounds) and won't queue up after any sounds.
 
-#QUICKSAVE [<file>]		--
- -Instantly saves the game. If a file is specified, it will save (and overwrite if present) the game with the given filename. Otherwise, it will default to the world's filename. There is a special case, "STANDARD", which will instead open a save dialog box.
+#SAVEGAME [<file>]		--
+ -Instantly saves the game. If a file is specified, it will save (and overwrite if present) the game with the given filename. Otherwise, it will open a save dialog box.
 
-#QUICKLOAD [<file>]		--
+#LOADGAME [<file>]		--
  -Instantly restores the game from the given save. Does nothing if a filename is given and that file doesn't exist.
- -If no filename is given, will load the last save used. Otherwise, will open the restore game dialog and allow you to pick a save to load.
+ -If no filename is given, it will open the restore game dialog and allow you to pick a save to load.
 
 #PLAYER <color> <bgcolor> <char>--
- -Changes the player's appearance. Numbers MUST be used here for colors. Using words will cause errors.
- -"#PLAYER 0 0 0" will revert the player character to its default appearance.
+ -Changes the player's appearance. Alternately you can use #CHANGE PLAYER <color> <bgcolor> PLAYER to adjust the player's color or #CHANGE PLAYER PLAYER to revert the player to their defaults from the .CFG file.
 
 #PALETTE <color> <r> <g> <b>	--
  -Directly changes the rgb channels of the specified color. This can be any color you want, with r, g, and b referring to red, green, and blue channel respectively, and each channel can take a number between 0 and 63, with 0 being no color and 63 being maximum color.
@@ -196,7 +197,8 @@ Notes:
  -The new directions can be used wherever you can specify a direction.
  -An object shoving another stat via /BY or /AT will shove that object by the distance the shoving object has moved. All logic involving long distance movement still applies. This means a player being shoved by an object moving 2 right and 3 up to it will then have the player move 2 right and 3 up itself.
 
-
+Special direction: UNDER
+#put, #write, #color, #if color, #if detect, and PGET can all use a special direction, UNDER <dir>, to target the tile underneath a stat at that location. If there is no stat at that location, they will instead target the tile itself.
 
 === 4) BUILT-IN COUNTERS ===
 
@@ -228,13 +230,39 @@ Notes:
  -EdgeN, EdgeS, EdgeE and EdgeW are 0 for unlinked board edges.
  -MAXBULLETS can be set to any value 0-127. For any values less than 0 or greater than 127 (such as setting to 255 in modern editors) assume no limit.
 
-
 Elements:
  - The sidebar displays the element associated with a given counter. A Torch element is displayed next to the "Torches:" counter display, a Gem next to the "Gems:" display, and so forth.
  - if the element has no color info (like gems), then it will display using the theme's "Special" color (like gems do by default)
  - if the element has a foreground color but no background color (like ammo), then it will display the correct foreground color but on the theme's sidebar background (as ammo does by default)
  - if the element has both a foreground and background color (like the player does) then it will display using those.
 
+=== 4A) CONFIG CHANGES ===
+
+A special case related to the above, all entries in the TEMPLATE.CFG file that match the "OTHER" and "THEME" categories can be modified during play with #set, #clear, #give, and #take. These are listed below:
+
+other.altchar
+other.ouchdamage
+other.torchratiox
+other.torchratioy
+other.torchsize
+other.bombratiox
+other.bombratioy
+other.bombsize
+other.maxstats
+other.maxoop
+other.graceperiod
+other.friendlyfire
+other.footsteps
+theme.bg.sidebar
+theme.fg.text1
+theme.fg.text2
+theme.fg.alt
+theme.bg.alt1
+theme.bg.alt2
+theme.fg.special
+theme.blinking
+
+Check the WEAVEDMO file for upper and lower bounds for the above entries.
 
 === 5) NEW ELEMENT NAMES ===
 
@@ -297,6 +325,20 @@ Labels for input:
  -These can be used as a substitute for any number in a command.
 RANDOM <min> <max>		-- Is a random number between <min> and <max> every execution.
 <counter>			-- Counters can be used in place of any number. Example: "#GIVE ammo torches" will give ammo equal to the number of torches the player has.
+PGET <dir> <attribute>          -- Pulls the attribute from the stat located at <dir>. The following attributes are available:
+ - P1
+ - P2
+ - P3
+ - CYCLE
+ - LOCKED
+ - OBJ1-OBJ6
+ - ARRAY
+ - DESTINATION (for passages)
+ - FG*
+ - BG*
+ - COLOR*
+ - CHAR*
+Of these, the last four (marked with * above) will work for any given tile, even ones without stats. They will also work with the UNDER direction to capture the color and character underneath a given stat.
 
  -These are used with #IF commands.
 <counter> ABOVE <amount>	-- True if the counter given is above the amount given.

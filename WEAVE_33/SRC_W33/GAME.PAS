@@ -88,6 +88,7 @@ interface
 	procedure GameUpdateSidebar;
 	procedure GameDrawMainSidebar;
 	procedure GameDrawCustomSidebar;
+	procedure GameDrawTheme;
 	procedure DisplayMessage(time: integer; message: string);
 	procedure BoardEnter;
 	procedure BoardPassageTeleport(x, y: integer);
@@ -95,6 +96,7 @@ interface
 	procedure GameTitleLoop;
 	procedure ResetCachedLinePos;
 	procedure BlockPalette(c,r,g,b: byte);
+	function ParamConfigs(i: integer): string;
 	procedure KeyRepeat;
 
 const
@@ -191,6 +193,38 @@ procedure BlockPalette(c,r,g,b: byte);
 		intr($10, regs);
 	end;
 
+function ParamConfigs(i: integer): string;
+	var
+		s: string;
+		j: integer;
+	begin
+		case i of
+			1: ParamConfigs := 'OTHER.ALTCHAR';
+			2: ParamConfigs := 'OTHER.OUCHDAMAGE';
+			3: ParamConfigs := 'OTHER.TORCHRATIOX';
+			4: ParamConfigs := 'OTHER.TORCHRATIOY';
+			5: ParamConfigs := 'OTHER.TORCHSIZE';
+			6: ParamConfigs := 'OTHER.BOMBRATIOX';
+			7: ParamConfigs := 'OTHER.BOMBRATIOY';
+			8: ParamConfigs := 'OTHER.BOMBSIZE';
+			9: ParamConfigs := 'OTHER.MAXSTATS';
+			10: ParamConfigs := 'OTHER.MAXOOP';
+			11: ParamConfigs := 'OTHER.GRACEPERIOD';
+			12: ParamConfigs := 'OTHER.FRIENDLYFIRE';
+			13: ParamConfigs := 'THEME.BG.SIDEBAR';
+			14: ParamConfigs := 'THEME.FG.TEXT1';
+			15: ParamConfigs := 'THEME.FG.TEXT2';
+			16: ParamConfigs := 'THEME.FG.ALT';
+			17: ParamConfigs := 'THEME.BG.ALT1';
+			18: ParamConfigs := 'THEME.BG.ALT2';
+			19: ParamConfigs := 'THEME.FG.SPECIAL';
+			20: ParamConfigs := 'THEME.BLINKING';
+			21: ParamConfigs := 'OTHER.STARTBOARD';
+			22: ParamConfigs := 'OTHER.EXTRAFLAGS';
+			71: ParamConfigs := 'OTHER.FOOTSTEPS';
+		else ParamConfigs := '_nil' end;
+	end;
+
 procedure InitPalette(palrefresh: boolean);
 	var
 		f: file;
@@ -200,8 +234,8 @@ procedure InitPalette(palrefresh: boolean);
 	begin
 		doInit := true;
 		HasPAL := false;
-		for c := 0 to 15 do
-			if World.Info.CustomPalette[c] <> 0 then
+		for c := 0 to 47 do
+			if SourcePalette[PALETTE_START + c] <> 0 then
 				doInit := false;
 		if doInit then
 			if (World.Info.Name <> '') and FileExists(World.Info.Name + '.PAL') then begin
@@ -219,34 +253,52 @@ procedure InitPalette(palrefresh: boolean);
 			b := (c * 3) + 2;
 			if doInit or palrefresh then begin
 				if HasPAL then begin
-					World.Info.CustomPalette[c] := pal[r] div 2;
-					ParamList[PALETTE_START + r] := pal[r];
-					World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((pal[g] div 2) * 32);
-					ParamList[PALETTE_START + g] := pal[g];
-					World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((pal[b] div 2) * 1024);
-					ParamList[PALETTE_START + b] := pal[b];
+					ExtendedData.Params[PALETTE_START + r] := pal[r];
+					ExtendedData.Params[PALETTE_START + g] := pal[g];
+					ExtendedData.Params[PALETTE_START + b] := pal[b];
+					SourcePalette[r] := pal[r];
+					SourcePalette[g] := pal[g];
+					SourcePalette[b] := pal[b];
 				end else begin
-					World.Info.CustomPalette[c] := (ParamList[PALETTE_START + r] div 2);
-					World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((ParamList[PALETTE_START + g] div 2) * 32);
-					World.Info.CustomPalette[c] := World.Info.CustomPalette[c] + ((ParamList[PALETTE_START + b] div 2) * 1024);
+					ExtendedData.Params[PALETTE_START + r] := SourcePalette[r];
+					ExtendedData.Params[PALETTE_START + g] := SourcePalette[g];
+					ExtendedData.Params[PALETTE_START + b] := SourcePalette[b];
 				end;
 			end;
-			r := (World.Info.CustomPalette[c] and PalFilter[0]) * 2;
-			g := ((World.Info.CustomPalette[c] and PalFilter[1]) div 32) * 2;
-			b := ((World.Info.CustomPalette[c] and PalFilter[2]) div 1024) * 2;
+			r := ExtendedData.Params[PALETTE_START + r];
+			g := ExtendedData.Params[PALETTE_START + g];
+			b := ExtendedData.Params[PALETTE_START + b];
 			BlockPalette(c,r,g,b);
 		end;
 	end;
 
 procedure TempPaletteStore;
+	var
+		c,r,g,b: integer;
 	begin
-		TempPalette := World.Info.CustomPalette;
+		for c := 0 to 15 do begin
+			r := c * 3;
+			g := (c * 3) + 1;
+			b := (c * 3) + 2;
+			TempPalette[r] := ExtendedData.Params[PALETTE_START + r];
+			TempPalette[g] := ExtendedData.Params[PALETTE_START + g];
+			TempPalette[b] := ExtendedData.Params[PALETTE_START + b];
+		end;
 		InitPalette(true);
 	end;
 
 procedure TempPaletteGet;
+	var
+		c,r,g,b: integer;
 	begin
-		World.Info.CustomPalette := TempPalette;
+		for c := 0 to 15 do begin
+			r := c * 3;
+			g := (c * 3) + 1;
+			b := (c * 3) + 2;
+			ExtendedData.Params[PALETTE_START + r] := TempPalette[r];
+			ExtendedData.Params[PALETTE_START + g] := TempPalette[g];
+			ExtendedData.Params[PALETTE_START + b] := TempPalette[b];
+		end;
 		InitPalette(false);
 	end;
 
@@ -257,7 +309,7 @@ function DefaultParamList(i: integer): integer;
 			2: DefaultParamList := 10;
 			4,7: DefaultParamList := 2;
 			5,8: DefaultParamList := 50;
-			9: DefaultParamList := 150;
+			9: DefaultParamList := 254;
 			10: DefaultParamList := 33;
 			11,16,20,23,24,25,26,27,29,31,32,36,37,39,43,71: DefaultParamList := 0;
 			14: DefaultParamList := 15;
@@ -277,15 +329,12 @@ procedure ParamsLoad;
 		i: integer;
 	begin
 		for i := 1 to PARAM_FILE_COUNT do
-			ParamList[i] := DefaultParamList(i);
+			ExtendedData.Params[i] := DefaultParamList(i);
 		InitElementsGame;
 		ConfigStringsLoad;
-		if ParamList[20] = 0 then
-			SetBlink(true)
-		else
-			SetBlink(false);
-		if (ParamList[21] <> -1) and (World.Info.IsSave = 0) then
-			World.Info.CurrentBoard := ParamList[21];
+		SetBlink(ExtendedData.Params[THEME_BLINK] = 0);
+		if (ExtendedData.Params[21] <> -1) and (World.Info.IsSave = 0) then
+			World.Info.CurrentBoard := ExtendedData.Params[21];
 	end;
 
 function OopConfigs (i: integer): string;
@@ -633,7 +682,14 @@ function LFSR11UpdateSeed(var seed: word; var tx, ty: byte): boolean;
 
 procedure SidebarClearLine(y: integer);
 	begin
-		VideoWriteText(60, y, AsColor(ParamList[THEME_START],ParamList[THEME_START]), #179'                   ');
+		if ExtendedData.Params[THEME_START] < 16 then
+			VideoWriteText(60, y, ExtendedData.Params[THEME_START], #219)
+		else
+			VideoWriteText(60, y, AsColor(ExtendedData.Params[THEME_START] div 16 mod 16,
+				ExtendedData.Params[THEME_START] mod 16), #179);
+		VideoWriteText(61, y, AsColor(ExtendedData.Params[THEME_START] mod 16,
+			ExtendedData.Params[THEME_START] div 16 mod 16),
+			#219#219#219#219#219#219#219#219#219#219#219#219#219#219#219#219#219#219#219);
 	end;
 
 procedure SidebarClear;
@@ -913,6 +969,8 @@ procedure WorldCreate;
 	begin
 		World.Info.Name := 'Template';
 		ParamsLoad;
+		for i := 0 to 47 do
+			SourcePalette[i] := 0;
 		InitPalette(true);
 		World.BoardCount := 0;
 		World.BoardLen[0] := 0;
@@ -934,7 +992,7 @@ procedure WorldCreate;
 		for i := 1 to MAX_FLAG do
 			World.Info.Flags[i] := '';
 		for i := MAX_FLAG + 1 to MAX_EXTENDEDFLAG do
-			ExtendedFlags[i] := '';
+			ExtendedData.Flags[i] := '';
 		BoardChange(0);
 		Board.Name := 'Title screen';
 		LoadedGameFileName := '';
@@ -970,15 +1028,16 @@ procedure BoardDrawTile(x, y: integer);
 			or (x <= (60 - Length(Board.Info.Message)) div 2)
 			or (x > (60 + Length(Board.Info.Message)) div 2)
 		then begin
+			if (x < 1) or (x > BOARD_WIDTH) or (y < 1) or (y > BOARD_HEIGHT) then exit;
 			with Board.Tiles[x][y] do begin
 				e := Enum(Element);
 				if ((Board.Info.IsDark < 1) or ElementDefs[e].VisibleInDark)
 					or (
 						(World.Info.TorchTicks <> 0)
 						and (
-							(Sqr(Board.Stats[0].X-x)*ParamList[3])
-							+ (Sqr(Board.Stats[0].Y-y)*ParamList[4])
-							< ParamList[5]
+							(Sqr(Board.Stats[0].X-x)*ExtendedData.Params[3])
+							+ (Sqr(Board.Stats[0].Y-y)*ExtendedData.Params[4])
+							< ExtendedData.Params[5]
 						)
 					) {Torch Radius}
 				then begin
@@ -1056,16 +1115,19 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 		end;
 
 		SidebarClearLine(y);
-		VideoWriteText(x, y, AsColor(ParamList[THEME_START + 2 - Integer(editable)],ParamList[THEME_START]), prompt);
+		VideoWriteText(x, y, AsColor(ExtendedData.Params[THEME_START + 2 - Integer(editable)],
+			ExtendedData.Params[THEME_START]), prompt);
 		SidebarClearLine(y + 1);
 		SidebarClearLine(y + 2);
-		VideoWriteText(x, y + 2, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), startChar + '....:....' + endChar);
+		VideoWriteText(x, y + 2, AsColor(ExtendedData.Params[THEME_START + 2],
+			ExtendedData.Params[THEME_START]), startChar + '....:....' + endChar);
 
 		repeat
 			if editable then begin
 				if InputJoystickMoved then
 					Delay(45);
-				VideoWriteText(x + value + 1, y + 1, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START] + 8), #31);
+				VideoWriteText(x + value + 1, y + 1, AsColor(ExtendedData.Params[THEME_START + 1],
+					ExtendedData.Params[THEME_START] + 8), #31);
 
 				InputUpdate;
 				if (InputKeyPressed >= '1') and (InputKeyPressed <= '9') then begin
@@ -1081,7 +1143,8 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 			end;
 		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
 
-		VideoWriteText(x + value + 1, y + 1, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), #31);
+		VideoWriteText(x + value + 1, y + 1, AsColor(ExtendedData.Params[THEME_START + 1],
+			ExtendedData.Params[THEME_START]), #31);
 	end;
 
 procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TString50);
@@ -1099,7 +1162,8 @@ procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var 
 				VideoWriteText(x + i, y - 1, arrowColor, ' ');
 			end;
 			VideoWriteText(x + width, y - 1, arrowColor, ' ');
-			VideoWriteText(x + Length(buffer), y - 1, AsColor(ParamList[THEME_START + 1],arrowColor div $10), #31);
+			VideoWriteText(x + Length(buffer), y - 1, AsColor(ExtendedData.Params[THEME_START + 1],
+				arrowColor div $10), #31);
 			VideoWriteText(x, y, color, buffer);
 
 			InputReadWaitKey;
@@ -1139,8 +1203,10 @@ procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var 
 function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
 	begin
 		SidebarClearLine(5);
-		VideoWriteText(63, 5, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), message);
-		VideoWriteText(63 + Length(message), 5, AsColor(ParamList[THEME_START + 2],8 + ParamList[THEME_START]), '_');
+		VideoWriteText(63, 5, AsColor(ExtendedData.Params[THEME_START + 1],
+			ExtendedData.Params[THEME_START]), message);
+		VideoWriteText(63 + Length(message), 5, AsColor(ExtendedData.Params[THEME_START + 2],
+			8 + ExtendedData.Params[THEME_START]), '_');
 
 		TempPaletteStore;
 		repeat
@@ -1162,11 +1228,13 @@ procedure SidebarPromptString(prompt: string; extension: TString50; var filename
 		SidebarClearLine(3);
 		SidebarClearLine(4);
 		SidebarClearLine(5);
-		VideoWriteText(75 - Length(prompt), 3, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), prompt);
-		VideoWriteText(63, 5, AsColor(ParamList[THEME_START + 1],0), '        ' + extension);
+		VideoWriteText(75 - Length(prompt), 3, AsColor(ExtendedData.Params[THEME_START + 1],
+			ExtendedData.Params[THEME_START]), prompt);
+		VideoWriteText(63, 5, AsColor(ExtendedData.Params[THEME_START + 1],0), '        ' + extension);
 
-		PromptString(63, 5, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]),
-			AsColor(ParamList[THEME_START + 1],0), 8, promptMode, filename);
+		PromptString(63, 5, AsColor(ExtendedData.Params[THEME_START + 2],
+			ExtendedData.Params[THEME_START]),
+			AsColor(ExtendedData.Params[THEME_START + 1],0), 8, promptMode, filename);
 
 		SidebarClearLine(3);
 		SidebarClearLine(4);
@@ -1210,7 +1278,8 @@ function WorldLoad(filename, extension: TString50): boolean;
 		end;
 		SidebarClearLine(4);
 		SidebarClearLine(5);
-		VideoWriteText(62, 5, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), 'Loading.....');
+		VideoWriteText(62, 5, AsColor(ExtendedData.Params[THEME_START + 1],
+			ExtendedData.Params[THEME_START]), 'Loading.....');
 
 		Assign(f, filename + extension);
 		Reset(f, 1);
@@ -1263,8 +1332,10 @@ function WorldLoad(filename, extension: TString50): boolean;
 				ParamsLoad;
 				InitPalette(false);
 				BoardOpen(World.Info.CurrentBoard);
-				 if extension = '.SAV' then
-					BlockRead(f, ExtendedFlags, SizeOf(ExtendedFlags));
+				if extension = '.SAV' then begin
+					BlockRead(f, ExtendedData, SizeOf(ExtendedData));
+					InitPalette(false);
+				end;
 				LoadedGameFileName := filename;
 				WorldLoad := true;
 
@@ -1294,7 +1365,8 @@ procedure WorldSave(filename, extension: TString50);
 	label OnError;
 	begin
 		BoardClose;
-		VideoWriteText(63, 5, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), 'Saving...');
+		VideoWriteText(63, 5, AsColor(ExtendedData.Params[THEME_START + 1],
+			ExtendedData.Params[THEME_START]), 'Saving...');
 
 		Assign(f, filename + extension);
 		Rewrite(f, 1);
@@ -1324,7 +1396,7 @@ procedure WorldSave(filename, extension: TString50);
 				if DisplayIOError(filename + extension) then goto OnError;
 			end;
 			if extension = '.SAV' then
-				BlockWrite(f, ExtendedFlags, SizeOf(ExtendedFlags));
+				BlockWrite(f, ExtendedData, SizeOf(ExtendedData));
 			Close(f);
 		end;
 
@@ -1391,7 +1463,7 @@ procedure AddStat(tx, ty: integer; txelement, txcolor: byte; tcycle: integer; te
 	var
 		i: integer;
 	begin
-		if Board.StatCount < ParamList[9] then begin {Max Stats}
+		if Board.StatCount < ExtendedData.Params[9] then begin {Max Stats}
 			Inc(Board.StatCount);
 			Board.Stats[Board.StatCount] := template;
 			with Board.Stats[Board.StatCount] do begin
@@ -1653,7 +1725,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 				else
 					oldBgColor := Color and $F0;
 			end;
-			if ParamList[20] = 0 then
+			if ExtendedData.Params[THEME_BLINK] = 0 then
 				oldBgColor := oldBgColor and $70;
 
 			iUnder := Under;
@@ -1736,40 +1808,48 @@ procedure GameUpdateSidebar;
 					case y of
 						6: if ConfigList[69] <> '' then {Time Sidebar}
 							if Board.Info.TimeLimitSec > 0 then begin
-								VideoWriteText(64, 6, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[69]);
+								VideoWriteText(64, 6, AsColor(ExtendedData.Params[THEME_START + 2],
+									ExtendedData.Params[THEME_START]), ConfigList[69]);
 								Str(Board.Info.TimeLimitSec - World.Info.BoardTimeSec, numStr);
-								VideoWriteText(72, 6, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+								VideoWriteText(72, 6, AsColor(ExtendedData.Params[THEME_START + 2],
+									ExtendedData.Params[THEME_START]), numStr + ' ');
 							end else SidebarClearLine(6);
 						7: begin
 							Str(World.Info.Health, numStr);
 							if ConfigList[63] <> '' then {Health Sidebar}
-								VideoWriteText(72, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+								VideoWriteText(72, 7, AsColor(ExtendedData.Params[THEME_START + 2],
+									ExtendedData.Params[THEME_START]), numStr + ' ');
 						end;
 						8: begin
 							Str(World.Info.Ammo, numStr);
 							if ConfigList[64] <> '' then {Ammo Sidebar}
-								VideoWriteText(72, 8, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + '  ');
+								VideoWriteText(72, 8, AsColor(ExtendedData.Params[THEME_START + 2],
+									ExtendedData.Params[THEME_START]), numStr + '  ');
 						end;
 						9: begin
 							if ConfigList[65] <> '' then begin {Torches Sidebar}
 								Str(World.Info.Torches, numStr);
-								VideoWriteText(72, 9, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+								VideoWriteText(72, 9, AsColor(ExtendedData.Params[THEME_START + 2],
+									ExtendedData.Params[THEME_START]), numStr + ' ');
 								if World.Info.TorchTicks <= 0 then
-									VideoWriteText(75, 9, AsColor(ElementDefs[E_TORCH].Color and $0F,ParamList[THEME_START]), '    ')
+									VideoWriteText(75, 9, AsColor(ElementDefs[E_TORCH].Color and $0F,
+										ExtendedData.Params[THEME_START]), '    ')
 								else begin
 									for i := 2 to 5 do begin
 										if i <= ((World.Info.TorchTicks * 5) div ElementDefs[E_TORCH].Param2) then
 											VideoWriteText(
 												73 + i,
 												9,
-												AsColor(ElementDefs[E_TORCH].Color and $0F, ParamList[THEME_START]),
+												AsColor(ElementDefs[E_TORCH].Color and $0F,
+												ExtendedData.Params[THEME_START]),
 												#177
 											)
 										else
 											VideoWriteText(
 												73 + i,
 												9,
-												AsColor(ElementDefs[E_TORCH].Color and $0F, ParamList[THEME_START]),
+												AsColor(ElementDefs[E_TORCH].Color and $0F,
+												ExtendedData.Params[THEME_START]),
 												#176
 											);
 									end;
@@ -1779,12 +1859,14 @@ procedure GameUpdateSidebar;
 						10: begin
 							Str(World.Info.Gems, numStr);
 							if ConfigList[66] <> '' then {Gems Sidebar}
-								VideoWriteText(72, 10, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+								VideoWriteText(72, 10, AsColor(ExtendedData.Params[THEME_START + 2],
+									ExtendedData.Params[THEME_START]), numStr + ' ');
 						end;
 						11: begin
 							Str(World.Info.Score, numStr);
 							if ConfigList[67] <> '' then {Score Sidebar}
-								VideoWriteText(72, 11, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+								VideoWriteText(72, 11, AsColor(ExtendedData.Params[THEME_START + 2],
+									ExtendedData.Params[THEME_START]), numStr + ' ');
 						end;
 						12: if ConfigList[68] <> '' then {Keys Sidebar}
 								for i := 1 to 7 do begin
@@ -1794,19 +1876,22 @@ procedure GameUpdateSidebar;
 										keyChar := Chr(Ord(ElementDefs[E_KEY].Character) + (i * ElementDefs[E_KEY].Param2));
 									if World.Info.Keys[i] > 0 then begin
 										if World.Info.Keys[i] = 1 then
-											VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), keyChar)
+											VideoWriteText(71 + i, 12, AsColor(8 + i,ExtendedData.Params[THEME_START]), keyChar)
 										else if World.Info.Keys[i] < 10 then
-											VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), Chr(World.Info.Keys[i] + 48))
+											VideoWriteText(71 + i, 12, AsColor(8 + i,ExtendedData.Params[THEME_START]), Chr(World.Info.Keys[i] + 48))
 										else 
-											VideoWriteText(71 + i, 12, AsColor(8 + i,ParamList[THEME_START]), '*')
+											VideoWriteText(71 + i, 12, AsColor(8 + i,ExtendedData.Params[THEME_START]), '*')
 									end else
-										VideoWriteText(71 + i, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ');
+										VideoWriteText(71 + i, 12, AsColor(ExtendedData.Params[THEME_START + 1],
+											ExtendedData.Params[THEME_START]), ' ');
 								end;
 						15: if ConfigList[72] <> '' then begin {Sound toggle sidebar}
 								if SoundEnabled then
-									VideoWriteText(65, 15, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[73])
+									VideoWriteText(65, 15, AsColor(ExtendedData.Params[THEME_START + 1],
+										ExtendedData.Params[THEME_START]), ' ' + ConfigList[73])
 								else
-									VideoWriteText(65, 15, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[74]);
+									VideoWriteText(65, 15, AsColor(ExtendedData.Params[THEME_START + 1],
+										ExtendedData.Params[THEME_START]), ' ' + ConfigList[74]);
 							end;
 					end;
 				end else SideBarClearLine(y);
@@ -1854,7 +1939,7 @@ procedure DamageStat(attackerStatId: integer);
 		with Board.Stats[attackerStatId] do begin
 			if attackerStatId = 0 then begin
 				if World.Info.Health > 0 then begin
-					World.Info.Health := World.Info.Health - ParamList[2]; {Damage}
+					World.Info.Health := World.Info.Health - ExtendedData.Params[2]; {Damage}
 
 					GameUpdateSidebar;
 					DisplayMessage(100, ConfigList[48]); {"Ouch!"}
@@ -2222,8 +2307,8 @@ procedure GameDebugPrompt;
 		SidebarClearLine(4);
 		SidebarClearLine(5);
 
-		PromptString(63, 5, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]),
-			AsColor(ParamList[THEME_START + 1],0), 11, PROMPT_ANY, input);
+		PromptString(63, 5, AsColor(ExtendedData.Params[THEME_START + 2],ExtendedData.Params[THEME_START]),
+			AsColor(ExtendedData.Params[THEME_START + 1],0), 11, PROMPT_ANY, input);
 		for i := 1 to Length(input) do
 			input[i] := UpCase(input[i]);
 
@@ -2254,7 +2339,7 @@ procedure GameDebugPrompt;
 		else if input = 'GEMS' then
 			World.Info.Gems := World.Info.Gems + 5
 		else if (input = 'NODMG') or (input = 'IDDQD') then
-			ParamList[2] := 0
+			ExtendedData.Params[2] := 0
 		else if input = 'INSPECT' then
 			InspectNext := true
 		else if input = 'STATS' then
@@ -2353,26 +2438,31 @@ procedure GameDrawMainSidebarElement(y: integer);
 		if ((CFlagPos[8 + y] and World.Info.CustomFlags[3]) = 0) then begin
 			case y of
 				7: begin
-					VideoWriteText(64, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[63]); {Health Sidebar}
+					VideoWriteText(64, 7, AsColor(ExtendedData.Params[THEME_START + 2],
+						ExtendedData.Params[THEME_START]), ConfigList[63]); {Health Sidebar}
 					if (ConfigList[63] <> '') then  {Sidebar player}
 						VideoWriteText(62, 7, ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
 				end;
 				8: begin
-					VideoWriteText(64, 8, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[64]); {Ammo Sidebar}
+					VideoWriteText(64, 8, AsColor(ExtendedData.Params[THEME_START + 2],
+						ExtendedData.Params[THEME_START]), ConfigList[64]); {Ammo Sidebar}
 					if ConfigList[64] <> '' then begin {Sidebar ammo}
 						if ElementDefs[E_AMMO].Color and $F0 = 0 then
-							VideoWriteText(62, 8, AsColor(ElementDefs[E_AMMO].Color and $0F,ParamList[THEME_START]), ElementDefs[E_AMMO].Character)
+							VideoWriteText(62, 8, AsColor(ElementDefs[E_AMMO].Color and $0F,
+								ExtendedData.Params[THEME_START]), ElementDefs[E_AMMO].Character)
 						else
 							VideoWriteText(62, 8, ElementDefs[E_AMMO].Color, ElementDefs[E_AMMO].Character);
 					end;
 				end;
 				9: begin
-					VideoWriteText(64, 9, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[65]); {Torches Sidebar}
+					VideoWriteText(64, 9, AsColor(ExtendedData.Params[THEME_START + 2],
+						ExtendedData.Params[THEME_START]), ConfigList[65]); {Torches Sidebar}
 					if ConfigList[65] <> '' then begin {Sidebar Torch}
 						if ElementDefs[E_TORCH].Color and $F0 = 0 then
 							VideoWriteText(
 								62, 9,
-								AsColor(ElementDefs[E_TORCH].Color and $0F,ParamList[THEME_START]),
+								AsColor(ElementDefs[E_TORCH].Color and $0F,
+									ExtendedData.Params[THEME_START]),
 								ElementDefs[E_TORCH].Character
 							)
 						else
@@ -2386,58 +2476,82 @@ procedure GameDrawMainSidebarElement(y: integer);
 				10: begin
 					if ConfigList[66] <> '' then begin {Sidebar Gem}
 						if ElementDefs[E_GEM].Color = 0 then
-							VideoWriteText(62, 10, AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), ElementDefs[E_GEM].Character)
+							VideoWriteText(62, 10, AsColor(ExtendedData.Params[THEME_START + 6],
+								ExtendedData.Params[THEME_START]), ElementDefs[E_GEM].Character)
 						else if ElementDefs[E_GEM].Color and $F0 = 0 then
-							VideoWriteText(62, 10, AsColor(ElementDefs[E_GEM].Color and $0F,ParamList[THEME_START]), ElementDefs[E_GEM].Character)
+							VideoWriteText(62, 10, AsColor(ElementDefs[E_GEM].Color and $0F,
+								ExtendedData.Params[THEME_START]), ElementDefs[E_GEM].Character)
 						else
 							VideoWriteText(62, 10, ElementDefs[E_GEM].Color, ElementDefs[E_GEM].Character);
 					end;
-					VideoWriteText(64, 10, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[66]); {Gems Sidebar}
+					VideoWriteText(64, 10, AsColor(ExtendedData.Params[THEME_START + 2],
+						ExtendedData.Params[THEME_START]), ConfigList[66]); {Gems Sidebar}
 				end;
-				11: VideoWriteText(64, 11, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[67]); {Score Sidebar}
+				11: VideoWriteText(64, 11, AsColor(ExtendedData.Params[THEME_START + 2],
+					ExtendedData.Params[THEME_START]), ConfigList[67]); {Score Sidebar}
 				12: begin
-					VideoWriteText(64, 12, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ConfigList[68]); {Keys Sidebar}
+					VideoWriteText(64, 12, AsColor(ExtendedData.Params[THEME_START + 2],
+						ExtendedData.Params[THEME_START]), ConfigList[68]); {Keys Sidebar}
 					if ConfigList[68] <> '' then begin {Sidebar key}
 						if ElementDefs[E_KEY].Color = 0 then
-							VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ElementDefs[E_KEY].Character)
+							VideoWriteText(62, 12, AsColor(ExtendedData.Params[THEME_START + 1],
+								ExtendedData.Params[THEME_START]), ElementDefs[E_KEY].Character)
 						else if ElementDefs[E_KEY].Color and $F0 = 0 then
-							VideoWriteText(62, 12, AsColor(ElementDefs[E_KEY].Color and $0F,ParamList[THEME_START]), ElementDefs[E_KEY].Character)
+							VideoWriteText(62, 12, AsColor(ElementDefs[E_KEY].Color and $0F,
+								ExtendedData.Params[THEME_START]), ElementDefs[E_KEY].Character)
 						else
 							VideoWriteText(62, 12, ElementDefs[E_KEY].Color, ElementDefs[E_KEY].Character);
 					end;
 				end;
 				14: if ConfigList[70] <> '' then begin  {'T' Torch hotkey}
-						VideoWriteText(62, 14, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[70] + ' ');
-						VideoWriteText(65, 14, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[71]);
+						VideoWriteText(62, 14, AsColor(ExtendedData.Params[THEME_START + 3],
+							ExtendedData.Params[THEME_START + 5]), ' ' + ConfigList[70] + ' ');
+						VideoWriteText(65, 14, AsColor(ExtendedData.Params[THEME_START + 1],
+							ExtendedData.Params[THEME_START]), ' ' + ConfigList[71]);
 					end;
 				15: if ConfigList[72] <> '' then {'B' Toggle Sounds hotkey}
-						VideoWriteText(62, 15, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' ' + ConfigList[72] + ' ');
+						VideoWriteText(62, 15, AsColor(ExtendedData.Params[THEME_START + 3],
+							ExtendedData.Params[THEME_START + 4]), ' ' + ConfigList[72] + ' ');
 				16: if ConfigList[75] <> '' then begin {'H' Help hotkey}
-						VideoWriteText(62, 16, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[75] + ' ');
-						VideoWriteText(65, 16, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[76]);
+						VideoWriteText(62, 16, AsColor(ExtendedData.Params[THEME_START + 3],
+							ExtendedData.Params[THEME_START + 5]), ' ' + ConfigList[75] + ' ');
+						VideoWriteText(65, 16, AsColor(ExtendedData.Params[THEME_START + 1],
+							ExtendedData.Params[THEME_START]), ' ' + ConfigList[76]);
 					end;
 				18: if ConfigList[86] <> '' then begin {' Move'}
-						VideoWriteText(67, 18, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' '#24#25#26#27' ');
-						VideoWriteText(72, 18, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ConfigList[86]);
+						VideoWriteText(67, 18, AsColor(ExtendedData.Params[THEME_START + 3],
+							ExtendedData.Params[THEME_START + 5]), ' '#24#25#26#27' ');
+						VideoWriteText(72, 18, AsColor(ExtendedData.Params[THEME_START + 1],
+							ExtendedData.Params[THEME_START]), ConfigList[86]);
 					end;
 				19: if ConfigList[87] <> '' then begin {' Shoot'}
-						VideoWriteText(61, 19, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ConfigList[88] + #24#25#26#27' ');
-						VideoWriteText(72, 19, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ConfigList[87]);
+						VideoWriteText(61, 19, AsColor(ExtendedData.Params[THEME_START + 3],
+							ExtendedData.Params[THEME_START + 4]), ConfigList[88] + #24#25#26#27' ');
+						VideoWriteText(72, 19, AsColor(ExtendedData.Params[THEME_START + 1],
+							ExtendedData.Params[THEME_START]), ConfigList[87]);
 					end;
 				21: if ConfigList[77] <> '' then begin {'S' Save gave hotkey}
-						VideoWriteText(62, 21, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' ' + ConfigList[77] + ' ');
-						VideoWriteText(65, 21, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[78]);
+						VideoWriteText(62, 21, AsColor(ExtendedData.Params[THEME_START + 3],
+							ExtendedData.Params[THEME_START + 4]), ' ' + ConfigList[77] + ' ');
+						VideoWriteText(65, 21, AsColor(ExtendedData.Params[THEME_START + 1],
+							ExtendedData.Params[THEME_START]), ' ' + ConfigList[78]);
 					end;
 				22:	if NeuromotorAssist then begin
-						VideoWriteText(62, 22, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' P ');
-						VideoWriteText(65, 22, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Proceed')
+						VideoWriteText(62, 22, AsColor(ExtendedData.Params[THEME_START + 3],
+							ExtendedData.Params[THEME_START + 5]), ' P ');
+						VideoWriteText(65, 22, AsColor(ExtendedData.Params[THEME_START + 1],
+							ExtendedData.Params[THEME_START]), ' Proceed')
 					end else if ConfigList[79] <> '' then begin {'P' Pause game hotkey}
-						VideoWriteText(62, 22, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' ' + ConfigList[79] + ' ');
-						VideoWriteText(65, 22, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' ' + ConfigList[80]);
+						VideoWriteText(62, 22, AsColor(ExtendedData.Params[THEME_START + 3],
+							ExtendedData.Params[THEME_START + 5]), ' ' + ConfigList[79] + ' ');
+						VideoWriteText(65, 22, AsColor(ExtendedData.Params[THEME_START + 1],
+							ExtendedData.Params[THEME_START]), ' ' + ConfigList[80]);
 					end;
 				23: begin
-					VideoWriteText(62, 23, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' Q ');
-					VideoWriteText(65, 23, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Quit');
+					VideoWriteText(62, 23, AsColor(ExtendedData.Params[THEME_START + 3],
+						ExtendedData.Params[THEME_START + 4]), ' Q ');
+					VideoWriteText(65, 23, AsColor(ExtendedData.Params[THEME_START + 1],
+						ExtendedData.Params[THEME_START]), ' Quit');
 				end;
 			end;
 		end else SideBarClearLine(y);
@@ -2464,12 +2578,12 @@ procedure GameDrawCustomSidebar;
 			if (y > 2) and (y < 25) then begin
 				if ((CFlagPos[y + 8] and World.Info.CustomFlags[3]) = 0) then begin
 					VideoWriteText(62, y,
-						AsColor(ParamList[THEME_START + 3],
-						ParamList[THEME_START + 5 - (y mod 2)]),
+						AsColor(ExtendedData.Params[THEME_START + 3],
+						ExtendedData.Params[THEME_START + 5 - (y mod 2)]),
 						' ' + UpCaseString(KeyList[i * 3], true) + ' ');
 					VideoWriteText(64 + Length(KeyList[i * 3]), y,
-						AsColor(ParamList[THEME_START + 1],
-						ParamList[THEME_START]), ' '+ KeyList[(i * 3) + 1]);
+						AsColor(ExtendedData.Params[THEME_START + 1],
+						ExtendedData.Params[THEME_START]), ' '+ KeyList[(i * 3) + 1]);
 				end else SideBarClearLine(y);
 			end;
 			Inc(i);
@@ -2479,22 +2593,24 @@ procedure GameDrawCustomSidebar;
 			with CustomSidebar[i] do begin
 				if Ident > -8 then begin
 					if ((CFlagPos[i + 8] and World.Info.CustomFlags[3]) = 0) then begin
-						VideoWriteText(64, i, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), Disp);
+						VideoWriteText(64, i, AsColor(ExtendedData.Params[THEME_START + 2],
+							ExtendedData.Params[THEME_START]), Disp);
 						if Ident < 0 then
 							Str(Board.Info.Local[-Ident], numStr)
 						else
 							Str(World.Info.CustomCounters[Ident], numStr);
-						VideoWriteText(72, i, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), numStr + ' ');
+						VideoWriteText(72, i, AsColor(ExtendedData.Params[THEME_START + 2],
+							ExtendedData.Params[THEME_START]), numStr + ' ');
 						if Elmt > -1 then {Sidebar Element}
 							if ElementDefs[Enum(Elmt)].Color = 0 then
 								VideoWriteText(62, i,
-									AsColor(ParamList[THEME_START + 6],
-									ParamList[THEME_START]),
+									AsColor(ExtendedData.Params[THEME_START + 6],
+									ExtendedData.Params[THEME_START]),
 									ElementDefs[Enum(Elmt)].Character)
 							else if ElementDefs[Enum(Elmt)].Color and $F0 = 0 then
 								VideoWriteText(62, i,
 									AsColor(ElementDefs[Enum(Elmt)].Color and $0F,
-									ParamList[THEME_START]),
+									ExtendedData.Params[THEME_START]),
 									ElementDefs[Enum(Elmt)].Character)
 							else
 								VideoWriteText(62, i,
@@ -2522,55 +2638,77 @@ procedure GoToDirectory(var input: string);
 			input := Copy(input, Length(s) + 2, 12);
 		end;
 	end;
-			
+
+procedure GameDrawTheme;
+	begin
+		SetBlink(ExtendedData.Params[THEME_BLINK] = 0);
+		SidebarClear;
+		SidebarClearLine(0);
+		SidebarClearLine(1);
+		SidebarClearLine(2);
+		VideoWriteText(61, 0, AsColor(ExtendedData.Params[THEME_START + 1],
+			ExtendedData.Params[THEME_START]), '    - - - - -      ');
+		VideoWriteText(62, 1, AsColor(ExtendedData.Params[THEME_START + 3],
+			ExtendedData.Params[THEME_START + 4]), '      ZZT      ');
+		VideoWriteText(62, 1, AsColor(ExtendedData.Params[THEME_START + 5],
+			ExtendedData.Params[THEME_START + 4]), ' Weave');
+		if not HasINI then VideoWriteText(74, 1, AsColor(ExtendedData.Params[THEME_START + 5],
+			ExtendedData.Params[THEME_START + 4]), '3.2');
+		VideoWriteText(61, 2, AsColor(ExtendedData.Params[THEME_START + 1],
+			ExtendedData.Params[THEME_START]), '    - - - - -      ');
+		if GameStateElement = E_PLAYER then begin
+			GameDrawMainSidebar;
+			GameDrawCustomSidebar;
+		end else if GameStateElement = E_MONITOR then begin
+			SidebarPromptSlider(false, 66, 21, 'Game speed:;FS', TickSpeed);
+			VideoWriteText(62, 21, AsColor(ExtendedData.Params[THEME_START + 3],
+				ExtendedData.Params[THEME_START + 4]), ' S ');
+			if not IsRelease then VideoWriteText(62, 7, AsColor(ExtendedData.Params[THEME_START + 3],
+				ExtendedData.Params[THEME_START + 5]), ' W ');
+			VideoWriteText(65, 7, AsColor(ExtendedData.Params[THEME_START + 2],
+				ExtendedData.Params[THEME_START]), ' World:');
+
+			if (Length(World.Info.Name) <> 0 ) and (World.Info.Name <> 'Template') then
+				VideoWriteText(69, 8, AsColor(ExtendedData.Params[THEME_START + 1],
+					ExtendedData.Params[THEME_START]), World.Info.Name)
+			else
+				VideoWriteText(69, 8, AsColor(ExtendedData.Params[THEME_START + 1],
+					ExtendedData.Params[THEME_START]), 'Untitled');
+
+			VideoWriteText(62, 11, AsColor(ExtendedData.Params[THEME_START + 3],
+				ExtendedData.Params[THEME_START + 4]), ' P ');
+			VideoWriteText(65, 11, AsColor(ExtendedData.Params[THEME_START + 1],
+				ExtendedData.Params[THEME_START]), ' Play');
+			if ((ConfigList[77][1] <> #1) or (IsRelease = false)) then begin
+				VideoWriteText(62, 12, AsColor(ExtendedData.Params[THEME_START + 3],
+					ExtendedData.Params[THEME_START + 5]), ' R ');
+				VideoWriteText(65, 12, AsColor(ExtendedData.Params[THEME_START + 2],
+					ExtendedData.Params[THEME_START]), ' Restore game');
+			end;
+			VideoWriteText(62, 13, AsColor(ExtendedData.Params[THEME_START + 3],
+				ExtendedData.Params[THEME_START + 4]), ' Q ');
+			VideoWriteText(65, 13, AsColor(ExtendedData.Params[THEME_START + 2],
+				ExtendedData.Params[THEME_START]), ' Quit');
+			VideoWriteText(62, 16, AsColor(ExtendedData.Params[THEME_START + 3],
+				ExtendedData.Params[THEME_START + 5]), ' A ');
+			VideoWriteText(65, 16, AsColor(ExtendedData.Params[THEME_START + 1],
+				ExtendedData.Params[THEME_START]), ' License Info');
+			VideoWriteText(62, 17, AsColor(ExtendedData.Params[THEME_START + 3],
+				ExtendedData.Params[THEME_START + 4]), ' H ');
+			VideoWriteText(65, 17, AsColor(ExtendedData.Params[THEME_START + 2],
+				ExtendedData.Params[THEME_START]), ' High Scores');
+
+		end;
+	end;
+
 
 procedure GamePlayLoop(boardChanged: boolean);
 	var
 		f: file;
 		exitLoop: boolean;
 		pauseBlink: boolean;
-	procedure GameDrawSidebar;
-		begin
-			SidebarClear;
-			SidebarClearLine(0);
-			SidebarClearLine(1);
-			SidebarClearLine(2);
-			VideoWriteText(61, 0, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), '    - - - - -      ');
-			VideoWriteText(62, 1, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), '      ZZT      ');
-			VideoWriteText(62, 1, AsColor(ParamList[THEME_START + 5],ParamList[THEME_START + 4]), ' Weave');
-			if not HasINI then VideoWriteText(74, 1, AsColor(ParamList[THEME_START + 5],ParamList[THEME_START + 4]), '3.2');
-			VideoWriteText(61, 2, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), '    - - - - -      ');
-			if GameStateElement = E_PLAYER then begin
-				GameDrawMainSidebar;
-				GameDrawCustomSidebar;
-			end else if GameStateElement = E_MONITOR then begin
-				SidebarPromptSlider(false, 66, 21, 'Game speed:;FS', TickSpeed);
-				VideoWriteText(62, 21, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' S ');
-				if not IsRelease then VideoWriteText(62, 7, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' W ');
-				VideoWriteText(65, 7, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' World:');
-
-				if (Length(World.Info.Name) <> 0 ) and (World.Info.Name <> 'Template') then
-					VideoWriteText(69, 8, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), World.Info.Name)
-				else
-					VideoWriteText(69, 8, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), 'Untitled');
-
-				VideoWriteText(62, 11, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' P ');
-				VideoWriteText(65, 11, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' Play');
-				if ((ConfigList[77][1] <> #1) or (IsRelease = false)) then begin
-					VideoWriteText(62, 12, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' R ');
-					VideoWriteText(65, 12, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' Restore game');
-				end;
-				VideoWriteText(62, 13, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' Q ');
-				VideoWriteText(65, 13, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' Quit');
-				VideoWriteText(62, 16, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 5]), ' A ');
-				VideoWriteText(65, 16, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ' License Info');
-				VideoWriteText(62, 17, AsColor(ParamList[THEME_START + 3],ParamList[THEME_START + 4]), ' H ');
-				VideoWriteText(65, 17, AsColor(ParamList[THEME_START + 2],ParamList[THEME_START]), ' High Scores');
-
-			end;
-		end;
 	begin
-		GameDrawSidebar;
+		GameDrawTheme;
 		GameUpdateSidebar;
 
 		if JustStarted then begin
@@ -2581,9 +2719,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 					or (FileExists(StartupWorldFileName)
 					and WorldLoad(StartupWorldFileName,''))
 				then begin
-					GameDrawSidebar;
+					GameDrawTheme;
 					GameUpdateSidebar;
-					VideoWriteText(69, 8, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), World.Info.Name);
+					VideoWriteText(69, 8, AsColor(ExtendedData.Params[THEME_START + 1],
+						ExtendedData.Params[THEME_START]), World.Info.Name);
 				end else begin
 					WorldCreate;
 				end;
@@ -2600,7 +2739,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 		if GameStateElement = E_MONITOR then begin
 			DisplayMessage(0, '');
-			VideoWriteText(62, 5, AsColor(ParamList[THEME_START + 6],ParamList[THEME_START]), ConfigList[82]); {"Pick a command:"}
+			VideoWriteText(62, 5, AsColor(ExtendedData.Params[THEME_START + 6],
+				ExtendedData.Params[THEME_START]), ConfigList[82]); {"Pick a command:"}
 		end;
 
 		if boardChanged then
@@ -2632,7 +2772,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
 				end;
 
-				VideoWriteText(64, 5, AsColor(ParamList[THEME_START + 1],ParamList[THEME_START]), ConfigList[81]); {"Pausing..."}
+				VideoWriteText(64, 5, AsColor(ExtendedData.Params[THEME_START + 1],
+					ExtendedData.Params[THEME_START]), ConfigList[81]); {"Pausing..."}
 				InputUpdate;
 
 				if InputKeyPressed = KEY_ESCAPE then
@@ -2743,6 +2884,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 procedure GameTitleLoop;
 	var
+		i: integer;
 		boardChanged: boolean;
 		startPlay: boolean;
 	begin
@@ -2757,7 +2899,6 @@ procedure GameTitleLoop;
 				GamePaused := false;
 				GamePlayLoop(boardChanged);
 				boardChanged := false;
-
 				case UpCase(InputKeyPressed) of
 					'W': begin
 						if not IsRelease then
@@ -2808,6 +2949,9 @@ procedure GameTitleLoop;
 					boardChanged := true;
 				end;
 			until boardChanged or GameTitleExitRequested;
+			for i := THEME_START to THEME_BLINK do
+				ExtendedData.Params[i] := DefaultParamList(i);
+			SetBlink(ExtendedData.Params[THEME_BLINK] = 0);
 		until GameTitleExitRequested;
 	end;
 

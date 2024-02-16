@@ -48,6 +48,7 @@ interface
 		{.CFG FILE}
 		CONFIG_FILE_COUNT = 88;
 		THEME_START = 13;
+		THEME_BLINK = 20;
 		PALETTE_START = 23;
 		PARAM_FILE_COUNT = 71;
 		{.INI FILE}
@@ -77,7 +78,7 @@ interface
 			SetFG: boolean;
 			SetBG: boolean;
 		end;
-		TPalette = array[0..15] of integer;
+		TPalette = array[0..47] of integer;
 		TElementDrawProc = procedure(x, y: integer; var ch: byte);
 		TElementTickProc = procedure(statId: integer);
 		TElementTouchProc = procedure(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -150,7 +151,7 @@ interface
 			BoardTimeHsec: integer;
 			IsSave: shortint;
 			GracePeriod: byte;
-			CustomPalette: TPalette;
+			Unused: array[0 .. 15] of integer;
 			CustomCounters: array[1 .. CUSTOM_COUNTER_COUNT] of integer;
 			CustomFlags: array[0..3] of longint;
 		end;
@@ -171,15 +172,18 @@ interface
 			Name: TString50;
 			Score: integer;
 		end;
+		TExtendedData = record
+			Flags: array[MAX_FLAG + 1 .. MAX_EXTENDEDFLAG] of TString20;
+			Params: array[1 .. PARAM_FILE_COUNT] of integer;
+		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
 		TConfigList = array[1 .. CONFIG_FILE_COUNT] of string[80];
 		TCustomCounterList = array[1 .. CUSTOM_COUNTER_COUNT] of TString20;
 		TCustomFlagList = array[1 .. CUSTOM_FLAG_COUNT] of TString20;
 		TCustomBoardList = array[1 .. 7] of TString20;
-		TCustomObjList = array[1 .. 10] of TString20;
-		TParamList = array[1 .. PARAM_FILE_COUNT] of integer;
+		TCustomObjList = array[1 .. 6] of TString20;
 		TCustomKeyList = array[0 .. CUSTOM_KEY_COUNT - 1] of TString20;
-		TExtendedFlagList = array[MAX_FLAG + 1 .. MAX_EXTENDEDFLAG] of TString20;
+		{TExtendedFlagList = array[MAX_FLAG + 1 .. MAX_EXTENDEDFLAG] of TString20;}
 		TSearchArea = array[-7 .. 7] of array[-7 .. 7] of shortint;
 		TSidebar = record
 			Disp: TString8;
@@ -218,10 +222,11 @@ interface
 		HasCustomSidebar: boolean;
 		HasCHR: boolean;
 		NoCHR: boolean;
+		SelUnder: boolean;
 		IoTmpBufSize: word;
 		FileWorldCachedLinePos: integer; 
 		FileSaveCachedLinePos: integer;
-		TempPalette: TPalette;
+		TempPalette, SourcePalette: TPalette;
 
 		InspectNext: boolean;
 		NoClip: boolean;
@@ -245,7 +250,6 @@ interface
 		CurrentStatTicked: integer;
 		OopFuncReturn: integer;
 		GamePaused: boolean;
-		PlayerDirUsed: boolean;
 		TickTimeCounter: integer;
 		KeyLimit: integer;
 
@@ -265,13 +269,12 @@ interface
 		CustomBoardList: TCustomBoardList;
 		CustomObjList: TCustomObjList;
 		ConfigList: TConfigList;
-		ParamList: TParamList;
 		KeyList: TCustomKeyList;
 		SearchArea: TSearchArea;
 		HighScoreList: THighScoreList;
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
-		ExtendedFlags: TExtendedFlagList;
+		ExtendedData: TExtendedData;
 		Accessibility: array[1..7] of TString50;
 
 		BoardNames: array[0 .. MAX_BOARD] of TString50;

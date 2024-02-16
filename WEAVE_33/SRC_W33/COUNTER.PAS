@@ -31,6 +31,7 @@ interface
 		TCounter = record
 			CType: (TCReadOnly, TCByte, TCShortInt, TCInteger, TCTickSpeed);
 			UpdateBoard: boolean;
+			UpdateTheme: boolean;
 			Value: integer;
 			Pointer: pointer;
 		end;
@@ -53,6 +54,7 @@ function CounterFromWord(var c: TCounter; statId: integer; s: string): boolean;
 	begin
 		CounterFromWord := true;
 		c.UpdateBoard := false;
+		c.UpdateTheme := false;
 
 		if s = 'ISDARK' then begin
 			c.CType := TCShortInt;
@@ -87,11 +89,9 @@ function CounterFromWord(var c: TCounter; statId: integer; s: string): boolean;
 		end else if s = 'PLAYERX' then begin
 			c.CType := TCReadOnly;
 			c.Value := Board.Stats[0].X;
-			PlayerDirUsed := true;
 		end else if s = 'PLAYERY' then begin
 			c.CType := TCReadOnly;
 			c.Value := Board.Stats[0].Y;
-			PlayerDirUsed := true;
 		end else if s = 'THISX' then begin
 			c.CType := TCReadOnly;
 			c.Value := Board.Stats[statId].X;
@@ -179,6 +179,17 @@ function CounterFromWord(var c: TCounter; statId: integer; s: string): boolean;
 					c.Pointer := @World.Info.CustomCounters[i];
 					exit;
 				end;
+			for i := 1 to (PALETTE_START - 1) do
+				if s = ParamConfigs(i) then begin
+					c.Pointer := @ExtendedData.Params[i];
+					c.UpdateBoard := true;
+					if s[1] = 'T' then c.UpdateTheme := true;
+					exit;
+				end;
+			if s = ParamConfigs(71) then begin
+				c.Pointer := @ExtendedData.Params[71];
+				exit;				
+			end;
 
 			{ No match }
 			CounterFromWord := false;
@@ -216,6 +227,10 @@ function CounterWriteValue(var c: TCounter): boolean;
 		end else
 			CounterWriteValue := false;
 
+		if c.UpdateTheme then begin
+			GameDrawTheme;
+			GameUpdateSidebar;
+		end;
 		if c.UpdateBoard then
 			TransitionDrawToBoard;
 	end;

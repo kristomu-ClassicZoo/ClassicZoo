@@ -47,6 +47,7 @@ interface
 	function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
 	function OopExecute(statId: integer; var position: integer; name: TString50): boolean;
 	function OopStringToWord(input: TString50): TString50;
+	procedure OopReadValue(statId: integer; var position: integer);
 	procedure GetBoardStats;
 	function GetNumFlags: integer;
 	function WorldInfoFlags(flag: integer): string;
@@ -96,6 +97,7 @@ procedure OopReadWord(statId: integer; var position: integer);
 			or (OopChar = '-')
 			or (OopChar = '^')
 			or (OopChar = '\')
+			or (OopChar = '.')
 		do begin
 			if OopChar = '^' then begin
 				Str(Board.Stats[statId].ObjArray, s);
@@ -260,6 +262,214 @@ function OopRunFuncWith(statId: integer; var position: integer; var arg: integer
 		GlobalArg := tempArg;
 	end;
 
+function OopParseDirection(statId: integer; var position: integer; var dx, dy: integer): boolean;
+	var
+		ix, iy: integer;
+		q: string;
+	begin
+		SelUnder := false;
+		with Board.Stats[statId] do begin
+			OopParseDirection := true;
+			if OopWord = 'PLAYER' then begin
+				dx := Board.Stats[0].X - X;
+				dy := Board.Stats[0].Y - Y;
+			end else if
+				(OopWord = 'BY') {}
+				or (OopWord = 'AT') {}
+				or (OopWord = 'TOWARD') {}
+			then begin
+				OopReadValue(statId, position);
+				dx := OopValue;
+				OopReadValue(statId, position);
+				dy := OopValue;
+				if ((dx <> -32767) and (dy <> -32767)) then begin
+					if (OopWord = 'AT') then begin 
+						dx := dx - X;
+						dy := dy - Y;
+					end;
+					if (OopWord = 'TOWARD') then 
+						CalcDirectionToward(X, Y, dx, dy);
+				end else begin
+					dx := 0;
+					dy := 0;
+					OopParseDirection := false;
+				end;
+			end else if (OopWord = 'N') or (OopWord = 'NORTH') then begin
+				dx := 0;
+				dy := -1;
+			end else if (OopWord = 'S') or (OopWord = 'SOUTH') then begin
+				dx := 0;
+				dy := 1;
+			end else if (OopWord = 'E') or (OopWord = 'EAST') then begin
+				dx := 1;
+				dy := 0;
+			end else if (OopWord = 'W') or (OopWord = 'WEST') then begin
+				dx := -1;
+				dy := 0;
+			end else if (OopWord = 'I') or (OopWord = 'IDLE') then begin
+				dx := 0;
+				dy := 0;
+			end else if (OopWord = 'SEEK') then begin
+				CalcDirectionSeek(X, Y, dx, dy);
+			end else if (OopWord = 'FLOW') then begin
+				dx := StepX;
+				dy := StepY;
+			end else if (OopWord = 'RND') then begin
+				CalcDirectionRnd(dx, dy)
+			end else if (OopWord = 'RNDNS') then begin
+				dx := 0;
+				dy := Random(2) * 2 - 1;
+			end else if (OopWord = 'RNDNE') then begin
+				dx := Random(2);
+				if dx = 0 then dy := -1 else dy := 0;
+			end else if (OopWord = 'UNDER') then begin
+				OopReadWord(statId, position);
+				OopParseDirection := OopParseDirection(statId, position, dx, dy);
+				SelUnder := true;
+			end else if (OopWord = 'CW') then begin
+				OopReadWord(statId, position);
+				OopParseDirection := OopParseDirection(statId, position, dy, dx);
+				dx := -dx;
+			end else if (OopWord = 'CCW') then begin
+				OopReadWord(statId, position);
+				OopParseDirection := OopParseDirection(statId, position, dy, dx);
+				dy := -dy;
+			end else if (OopWord = 'RNDP') then begin
+				OopReadWord(statId, position);
+				OopParseDirection := OopParseDirection(statId, position, dy, dx);
+				if Random(2) = 0 then
+					dx := -dx
+				else
+					dy := -dy;
+			end else if (OopWord = 'OPP') then begin
+				OopReadWord(statId, position);
+				OopParseDirection := OopParseDirection(statId, position, dx, dy);
+				dx := -dx;
+				dy := -dy;
+			end else if (OopWord = 'FIND') then begin
+				OopReadWord(statId, position);
+				OopParseDirection := OopParseDirection(statId, position, dx, dy);
+				Inc(dx,X);
+				Inc(dy,Y);
+				CalcDirectionFind(X, Y, dx, dy);
+			end else if (OopWord = 'TO') then begin
+				OopReadWord(statId, position);
+				OopParseDirection := OopParseDirection(statId, position, dx, dy);
+				ix := dx;
+				iy := dy;
+				OopReadWord(statId, position);
+				OopParseDirection := OopParseDirection(statId, position, dx, dy);
+				Inc(dx,ix);
+				Inc(dy,iy);
+			end else begin
+				dx := 0;
+				dy := 0;
+				OopParseDirection := false;
+			end;
+		end;
+	end;
+
+procedure OopReadDirection(statId: integer; var position: integer; var dx, dy: integer);
+	begin
+		OopReadWord(statId, position);
+		if not OopParseDirection(statId, position, dx, dy) then
+			OopError(statId,position, 'Bad direction ' + OopWord);
+	end;
+
+procedure OopReadDirectionRel(statId: integer; var position: integer; var dx, dy: integer;
+	ix, iy: integer; textLine: string);
+	begin
+		if (textLine = 'FIND') then begin
+			OopReadWord(statId, position);
+			OopReadDirection(statId, position, dx, dy);
+			Inc(dx,Board.Stats[statId].X);
+			Inc(dy,Board.Stats[statId].Y);
+			CalcDirectionFind(ix, iy, dx, dy);
+		end else if (textLine = 'TOWARD') then begin
+			OopReadWord(statId, position);
+			OopReadValue(statId, position);
+			dx := OopValue;
+			OopReadValue(statId, position);
+			dy := OopValue;
+			if ((dx <> -32767) and (dy <> -32767)) then
+				CalcDirectionToward(ix, iy, dx, dy)
+			else begin
+				dx := 0;
+				dy := 0;
+				OopError(statId, position, 'Bad direction TOWARD');
+			end;
+		end else begin
+			OopReadDirection(statId, position, dx, dy);
+			if (textLine = 'AT') then begin
+				Dec(dx,ix - Board.Stats[statId].X);
+				Dec(dy,iy - Board.Stats[statId].Y);
+			end;
+		end;
+	end;
+
+function OopPget(statId: integer; var position: integer): integer;
+	var
+		deltaX, deltaY, bindStatId, shift: integer;
+		counter: TCounter;
+		argTile: TTile;
+		filter: byte;
+	begin
+		filter := $00;
+		shift := 1;
+		OopReadWord(statId, position);
+		OopPGet := -32767;
+		if OopParseDirection(statId, position, deltaX, deltaY) then begin
+			argTile := Board.Tiles[Board.Stats[statId].X + deltaX][Board.Stats[statId].Y + deltaY];
+			bindStatId := GetStatIdAt(Board.Stats[statId].X + deltaX, Board.Stats[statId].Y + deltaY);
+			if SelUnder and (bindStatId > -1) then begin
+				argTile := Board.Stats[bindStatId].Under;
+				bindStatId := -1;
+			end;
+			OopReadWord(statId, position);
+			if OopWord = 'COLOR' then
+				filter := $FF
+			else if OopWord = 'FG' then
+				filter := $0F
+			else if OopWord = 'BG' then begin
+				filter := $F0;
+				shift := 16;
+			end;
+			if filter <> $00 then begin				
+				if argTile.Element > 127 then
+					OopPget := Ord((argTile.Element - 128) and filter) div shift
+				else if argTile.Element >= E_TEXT_MIN then
+					OopPget := Ord(ElementDefs[Enum(argTile.Element)].Color and filter) div shift
+				else
+					OopPget := Ord(argTile.Color and filter) div shift;
+				exit;
+			end else if OopWord = 'CHAR' then begin
+				if (bindStatId > -1) and (argTile.Element = E_OBJECT) then
+					OopPget := Board.Stats[bindStatId].P1
+				else if argTile.Element >= E_TEXT_MIN then
+					OopPget := argTile.Color
+				else
+					OopPget := Ord(ElementDefs[Enum(argTile.Element)].Character);
+				exit;
+			end else if bindStatId > -1 then with Board.Stats[bindStatId] do begin
+				if OopWord = 'STEPX' then
+					OopPget := StepX
+				else if OopWord = 'STEPY' then
+					OopPget := StepY
+				else if (OopWord = 'P1') or (OopWord = 'INTEL') or (OopWord = 'INTELLIGENCE') then
+					OopPget := P1
+				else if (OopWord = 'P2') or (OopWord = 'RATE') or (OopWord = 'SPEED') or (OopWord = 'LOCKED') then
+					OopPget := P2
+				else if (OopWord = 'P3') or (OopWord = 'DESTINATION') then
+					OopPget := P3
+				else if OopWord = 'CYCLE' then
+					OopPget := Cycle
+				else if CounterFromWord(counter, bindStatId, OopWord) then
+					OopPget := counter.Value;
+			end;
+		end else
+			OopError(statId,position, 'Bad direction ' + OopWord);
+	end;
+
 procedure OopReadValue(statId: integer; var position: integer);
 	var
 		s: string[20];
@@ -277,9 +487,12 @@ procedure OopReadValue(statId: integer; var position: integer);
 
 		OopChar := UpCase(OopChar);
 		isNumeric := true;
-		while ((((OopChar >= 'A') and (OopChar <= 'Z'))
-			or ((OopChar >= '0') and (OopChar <= '9')))
-			or (OopChar = '-')) or (OopChar = '^')
+		while ((OopChar >= 'A') and (OopChar <= 'Z'))
+			or ((OopChar >= '0') and (OopChar <= '9'))
+			or (OopChar = '-')
+			or (OopChar = '^')
+			or (OopChar = '.')
+			or (OopChar = '_')
 		do begin
 			if (((OopChar < '0') or (OopChar > '9'))
 				and (OopChar <> '-')) and (OopChar <> '^')
@@ -325,7 +538,11 @@ procedure OopReadValue(statId: integer; var position: integer);
 				OopValue := 1
 			else if s = 'FALSE' then
 				OopValue := 0
-			else if s = 'RUN' then begin
+			else if s = 'PGET' then begin
+				s := OopWord;
+				OopValue := OopPget(statId, position);
+				OopWord := s;
+			end else if s = 'RUN' then begin
 				s := OopWord;
 				OopValue := OopRunFunc(statId, position);
 				OopWord := s;
@@ -420,149 +637,9 @@ procedure OopSkipLine(statId: integer; var position: integer);
 		until (OopChar = #0) or (OopChar = #13);
 	end;
 
-function OopParseDirection(statId: integer; var position: integer; var dx, dy: integer): boolean;
+function OopFindString(statId, searchDir: integer; s: string): integer;
 	var
-		ix, iy: integer;
-	begin
-		with Board.Stats[statId] do begin
-			OopParseDirection := true;
-			if OopWord = 'PLAYER' then begin
-				PlayerDirUsed := true;
-				dx := Board.Stats[0].X - X;
-				dy := Board.Stats[0].Y - Y;
-			end else if
-				(OopWord = 'BY') {}
-				or (OopWord = 'AT') {}
-				or (OopWord = 'TOWARD') {}
-			then begin
-				OopReadValue(statId, position);
-				dx := OopValue;
-				OopReadValue(statId, position);
-				dy := OopValue;
-				if ((dx <> -32767) and (dy <> -32767)) then begin
-					if (OopWord = 'AT') then begin 
-						dx := dx - X;
-						dy := dy - Y;
-					end;
-					if (OopWord = 'TOWARD') then 
-						CalcDirectionToward(X, Y, dx, dy);
-				end else begin
-					dx := 0;
-					dy := 0;
-					OopParseDirection := false;
-				end;
-			end else if (OopWord = 'N') or (OopWord = 'NORTH') then begin
-				dx := 0;
-				dy := -1;
-			end else if (OopWord = 'S') or (OopWord = 'SOUTH') then begin
-				dx := 0;
-				dy := 1;
-			end else if (OopWord = 'E') or (OopWord = 'EAST') then begin
-				dx := 1;
-				dy := 0;
-			end else if (OopWord = 'W') or (OopWord = 'WEST') then begin
-				dx := -1;
-				dy := 0;
-			end else if (OopWord = 'I') or (OopWord = 'IDLE') then begin
-				dx := 0;
-				dy := 0;
-			end else if (OopWord = 'SEEK') then begin
-				CalcDirectionSeek(X, Y, dx, dy);
-			end else if (OopWord = 'FLOW') then begin
-				dx := StepX;
-				dy := StepY;
-			end else if (OopWord = 'RND') then begin
-				CalcDirectionRnd(dx, dy)
-			end else if (OopWord = 'RNDNS') then begin
-				dx := 0;
-				dy := Random(2) * 2 - 1;
-			end else if (OopWord = 'RNDNE') then begin
-				dx := Random(2);
-				if dx = 0 then dy := -1 else dy := 0;
-			end else if (OopWord = 'CW') then begin
-				OopReadWord(statId, position);
-				OopParseDirection := OopParseDirection(statId, position, dy, dx);
-				dx := -dx;
-			end else if (OopWord = 'CCW') then begin
-				OopReadWord(statId, position);
-				OopParseDirection := OopParseDirection(statId, position, dy, dx);
-				dy := -dy;
-			end else if (OopWord = 'RNDP') then begin
-				OopReadWord(statId, position);
-				OopParseDirection := OopParseDirection(statId, position, dy, dx);
-				if Random(2) = 0 then
-					dx := -dx
-				else
-					dy := -dy;
-			end else if (OopWord = 'OPP') then begin
-				OopReadWord(statId, position);
-				OopParseDirection := OopParseDirection(statId, position, dx, dy);
-				dx := -dx;
-				dy := -dy;
-			end else if (OopWord = 'FIND') then begin
-				OopReadWord(statId, position);
-				OopParseDirection := OopParseDirection(statId, position, dx, dy);
-				Inc(dx,X);
-				Inc(dy,Y);
-				CalcDirectionFind(X, Y, dx, dy);
-			end else if (OopWord = 'TO') then begin
-				OopReadWord(statId, position);
-				OopParseDirection := OopParseDirection(statId, position, dx, dy);
-				ix := dx;
-				iy := dy;
-				OopReadWord(statId, position);
-				OopParseDirection := OopParseDirection(statId, position, dx, dy);
-				Inc(dx,ix);
-				Inc(dy,iy);
-			end else begin
-				dx := 0;
-				dy := 0;
-				OopParseDirection := false;
-			end;
-		end;
-	end;
-
-procedure OopReadDirection(statId: integer; var position: integer; var dx, dy: integer);
-	begin
-		OopReadWord(statId, position);
-		if not OopParseDirection(statId, position, dx, dy) then
-			OopError(statId,position, 'Bad direction ' + OopWord);
-	end;
-
-procedure OopReadDirectionRel(statId: integer; var position: integer; var dx, dy: integer;
-	ix, iy: integer; textLine: string);
-	begin
-		if (textLine = 'FIND') then begin
-			OopReadWord(statId, position);
-			OopReadDirection(statId, position, dx, dy);
-			Inc(dx,Board.Stats[statId].X);
-			Inc(dy,Board.Stats[statId].Y);
-			CalcDirectionFind(ix, iy, dx, dy);
-		end else if (textLine = 'TOWARD') then begin
-			OopReadWord(statId, position);
-			OopReadValue(statId, position);
-			dx := OopValue;
-			OopReadValue(statId, position);
-			dy := OopValue;
-			if ((dx <> -32767) and (dy <> -32767)) then
-				CalcDirectionToward(ix, iy, dx, dy)
-			else begin
-				dx := 0;
-				dy := 0;
-				OopError(statId, position, 'Bad direction TOWARD');
-			end;
-		end else begin
-			OopReadDirection(statId, position, dx, dy);
-			if (textLine = 'AT') then begin
-				Dec(dx,ix - Board.Stats[statId].X);
-				Dec(dy,iy - Board.Stats[statId].Y);
-			end;
-		end;
-	end;
-
-function OopFindString(statId: integer; s: string): integer;
-	var
-		pos, wordPos, cmpPos: integer;
+		pos, wordPos, cmpPos, revPos: integer;
 		maxPos: integer;
 	label NoMatch;
 	begin
@@ -570,6 +647,7 @@ function OopFindString(statId: integer; s: string): integer;
 			s[pos] := UpCase(s[pos]);
 		with Board.Stats[statId] do begin
 			pos := 0;
+			revPos := -1;
 			maxPos := DataLen - Length(s);
 			while pos <= maxPos do begin
 				wordPos := 1;
@@ -593,14 +671,17 @@ function OopFindString(statId: integer; s: string): integer;
 					{ word continues, match invalid }
 				end else begin
 					{ word complete, match valid }
-					OopFindString := pos;
-					exit;
+					if (searchDir > 0) then begin
+						OopFindString := pos;
+						exit;
+					end else
+						revPos := pos;
 				end;
 
 			NoMatch:
 				Inc(pos);
 			end;
-			OopFindString := -1;
+			OopFindString := revPos;
 		end;
 	end;
 
@@ -649,7 +730,12 @@ function OopIterateStat(statId: integer; var iStat: integer; lookup: string): bo
 		OopIterateStat := found;
 	end;
 
-function OopFindLabel(statId: integer; sendLabel: string; var iStat, iDataPos: integer; labelPrefix: string): boolean;
+function OopFindLabel(
+	statId, searchDir: integer;
+	sendLabel: string;
+	var iStat, iDataPos: integer;
+	labelPrefix: string
+): boolean;
 	var
 		targetSplitPos: integer;
 		targetLookup: string[20];
@@ -677,10 +763,10 @@ function OopFindLabel(statId: integer; sendLabel: string; var iStat, iDataPos: i
 		if foundStat then begin
 			if objectMessage = 'RESTART' then begin
 				iDataPos := 0;
-			end else if HasINI and (objectMessage = 'END') then begin
-				iDataPos := Board.Stats[iStat].DataLen;
-			end else begin
-				iDataPos := OopFindString(iStat, labelPrefix + objectMessage);
+			end else if HasINI and (objectMessage = 'END') then
+				iDataPos := Board.Stats[iStat].DataLen
+			else begin
+				iDataPos := OopFindString(iStat, searchDir, labelPrefix + objectMessage);
 				{ if lookup target exists, there may be more stats }
 				if (iDataPos < 0) and (targetSplitPos > 0) then
 					goto FindNextStat;
@@ -723,7 +809,7 @@ function WorldGetBoardPosition(statId: integer; var position: integer): integer;
 
 function GetNumFlags: integer;
 	begin
-		if (ParamList[22] = 1) then
+		if (ExtendedData.Params[22] = 1) then
 			GetNumFlags := 99
 		else
 		GetNumFlags := 10;
@@ -732,7 +818,7 @@ function GetNumFlags: integer;
 function WorldInfoFlags(flag: integer): string;
 	begin
 		if flag > MAX_FLAG then
-			WorldInfoFlags := ExtendedFlags[flag]
+			WorldInfoFlags := ExtendedData.Flags[flag]
 		else
 			WorldInfoFlags := World.Info.Flags[flag];
 	end;
@@ -800,7 +886,7 @@ procedure WorldSetFlag(name: TString20);
 				while (i < GetNumFlags) and (Length(WorldInfoFlags(i)) <> 0) do
 					i := i + 1;
 				if i > MAX_FLAG then
-					ExtendedFlags[i] := name
+					ExtendedData.Flags[i] := name
 				else
 					World.Info.Flags[i] := name;
 			end;
@@ -834,7 +920,7 @@ procedure WorldClearFlag(name: TString20);
 			i := WorldGetFlagPosition(name);
 			if (i > 0) then begin
 				if i > MAX_FLAG then
-					ExtendedFlags[i] := ''
+					ExtendedData.Flags[i] := ''
 				else
 					World.Info.Flags[i] := '';
 			end;
@@ -937,15 +1023,29 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 							tile.Element := 2;
 							tile.Color := AsColor( ix, iy );
 
-							if (deltaX = 0) and (deltaY = 0) then
-								OopCheckCondition := MatchTiles(Under, tile)
+							if SelUnder and (GetStatIdAt(X + deltaX,Y + deltaY) > -1) then
+								OopCheckCondition := MatchTiles(Board.Stats[GetStatIdAt(X + deltaX,Y + deltaY)].Under, tile)
 							else
 								OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile);
 						end else OopError(statId,position,'Unknown color');
 					end else OopCheckCondition := false;
-				end else if OopWord = 'RND' then begin
-					OopCheckCondition := Random(2) = 0;
-				end else if OopWord = 'AT' then begin
+				end else if OopWord = 'DETECT' then begin
+					OopReadDirection(statId, position, deltaX, deltaY);
+					if not OopParseTile(statId, position, tile) then
+						OopError(statId,position, 'Bad object kind');
+					if ((X + deltaX) > 0)
+						and ((X + deltaX) <= BOARD_WIDTH)
+						and ((Y + deltaY) > 0)
+						and ((Y + deltaY) <= BOARD_HEIGHT)
+					then begin
+						if SelUnder and (GetStatIdAt(X + deltaX,Y + deltaY) > -1) then
+							OopCheckCondition := MatchTiles(Board.Stats[GetStatIdAt(X + deltaX,Y + deltaY)].Under, tile)
+						else
+							OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile);
+					end else OopCheckCondition := false;
+				end else if OopWord = 'RND' then
+					OopCheckCondition := Random(2) = 0
+				else if OopWord = 'AT' then begin
 					OopReadValue(statId, position);
 					ix := OopValue;
 					OopReadValue(statId, position);
@@ -954,7 +1054,9 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 						OopCheckCondition := (X = ix) and (Y = iy)
 					else
 						OopError(statId,position, 'Bad condition');
-				end else if CounterFromWord(counter, statId, OopWord) then begin
+				end else if OopWord = 'PGET' then
+					OopCheckCondition := OopPget(statId, position) > 0
+				else if CounterFromWord(counter, statId, OopWord) then begin
 					CounterReadValue(counter);
 					iy := counter.Value;
 					ix := position;
@@ -986,25 +1088,6 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 				end else if OopWord = 'WITHIN' then begin
 					OopReadValue(statId, position);
 					OopCheckCondition := ((Sqr(Board.Stats[0].X - x) + Sqr(Board.Stats[0].Y - y) * 7 / 4) <= (Sqr(OopValue)));
-				end else if OopWord = 'DETECT' then begin
-					OopReadDirection(statId, position, deltaX, deltaY);
-					if not OopParseTile(statId, position, tile) then
-						OopError(statId,position, 'Bad object kind');
-					if ((X + deltaX) > 0)
-						and ((X + deltaX) <= BOARD_WIDTH)
-						and ((Y + deltaY) > 0)
-						and ((Y + deltaY) <= BOARD_HEIGHT)
-					then begin
-						if (deltaX = 0) and (deltaY = 0) then
-							OopCheckCondition := MatchTiles(Under, tile)
-						else if PlayerDirUsed
-							and (X + deltaX = Board.Stats[0].X)
-							and (Y + deltaY = Board.Stats[0].Y)
-						then 
-							OopCheckCondition := ((MatchTiles(Board.Stats[0].Under, tile)) OR (tile.Element = E_PLAYER))
-						else
-							OopCheckCondition := MatchTiles(Board.Tiles[X + deltaX][Y + deltaY], tile)
-					end else OopCheckCondition := false;
 				end else
 					if GetCustomFlag(OopWord) then
 						OopCheckCondition := true
@@ -1185,7 +1268,7 @@ function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boole
 		OopSend := false;
 		iStat := 0;
 
-		while OopFindLabel(statId, sendLabel, iStat, iDataPos, #13':') do begin
+		while OopFindLabel(statId, 1, sendLabel, iStat, iDataPos, #13':') do begin
 			if ((Board.Stats[iStat].P2 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
 				if iStat = statId then
 					OopSend := true;
@@ -1240,7 +1323,6 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 			insCount := 1;
 			repeat
 		ReadInstruction:
-				PlayerDirUsed := false;
 				lineFinished := true;
 				lastPosition := position;
 				OopReadChar(statId, position);
@@ -1253,11 +1335,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 					OopReadChar(statId, position);
 				end;
 
-				if OopChar = #39 { apostrophe } then begin
-					OopSkipLine(statId, position);
-				end else if OopChar = '@' then begin
-					OopSkipLine(statId, position);
-				end else if (OopChar = '/') or (OopChar = '?') then begin
+				if (OopChar = '@') or (OopChar = #39) { apostrophe } then
+					OopSkipLine(statId, position)
+				else if (OopChar = '/') or (OopChar = '?') then begin
 					if OopChar = '/' then
 						repeatInsNextTick := true;
 
@@ -1404,7 +1484,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopChar := #0;
 						end else if OopWord = 'ENDGAME' then begin
 							World.Info.Health := 0;
-							World.Info.GracePeriod := ParamList[11];
+							World.Info.GracePeriod := ExtendedData.Params[11];
 						end else if OopWord = 'IDLE' then begin
 							stopRunning := true;
 						end else if OopWord = 'RESTART' then begin
@@ -1434,20 +1514,24 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopReadWord(statId, position);
 							textLine := OopWord;
 							OopReadValue(statId, position);
-							if OopValue < 0 then 
+							if OopValue = -32767 then 
 								OopValue := ix;
+							if OopValue < 0 then begin
+								ix := -1
+							end else
+								ix := 1;
 							while (OopValue <> 0) do begin
 								labelStatId := 0;
 								OopWord := textLine;
-								iy := 1;
-								while OopFindLabel(statId, OopWord, labelStatId, labelDataPos, #13 + labelUnzap) do begin
+								iy := ix;
+								while OopFindLabel(statId, ix, OopWord, labelStatId, labelDataPos, #13 + labelUnzap) do begin
 									iy := OopValue;
 									labelPtr := Board.Stats[labelStatId].Data;
 									AdvancePointer(labelPtr, labelDataPos + 1);
 									Char(labelPtr^) := labelZap;
 								end;
 								OopValue := iy;
-								Dec(OopValue);
+								Dec(OopValue, ix);
 							end;
 						end else if (OopWord = 'UNLOCK') or (OopWord = 'LOCK') then begin
 							if OopWord = 'UNLOCK' then
@@ -1498,13 +1582,20 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								and ((Y + deltaY) > 0)
 								and ((Y + deltaY) <= BOARD_HEIGHT) then
 							begin
-								if (deltaX = 0) and (deltaY = 0) then begin
-									Under.Element := argTile.Element;
-									Under.Color := argTile.Color;
-								end else if (GetStatIdAt(X + deltaX, Y + deltaY) = 0) and PlayerDirUsed then begin
-									Board.Stats[0].Under.Element := argtile.Element;
-									Board.Stats[0].Under.Color := argTile.Color;
-								end else begin
+								ix := GetStatIdAt(X + deltaX,Y + deltaY);
+								if SelUnder and (ix > -1) then begin
+									Board.Stats[ix].Under.Element := argTile.Element;
+									if (argTile.setBG = true) or (argTile.Element >= E_TEXT_MIN) then
+										Board.Stats[ix].Under.Color := argTile.Color
+									else if argtile.setFG = true then
+										Board.Stats[ix].Under.Color := argTile.Color and $0F
+									else if ElementDefs[Enum(argTile.Element)].Color > 15 then
+										Board.Stats[ix].Under.Color := ElementDefs[Enum(argTile.Element)].Color
+									else if ElementDefs[Enum(argTile.Element)].Color > 0 then
+										Board.Stats[ix].Under.Color := AsColor(ElementDefs[Enum(argTile.Element)].Color,
+											Board.Stats[ix].Under.Color and $F0);
+
+								end else if ((deltaX <> 0) or (deltay <> 0)) then begin
 									if not ElementDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
 										ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 									replaceTile.Element := argTile.Element;
@@ -1523,23 +1614,40 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								if not OopParseTile(statId, position, argTile2) then
 									OopError(statId,position, 'Bad #CHANGE from ' + textLine + ' to ' + OopWord)
 								else begin
+									if (argTile.Element = E_PLAYER) then begin
+										if (argTile.Color = 0)
+											or (argTile.Color = World.Info.PlayerColor and $0F)
+											or (argTile.Color = World.Info.PlayerColor)
+										then begin
+											if ArgTile2.Element > 127 then begin
+												World.Info.PlayerChar := Chr(ArgTile2.Color);
+												World.Info.PlayerColor := ArgTile2.Element - 128;
+											end else begin
+												World.Info.PlayerChar := ElementDefs[Enum(argTile2.Element)].Character;
+												if (ArgTile2.Color = 0) and (ElementDefs[Enum(argTile2.Element)].Color > 0) then
+													World.Info.PlayerColor := ElementDefs[Enum(argTile2.Element)].Color
+												else
+													World.Info.PlayerColor := ArgTile2.Color;
+											end;
+										end;
+									end else begin
+										ix := 0;
+										iy := 1;
+										if ((argTile2.Color = 0) and (argtile2.SetFG = false))
+											and ((argTile.Element < E_TEXT_MIN) or (argTile2.Element < E_TEXT_MIN))
+										then
+											argTile2.Color := ElementDefColor(argTile2.Element);
+										replaceTile.Element := argTile2.Element;
+										replaceTile.Color := argTile2.Color;
 
-									ix := 0;
-									iy := 1;
-									if ((argTile2.Color = 0) and (argtile2.SetFG = false))
-										and ((argTile.Element < E_TEXT_MIN) or (argTile2.Element < E_TEXT_MIN))
-									then
-										argTile2.Color := ElementDefColor(argTile2.Element);
-									replaceTile.Element := argTile2.Element;
-									replaceTile.Color := argTile2.Color;
-
-									while FindTileOnBoard(ix, iy, argTile) do begin
-										if (argTile.Element <= E_TEXT_MIN) and (ElementDefs[argTile.Element].Cycle < 0) then
-											Board.Tiles[ix][iy].Element := E_EMPTY;
-										if (argTile2.SetFG = true) or (argTile2.SetBG = true) then
-											OopForceTile(ix, iy, replaceTile)
-										else
-											OopPlaceTile(ix, iy, replaceTile);
+										while FindTileOnBoard(ix, iy, argTile) do begin
+											if (argTile.Element <= E_TEXT_MIN) and (ElementDefs[argTile.Element].Cycle < 0) then
+												Board.Tiles[ix][iy].Element := E_EMPTY;
+											if (argTile2.SetFG = true) or (argTile2.SetBG = true) then
+												OopForceTile(ix, iy, replaceTile)
+											else
+												OopPlaceTile(ix, iy, replaceTile);
+										end;
 									end;
 								end;
 							end;
@@ -1665,17 +1773,15 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 										and ((deltaY) <= BOARD_HEIGHT) then
 									begin
 										argTile.Color := Ord(textLine[Length(textLine) - iy]);
-										if (deltaX = X) and (deltaY = Y) then begin
-											Under.Element := argTile.Element;
-											Under.Color := argTile.Color;
-										end else if GetStatIdAt(deltaX, deltaY) = 0 then begin
-											Board.Stats[0].Under.Element := argtile.Element;
-											Board.Stats[0].Under.Color := argTile.Color;
-										end else begin
-											replaceTile.Element := argTile.Element;
-											replaceTile.Color := argTile.Color;
-											OopForceTile(deltaX, deltaY, replaceTile)
-										end;
+										if ((deltax <> 0) or (deltaY <> 0)) and (GetStatIdAt(deltaX, deltaY) <> 0) then
+											if SelUnder and (GetStatIdAt(X + deltaX,Y + deltaY) > 0) then begin
+												Board.Stats[GetStatIdAt(X + deltaX,Y + deltaY)].Under.Element := argTile.Element;
+												Board.Stats[GetStatIdAt(X + deltaX,Y + deltaY)].Under.Color := argTile.Color;
+											end else begin
+												replaceTile.Element := argTile.Element;
+												replaceTile.Color := argTile.Color;
+												OopForceTile(deltaX, deltaY, replaceTile)
+											end;
 										Inc(deltaX);
 									end;
 								end;
@@ -1688,24 +1794,24 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								deltaX := OopValue;
 								OopReadValue(statId, position);
 								deltaY := OopValue;
+								if (ix >= 0)
+									and (ix <= 15)
+									and (iy = -1)
+									and (deltax = -1)
+									and (deltaY = -1)
+								then begin
+									iy := SourcePalette[PALETTE_START + (ix * 3)];
+									deltaX := SourcePalette[PALETTE_START + (ix * 3) + 1];
+									deltaY := SourcePalette[PALETTE_START + (ix * 3) + 2];
+								end;
 								if (((ix >= 0) and (ix <= 15))
 									and ((iy >= 0) and (iy <= 63)))
 									and (((deltaX >= 0) and (deltaX <= 63))
 									and ((deltaY >= 0) and (deltaY <= 63)))
 								then begin
-									if (iy + deltaX + deltaY = 0) then begin
-										iy := ParamList[PALETTE_START + (ix * 3)];
-										deltaX := ParamList[PALETTE_START + (ix * 3) + 1];
-										deltaY := ParamList[PALETTE_START + (ix * 3) + 2];
-									end;
-									if (iy + deltaX + deltaY < 4) then begin
-										Inc(iy);
-										Inc(DeltaX);
-										Inc(DeltaY);
-									end;
-									World.Info.CustomPalette[ix] := iy div 2;
-									World.Info.CustomPalette[ix] := World.Info.CustomPalette[ix] + ((deltaX div 2) * 32);
-									World.Info.CustomPalette[ix] := World.Info.CustomPalette[ix] + ((deltaY div 2) * 1024);
+									ExtendedData.Params[PALETTE_START + (ix * 3)] := iy;;
+									ExtendedData.Params[PALETTE_START + (ix * 3) + 1] := deltaX;
+									ExtendedData.Params[PALETTE_START + (ix * 3) + 2] := deltaY;
 									BlockPalette(ix,iy,deltaX,deltaY);
 								end else
 									OopError(statId,position, 'Bad PALETTE Command');
@@ -1721,48 +1827,35 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									World.Info.PlayerColor := AsColor( ix, iy );
 								if (( OopValue > -1 ) and ( OopValue < 256 )) then 
 									World.Info.PlayerChar := Chr(OopValue);
-							end else if OopWord = 'QUICKSAVE' then begin
+							end else if OopWord = 'SAVEGAME' then begin
 								ix := position;
 								OopReadChar(statId, position);
 								while OopChar = ' ' do
 									OopReadChar(statId, position);
 								Dec(position);
-								if position = ix then begin
-									if CurrentSave = '' then
-										CurrentSave := World.Info.Name;
-									WorldSave(CurrentSave,'.SAV');
-								end else begin
+								if position = ix then
+									GameWorldSave(ConfigList[78] + ':', SavedGameFileName, '.SAV')
+								else begin
 									textLine := OopReadLineToEnd(statId, position);
-									if (textLine = 'STANDARD') then
-										GameWorldSave(ConfigList[78] + ':', SavedGameFileName, '.SAV')
-									else WorldSave(textLine,'.SAV');
+									WorldSave(textLine,'.SAV');
 									Dec(position);
 								end;
 								stopRunning := true;
-							end else if OopWord = 'QUICKLOAD' then begin
+							end else if OopWord = 'LOADGAME' then begin
 								ix := position;
 								OopReadChar(statId, position);
 								while OopChar = ' ' do
 									OopReadChar(statId, position);
 								Dec(position);
 								if position = ix then begin
-									if CurrentSave = '' then begin
-										if GameWorldLoad('.SAV') then begin
-											ReturnBoardId := World.Info.CurrentBoard;
-											BoardChange(ReturnBoardId);
-											TransitionDrawToBoard;
-										end;
-									end else if WorldLoad(CurrentSave, '.SAV') then
+									if GameWorldLoad('.SAV') then begin
+										ReturnBoardId := World.Info.CurrentBoard;
+										BoardChange(ReturnBoardId);
 										TransitionDrawToBoard;
+									end;
 								end else begin
 									textLine := OopReadLineToEnd(statId, position);
-									if (textLine = 'STANDARD') then begin
-										if GameWorldLoad('.SAV') then begin
-											ReturnBoardId := World.Info.CurrentBoard;
-											BoardChange(ReturnBoardId);
-											TransitionDrawToBoard;
-										end;
-									end else if WorldLoad(textLine, '.SAV') then begin
+									if WorldLoad(textLine, '.SAV') then begin
 										ReturnBoardId := World.Info.CurrentBoard;
 										BoardChange(ReturnBoardId);
 										TransitionDrawToBoard;
@@ -1887,8 +1980,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									if ( iy < 1 ) or ( iy > 15 ) then
 										iy := 0;
 									if ((ix + (iy * 16)) > -1) and ((ix + (iy * 16)) < 256) then begin
-										if GetStatIdAt(X + deltaX, Y + deltaY) = 0 then
-											Board.Stats[0].Under.Color := AsColor(ix, iy)
+										if SelUnder and (GetStatIdAt(X + deltaX,Y + deltaY) > -1) then
+											Board.Stats[GetStatIdAt(X + deltaX,Y + deltaY)].Under.Color := AsColor(ix, iy)
 										else begin
 											Board.Tiles[X + deltaX][Y + deltaY].Color := AsColor(ix, iy);
 											BoardDrawTile(X + deltaX, Y + deltaY);
@@ -1930,7 +2023,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 					TextWindowAppend(textWindow, textLine);
 				end;
 
-			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > ParamList[10]);
+			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > ExtendedData.Params[10]);
 
 			if OopWord = 'SAVEDGAMES' then goto StopExecution;
 

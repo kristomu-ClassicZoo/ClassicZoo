@@ -1,3 +1,19 @@
+2/16/2024: Weave 3.3
+Added:
+* COUNTER.PAS merged from PR #14 refactors counter usage.
+* PGET <dir>, a companion to #pset, is added, allowing players to substitute a value from the stat or tile located at <dir>.
+* Added the UNDER direction which works with #put, #write, #color, #if color, #if detect, and PGET, and targets the tile underneath a stat if a stat is present, or the tile itself if no stat is present.
+* The player's attributes can be updated with #change e.g. #change player red dkblue player; #change player player restores the player to the defaults set in the .CFG file.
+* FILENAME.CFG values that begin with OTHER and THEME are now modifiable in-game.
+* negative ZAP and RESTORE counts (e.g. #ZAP label -1) will zap and restore labels back to front, starting with the last label on the list and going up from there.
+
+Modified:
+* #quicksave and #quickload are renamed to #savegame and #loadgame, and calling them without a filename opens a dialog. STANDARD is no longer a special case.
+* Default max stats increased to 254 instead of 150.
+
+
+
+
 1/14/2024: Weave 3.2i
 Added:
 * ISDARK with values greater than 1 drains torches faster.
