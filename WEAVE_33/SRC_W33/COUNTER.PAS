@@ -29,11 +29,12 @@ unit Counter;
 interface
 	type
 		TCounter = record
-			CType: (TCReadOnly, TCByte, TCShortInt, TCInteger, TCTickSpeed);
+			CType: (TCReadOnly, TCByte, TCShortInt, TCInteger, TCTickSpeed, TCElement, TCConfig);
 			UpdateBoard: boolean;
 			UpdateTheme: boolean;
 			Value: integer;
 			Pointer: pointer;
+			Entry: string[20];
 		end;
 		cInteger = ^integer;
 		cShortint = ^shortint;
@@ -46,7 +47,48 @@ interface
 	function CounterWriteValue(var c: TCounter): boolean;
 
 implementation
-uses GameVars, Game;
+uses GameVars, Elements, Game;
+
+function ElementRead(var c: TCounter): integer;
+	var
+		i, j: integer;
+		t,u: string;
+	begin
+		ElementRead := -32767;
+		t := '';
+		u := '';
+		for i := 4 to 12 do
+			if c.Entry[i] = '.' then j := i;
+		for i := 1 to j - 1 do
+			t := t + UpCase(c.Entry[i]);
+		for i := j + 1 to Length(c.Entry) do
+			u := u + UpCase(c.Entry[i]);
+		for i := 1 to MAX_ELEMENT do
+			if XDat.EDefs[i].Name = t then
+				ElementRead := ElementGet(i,u);
+	end;
+
+procedure ElementWrite(var c: TCounter);
+	var
+		i, j: integer;
+		t, u, v: string;
+	begin
+		t := '';
+		u := '';
+		Str(c.Value, v);
+		for i := 4 to 12 do
+			if c.Entry[i] = '.' then j := i;
+		for i := 1 to j - 1 do
+			t := t + UpCase(c.Entry[i]);
+		for i := j + 1 to Length(c.Entry) do
+			u := u + UpCase(c.Entry[i]);
+		for i := 1 to MAX_ELEMENT do
+			if XDat.EDefs[i].Name = t then begin
+				ElementMod(i, u, v, -1);
+				c.UpdateTheme := true;
+				c.UpdateBoard := true;
+			end;
+	end;
 
 function CounterFromWord(var c: TCounter; statId: integer; s: string): boolean;
 	var
@@ -55,6 +97,7 @@ function CounterFromWord(var c: TCounter; statId: integer; s: string): boolean;
 		CounterFromWord := true;
 		c.UpdateBoard := false;
 		c.UpdateTheme := false;
+		c.Entry := s;
 
 		if s = 'ISDARK' then begin
 			c.CType := TCShortInt;
@@ -181,15 +224,26 @@ function CounterFromWord(var c: TCounter; statId: integer; s: string): boolean;
 				end;
 			for i := 1 to (PALETTE_START - 1) do
 				if s = ParamConfigs(i) then begin
-					c.Pointer := @ExtendedData.Params[i];
+					c.Pointer := @XDat.Params[i];
 					c.UpdateBoard := true;
 					if s[1] = 'T' then c.UpdateTheme := true;
 					exit;
 				end;
 			if s = ParamConfigs(71) then begin
-				c.Pointer := @ExtendedData.Params[71];
+				c.Pointer := @XDat.Params[71];
 				exit;				
 			end;
+			for i := 1 to CONFIG_FILE_COUNT do
+				if s = StringConfigs(i) then begin
+					c.CType := TCConfig;
+					c.Value := i;
+					exit;
+				end;
+			for i := 4 to 12 do
+				if s[i] = '.' then begin
+					c.CType := TCElement;
+					exit;
+				end;
 
 			{ No match }
 			CounterFromWord := false;
@@ -204,6 +258,8 @@ procedure CounterReadValue(var c: TCounter);
 			c.Value := cShortInt(c.Pointer)^
 		else if c.CType = TCInteger then
 			c.Value := cInteger(c.Pointer)^
+		else if c.CType = TCElement then
+			c.Value := ElementRead(c)
 		else if c.CType = TCTickSpeed then
 			c.Value := TickSpeed + 1;
 	end;
@@ -218,6 +274,8 @@ function CounterWriteValue(var c: TCounter): boolean;
 			cShortInt(c.Pointer)^ := c.Value
 		else if c.CType = TCInteger then
 			cInteger(c.Pointer)^ := c.Value
+		else if c.CType = TCElement then
+			ElementWrite(c)
 		else if c.CType = TCTickSpeed then begin
 			if c.Value <= 0 then
 				TickSpeed := 0

@@ -82,13 +82,13 @@ interface
 		TElementDrawProc = procedure(x, y: integer; var ch: byte);
 		TElementTickProc = procedure(statId: integer);
 		TElementTouchProc = procedure(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
-		TElementDef = record
+		TElemDef = record
 			Character: char;
 			Color: byte;
-			Destructible: boolean;
+			CanShoot: boolean;
 			Pushable: boolean;
-			VisibleInDark: boolean;
-			PlaceableOnTop: boolean;
+			SeeDark: boolean;
+			CanPut: boolean;
 			Walkable: boolean;
 			HasDrawProc: boolean;
 			DrawProc: TElementDrawProc;
@@ -96,9 +96,9 @@ interface
 			TickProc: TElementTickProc;
 			TouchProc: TElementTouchProc;
 			Name: string[20];
-			Param1: byte;
-			Param2: byte;
-			Param3: byte;
+			P1: byte;
+			P2: byte;
+			P3: byte;
 			ScoreValue: integer;
 		end;
 		TStat = record
@@ -175,15 +175,15 @@ interface
 		TExtendedData = record
 			Flags: array[MAX_FLAG + 1 .. MAX_EXTENDEDFLAG] of TString20;
 			Params: array[1 .. PARAM_FILE_COUNT] of integer;
+			EDefs: array[0 .. MAX_ELEMENT] of TElemDef;
+			Configs: array[1 .. CONFIG_FILE_COUNT] of string[80];
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
-		TConfigList = array[1 .. CONFIG_FILE_COUNT] of string[80];
 		TCustomCounterList = array[1 .. CUSTOM_COUNTER_COUNT] of TString20;
 		TCustomFlagList = array[1 .. CUSTOM_FLAG_COUNT] of TString20;
 		TCustomBoardList = array[1 .. 7] of TString20;
 		TCustomObjList = array[1 .. 6] of TString20;
 		TCustomKeyList = array[0 .. CUSTOM_KEY_COUNT - 1] of TString20;
-		{TExtendedFlagList = array[MAX_FLAG + 1 .. MAX_EXTENDEDFLAG] of TString20;}
 		TSearchArea = array[-7 .. 7] of array[-7 .. 7] of shortint;
 		TSidebar = record
 			Disp: TString8;
@@ -244,8 +244,6 @@ interface
 		{OUTPUT}
 		OutTmpPos: pointer;
 
-		ElementDefs: array[0 .. MAX_ELEMENT] of TElementDef;
-
 		CurrentTick: integer;
 		CurrentStatTicked: integer;
 		OopFuncReturn: integer;
@@ -268,13 +266,12 @@ interface
 		CustomFlagList: TCustomFlagList;
 		CustomBoardList: TCustomBoardList;
 		CustomObjList: TCustomObjList;
-		ConfigList: TConfigList;
 		KeyList: TCustomKeyList;
 		SearchArea: TSearchArea;
 		HighScoreList: THighScoreList;
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
-		ExtendedData: TExtendedData;
+		XDat: TExtendedData;
 		Accessibility: array[1..7] of TString50;
 
 		BoardNames: array[0 .. MAX_BOARD] of TString50;

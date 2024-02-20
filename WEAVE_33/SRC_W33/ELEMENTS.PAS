@@ -39,8 +39,10 @@ interface
 	procedure InitElementsGame;
 	procedure ConfigStringsLoad;
 	procedure ElementMod(e: integer; par: string; op: string; statId: integer);
+	function ElementGet(e: integer; par: string): integer;
+	function StringConfigs(i: integer): string;
 	function Enum(elem: integer): integer;
-	function ElementDefColor(elem: integer): byte;
+	function ElemDefColor(elem: integer): byte;
 
 implementation
 uses Crt, Video, Sounds, Input, TxtWind, Oop, Game;
@@ -67,15 +69,15 @@ function AsColor(fg, bg: integer): byte;
 		AsColor := ((bg * 16) + fg) and $FF;
 	end;
 
-procedure ElementDefaultTick(statId: integer);
+procedure ElemDefaultTick(statId: integer);
 	begin
 	end;
 
-procedure ElementDefaultTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
+procedure ElemDefaultTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
 	end;
 
-procedure ElementDefaultDraw(x, y: integer; var ch: byte);
+procedure ElemDefaultDraw(x, y: integer; var ch: byte);
 	begin
 		ch := Ord('?');
 	end;
@@ -95,7 +97,7 @@ procedure ElementLionTick(statId: integer);
 			else
 				CalcDirectionSeek(X, Y, deltaX, deltaY);
 
-			if ElementDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then begin
+			if XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then begin
 				MoveStat(statId, X + deltaX, Y + deltaY);
 			end else if Board.Tiles[X + deltaX][Y + deltaY].Element = E_PLAYER then begin
 				BoardAttack(statId, X + deltaX, Y + deltaY)
@@ -149,7 +151,7 @@ procedure ElementRuffianTick(statId: integer);
 				with Board.Tiles[X + StepX][Y + StepY] do begin
 					if Element = E_PLAYER then begin
 						BoardAttack(statId, X + StepX, Y + StepY)
-					end else if ElementDefs[Enum(Element)].Walkable then begin
+					end else if XDat.EDefs[Enum(Element)].Walkable then begin
 						MoveStat(statId, X + StepX, Y + StepY);
 						if (P2 + 8) <= Random(17) then begin
 							StepX := 0;
@@ -188,7 +190,7 @@ procedure ElementBearTick(statId: integer);
 
 		Movement:
 			with Board.Tiles[X + deltaX][Y + deltaY] do begin
-				if ElementDefs[Enum(Element)].Walkable then begin
+				if XDat.EDefs[Enum(Element)].Walkable then begin
 					MoveStat(statId, X + deltaX, Y + deltaY);
 				end else if (Element = E_PLAYER) or (Element = E_BREAKABLE) then begin
 					BoardAttack(statId, X + deltaX, Y + deltaY)
@@ -215,7 +217,7 @@ procedure ElementCentipedeHeadTick(statId: integer);
 				CalcDirectionRnd(StepX, StepY);
 			end;
 
-			if not ElementDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable
+			if not XDat.EDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable
 				and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER) then
 			begin
 				ix := StepX;
@@ -223,15 +225,15 @@ procedure ElementCentipedeHeadTick(statId: integer);
 				tmp := ((Random(2) * 2) - 1) * StepY;
 				StepY := ((Random(2) * 2) - 1) * StepX;
 				StepX := tmp;
-				if not ElementDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable
+				if not XDat.EDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable
 					and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER) then
 				begin
 					StepX := -StepX;
 					StepY := -StepY;
-					if not ElementDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable
+					if not XDat.EDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable
 						and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER) then
 					begin
-						if ElementDefs[Enum(Board.Tiles[X - ix][Y - iy].Element)].Walkable
+						if XDat.EDefs[Enum(Board.Tiles[X - ix][Y - iy].Element)].Walkable
 							or (Board.Tiles[X - ix][Y - iy].Element = E_PLAYER) then
 						begin
 							StepX := -ix;
@@ -329,10 +331,10 @@ procedure ElementBulletTick(statId: integer);
 	label BulletExpire;
 	begin
 		with Board.Stats[statId] do begin
-			if P2 < ElementDefs[E_BULLET].Param1 then
+			if P2 < XDat.EDefs[E_BULLET].P1 then
 				goto BulletExpire
 			else
-				Dec(P2, ElementDefs[E_BULLET].Param1);
+				Dec(P2, XDat.EDefs[E_BULLET].P1);
 			firstTry := true;
 
 		TryMove:
@@ -341,7 +343,7 @@ procedure ElementBulletTick(statId: integer);
 			if (ix <= 0) or (ix > BOARD_WIDTH) or (iy <= 0) or (iy > BOARD_HEIGHT) then goto BulletExpire;
 			iElem := Board.Tiles[ix][iy].Element;
 
-			if ElementDefs[Enum(iElem)].Walkable or (iElem = E_WATER) then begin
+			if XDat.EDefs[Enum(iElem)].Walkable or (iElem = E_WATER) then begin
 				MoveStat(statId, ix, iy);
 				exit;
 			end;
@@ -349,17 +351,17 @@ procedure ElementBulletTick(statId: integer);
 			if (iElem = E_RICOCHET) and firstTry then begin
 				StepX := -StepX;
 				StepY := -StepY;
-				SoundQueue(1, SoundParse(ConfigList[53])); {Ricochet sound}
+				SoundQueue(1, SoundParse(XDat.Configs[53])); {Ricochet sound}
 				firstTry := false;
 				goto TryMove;
 				exit;
 			end;
 
 			if (iElem = E_BREAKABLE)
-				or (ElementDefs[Enum(iElem)].Destructible and ((iElem = E_PLAYER) or (P1 = 0))) then
+				or (XDat.EDefs[Enum(iElem)].CanShoot and ((iElem = E_PLAYER) or (P1 = 0))) then
 			begin
-				if ElementDefs[Enum(iElem)].ScoreValue <> 0 then begin
-					World.Info.Score := World.Info.Score + ElementDefs[Enum(iElem)].ScoreValue;
+				if XDat.EDefs[Enum(iElem)].ScoreValue <> 0 then begin
+					World.Info.Score := World.Info.Score + XDat.EDefs[Enum(iElem)].ScoreValue;
 					GameUpdateSidebar;
 				end;
 				BoardAttack(statId, ix, iy);
@@ -370,7 +372,7 @@ procedure ElementBulletTick(statId: integer);
 				ix := StepX;
 				StepX := -StepY;
 				StepY := -ix;
-				SoundQueue(1, SoundParse(ConfigList[53])); {Ricochet sound}
+				SoundQueue(1, SoundParse(XDat.Configs[53])); {Ricochet sound}
 				firstTry := false;
 				goto TryMove;
 				exit;
@@ -380,7 +382,7 @@ procedure ElementBulletTick(statId: integer);
 				ix := StepX;
 				StepX := StepY;
 				StepY := ix;
-				SoundQueue(1, SoundParse(ConfigList[53])); {Ricochet sound}
+				SoundQueue(1, SoundParse(XDat.Configs[53])); {Ricochet sound}
 				firstTry := false;
 				goto TryMove;
 				exit;
@@ -388,7 +390,7 @@ procedure ElementBulletTick(statId: integer);
 
 		BulletExpire:
 			if (iElem = E_OBJECT) or (iElem = E_SCROLL) then begin
-				if (P1 = ExtendedData.Params[12]) or (P1 = SHOT_SOURCE_PLAYER) then begin {Friendly Fire}
+				if (P1 = XDat.Params[12]) or (P1 = SHOT_SOURCE_PLAYER) then begin {Friendly Fire}
 					iStat := GetStatIdAt(ix, iy);
 					if OopSend(-iStat, 'SHOT', false) then begin end;
 				end;
@@ -430,7 +432,7 @@ procedure ElementDoorDraw(x, y: integer; var ch: byte);
 		if Diffkeys then
 			ch := 132 + key
 		else
-			ch := Ord(ElementDefs[E_DOOR].Character) + (key * ElementDefs[E_DOOR].Param2);
+			ch := Ord(XDat.EDefs[E_DOOR].Character) + (key * XDat.EDefs[E_DOOR].P2);
 	end;
 
 procedure ElementKeyDraw(x, y: integer; var ch: byte);
@@ -441,7 +443,7 @@ procedure ElementKeyDraw(x, y: integer; var ch: byte);
 		if Diffkeys then
 			ch := 139 + key
 		else
-			ch := Ord(ElementDefs[E_KEY].Character) + (key * ElementDefs[E_KEY].Param2);
+			ch := Ord(XDat.EDefs[E_KEY].Character) + (key * XDat.EDefs[E_KEY].P2);
 	end;
 
 procedure ElementSpinningGunTick(statId: integer);
@@ -510,7 +512,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			with tiles[i] do begin
 				if Element = E_EMPTY then
 					canMove := true
-				else if not ElementDefs[Enum(Element)].Pushable then
+				else if not XDat.EDefs[Enum(Element)].Pushable then
 					canMove := false;
 				{ FIX: In some cases, a movement could cause two stats to briefly overlap each other. }
 				{ Pre-find stat IDs to prevent such a scenario from occuring. }
@@ -523,7 +525,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 		repeat
 			with tiles[i] do begin
 				if canMove then begin
-					if ElementDefs[Enum(Element)].Pushable or (Element = E_EMPTY) then begin
+					if XDat.EDefs[Enum(Element)].Pushable or (Element = E_EMPTY) then begin
 						ix := x + DiagonalDeltaX[(i - direction) and 7];
 						iy := y + DiagonalDeltaY[(i - direction) and 7];
 						tx := x + DiagonalDeltaX[i];
@@ -542,7 +544,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 							Board.Tiles[ix][iy] := tiles[i];
 							BoardDrawTile(ix, iy);
 						end;
-						if not (ElementDefs[Enum(tiles[(i + direction) and 7].Element)].Pushable
+						if not (XDat.EDefs[Enum(tiles[(i + direction) and 7].Element)].Pushable
 							or (tiles[(i + direction) and 7].Element = E_EMPTY))
 						then begin
 							Board.Tiles[tx][ty].Element := E_EMPTY;
@@ -553,7 +555,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 					end;
 				end else if Element = E_EMPTY then
 					canMove := true
-				else if not (ElementDefs[Enum(Element)].Pushable or (Element = E_EMPTY)) then
+				else if not (XDat.EDefs[Enum(Element)].Pushable or (Element = E_EMPTY)) then
 					canMove := false;
 			end;
 			Inc(i, direction);
@@ -562,7 +564,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 
 procedure ElementConveyorCWDraw(x, y: integer; var ch: byte);
 	begin
-		case (CurrentTick div ElementDefs[E_CONVEYOR_CW].Cycle) and 3 of
+		case (CurrentTick div XDat.EDefs[E_CONVEYOR_CW].Cycle) and 3 of
 			0: ch := 179;
 			1: ch := 47;
 			2: ch := 196;
@@ -578,7 +580,7 @@ procedure ElementConveyorCWTick(statId: integer);
 
 procedure ElementConveyorCCWDraw(x, y: integer; var ch: byte);
 	begin
-		case (CurrentTick div ElementDefs[E_CONVEYOR_CCW].Cycle) and 3 of
+		case (CurrentTick div XDat.EDefs[E_CONVEYOR_CCW].Cycle) and 3 of
 			3: ch := 179;
 			2: ch := 47;
 			1: ch := 196;
@@ -596,7 +598,7 @@ procedure ElementBombDraw(x, y: integer; var ch: byte);
 	begin
 		with Board.Stats[GetStatIdAt(x, y)] do
 			if P1 <= 1 then
-				ch := Ord(ElementDefs[E_BOMB].Character)
+				ch := Ord(XDat.EDefs[E_BOMB].Character)
 			else
 				ch := 48 + P1;
 	end;
@@ -611,7 +613,7 @@ procedure ElementBombTick(statId: integer);
 				BoardDrawTile(X, Y);
 
 				if P1 = 1 then begin
-					SoundQueue(1, SoundParse(ConfigList[5])); {Bomb explode sound}
+					SoundQueue(1, SoundParse(XDat.Configs[5])); {Bomb explode sound}
 					DrawBombSurroundings(X, Y, 1);
 				end else if P1 = 0 then begin
 					oldX := X;
@@ -620,9 +622,9 @@ procedure ElementBombTick(statId: integer);
 					DrawBombSurroundings(oldX, oldY, 2);
 				end else begin
 					if (P1 mod 2) = 0 then
-						SoundQueue(1, SoundParse(ConfigList[4])) {Bomb tock}
+						SoundQueue(1, SoundParse(XDat.Configs[4])) {Bomb tock}
 					else
-						SoundQueue(1, SoundParse(ConfigList[3])); {Bomb tick}
+						SoundQueue(1, SoundParse(XDat.Configs[3])); {Bomb tick}
 				end;
 			end;
 		end;
@@ -634,8 +636,8 @@ procedure ElementBombTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 			if P1 = 0 then begin
 				P1 := 9;
 				BoardDrawTile(X, Y);
-				DisplayMessage(200, ConfigList[1]); {"Bomb Activated!"}
-				SoundQueue(4, SoundParse(ConfigList[2])); {Bomb activate sound}
+				DisplayMessage(200, XDat.Configs[1]); {"Bomb Activated!"}
+				SoundQueue(4, SoundParse(XDat.Configs[2])); {Bomb activate sound}
 			end else begin
 				ElementPushablePush(X, Y, deltaX, deltaY);
 			end;
@@ -666,10 +668,10 @@ procedure ElementTransporterMove(x, y, deltaX, deltaY: integer);
 						else if isValidDest then begin
 							isValidDest := false;
 
-							if not ElementDefs[Enum(Element)].Walkable then
+							if not XDat.EDefs[Enum(Element)].Walkable then
 								ElementPushablePush(ix, iy, deltaX, deltaY);
 
-							if ElementDefs[Enum(Element)].Walkable then begin
+							if XDat.EDefs[Enum(Element)].Walkable then begin
 								finishSearch := true;
 								newX := ix;
 								newY := iy;
@@ -686,7 +688,7 @@ procedure ElementTransporterMove(x, y, deltaX, deltaY: integer);
 				until finishSearch;
 				if newX <> -1 then begin
 					ElementMove(X - deltaX, Y - deltaY, newX, newY);
-					SoundQueue(3, SoundParse(ConfigList[62])); {Transporter sound}
+					SoundQueue(3, SoundParse(XDat.Configs[62])); {Transporter sound}
 				end;
 			end;
 		end;
@@ -726,8 +728,8 @@ procedure ElementStarDraw(x, y: integer; var ch: byte);
 procedure ElementPlayerDraw(x, y: integer; var ch: byte);
 	begin
 		if (World.Info.PlayerColor = 0) and (World.Info.PlayerChar = #0) then begin
-			World.Info.PlayerChar := ElementDefs[E_PLAYER].Character;
-			World.Info.PlayerColor := ElementDefs[E_PLAYER].Color;
+			World.Info.PlayerChar := XDat.EDefs[E_PLAYER].Character;
+			World.Info.PlayerColor := XDat.EDefs[E_PLAYER].Color;
 		end;
 
 		ch := Ord(World.Info.PlayerChar);
@@ -737,7 +739,7 @@ procedure ElementPlayerDraw(x, y: integer; var ch: byte);
 			if World.Info.EnergizerTicks > 0 then begin
 				Board.Tiles[x][y].Color := AsColor(World.Info.PlayerColor and $0F,(CurrentTick mod 7) + 1);
 				if (CurrentTick mod 2) <> 0 then
-					ch := ExtendedData.Params[1];
+					ch := XDat.Params[1];
 			end;
 		end;
 	end;
@@ -746,20 +748,20 @@ procedure ElementPlayerDraw(x, y: integer; var ch: byte);
 procedure ElementStarTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			if P2 < ElementDefs[E_STAR].Param1 then {Star Health Drain}
+			if P2 < XDat.EDefs[E_STAR].P1 then {Star Health Drain}
 				RemoveStat(statId)
 			else begin
-				Dec(P2, ElementDefs[E_STAR].Param1);
+				Dec(P2, XDat.EDefs[E_STAR].P1);
 				if (P2 mod 2) = 0 then begin
 					CalcDirectionSeek(X, Y, StepX, StepY);
 					with Board.Tiles[X + StepX][Y + StepY] do begin
 						if (Element = E_PLAYER) or (Element = E_BREAKABLE) then begin
 							BoardAttack(statId, X + StepX, Y + StepY);
 						end else begin
-							if not ElementDefs[Enum(Element)].Walkable then
+							if not XDat.EDefs[Enum(Element)].Walkable then
 								ElementPushablePush(X + StepX, Y + StepY, StepX, StepY);
 
-							if ElementDefs[Enum(Element)].Walkable or (Element = E_WATER) then
+							if XDat.EDefs[Enum(Element)].Walkable or (Element = E_WATER) then
 								MoveStat(statId, X + StepX, Y + StepY);
 						end;
 					end;
@@ -771,24 +773,24 @@ procedure ElementStarTick(statId: integer);
 
 procedure ElementEnergizerTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
-		SoundQueue(9, SoundParse(ConfigList[7]) {Energizer Song}
-			+ SoundParse(ConfigList[8])
-			+ SoundParse(ConfigList[9])
-			+ SoundParse(ConfigList[10]));
+		SoundQueue(9, SoundParse(XDat.Configs[7]) {Energizer Song}
+			+ SoundParse(XDat.Configs[8])
+			+ SoundParse(XDat.Configs[9])
+			+ SoundParse(XDat.Configs[10]));
 
-		Board.Tiles[x][y].Element := ElementDefs[E_ENERGIZER].Param3;
+		Board.Tiles[x][y].Element := XDat.EDefs[E_ENERGIZER].P3;
 		BoardDrawTile(x, y);
 
-		World.Info.EnergizerTicks := ElementDefs[E_ENERGIZER].Param1; 
+		World.Info.EnergizerTicks := XDat.EDefs[E_ENERGIZER].P1; 
 		GameUpdateSidebar;
 
 		if MessageEnergizerNotShown then begin
-			DisplayMessage(200, ConfigList[6]); {"Energizer - You are Invincible!"}
+			DisplayMessage(200, XDat.Configs[6]); {"Energizer - You are Invincible!"}
 			MessageEnergizerNotShown := false;
 		end;
 
 		if OopSend(0, 'ALL:ENERGIZE', false) then begin end;
-		if not ElementDefs[Enum(ElementDefs[E_ENERGIZER].Param3)].Walkable then
+		if not XDat.EDefs[Enum(XDat.EDefs[E_ENERGIZER].P3)].Walkable then
 			MoveStat(0, x, y);
 	end;
 
@@ -809,7 +811,7 @@ procedure ElementSlimeTick(statId: integer);
 				changedTiles := 0;
 
 				for dir := 0 to 3 do begin
-					if ElementDefs[Enum(Board.Tiles[startX + NeighborDeltaX[dir]][startY + NeighborDeltaY[dir]].Element)].Walkable then begin
+					if XDat.EDefs[Enum(Board.Tiles[startX + NeighborDeltaX[dir]][startY + NeighborDeltaY[dir]].Element)].Walkable then begin
 						if changedTiles = 0 then begin
 							MoveStat(statId, startX + NeighborDeltaX[dir], startY + NeighborDeltaY[dir]);
 							Board.Tiles[startX][startY].Color := color;
@@ -817,7 +819,7 @@ procedure ElementSlimeTick(statId: integer);
 							BoardDrawTile(startX, startY);
 						end else begin
 							AddStat(startX + NeighborDeltaX[dir], startY + NeighborDeltaY[dir], E_SLIME, color,
-								ElementDefs[E_SLIME].Cycle, StatTemplateDefault);
+								XDat.EDefs[E_SLIME].Cycle, StatTemplateDefault);
 							Board.Stats[Board.StatCount].P2 := P2;
 						end;
 
@@ -895,7 +897,7 @@ procedure ElementBlinkWallTick(statId: integer);
 				if ((X + StepX) = ix) and ((Y + StepY) = iy) then begin
 					hitBoundary := false;
 					repeat
-						if (Board.Tiles[ix][iy].Element <> E_EMPTY) and (ElementDefs[Enum(Board.Tiles[ix][iy].Element)].Destructible) then
+						if (Board.Tiles[ix][iy].Element <> E_EMPTY) and (XDat.EDefs[Enum(Board.Tiles[ix][iy].Element)].CanShoot) then
 							BoardDamageTile(ix, iy);
 
 						if Board.Tiles[ix][iy].Element = E_PLAYER then begin
@@ -965,21 +967,21 @@ procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 		if (deltaX <> 0) or (deltaY <> 0) then begin
 			with Board.Tiles[x][y] do begin
 				if ((Element = E_SLIDER_NS) and (deltaX = 0)) or ((Element = E_SLIDER_EW) and (deltaY = 0))
-					or ElementDefs[Enum(Element)].Pushable then
+					or XDat.EDefs[Enum(Element)].Pushable then
 				begin
 					if Board.Tiles[x + deltaX][y + deltaY].Element = E_TRANSPORTER then
 						ElementTransporterMove(x, y, deltaX, deltaY)
 					else if Board.Tiles[x + deltaX][y + deltaY].Element <> E_EMPTY then
 						ElementPushablePush(x + deltaX, y + deltaY, deltaX, deltaY);
 
-					if not ElementDefs[Enum(Board.Tiles[x + deltaX][y + deltaY].Element)].Walkable
-						and ElementDefs[Enum(Board.Tiles[x + deltaX][y + deltaY].Element)].Destructible
+					if not XDat.EDefs[Enum(Board.Tiles[x + deltaX][y + deltaY].Element)].Walkable
+						and XDat.EDefs[Enum(Board.Tiles[x + deltaX][y + deltaY].Element)].CanShoot
 						and (Board.Tiles[x + deltaX][y + deltaY].Element <> E_PLAYER) then
 					begin
 						BoardDamageTile(x + deltaX, y + deltaY);
 					end;
 
-					if ElementDefs[Enum(Board.Tiles[x + deltaX][y + deltaY].Element)].Walkable then
+					if XDat.EDefs[Enum(Board.Tiles[x + deltaX][y + deltaY].Element)].Walkable then
 						ElementMove(x, y, x + deltaX, y + deltaY);
 				end;
 			end;
@@ -1004,12 +1006,12 @@ procedure ElementObjectTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
 			if DataPos >= 0 then
-				retVal := OopExecute(statId, DataPos, ConfigList[84])
+				retVal := OopExecute(statId, DataPos, XDat.Configs[84])
 			else
 				retVal := true;
 
 			if retVal then begin
-				if ElementDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable then
+				if XDat.EDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable then
 					MoveStat(statId, X + StepX, Y + StepY)
 				else if (StepX <> 0) or (StepY <> 0) then
 					retVal := OopSend(-statId, 'THUD', false);
@@ -1045,7 +1047,7 @@ function ElementDuplicate(srcX, srcY, dstX, dstY, statId: integer): boolean;
 		with Board.Stats[statId] do begin
 			with Board.Tiles[X + dstX][Y + dstY] do begin
 				if Element = E_PLAYER then begin
-					ElementDefs[ENum(Board.Tiles[X + srcX][Y + srcY].Element)]
+					XDat.EDefs[ENum(Board.Tiles[X + srcX][Y + srcY].Element)]
 						.TouchProc(X + srcX, Y + srcY, 0, InputDeltaX, InputDeltaY);
 					BoardDrawTile(X + srcX, Y + srcY);
 				end else begin
@@ -1053,7 +1055,7 @@ function ElementDuplicate(srcX, srcY, dstX, dstY, statId: integer): boolean;
 						ElementPushablePush(X + dstX, Y + dstY, dstX, dstY);
 
 					if (Element = E_EMPTY)
-						or (HasINI and ElementDefs[ENum(Element)].PlaceableOnTop = true)
+						or (HasINI and XDat.EDefs[ENum(Element)].CanPut = true)
 					then begin
 						sourceStatId := GetStatIdAt(X + srcX, Y + srcY);
 						if sourceStatId > 0 then begin
@@ -1083,10 +1085,10 @@ procedure ElementDuplicatorTick(statId: integer);
 			else begin
 				P1 := 0;
 				if ElementDuplicate(StepX,StepY,-StepX,-StepY,statId) then begin
-					SoundQueue(3, SoundParse(ConfigList[50])); {Duplicator success}
+					SoundQueue(3, SoundParse(XDat.Configs[50])); {Duplicator success}
 					BoardDrawTile(X - StepX, Y - StepY);
 				end else
-					SoundQueue(3, SoundParse(ConfigList[51])); {Duplicator blocked}
+					SoundQueue(3, SoundParse(XDat.Configs[51])); {Duplicator blocked}
 			end;
 			BoardDrawTile(X, Y);
 		end;
@@ -1114,10 +1116,10 @@ procedure ElementScrollTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 			textWindow.Selectable := false;
 			textWindow.LinePos := 1;
 
-			SoundQueue(2, SoundParse(ConfigList[60])); {Scroll Touch}
+			SoundQueue(2, SoundParse(XDat.Configs[60])); {Scroll Touch}
 
 			DataPos := 0;
-			if OopExecute(statId, DataPos, ConfigList[85]) then begin end; {'Scroll'}
+			if OopExecute(statId, DataPos, XDat.Configs[85]) then begin end; {'Scroll'}
 		end;
 
 		statId := GetStatIdAt(x, y);
@@ -1131,51 +1133,51 @@ procedure ElementKeyTouch(x, y: integer; sourceStatId: integer; var deltaX, delt
 	begin
 		key := Board.Tiles[x][y].Color and $07;
 
-		if World.Info.Keys[key] >= ElementDefs[E_KEY].Param1 then begin {Key Limit}
-			DisplayMessage(200, ConfigList[15]+ColorNames[key]+ConfigList[16]); {Already have key}
-			SoundQueue(2, SoundParse(ConfigList[17]));
+		if World.Info.Keys[key] >= XDat.EDefs[E_KEY].P1 then begin {Key Limit}
+			DisplayMessage(200, XDat.Configs[15]+ColorNames[key]+XDat.Configs[16]); {Already have key}
+			SoundQueue(2, SoundParse(XDat.Configs[17]));
 		end else begin
 			Inc(World.Info.Keys[key]);
-			Board.Tiles[x][y].Element := ElementDefs[E_KEY].Param3;
+			Board.Tiles[x][y].Element := XDat.EDefs[E_KEY].P3;
 			GameUpdateSidebar;
-			DisplayMessage(200, ConfigList[12]+ColorNames[key]+ConfigList[13]); {You got the key}
-			SoundQueue(2, SoundParse(ConfigList[14]));
-			if not ElementDefs[Enum(ElementDefs[E_KEY].Param3)].Walkable then
+			DisplayMessage(200, XDat.Configs[12]+ColorNames[key]+XDat.Configs[13]); {You got the key}
+			SoundQueue(2, SoundParse(XDat.Configs[14]));
+			if not XDat.EDefs[Enum(XDat.EDefs[E_KEY].P3)].Walkable then
 				MoveStat(0, x, y);
 		end;
 	end;
 
 procedure ElementAmmoTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
-		Inc(World.Info.Ammo, ElementDefs[E_AMMO].Param1); {Amount per ammo collected}
+		Inc(World.Info.Ammo, XDat.EDefs[E_AMMO].P1); {Amount per ammo collected}
 
-		Board.Tiles[x][y].Element := ElementDefs[E_AMMO].Param3;
+		Board.Tiles[x][y].Element := XDat.EDefs[E_AMMO].P3;
 		GameUpdateSidebar;
-		SoundQueue(2, SoundParse(ConfigList[25])); {Ammo Collect sound}
+		SoundQueue(2, SoundParse(XDat.Configs[25])); {Ammo Collect sound}
 
 		if MessageAmmoNotShown then begin
 			MessageAmmoNotShown := false;
-			DisplayMessage(200, ConfigList[24]); {"Ammunition - 5 shots per container"}
+			DisplayMessage(200, XDat.Configs[24]); {"Ammunition - 5 shots per container"}
 		end;
-		if not ElementDefs[Enum(ElementDefs[E_AMMO].Param3)].Walkable then
+		if not XDat.EDefs[Enum(XDat.EDefs[E_AMMO].P3)].Walkable then
 			MoveStat(0, x, y);
 	end;
 
 procedure ElementGemTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
-		World.Info.Gems := World.Info.Gems + ElementDefs[E_GEM].Param1;
-		World.Info.Health := World.Info.Health + ElementDefs[E_GEM].Param2;
-		World.Info.Score := World.Info.Score + ElementDefs[E_GEM].ScoreValue;
+		World.Info.Gems := World.Info.Gems + XDat.EDefs[E_GEM].P1;
+		World.Info.Health := World.Info.Health + XDat.EDefs[E_GEM].P2;
+		World.Info.Score := World.Info.Score + XDat.EDefs[E_GEM].ScoreValue;
 
-		Board.Tiles[x][y].Element := ElementDefs[E_GEM].Param3;
+		Board.Tiles[x][y].Element := XDat.EDefs[E_GEM].P3;
 		GameUpdateSidebar;
-		SoundQueue(2, SoundParse(ConfigList[27])); {Gem sound}
+		SoundQueue(2, SoundParse(XDat.Configs[27])); {Gem sound}
 
 		if MessageGemNotShown then begin
 			MessageGemNotShown := false;
-			DisplayMessage(200, ConfigList[26]); {"Gems give you Health!"}
+			DisplayMessage(200, XDat.Configs[26]); {"Gems give you Health!"}
 		end;
-		if not ElementDefs[Enum(ElementDefs[E_GEM].Param3)].Walkable then
+		if not XDat.EDefs[Enum(XDat.EDefs[E_GEM].P3)].Walkable then
 			MoveStat(0, x, y);
 	end;
 
@@ -1195,26 +1197,26 @@ procedure ElementDoorTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 		key := (Board.Tiles[x][y].Color div 16) and $07;
 
 		if World.Info.Keys[key] > 0 then begin
-			Board.Tiles[x][y].Element := ElementDefs[E_DOOR].Param3;
+			Board.Tiles[x][y].Element := XDat.EDefs[E_DOOR].P3;
 			BoardDrawTile(x, y);
 
 			Dec(World.Info.Keys[key]);
 			GameUpdateSidebar;
 
-			DisplayMessage(200, ConfigList[18]+ColorNames[key]+ConfigList[19]); {You opened the door}
-			SoundQueue(3, SoundParse(ConfigList[20]));
-			if not ElementDefs[Enum(ElementDefs[E_DOOR].Param3)].Walkable then
+			DisplayMessage(200, XDat.Configs[18]+ColorNames[key]+XDat.Configs[19]); {You opened the door}
+			SoundQueue(3, SoundParse(XDat.Configs[20]));
+			if not XDat.EDefs[Enum(XDat.EDefs[E_DOOR].P3)].Walkable then
 				MoveStat(0, x, y);
 		end else begin
-			DisplayMessage(200, ConfigList[21]+ColorNames[key]+ConfigList[22]); {The door is locked}
-			SoundQueue(3, SoundParse(ConfigList[23]));
+			DisplayMessage(200, XDat.Configs[21]+ColorNames[key]+XDat.Configs[22]); {The door is locked}
+			SoundQueue(3, SoundParse(XDat.Configs[23]));
 		end;
 	end;
 
 procedure ElementPushableTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
 		ElementPushablePush(x, y, deltaX, deltaY);
-		SoundQueue(2, SoundParse(ConfigList[52])); {Push boulder sound}
+		SoundQueue(2, SoundParse(XDat.Configs[52])); {Push boulder sound}
 	end;
 
 procedure ElementPusherDraw(x, y: integer; var ch: byte);
@@ -1239,21 +1241,21 @@ procedure ElementPusherTick(statId: integer);
 			startX := X;
 			startY := Y;
 
-			if not ElementDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable then begin
+			if not XDat.EDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable then begin
 				ElementPushablePush(X + StepX, Y + StepY, StepX, StepY);
 			end;
 		end;
 
 		statId := GetStatIdAt(startX, startY);
 		with Board.Stats[statId] do begin
-			if ElementDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable then begin
+			if XDat.EDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable then begin
 				MoveStat(statId, X + StepX, Y + StepY);
-				SoundQueue(2, SoundParse(ConfigList[52])); {Pusher push sound}
+				SoundQueue(2, SoundParse(XDat.Configs[52])); {Pusher push sound}
 
 				if Board.Tiles[X - (StepX * 2)][Y - (StepY * 2)].Element = E_PUSHER then begin
 					i := GetStatIdAt(X - (StepX * 2), Y - (StepY * 2));
 					if (Board.Stats[i].StepX = StepX) and (Board.Stats[i].StepY = StepY) then
-						ElementDefs[E_PUSHER].TickProc(i);
+						XDat.EDefs[E_PUSHER].TickProc(i);
 				end;
 			end;
 		end;
@@ -1261,52 +1263,52 @@ procedure ElementPusherTick(statId: integer);
 
 procedure ElementTorchTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
-		Inc(World.Info.Torches, ElementDefs[E_TORCH].Param1);
-		Board.Tiles[x][y].Element := ElementDefs[E_TORCH].Param3;
+		Inc(World.Info.Torches, XDat.EDefs[E_TORCH].P1);
+		Board.Tiles[x][y].Element := XDat.EDefs[E_TORCH].P3;
 
 		BoardDrawTile(x, y);
 		GameUpdateSidebar;
 
 		if MessageTorchNotShown then begin
-			DisplayMessage(200, ConfigList[28]); {"Torch - Used for lighting in the underground."}
+			DisplayMessage(200, XDat.Configs[28]); {"Torch - Used for lighting in the underground."}
 		end;
 		MessageTorchNotShown := false;
 
-		SoundQueue(3, SoundParse(ConfigList[29])); {Torch sound}
-		if not ElementDefs[Enum(ElementDefs[E_TORCH].Param3)].Walkable then
+		SoundQueue(3, SoundParse(XDat.Configs[29])); {Torch sound}
+		if not XDat.EDefs[Enum(XDat.EDefs[E_TORCH].P3)].Walkable then
 			MoveStat(0, x, y);
 	end;
 
 procedure ElementInvisibleTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
 		with Board.Tiles[x][y] do begin
-			Element := ElementDefs[E_INVISIBLE].Param1;
+			Element := XDat.EDefs[E_INVISIBLE].P1;
 			BoardDrawTile(x, y);
 
-			SoundQueue(3, SoundParse(ConfigList[32])); {Invisible wall touch}
-			DisplayMessage(100, ConfigList[31]); {"You are blocked by an invisible wall."}
+			SoundQueue(3, SoundParse(XDat.Configs[32])); {Invisible wall touch}
+			DisplayMessage(100, XDat.Configs[31]); {"You are blocked by an invisible wall."}
 		end;
 	end;
 
 procedure ElementForestTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
-		Board.Tiles[x][y].Element := ElementDefs[E_FOREST].Param3;
+		Board.Tiles[x][y].Element := XDat.EDefs[E_FOREST].P3;
 		BoardDrawTile(x, y);
 
-		SoundQueue(3, SoundParse(ConfigList[34])); {Forest sound}
+		SoundQueue(3, SoundParse(XDat.Configs[34])); {Forest sound}
 
 		if MessageForestNotShown then begin
-			DisplayMessage(200, ConfigList[33]); {"A path is cleared through the forest."}
+			DisplayMessage(200, XDat.Configs[33]); {"A path is cleared through the forest."}
 		end;
 		MessageForestNotShown := false;
-		if not ElementDefs[Enum(ElementDefs[E_FOREST].Param3)].Walkable then
+		if not XDat.EDefs[Enum(XDat.EDefs[E_FOREST].P3)].Walkable then
 			MoveStat(0, x, y);
 	end;
 
 procedure ElementFakeTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
 		if MessageFakeNotShown then begin
-			DisplayMessage(150, ConfigList[35]); {"Fake Wall - Secret Passage}
+			DisplayMessage(150, XDat.Configs[35]); {"Fake Wall - Secret Passage}
 		end;
 		MessageFakeNotShown := false;
 	end;
@@ -1337,11 +1339,11 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 			boardId := World.Info.CurrentBoard;
 			BoardChange(Board.Info.NeighborBoards[neighborId]);
 			if Board.Tiles[entryX][entryY].Element <> E_PLAYER then begin
-				ElementDefs[Enum(Board.Tiles[entryX][entryY].Element)].TouchProc(
+				XDat.EDefs[Enum(Board.Tiles[entryX][entryY].Element)].TouchProc(
 					entryX, entryY, sourceStatId, InputDeltaX, InputDeltaY);
 			end;
 
-			if ElementDefs[Enum(Board.Tiles[entryX][entryY].Element)].Walkable
+			if XDat.EDefs[Enum(Board.Tiles[entryX][entryY].Element)].Walkable
 				or (Board.Tiles[entryX][entryY].Element = E_PLAYER) then
 			begin
 				if Board.Tiles[entryX][entryY].Element <> E_PLAYER then
@@ -1361,8 +1363,8 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 
 procedure ElementWaterTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
-		SoundQueue(3, SoundParse(ConfigList[37])); {Water touch sound}
-		DisplayMessage(100, ConfigList[36]); {"Your way is blocked by water."}
+		SoundQueue(3, SoundParse(XDat.Configs[37])); {Water touch sound}
+		DisplayMessage(100, XDat.Configs[36]); {"Your way is blocked by water."}
 	end;
 
 procedure DrawBombSurroundings(x, y: integer; bombPhase: integer);
@@ -1374,14 +1376,14 @@ procedure DrawBombSurroundings(x, y: integer; bombPhase: integer);
 		for ix := 1 to BOARD_WIDTH do {Bomb Radius}
 			for iy := 1 to BOARD_HEIGHT do
 				with Board.Tiles[ix][iy] do begin
-					if ((Sqr(ix-x)*ExtendedData.Params[6]) + (Sqr(iy-y)*ExtendedData.Params[7])) < ExtendedData.Params[8] then begin
+					if ((Sqr(ix-x)*XDat.Params[6]) + (Sqr(iy-y)*XDat.Params[7])) < XDat.Params[8] then begin
 						if bombPhase = 1 then begin
 							if Element = E_OBJECT then begin
 								istat := GetStatIdAt(ix, iy);
 								if istat > 0 then
 									result := OopSend(-istat, 'BOMBED', false);
 							end;
-							if ElementDefs[Enum(Element)].Destructible or (Element = E_STAR) then
+							if XDat.EDefs[Enum(Element)].CanShoot or (Element = E_STAR) then
 								BoardDamageTile(ix, iy);
 							if (Element = E_EMPTY) or (Element = E_BREAKABLE) then begin
 								Element := E_BREAKABLE;
@@ -1398,7 +1400,7 @@ procedure DrawBombSurroundings(x, y: integer; bombPhase: integer);
 
 procedure GamePromptEndPlay;
 	begin
-		if (World.Info.Health <= 0) and (World.Info.GracePeriod >= ExtendedData.Params[11]) then begin
+		if (World.Info.Health <= 0) and (World.Info.GracePeriod >= XDat.Params[11]) then begin
 			GamePlayExitRequested := true;
 			BoardDrawBorder;
 		end else begin
@@ -1425,24 +1427,24 @@ procedure ElementTruePlayerTick;
 			end;
 
 			if (World.Info.Health <= 0) then begin
-				if World.Info.GracePeriod < ExtendedData.Params[11] then begin
+				if World.Info.GracePeriod < XDat.Params[11] then begin
 					Inc(World.Info.GracePeriod);
-					if World.Info.GracePeriod = ExtendedData.Params[11] - 1 then begin
+					if World.Info.GracePeriod = XDat.Params[11] - 1 then begin
 						InputDeltaX := 0;
 						InputDeltaY := 0;
 						InputShiftPressed := false;
 					end;
 				end else begin
-					if World.Info.GracePeriod = ExtendedData.Params[11] then begin
+					if World.Info.GracePeriod = XDat.Params[11] then begin
 						Inc(World.Info.GracePeriod);
-						SoundQueue(5, SoundParse(ConfigList[39])); {Game over song}
+						SoundQueue(5, SoundParse(XDat.Configs[39])); {Game over song}
 						SoundBlockQueueing := true;
 					end;
 					InputDeltaX := 0;
 					InputDeltaY := 0;
 					InputShiftPressed := false;
 					if P3 = 0 then
-						DisplayMessage(250, ConfigList[38]); {"Game Over - Press ESCAPE"}
+						DisplayMessage(250, XDat.Configs[38]); {"Game Over - Press ESCAPE"}
 					TickTimeDuration := 0;
 				end;
 			end else
@@ -1467,11 +1469,11 @@ procedure ElementTruePlayerTick;
 					end;
 					if Board.Info.MaxShots = 0 then begin
 						if MessageNoShootingNotShown then
-							DisplayMessage(200, ConfigList[40]); {"Can't Shoot in this place!"}
+							DisplayMessage(200, XDat.Configs[40]); {"Can't Shoot in this place!"}
 						MessageNoShootingNotShown := false;
 					end else if World.Info.Ammo = 0 then begin
 						if MessageOutOfAmmoNotShown then
-							DisplayMessage(200, ConfigList[41]); {"You don't have any ammo!"}
+							DisplayMessage(200, XDat.Configs[41]); {"You don't have any ammo!"}
 						MessageOutOfAmmoNotShown := false;
 					end else begin
 						bulletCount := 0;
@@ -1486,7 +1488,7 @@ procedure ElementTruePlayerTick;
 								World.Info.Ammo := World.Info.Ammo - 1;
 								GameUpdateSidebar;
 
-								SoundQueue(2, SoundParse(ConfigList[42])); {Player Shoot}
+								SoundQueue(2, SoundParse(XDat.Configs[42])); {Player Shoot}
 
 								InputDeltaX := 0;
 								InputDeltaY := 0;
@@ -1510,12 +1512,12 @@ procedure ElementTruePlayerTick;
 				PlayerDirX := InputDeltaX;
 				PlayerDirY := InputDeltaY;
 
-				ElementDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].TouchProc(
+				XDat.EDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].TouchProc(
 					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					if SoundEnabled and not SoundIsPlaying and not (ExtendedData.Params[71] = 0) then
+					if SoundEnabled and not SoundIsPlaying and not (XDat.Params[71] = 0) then
 						Sound(110);
-					if ElementDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].Walkable then begin
+					if XDat.EDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].Walkable then begin
 						if SoundEnabled and not SoundIsPlaying then
 							NoSound;
 
@@ -1529,56 +1531,56 @@ procedure ElementTruePlayerTick;
 			inputC := UpCase(InputKeyPressed);
 			if (P2 = 1) {Locked players have limited input options}
 				and (inputC <> #27) and (inputC <> 'Q')
-				and (inputC <> UpCase(ConfigList[72][1]))
-				and (inputC <> UpCase(ConfigList[75][1]))
-				and (inputC <> UpCase(ConfigList[77][1]))
-				and (inputC <> UpCase(ConfigList[83][1]))
+				and (inputC <> UpCase(XDat.Configs[72][1]))
+				and (inputC <> UpCase(XDat.Configs[75][1]))
+				and (inputC <> UpCase(XDat.Configs[77][1]))
+				and (inputC <> UpCase(XDat.Configs[83][1]))
 			then
 				inputC := #0;
-			if inputC =	UpCase(ConfigList[70][1]) then begin {'T' Torch hotkey}
+			if inputC =	UpCase(XDat.Configs[70][1]) then begin {'T' Torch hotkey}
 				GameMove := true;
 				if World.Info.TorchTicks = 0 then begin
 					if World.Info.Torches > 0 then begin
 						if Board.Info.IsDark > 0 then begin
 							World.Info.Torches := World.Info.Torches - Board.Info.IsDark;
-							World.Info.TorchTicks := ElementDefs[E_TORCH].Param2;
+							World.Info.TorchTicks := XDat.EDefs[E_TORCH].P2;
 
 							TransitionDrawToBoard;
 							GameUpdateSidebar;
 						end else begin
 							if MessageRoomNotDarkNotShown then begin
-								DisplayMessage(200, ConfigList[44]); {"Don't need torch - room is not dark!"}
+								DisplayMessage(200, XDat.Configs[44]); {"Don't need torch - room is not dark!"}
 								MessageRoomNotDarkNotShown := false;
 							end;
 						end;
 					end else begin
 						if MessageOutOfTorchesNotShown then begin
-							DisplayMessage(200, ConfigList[45]); {"You don't have any torches!"}
+							DisplayMessage(200, XDat.Configs[45]); {"You don't have any torches!"}
 							MessageOutOfTorchesNotShown := false;
 						end;
 					end;
 				end;
 			end else if ((inputC = #27) or (inputC = 'Q')) then
 				GamePromptEndPlay
-			else if inputC = UpCase(ConfigList[77][1]) then {'S' Save game hotkey }
-				GameWorldSave(ConfigList[78] + ':', SavedGameFileName, '.SAV')
-			else if inputC = UpCase(ConfigList[72][1]) then begin {'B' Sound toggle hotkey}
+			else if inputC = UpCase(XDat.Configs[77][1]) then {'S' Save game hotkey }
+				GameWorldSave(XDat.Configs[78] + ':', SavedGameFileName, '.SAV')
+			else if inputC = UpCase(XDat.Configs[72][1]) then begin {'B' Sound toggle hotkey}
 				SoundEnabled := not SoundEnabled;
 				SoundClearQueue;
 				GameUpdateSidebar;
 				InputKeyPressed := ' ';
-			end else if inputC = UpCase(ConfigList[75][1]) then begin {'H' Help file hotkey}
+			end else if inputC = UpCase(XDat.Configs[75][1]) then begin {'H' Help file hotkey}
 				if FileExists(World.Info.Name + '.HLP') then
 					TextWindowDisplayFile(World.Info.Name + '.HLP', 'Help for '+ World.Info.Name);
-			end else if inputC = UpCase(ConfigList[83][1]) then begin {'?' Debug prompt hotkey}
-				World.Info.PlayerChar := ElementDefs[E_PLAYER].Character;
-				World.Info.PlayerColor := ElementDefs[E_PLAYER].Color;
+			end else if inputC = UpCase(XDat.Configs[83][1]) then begin {'?' Debug prompt hotkey}
+				World.Info.PlayerChar := XDat.EDefs[E_PLAYER].Character;
+				World.Info.PlayerColor := XDat.EDefs[E_PLAYER].Color;
 				GameDebugPrompt;
 				InputKeyPressed := #0;
 			end else if (NeuromotorAssist = true) and (inputC = 'P') then
 				GameMove := true
 			else if (NeuromotorAssist = false)
-				and ((inputC = UpCase(ConfigList[79][1]))
+				and ((inputC = UpCase(XDat.Configs[79][1]))
 				and (World.Info.Health > 0))
 			then
 				GamePaused := true
@@ -1601,10 +1603,10 @@ procedure ElementTruePlayerTick;
 					Dec(World.Info.TorchTicks);
 				if World.Info.TorchTicks = 0 then begin
 					TransitionDrawToBoard;
-					SoundQueue(3, SoundParse(ConfigList[30])); {Torch extinguish sound}
+					SoundQueue(3, SoundParse(XDat.Configs[30])); {Torch extinguish sound}
 				end;
-				if ElementDefs[E_TORCH].Param2 > 10 then {Torch duration}
-					if (World.Info.TorchTicks mod (ElementDefs[E_TORCH].Param2 div 5)) = 0 then
+				if XDat.EDefs[E_TORCH].P2 > 10 then {Torch duration}
+					if (World.Info.TorchTicks mod (XDat.EDefs[E_TORCH].P2 div 5)) = 0 then
 						GameUpdateSidebar;
 			end;
 
@@ -1613,7 +1615,7 @@ procedure ElementTruePlayerTick;
 					Dec(World.Info.EnergizerTicks);
 
 				if World.Info.EnergizerTicks = 10 then
-					SoundQueue(9, SoundParse(ConfigList[11])); {Energizer ending sound}
+					SoundQueue(9, SoundParse(XDat.Configs[11])); {Energizer ending sound}
 			end;
 
 			if (Board.Info.TimeLimitSec > 0) and (World.Info.Health > 0) then
@@ -1621,8 +1623,8 @@ procedure ElementTruePlayerTick;
 					Inc(World.Info.BoardTimeSec);
 
 					if (Board.Info.TimeLimitSec - 10) = World.Info.BoardTimeSec then begin
-						DisplayMessage(200, ConfigList[54]); {"Running out of time!"}
-						SoundQueue(3, SoundParse(ConfigList[55])); {Time running out sound}
+						DisplayMessage(200, XDat.Configs[54]); {"Running out of time!"}
+						SoundQueue(3, SoundParse(XDat.Configs[55])); {Time running out sound}
 					end else if World.Info.BoardTimeSec > Board.Info.TimeLimitSec then
 						DamageStat(0);
 					GameUpdateSidebar;
@@ -1707,10 +1709,10 @@ procedure ElementCloneTick(statId: integer);
 				PlayerDirX := InputDeltaX;
 				PlayerDirY := InputDeltaY;
 
-				ElementDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].TouchProc(
+				XDat.EDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].TouchProc(
 					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					if ElementDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].Walkable then
+					if XDat.EDefs[Enum(Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element)].Walkable then
 						MoveStat(0, X + InputDeltaX, Y + InputDeltaY);
 				end;
 			end;
@@ -1782,373 +1784,373 @@ function Enum(elem: integer): integer;
 			Enum := elem;
 	end;
 
-function ElementDefColor(elem: integer): byte;
+function ElemDefColor(elem: integer): byte;
 	begin
 		if elem > 127 then
-			ElementDefColor := elem - 128
+			ElemDefColor := elem - 128
 		else if elem > MAX_ELEMENT then
-			ElementDefColor := Elementdefs[E_CUSTOMTEXT].Color
+			ElemDefColor := XDat.EDefs[E_CUSTOMTEXT].Color
 		else
-			ElementDefColor := Elementdefs[elem].Color
+			ElemDefColor := XDat.EDefs[elem].Color
 	end;
 
-procedure InitElementDefs;
+procedure InitXDatEDefs;
 	var
 		i, code: integer;
 	begin
 		for i := 0 to MAX_ELEMENT do
-			with ElementDefs[i] do begin
+			with XDat.EDefs[i] do begin
 				Character := ' ';
 				Color := $00;
-				Destructible := false;
+				CanShoot := false;
 				Pushable := false;
-				VisibleInDark := false;
-				PlaceableOnTop := false;
+				SeeDark := false;
+				CanPut := false;
 				Walkable := false;
 				HasDrawProc := false;
 				Cycle := -1;
-				TickProc := ElementDefaultTick;
-				DrawProc := ElementDefaultDraw;
-				TouchProc := ElementDefaultTouch;
+				TickProc := ElemDefaultTick;
+				DrawProc := ElemDefaultDraw;
+				TouchProc := ElemDefaultTouch;
 				Name := '';
-				Param1 := 0;
-				Param2 := 0;
-				Param3 := 0;
+				P1 := 0;
+				P2 := 0;
+				P3 := 0;
 				ScoreValue := 0;
 			end;
 
-		ElementDefs[0].Character := ' ';
-		ElementDefs[0].Color := $70;
-		ElementDefs[0].Walkable := true;
-		ElementDefs[0].PlaceableOnTop := true;
-		ElementDefs[0].Name := 'EMPTY';
+		XDat.EDefs[0].Character := ' ';
+		XDat.EDefs[0].Color := $70;
+		XDat.EDefs[0].Walkable := true;
+		XDat.EDefs[0].CanPut := true;
+		XDat.EDefs[0].Name := 'EMPTY';
 
-		ElementDefs[1].Character := ' ';
-		ElementDefs[1].TouchProc := ElementBoardEdgeTouch;
-		ElementDefs[1].Name := 'EDGE';
+		XDat.EDefs[1].Character := ' ';
+		XDat.EDefs[1].TouchProc := ElementBoardEdgeTouch;
+		XDat.EDefs[1].Name := 'EDGE';
 
-		ElementDefs[2].Character := #176;
-		ElementDefs[2].Color := $07;
-		ElementDefs[2].Name := 'DARKNESS';
+		XDat.EDefs[2].Character := #176;
+		XDat.EDefs[2].Color := $07;
+		XDat.EDefs[2].Name := 'DARKNESS';
 
-		ElementDefs[3].Character := ' ';
-		ElementDefs[3].Color := $07;
-		ElementDefs[3].Cycle := 1;
-		ElementDefs[3].TickProc := ElementMonitorTick;
-		ElementDefs[3].Name := 'MONITOR';
+		XDat.EDefs[3].Character := ' ';
+		XDat.EDefs[3].Color := $07;
+		XDat.EDefs[3].Cycle := 1;
+		XDat.EDefs[3].TickProc := ElementMonitorTick;
+		XDat.EDefs[3].Name := 'MONITOR';
 
-		ElementDefs[4].Character := #2;
-		ElementDefs[4].Color := $1F;
-		ElementDefs[4].Destructible := true;
-		ElementDefs[4].Pushable := true;
-		ElementDefs[4].VisibleInDark := true;
-		ElementDefs[4].Cycle := 1;
-		ElementDefs[4].TickProc := ElementPlayerTick;
-		ElementDefs[4].HasDrawProc := true;
-		ElementDefs[4].DrawProc := ElementPlayerDraw;
-		ElementDefs[4].Name := 'PLAYER';
+		XDat.EDefs[4].Character := #2;
+		XDat.EDefs[4].Color := $1F;
+		XDat.EDefs[4].CanShoot := true;
+		XDat.EDefs[4].Pushable := true;
+		XDat.EDefs[4].SeeDark := true;
+		XDat.EDefs[4].Cycle := 1;
+		XDat.EDefs[4].TickProc := ElementPlayerTick;
+		XDat.EDefs[4].HasDrawProc := true;
+		XDat.EDefs[4].DrawProc := ElementPlayerDraw;
+		XDat.EDefs[4].Name := 'PLAYER';
 
-		ElementDefs[5].Character := #132;
-		ElementDefs[5].Color := $03;
-		ElementDefs[5].Pushable := true;
-		ElementDefs[5].TouchProc := ElementAmmoTouch;
-		ElementDefs[5].Name := 'AMMO';
-		ElementDefs[5].Param1 := 5;
+		XDat.EDefs[5].Character := #132;
+		XDat.EDefs[5].Color := $03;
+		XDat.EDefs[5].Pushable := true;
+		XDat.EDefs[5].TouchProc := ElementAmmoTouch;
+		XDat.EDefs[5].Name := 'AMMO';
+		XDat.EDefs[5].P1 := 5;
 
-		ElementDefs[6].Character := #157;
-		ElementDefs[6].Color := $06;
-		ElementDefs[6].TouchProc := ElementTorchTouch;
-		ElementDefs[6].VisibleInDark := true;
-		ElementDefs[6].Name := 'TORCH';
-		ElementDefs[6].Param1 := 1;
-		ElementDefs[6].Param2 := 200;
+		XDat.EDefs[6].Character := #157;
+		XDat.EDefs[6].Color := $06;
+		XDat.EDefs[6].TouchProc := ElementTorchTouch;
+		XDat.EDefs[6].SeeDark := true;
+		XDat.EDefs[6].Name := 'TORCH';
+		XDat.EDefs[6].P1 := 1;
+		XDat.EDefs[6].P2 := 200;
 
-		ElementDefs[7].Character := #4;
-		ElementDefs[7].Pushable := true;
-		ElementDefs[7].TouchProc := ElementGemTouch;
-		ElementDefs[7].Destructible := true;
-		ElementDefs[7].Name := 'GEM';
-		ElementDefs[7].Param1 := 1;
-		ElementDefs[7].Param2 := 1;
-		ElementDefs[7].ScoreValue := 10;
+		XDat.EDefs[7].Character := #4;
+		XDat.EDefs[7].Pushable := true;
+		XDat.EDefs[7].TouchProc := ElementGemTouch;
+		XDat.EDefs[7].CanShoot := true;
+		XDat.EDefs[7].Name := 'GEM';
+		XDat.EDefs[7].P1 := 1;
+		XDat.EDefs[7].P2 := 1;
+		XDat.EDefs[7].ScoreValue := 10;
 
-		ElementDefs[8].Character := #12;
-		ElementDefs[8].Pushable := true;
-		ElementDefs[8].TouchProc := ElementKeyTouch;
-		ElementDefs[8].HasDrawProc := true;
-		ElementDefs[8].DrawProc := ElementKeyDraw;
-		ElementDefs[8].Name := 'KEY';
-		ElementDefs[8].Param1 := 1;
+		XDat.EDefs[8].Character := #12;
+		XDat.EDefs[8].Pushable := true;
+		XDat.EDefs[8].TouchProc := ElementKeyTouch;
+		XDat.EDefs[8].HasDrawProc := true;
+		XDat.EDefs[8].DrawProc := ElementKeyDraw;
+		XDat.EDefs[8].Name := 'KEY';
+		XDat.EDefs[8].P1 := 1;
 
-		ElementDefs[9].Character := #10;
-		ElementDefs[9].Color := $0F;
-		ElementDefs[9].TouchProc := ElementDoorTouch;
-		ElementDefs[9].HasDrawProc := true;
-		ElementDefs[9].DrawProc := ElementDoorDraw;
-		ElementDefs[9].Name := 'DOOR';
+		XDat.EDefs[9].Character := #10;
+		XDat.EDefs[9].Color := $0F;
+		XDat.EDefs[9].TouchProc := ElementDoorTouch;
+		XDat.EDefs[9].HasDrawProc := true;
+		XDat.EDefs[9].DrawProc := ElementDoorDraw;
+		XDat.EDefs[9].Name := 'DOOR';
 
-		ElementDefs[10].Character := #232;
-		ElementDefs[10].Color := $0F;
-		ElementDefs[10].TouchProc := ElementScrollTouch;
-		ElementDefs[10].TickProc := ElementScrollTick;
-		ElementDefs[10].Pushable := true;
-		ElementDefs[10].Cycle := 1;
-		ElementDefs[10].Name := 'SCROLL';
+		XDat.EDefs[10].Character := #232;
+		XDat.EDefs[10].Color := $0F;
+		XDat.EDefs[10].TouchProc := ElementScrollTouch;
+		XDat.EDefs[10].TickProc := ElementScrollTick;
+		XDat.EDefs[10].Pushable := true;
+		XDat.EDefs[10].Cycle := 1;
+		XDat.EDefs[10].Name := 'SCROLL';
 
-		ElementDefs[11].Character := #240;
-		ElementDefs[11].Color := $0F;
-		ElementDefs[11].Cycle := 0;
-		ElementDefs[11].VisibleInDark := true;
-		ElementDefs[11].TouchProc := ElementPassageTouch;
-		ElementDefs[11].Name := 'PASSAGE';
+		XDat.EDefs[11].Character := #240;
+		XDat.EDefs[11].Color := $0F;
+		XDat.EDefs[11].Cycle := 0;
+		XDat.EDefs[11].SeeDark := true;
+		XDat.EDefs[11].TouchProc := ElementPassageTouch;
+		XDat.EDefs[11].Name := 'PASSAGE';
 
-		ElementDefs[12].Character := ' ';
-		ElementDefs[12].Color := $0F;
-		ElementDefs[12].Cycle := 2;
-		ElementDefs[12].TickProc := ElementDuplicatorTick;
-		ElementDefs[12].HasDrawProc := true;
-		ElementDefs[12].DrawProc := ElementDuplicatorDraw;
-		ElementDefs[12].Name := 'DUPLICATOR';
+		XDat.EDefs[12].Character := ' ';
+		XDat.EDefs[12].Color := $0F;
+		XDat.EDefs[12].Cycle := 2;
+		XDat.EDefs[12].TickProc := ElementDuplicatorTick;
+		XDat.EDefs[12].HasDrawProc := true;
+		XDat.EDefs[12].DrawProc := ElementDuplicatorDraw;
+		XDat.EDefs[12].Name := 'DUPLICATOR';
 
-		ElementDefs[13].Character := #11;
-		ElementDefs[13].HasDrawProc := true;
-		ElementDefs[13].DrawProc := ElementBombDraw;
-		ElementDefs[13].Pushable := true;
-		ElementDefs[13].Cycle := 6;
-		ElementDefs[13].TickProc := ElementBombTick;
-		ElementDefs[13].TouchProc := ElementBombTouch;
-		ElementDefs[13].Name := 'BOMB';
+		XDat.EDefs[13].Character := #11;
+		XDat.EDefs[13].HasDrawProc := true;
+		XDat.EDefs[13].DrawProc := ElementBombDraw;
+		XDat.EDefs[13].Pushable := true;
+		XDat.EDefs[13].Cycle := 6;
+		XDat.EDefs[13].TickProc := ElementBombTick;
+		XDat.EDefs[13].TouchProc := ElementBombTouch;
+		XDat.EDefs[13].Name := 'BOMB';
 
-		ElementDefs[14].Character := #127;
-		ElementDefs[14].Color := $05;
-		ElementDefs[14].TouchProc := ElementEnergizerTouch;
-		ElementDefs[14].Name := 'ENERGIZER';
-		ElementDefs[14].Param1 := 75;
+		XDat.EDefs[14].Character := #127;
+		XDat.EDefs[14].Color := $05;
+		XDat.EDefs[14].TouchProc := ElementEnergizerTouch;
+		XDat.EDefs[14].Name := 'ENERGIZER';
+		XDat.EDefs[14].P1 := 75;
 
-		ElementDefs[15].Character := ' ';
-		ElementDefs[15].Color := $0F;
-		ElementDefs[15].Destructible := false;
-		ElementDefs[15].Cycle := 1;
-		ElementDefs[15].TickProc := ElementStarTick;
-		ElementDefs[15].TouchProc := ElementDamagingTouch;
-		ElementDefs[15].HasDrawProc := true;
-		ElementDefs[15].DrawProc := ElementStarDraw;
-		ElementDefs[15].Name := 'STAR';
-		ElementDefs[15].Param1 := 1;
-		ElementDefs[15].Param2 := 100;
+		XDat.EDefs[15].Character := ' ';
+		XDat.EDefs[15].Color := $0F;
+		XDat.EDefs[15].CanShoot := false;
+		XDat.EDefs[15].Cycle := 1;
+		XDat.EDefs[15].TickProc := ElementStarTick;
+		XDat.EDefs[15].TouchProc := ElementDamagingTouch;
+		XDat.EDefs[15].HasDrawProc := true;
+		XDat.EDefs[15].DrawProc := ElementStarDraw;
+		XDat.EDefs[15].Name := 'STAR';
+		XDat.EDefs[15].P1 := 1;
+		XDat.EDefs[15].P2 := 100;
 
-		ElementDefs[16].Character := ' ';
-		ElementDefs[16].Cycle := 3;
-		ElementDefs[16].HasDrawProc := true;
-		ElementDefs[16].TickProc := ElementConveyorCWTick;
-		ElementDefs[16].DrawProc := ElementConveyorCWDraw;
-		ElementDefs[16].Name := 'CLOCKWISE';
+		XDat.EDefs[16].Character := ' ';
+		XDat.EDefs[16].Cycle := 3;
+		XDat.EDefs[16].HasDrawProc := true;
+		XDat.EDefs[16].TickProc := ElementConveyorCWTick;
+		XDat.EDefs[16].DrawProc := ElementConveyorCWDraw;
+		XDat.EDefs[16].Name := 'CLOCKWISE';
 
-		ElementDefs[17].Character := ' ';
-		ElementDefs[17].Cycle := 2;
-		ElementDefs[17].HasDrawProc := true;
-		ElementDefs[17].DrawProc := ElementConveyorCCWDraw;
-		ElementDefs[17].TickProc := ElementConveyorCCWTick;
-		ElementDefs[17].Name := 'COUNTER';
+		XDat.EDefs[17].Character := ' ';
+		XDat.EDefs[17].Cycle := 2;
+		XDat.EDefs[17].HasDrawProc := true;
+		XDat.EDefs[17].DrawProc := ElementConveyorCCWDraw;
+		XDat.EDefs[17].TickProc := ElementConveyorCCWTick;
+		XDat.EDefs[17].Name := 'COUNTER';
 
-		ElementDefs[18].Character := #248;
-		ElementDefs[18].Color := $0F;
-		ElementDefs[18].Destructible := true;
-		ElementDefs[18].Cycle := 1;
-		ElementDefs[18].TickProc := ElementBulletTick;
-		ElementDefs[18].TouchProc := ElementDamagingTouch;
-		ElementDefs[18].Name := 'BULLET';
-		ElementDefs[18].Param2 := 100;
-		ElementDefs[18].Param3 := 1;
+		XDat.EDefs[18].Character := #248;
+		XDat.EDefs[18].Color := $0F;
+		XDat.EDefs[18].CanShoot := true;
+		XDat.EDefs[18].Cycle := 1;
+		XDat.EDefs[18].TickProc := ElementBulletTick;
+		XDat.EDefs[18].TouchProc := ElementDamagingTouch;
+		XDat.EDefs[18].Name := 'BULLET';
+		XDat.EDefs[18].P2 := 100;
+		XDat.EDefs[18].P3 := 1;
 
-		ElementDefs[19].Character := #176;
-		ElementDefs[19].PlaceableOnTop := true;
-		ElementDefs[19].TouchProc := ElementWaterTouch;
-		ElementDefs[19].Name := 'WATER';
+		XDat.EDefs[19].Character := #176;
+		XDat.EDefs[19].CanPut := true;
+		XDat.EDefs[19].TouchProc := ElementWaterTouch;
+		XDat.EDefs[19].Name := 'WATER';
 
-		ElementDefs[20].Character := #176;
-		ElementDefs[20].Color := $20;
-		ElementDefs[20].Walkable := false;
-		ElementDefs[20].TouchProc := ElementForestTouch;
-		ElementDefs[20].Name := 'FOREST';
+		XDat.EDefs[20].Character := #176;
+		XDat.EDefs[20].Color := $20;
+		XDat.EDefs[20].Walkable := false;
+		XDat.EDefs[20].TouchProc := ElementForestTouch;
+		XDat.EDefs[20].Name := 'FOREST';
 
-		ElementDefs[21].Character := #219;
-		ElementDefs[21].Name := 'SOLID';
+		XDat.EDefs[21].Character := #219;
+		XDat.EDefs[21].Name := 'SOLID';
 
-		ElementDefs[22].Character := #178;
-		ElementDefs[22].Name := 'NORMAL';
+		XDat.EDefs[22].Character := #178;
+		XDat.EDefs[22].Name := 'NORMAL';
 
-		ElementDefs[23].Character := #177;
-		ElementDefs[23].Destructible := false;
-		ElementDefs[23].Name := 'BREAKABLE';
+		XDat.EDefs[23].Character := #177;
+		XDat.EDefs[23].CanShoot := false;
+		XDat.EDefs[23].Name := 'BREAKABLE';
 
-		ElementDefs[24].Character := #254;
-		ElementDefs[24].Pushable := true;
-		ElementDefs[24].TouchProc := ElementPushableTouch;
-		ElementDefs[24].Name := 'BOULDER';
+		XDat.EDefs[24].Character := #254;
+		XDat.EDefs[24].Pushable := true;
+		XDat.EDefs[24].TouchProc := ElementPushableTouch;
+		XDat.EDefs[24].Name := 'BOULDER';
 
-		ElementDefs[25].Character := #18;
-		ElementDefs[25].TouchProc := ElementPushableTouch;
-		ElementDefs[25].Name := 'SLIDERNS';
+		XDat.EDefs[25].Character := #18;
+		XDat.EDefs[25].TouchProc := ElementPushableTouch;
+		XDat.EDefs[25].Name := 'SLIDERNS';
 
-		ElementDefs[26].Character := #29;
-		ElementDefs[26].TouchProc := ElementPushableTouch;
-		ElementDefs[26].Name := 'SLIDEREW';
+		XDat.EDefs[26].Character := #29;
+		XDat.EDefs[26].TouchProc := ElementPushableTouch;
+		XDat.EDefs[26].Name := 'SLIDEREW';
 
-		ElementDefs[27].Character := #178;
-		ElementDefs[27].PlaceableOnTop := true;
-		ElementDefs[27].Walkable := true;
-		ElementDefs[27].TouchProc := ElementFakeTouch;
-		ElementDefs[27].Name := 'FAKE';
+		XDat.EDefs[27].Character := #178;
+		XDat.EDefs[27].CanPut := true;
+		XDat.EDefs[27].Walkable := true;
+		XDat.EDefs[27].TouchProc := ElementFakeTouch;
+		XDat.EDefs[27].Name := 'FAKE';
 
-		ElementDefs[28].Character := ' ';
-		ElementDefs[28].TouchProc := ElementInvisibleTouch;
-		ElementDefs[28].Name := 'INVISIBLE';
-		ElementDefs[28].Param1 := 22;
+		XDat.EDefs[28].Character := ' ';
+		XDat.EDefs[28].TouchProc := ElementInvisibleTouch;
+		XDat.EDefs[28].Name := 'INVISIBLE';
+		XDat.EDefs[28].P1 := 22;
 
-		ElementDefs[29].Character := #206;
-		ElementDefs[29].Cycle := 1;
-		ElementDefs[29].TickProc := ElementBlinkWallTick;
-		ElementDefs[29].Name := 'BLINKWALL';
+		XDat.EDefs[29].Character := #206;
+		XDat.EDefs[29].Cycle := 1;
+		XDat.EDefs[29].TickProc := ElementBlinkWallTick;
+		XDat.EDefs[29].Name := 'BLINKWALL';
 
-		ElementDefs[30].Character := ' ';
-		ElementDefs[30].TouchProc := ElementTransporterTouch;
-		ElementDefs[30].HasDrawProc := true;
-		ElementDefs[30].DrawProc := ElementTransporterDraw;
-		ElementDefs[30].Cycle := 2;
-		ElementDefs[30].TickProc := ElementTransporterTick;
-		ElementDefs[30].Name := 'TRANSPORTER';
+		XDat.EDefs[30].Character := ' ';
+		XDat.EDefs[30].TouchProc := ElementTransporterTouch;
+		XDat.EDefs[30].HasDrawProc := true;
+		XDat.EDefs[30].DrawProc := ElementTransporterDraw;
+		XDat.EDefs[30].Cycle := 2;
+		XDat.EDefs[30].TickProc := ElementTransporterTick;
+		XDat.EDefs[30].Name := 'TRANSPORTER';
 
-		ElementDefs[31].Character := ' ';
-		ElementDefs[31].HasDrawProc := true;
-		ElementDefs[31].DrawProc := ElementLineDraw;
-		ElementDefs[31].Name := 'LINE';
+		XDat.EDefs[31].Character := ' ';
+		XDat.EDefs[31].HasDrawProc := true;
+		XDat.EDefs[31].DrawProc := ElementLineDraw;
+		XDat.EDefs[31].Name := 'LINE';
 
-		ElementDefs[32].Character := '*';
-		ElementDefs[32].Color := $0A;
-		ElementDefs[32].Name := 'RICOCHET';
+		XDat.EDefs[32].Character := '*';
+		XDat.EDefs[32].Color := $0A;
+		XDat.EDefs[32].Name := 'RICOCHET';
 
-		ElementDefs[33].Character := #205;
-		ElementDefs[33].Name := 'BLINKEW';
+		XDat.EDefs[33].Character := #205;
+		XDat.EDefs[33].Name := 'BLINKEW';
 
-		ElementDefs[34].Character := #153;
-		ElementDefs[34].Color := $06;
-		ElementDefs[34].Cycle := 3;
-		ElementDefs[34].ScoreValue := 1;
-		ElementDefs[34].Destructible := true;
-		ElementDefs[34].Pushable := true;
-		ElementDefs[34].TickProc := ElementBearTick;
-		ElementDefs[34].TouchProc := ElementDamagingTouch;
-		ElementDefs[34].Name := 'BEAR';
+		XDat.EDefs[34].Character := #153;
+		XDat.EDefs[34].Color := $06;
+		XDat.EDefs[34].Cycle := 3;
+		XDat.EDefs[34].ScoreValue := 1;
+		XDat.EDefs[34].CanShoot := true;
+		XDat.EDefs[34].Pushable := true;
+		XDat.EDefs[34].TickProc := ElementBearTick;
+		XDat.EDefs[34].TouchProc := ElementDamagingTouch;
+		XDat.EDefs[34].Name := 'BEAR';
 
-		ElementDefs[35].Character := #5;
-		ElementDefs[35].Color := $0D;
-		ElementDefs[35].Cycle := 1;
-		ElementDefs[35].ScoreValue := 2;
-		ElementDefs[35].Destructible := true;
-		ElementDefs[35].Pushable := true;
-		ElementDefs[35].TickProc := ElementRuffianTick;
-		ElementDefs[35].TouchProc := ElementDamagingTouch;
-		ElementDefs[35].Name := 'RUFFIAN';
+		XDat.EDefs[35].Character := #5;
+		XDat.EDefs[35].Color := $0D;
+		XDat.EDefs[35].Cycle := 1;
+		XDat.EDefs[35].ScoreValue := 2;
+		XDat.EDefs[35].CanShoot := true;
+		XDat.EDefs[35].Pushable := true;
+		XDat.EDefs[35].TickProc := ElementRuffianTick;
+		XDat.EDefs[35].TouchProc := ElementDamagingTouch;
+		XDat.EDefs[35].Name := 'RUFFIAN';
 
-		ElementDefs[36].Character := ' ';
-		ElementDefs[36].Cycle := 1;
-		ElementDefs[36].HasDrawProc := true;
-		ElementDefs[36].DrawProc := ElementObjectDraw;
-		ElementDefs[36].TickProc := ElementObjectTick;
-		ElementDefs[36].TouchProc := ElementObjectTouch;
-		ElementDefs[36].Name := 'OBJECT';
+		XDat.EDefs[36].Character := ' ';
+		XDat.EDefs[36].Cycle := 1;
+		XDat.EDefs[36].HasDrawProc := true;
+		XDat.EDefs[36].DrawProc := ElementObjectDraw;
+		XDat.EDefs[36].TickProc := ElementObjectTick;
+		XDat.EDefs[36].TouchProc := ElementObjectTouch;
+		XDat.EDefs[36].Name := 'OBJECT';
 
-		ElementDefs[37].Character := '*';
-		ElementDefs[37].Cycle := 3;
-		ElementDefs[37].Destructible := false;
-		ElementDefs[37].TickProc := ElementSlimeTick;
-		ElementDefs[37].TouchProc := ElementSlimeTouch;
-		ElementDefs[37].Name := 'SLIME';
+		XDat.EDefs[37].Character := '*';
+		XDat.EDefs[37].Cycle := 3;
+		XDat.EDefs[37].CanShoot := false;
+		XDat.EDefs[37].TickProc := ElementSlimeTick;
+		XDat.EDefs[37].TouchProc := ElementSlimeTouch;
+		XDat.EDefs[37].Name := 'SLIME';
 
-		ElementDefs[38].Character := '^';
-		ElementDefs[38].Color := $07;
-		ElementDefs[38].Cycle := 3;
-		ElementDefs[38].Destructible := false;
-		ElementDefs[38].TickProc := ElementSharkTick;
-		ElementDefs[38].Name := 'SHARK';
+		XDat.EDefs[38].Character := '^';
+		XDat.EDefs[38].Color := $07;
+		XDat.EDefs[38].Cycle := 3;
+		XDat.EDefs[38].CanShoot := false;
+		XDat.EDefs[38].TickProc := ElementSharkTick;
+		XDat.EDefs[38].Name := 'SHARK';
 
-		ElementDefs[39].Character := ' ';
-		ElementDefs[39].Cycle := 2;
-		ElementDefs[39].TickProc := ElementSpinningGunTick;
-		ElementDefs[39].HasDrawProc := true;
-		ElementDefs[39].DrawProc := ElementSpinningGunDraw;
-		ElementDefs[39].Name := 'SPINNINGGUN';
+		XDat.EDefs[39].Character := ' ';
+		XDat.EDefs[39].Cycle := 2;
+		XDat.EDefs[39].TickProc := ElementSpinningGunTick;
+		XDat.EDefs[39].HasDrawProc := true;
+		XDat.EDefs[39].DrawProc := ElementSpinningGunDraw;
+		XDat.EDefs[39].Name := 'SPINNINGGUN';
 
-		ElementDefs[40].Character := ' ';
-		ElementDefs[40].HasDrawProc := true;
-		ElementDefs[40].DrawProc := ElementPusherDraw;
-		ElementDefs[40].Cycle := 4;
-		ElementDefs[40].TickProc := ElementPusherTick;
-		ElementDefs[40].Name := 'PUSHER';
+		XDat.EDefs[40].Character := ' ';
+		XDat.EDefs[40].HasDrawProc := true;
+		XDat.EDefs[40].DrawProc := ElementPusherDraw;
+		XDat.EDefs[40].Cycle := 4;
+		XDat.EDefs[40].TickProc := ElementPusherTick;
+		XDat.EDefs[40].Name := 'PUSHER';
 
-		ElementDefs[41].Color := $0C;
-		ElementDefs[41].Character := #234;
-		ElementDefs[41].Cycle := 2;
-		ElementDefs[41].ScoreValue := 1;
-		ElementDefs[41].Destructible := true;
-		ElementDefs[41].Pushable := true;
-		ElementDefs[41].TickProc := ElementLionTick;
-		ElementDefs[41].TouchProc := ElementDamagingTouch;
-		ElementDefs[41].Name := 'LION';
+		XDat.EDefs[41].Color := $0C;
+		XDat.EDefs[41].Character := #234;
+		XDat.EDefs[41].Cycle := 2;
+		XDat.EDefs[41].ScoreValue := 1;
+		XDat.EDefs[41].CanShoot := true;
+		XDat.EDefs[41].Pushable := true;
+		XDat.EDefs[41].TickProc := ElementLionTick;
+		XDat.EDefs[41].TouchProc := ElementDamagingTouch;
+		XDat.EDefs[41].Name := 'LION';
 
-		ElementDefs[42].Color := $0B;
-		ElementDefs[42].Character := #227;
-		ElementDefs[42].Cycle := 2;
-		ElementDefs[42].ScoreValue := 2;
-		ElementDefs[42].Destructible := true;
-		ElementDefs[42].Pushable := true;
-		ElementDefs[42].TickProc := ElementTigerTick;
-		ElementDefs[42].TouchProc := ElementDamagingTouch;
-		ElementDefs[42].Name := 'TIGER';
+		XDat.EDefs[42].Color := $0B;
+		XDat.EDefs[42].Character := #227;
+		XDat.EDefs[42].Cycle := 2;
+		XDat.EDefs[42].ScoreValue := 2;
+		XDat.EDefs[42].CanShoot := true;
+		XDat.EDefs[42].Pushable := true;
+		XDat.EDefs[42].TickProc := ElementTigerTick;
+		XDat.EDefs[42].TouchProc := ElementDamagingTouch;
+		XDat.EDefs[42].Name := 'TIGER';
 
-		ElementDefs[43].Character := #186;
-		ElementDefs[43].Name := 'BLINKNS';
+		XDat.EDefs[43].Character := #186;
+		XDat.EDefs[43].Name := 'BLINKNS';
 
-		ElementDefs[44].Character := #233;
-		ElementDefs[44].Cycle := 2;
-		ElementDefs[44].ScoreValue := 1;
-		ElementDefs[44].Destructible := true;
-		ElementDefs[44].TickProc := ElementCentipedeHeadTick;
-		ElementDefs[44].TouchProc := ElementDamagingTouch;
-		ElementDefs[44].Name := 'HEAD';
+		XDat.EDefs[44].Character := #233;
+		XDat.EDefs[44].Cycle := 2;
+		XDat.EDefs[44].ScoreValue := 1;
+		XDat.EDefs[44].CanShoot := true;
+		XDat.EDefs[44].TickProc := ElementCentipedeHeadTick;
+		XDat.EDefs[44].TouchProc := ElementDamagingTouch;
+		XDat.EDefs[44].Name := 'HEAD';
 
-		ElementDefs[45].Character := #79;
-		ElementDefs[45].Cycle := 2;
-		ElementDefs[45].ScoreValue := 3;
-		ElementDefs[45].Destructible := true;
-		ElementDefs[45].TickProc := ElementCentipedeSegmentTick;
-		ElementDefs[45].TouchProc := ElementDamagingTouch;
-		ElementDefs[45].Name := 'SEGMENT';
+		XDat.EDefs[45].Character := #79;
+		XDat.EDefs[45].Cycle := 2;
+		XDat.EDefs[45].ScoreValue := 3;
+		XDat.EDefs[45].CanShoot := true;
+		XDat.EDefs[45].TickProc := ElementCentipedeSegmentTick;
+		XDat.EDefs[45].TouchProc := ElementDamagingTouch;
+		XDat.EDefs[45].Name := 'SEGMENT';
 
-		ElementDefs[46].Color := $08;
-		ElementDefs[46].Name := 'CUSTOMTEXT';
+		XDat.EDefs[46].Color := $08;
+		XDat.EDefs[46].Name := 'CUSTOMTEXT';
 
-		ElementDefs[47].Color := $1F;
-		ElementDefs[47].Name := 'BLUETEXT';
+		XDat.EDefs[47].Color := $1F;
+		XDat.EDefs[47].Name := 'BLUETEXT';
 
-		ElementDefs[48].Color := $2F;
-		ElementDefs[48].Name := 'GREENTEXT';
+		XDat.EDefs[48].Color := $2F;
+		XDat.EDefs[48].Name := 'GREENTEXT';
 
-		ElementDefs[49].Color := $3F;
-		ElementDefs[49].Name := 'CYANTEXT';
+		XDat.EDefs[49].Color := $3F;
+		XDat.EDefs[49].Name := 'CYANTEXT';
 
-		ElementDefs[50].Color := $4F;
-		ElementDefs[50].Name := 'REDTEXT';
+		XDat.EDefs[50].Color := $4F;
+		XDat.EDefs[50].Name := 'REDTEXT';
 
-		ElementDefs[51].Color := $5F;
-		ElementDefs[51].Name := 'PURPLETEXT';
+		XDat.EDefs[51].Color := $5F;
+		XDat.EDefs[51].Name := 'PURPLETEXT';
 
-		ElementDefs[52].Color := $6F;
-		ElementDefs[52].Name := 'YELLOWTEXT';
+		XDat.EDefs[52].Color := $6F;
+		XDat.EDefs[52].Name := 'YELLOWTEXT';
 
-		ElementDefs[53].Color := $0F;
-		ElementDefs[53].Name := 'WHITETEXT';
+		XDat.EDefs[53].Color := $0F;
+		XDat.EDefs[53].Name := 'WHITETEXT';
 
 	end;
 
@@ -2159,40 +2161,73 @@ procedure ElementMod(e: integer; par: string; op: string; statId: integer);
 		v := ColorNumber(op, statId);
 		if (v = -32767) then
 			Val(op, v, code);
+		if (v > 0) then
+			op := 'TRUE'
+		else
+			op := 'FALSE';
 		if par = 'CHAR' then begin
-			if (ElementDefs[e].Character = ' ') and ElementDefs[e].HasDrawProc then begin
-				ElementDefs[e].DrawProc := ElementDefaultDraw;
-				ElementDefs[e].HasDrawProc := false;
+			if (XDat.EDefs[e].Character = ' ') and XDat.EDefs[e].HasDrawProc then begin
+				XDat.EDefs[e].DrawProc := ElemDefaultDraw;
+				XDat.EDefs[e].HasDrawProc := false;
 			end;
-			ElementDefs[e].Character := Chr(v);
+			XDat.EDefs[e].Character := Chr(v);
 		end else if par = 'FG' then
-			ElementDefs[e].Color := AsColor(v, ElementDefs[e].Color div 16)
+			XDat.EDefs[e].Color := AsColor(v, XDat.EDefs[e].Color div 16)
 		else if par = 'BG' then
-			ElementDefs[e].Color := AsColor(ElementDefs[e].Color and $0F, v)
-		else if par = 'DESTRUCTIBLE' then
-			ElementDefs[e].Destructible := op = 'TRUE'
+			XDat.EDefs[e].Color := AsColor(XDat.EDefs[e].Color and $0F, v)
+		else if par = 'CANSHOOT' then
+			XDat.EDefs[e].CanShoot := op = 'TRUE'
 		else if par = 'PUSHABLE' then begin
-			ElementDefs[e].Pushable := op = 'TRUE';
+			XDat.EDefs[e].Pushable := op = 'TRUE';
 			if op = 'TRUE' then
-				ElementDefs[e].TouchProc := ElementPushableTouch
+				XDat.EDefs[e].TouchProc := ElementPushableTouch
 			else
-				ElementDefs[e].TouchProc := ElementDefaultTouch;
-		end else if par = 'VISIBLEINDARK' then
-			ElementDefs[e].VisibleInDark := op = 'TRUE'
-		else if par = 'PLACEABLEONTOP' then
-			ElementDefs[e].PlaceableOnTop := op = 'TRUE'
+				XDat.EDefs[e].TouchProc := ElemDefaultTouch;
+		end else if par = 'SEEDARK' then
+			XDat.EDefs[e].SeeDark := op = 'TRUE'
+		else if par = 'CANPUT' then
+			XDat.EDefs[e].CanPut := op = 'TRUE'
 		else if par = 'WALKABLE' then
-			ElementDefs[e].Walkable := op = 'TRUE'
+			XDat.EDefs[e].Walkable := op = 'TRUE'
 		else if par = 'CYCLE' then
-			ElementDefs[e].Cycle := v
-		else if par = 'PARAM1' then
-			ElementDefs[e].Param1 := v
-		else if par = 'PARAM2' then
-			ElementDefs[e].Param2 := v
-		else if par = 'PARAM3' then
-			ElementDefs[e].Param3 := v
+			XDat.EDefs[e].Cycle := v
+		else if par = 'P1' then
+			XDat.EDefs[e].P1 := v
+		else if par = 'P2' then
+			XDat.EDefs[e].P2 := v
+		else if par = 'P3' then
+			XDat.EDefs[e].P3 := v
 		else if par = 'SCOREVALUE' then
-			ElementDefs[e].ScoreValue := v;
+			XDat.EDefs[e].ScoreValue := v;
+	end;
+
+function ElementGet(e: integer; par: string): integer;
+	var
+		code: integer;
+	begin
+		if (par = 'CANSHOOT')
+			or (par = 'PUSHABLE')
+			or (par = 'SEEDARK')
+			or (par = 'CANPUT')
+			or (par = 'WALKABLE')
+		then
+			ElementGet := 0
+		else
+			ElementGet := -32767;
+		if par = 'CHAR' then ElementGet := Ord(XDat.EDefs[e].Character)
+		else if par = 'FG' then ElementGet := XDat.EDefs[e].Color and $0F
+		else if par = 'BG' then ElementGet := XDat.EDefs[e].Color div 16
+		else if par = 'COLOR' then ElementGet := Integer(XDat.EDefs[e].Color)
+		else if par = 'CYCLE' then ElementGet := XDat.EDefs[e].Cycle
+		else if par = 'P1' then ElementGet := XDat.EDefs[e].P1
+		else if par = 'P2' then ElementGet := XDat.EDefs[e].P2
+		else if par = 'P3' then ElementGet := XDat.EDefs[e].P3
+		else if par = 'SCOREVALUE' then ElementGet := XDat.EDefs[e].ScoreValue
+		else if (par = 'CANSHOOT') and XDat.EDefs[e].CanShoot then ElementGet := 1
+		else if (par = 'PUSHABLE') and XDat.EDefs[e].Pushable then ElementGet := 1
+		else if (par = 'SEEDARK') and XDat.EDefs[e].SeeDark then ElementGet := 1
+		else if (par = 'CANPUT') and XDat.EDefs[e].CanPut then ElementGet := 1
+		else if (par = 'WALKABLE') and XDat.EDefs[e].Walkable then ElementGet := 1;
 	end;
 
 procedure InitElementsGame;
@@ -2203,7 +2238,7 @@ procedure InitElementsGame;
 		f: text;
 		i, j, q, v, code: integer;
 	begin
-		InitElementDefs;
+		InitXDatEDefs;
 		if World.Info.Name <> '' then begin
 			if not FileExists(World.Info.Name + '.CFG') then exit;
 			Assign(f, World.Info.Name + '.CFG');
@@ -2275,9 +2310,9 @@ procedure InitElementsGame;
 								Val(l, v, code);
 							for i := 1 to (PALETTE_START - 1) do
 								if ParamConfigs(i) = k then
-									ExtendedData.Params[i] := v;
+									XDat.Params[i] := v;
 							if ParamConfigs(71) = k then
-								ExtendedData.Params[71] := v;
+								XDat.Params[71] := v;
 						end else begin
 							Inc(i);
 							while (s[i] <> '=') and (i <= Length(s)) do begin
@@ -2290,7 +2325,7 @@ procedure InitElementsGame;
 							end;
 							q := -1;
 							for i := 0 to MAX_ELEMENT do
-								if ElementDefs[i].Name = k then
+								if XDat.EDefs[i].Name = k then
 									q := i;
 							if (q <> -1) and (l <> '') then begin
 								i := 1;
@@ -2314,8 +2349,8 @@ procedure InitElementsGame;
 				Close(f);
 			end;
 		end;
-		{ World.Info.PlayerChar := ElementDefs[E_PLAYER].Character;
-		World.Info.PlayerColor := ElementDefs[E_PLAYER].Color; }
+		{ World.Info.PlayerChar := XDat.EDefs[E_PLAYER].Character;
+		World.Info.PlayerColor := XDat.EDefs[E_PLAYER].Color; }
 	end;
 
 function StringConfigs(i: integer): string;
@@ -2516,7 +2551,7 @@ procedure ConfigStringsLoad;
 		i, j: integer;
 	begin
 		for i := 1 to CONFIG_FILE_COUNT do
-			ConfigList[i] := DefaultConfigList(i);
+			XDat.Configs[i] := DefaultConfigList(i);
 		if (World.Info.Name <> '') and (FileExists(World.Info.Name + '.CFG')) then begin
 			Assign(f, World.Info.Name + '.CFG');
 			Reset(f);
@@ -2550,10 +2585,10 @@ procedure ConfigStringsLoad;
 						for i := 1 to CONFIG_FILE_COUNT do
 							if StringConfigs(i) = k then begin
 								if l = '' then begin
-									ConfigList[i] := #1;
-									ConfigList[i] := '';
+									XDat.Configs[i] := #1;
+									XDat.Configs[i] := '';
 								end else
-									ConfigList[i] := l;
+									XDat.Configs[i] := l;
 							end;
 					end;
 				end;

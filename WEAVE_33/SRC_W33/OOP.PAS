@@ -58,12 +58,12 @@ uses Sounds, TxtWind, Game, Elements, Counter;
 procedure OopError(statId, position: integer; message: string);
 	begin
 		if DebugEnabled then begin
-			SoundQueue(5, SoundParse(ConfigList[58])); {Error sound}
-			InspectObjectCode(statId, position, ConfigList[57] + message);
+			SoundQueue(5, SoundParse(XDat.Configs[58])); {Error sound}
+			InspectObjectCode(statId, position, XDat.Configs[57] + message);
 			Board.Stats[statId].DataPos := -1;
-		end else if ConfigList[57] <> '' then begin
-			DisplayMessage(200, ConfigList[57] + message); {"ERR: "}
-			SoundQueue(5, SoundParse(ConfigList[58])); {Error sound}
+		end else if XDat.Configs[57] <> '' then begin
+			DisplayMessage(200, XDat.Configs[57] + message); {"ERR: "}
+			SoundQueue(5, SoundParse(XDat.Configs[58])); {Error sound}
 			Board.Stats[statId].DataPos := -1;
 		end;
 	end;
@@ -175,7 +175,7 @@ procedure OopOutputTile(x, y, dx, dy: integer; tile: TTile);
 			Str(tile.Element,s);
 			t := t + ' TEXT ' + s;
 		end else begin
-			s := ElementDefs[tile.Element].name;
+			s := XDat.EDefs[tile.Element].name;
 			t := t + ' ' + s;
 			if tile.Element = E_OBJECT then begin
 				Str(Board.Stats[GetStatIdAt(dx + x, dy + y)].P1,s);
@@ -438,7 +438,7 @@ function OopPget(statId: integer; var position: integer): integer;
 				if argTile.Element > 127 then
 					OopPget := Ord((argTile.Element - 128) and filter) div shift
 				else if argTile.Element >= E_TEXT_MIN then
-					OopPget := Ord(ElementDefs[Enum(argTile.Element)].Color and filter) div shift
+					OopPget := Ord(XDat.EDefs[Enum(argTile.Element)].Color and filter) div shift
 				else
 					OopPget := Ord(argTile.Color and filter) div shift;
 				exit;
@@ -448,7 +448,7 @@ function OopPget(statId: integer; var position: integer): integer;
 				else if argTile.Element >= E_TEXT_MIN then
 					OopPget := argTile.Color
 				else
-					OopPget := Ord(ElementDefs[Enum(argTile.Element)].Character);
+					OopPget := Ord(XDat.EDefs[Enum(argTile.Element)].Character);
 				exit;
 			end else if bindStatId > -1 then with Board.Stats[bindStatId] do begin
 				if OopWord = 'STEPX' then
@@ -623,7 +623,7 @@ function OopParseTile(var statId, position: integer; var tile: TMatchTile): bool
 			elem := 128 + (i mod 128);
 		end else 
 			for i := 0 to MAX_ELEMENT do
-				if OopWord = ElementDefs[i].Name then elem := i;
+				if OopWord = XDat.EDefs[i].Name then elem := i;
 
 		if elem < 0 then exit;
 		OopParseTile := true;
@@ -809,7 +809,7 @@ function WorldGetBoardPosition(statId: integer; var position: integer): integer;
 
 function GetNumFlags: integer;
 	begin
-		if (ExtendedData.Params[22] = 1) then
+		if (XDat.Params[22] = 1) then
 			GetNumFlags := 99
 		else
 		GetNumFlags := 10;
@@ -818,7 +818,7 @@ function GetNumFlags: integer;
 function WorldInfoFlags(flag: integer): string;
 	begin
 		if flag > MAX_FLAG then
-			WorldInfoFlags := ExtendedData.Flags[flag]
+			WorldInfoFlags := XDat.Flags[flag]
 		else
 			WorldInfoFlags := World.Info.Flags[flag];
 	end;
@@ -886,7 +886,7 @@ procedure WorldSetFlag(name: TString20);
 				while (i < GetNumFlags) and (Length(WorldInfoFlags(i)) <> 0) do
 					i := i + 1;
 				if i > MAX_FLAG then
-					ExtendedData.Flags[i] := name
+					XDat.Flags[i] := name
 				else
 					World.Info.Flags[i] := name;
 			end;
@@ -920,7 +920,7 @@ procedure WorldClearFlag(name: TString20);
 			i := WorldGetFlagPosition(name);
 			if (i > 0) then begin
 				if i > MAX_FLAG then
-					ExtendedData.Flags[i] := ''
+					XDat.Flags[i] := ''
 				else
 					World.Info.Flags[i] := '';
 			end;
@@ -982,7 +982,7 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 					and ((Y + deltaY) > 0)
 					and ((Y + deltaY) <= BOARD_HEIGHT)
 				then
-					OopCheckCondition := not ElementDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable
+					OopCheckCondition := not XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable
 				else
 					OopCheckCondition := true;
 			end else if OopWord = 'ANY' then begin
@@ -1344,10 +1344,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 					OopReadWord(statId, position);
 					if OopParseDirection(statId, position, deltaX, deltaY) then begin
 						if (deltaX <> 0) or (deltaY <> 0) then begin
-							if not ElementDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
+							if not XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 
-							if ElementDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then begin
+							if XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then begin
 								MoveStat(statId, X + deltaX, Y + deltaY);
 								repeatInsNextTick := false;
 							end;
@@ -1371,10 +1371,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 					if Length(OopWord) <> 0 then begin
 						if OopWord = 'GO' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
-							if not ElementDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
+							if not XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 
-							if ElementDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then begin
+							if XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then begin
 								MoveStat(statId, X + deltaX, Y + deltaY);
 							end else begin
 								repeatInsNextTick := true;
@@ -1382,10 +1382,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							stopRunning := true;
 						end else if OopWord = 'TRY' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
-							if not ElementDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
+							if not XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 
-							if ElementDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then begin
+							if XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then begin
 								MoveStat(statId, X + deltaX, Y + deltaY);
 								stopRunning := true;
 							end else begin
@@ -1404,12 +1404,22 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							if not HasINI then
 								WorldSetFlag(OopWord)
 							else if CounterFromWord(counter, statId, OopWord) then begin
-								OopReadValue(statId, position);
-								if OopValue = -32767 then
-									counter.Value := 1
-								else
-									counter.Value := OopValue;
-								if CounterWriteValue(counter) then begin end;
+								if counter.CType = TCConfig then begin
+									Inc(position);
+									textLine := OopReadLineToEnd(statId, position);
+									if textLine <> '' then begin
+										XDat.Configs[counter.Value] := textLine;
+										Dec(position);
+									end;
+									GameDrawTheme;
+								end else begin
+									OopReadValue(statId, position);
+									if OopValue = -32767 then
+										counter.Value := 1
+									else
+										counter.Value := OopValue;
+									if CounterWriteValue(counter) then begin end;
+								end;
 								GameUpdateSidebar;
 							end else if OopNextWord(statId, position) = '' then begin
 								WorldSetFlag(OopWord);
@@ -1421,8 +1431,14 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							if not HasINI then
 								WorldClearFlag(OopWord)
 							else if CounterFromWord(counter, statId, OopWord) then begin
-								counter.Value := 0;
-								if CounterWriteValue(counter) then begin end;
+								if counter.CType = TCConfig then begin
+									XDat.Configs[counter.Value] := '';
+									XDat.Configs[counter.Value][1] := #1;
+									GameDrawTheme;
+								end else begin
+									counter.Value := 0;
+									if CounterWriteValue(counter) then begin end;
+								end;
 								GameUpdateSidebar;
 							end else
 								WorldClearFlag(OopWord);
@@ -1439,8 +1455,8 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								elseCheck := true;
 						end else if OopWord = 'SHOOT' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
-							if BoardShoot(E_BULLET, X, Y, deltaX, deltaY, ElementDefs[E_BULLET].Param3) then
-								SoundQueue(2, SoundParse(ConfigList[43])); {Object shoot}
+							if BoardShoot(E_BULLET, X, Y, deltaX, deltaY, XDat.EDefs[E_BULLET].P3) then
+								SoundQueue(2, SoundParse(XDat.Configs[43])); {Object shoot}
 							stopRunning := true;
 						end else if OopWord = 'THROWSTAR' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
@@ -1484,7 +1500,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							OopChar := #0;
 						end else if OopWord = 'ENDGAME' then begin
 							World.Info.Health := 0;
-							World.Info.GracePeriod := ExtendedData.Params[11];
+							World.Info.GracePeriod := XDat.Params[11];
 						end else if OopWord = 'IDLE' then begin
 							stopRunning := true;
 						end else if OopWord = 'RESTART' then begin
@@ -1589,14 +1605,14 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 										Board.Stats[ix].Under.Color := argTile.Color
 									else if argtile.setFG = true then
 										Board.Stats[ix].Under.Color := argTile.Color and $0F
-									else if ElementDefs[Enum(argTile.Element)].Color > 15 then
-										Board.Stats[ix].Under.Color := ElementDefs[Enum(argTile.Element)].Color
-									else if ElementDefs[Enum(argTile.Element)].Color > 0 then
-										Board.Stats[ix].Under.Color := AsColor(ElementDefs[Enum(argTile.Element)].Color,
+									else if XDat.EDefs[Enum(argTile.Element)].Color > 15 then
+										Board.Stats[ix].Under.Color := XDat.EDefs[Enum(argTile.Element)].Color
+									else if XDat.EDefs[Enum(argTile.Element)].Color > 0 then
+										Board.Stats[ix].Under.Color := AsColor(XDat.EDefs[Enum(argTile.Element)].Color,
 											Board.Stats[ix].Under.Color and $F0);
 
 								end else if ((deltaX <> 0) or (deltay <> 0)) then begin
-									if not ElementDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
+									if not XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
 										ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 									replaceTile.Element := argTile.Element;
 									replaceTile.Color := argTile.Color;
@@ -1623,9 +1639,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 												World.Info.PlayerChar := Chr(ArgTile2.Color);
 												World.Info.PlayerColor := ArgTile2.Element - 128;
 											end else begin
-												World.Info.PlayerChar := ElementDefs[Enum(argTile2.Element)].Character;
-												if (ArgTile2.Color = 0) and (ElementDefs[Enum(argTile2.Element)].Color > 0) then
-													World.Info.PlayerColor := ElementDefs[Enum(argTile2.Element)].Color
+												World.Info.PlayerChar := XDat.EDefs[Enum(argTile2.Element)].Character;
+												if (ArgTile2.Color = 0) and (XDat.EDefs[Enum(argTile2.Element)].Color > 0) then
+													World.Info.PlayerColor := XDat.EDefs[Enum(argTile2.Element)].Color
 												else
 													World.Info.PlayerColor := ArgTile2.Color;
 											end;
@@ -1636,12 +1652,12 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 										if ((argTile2.Color = 0) and (argtile2.SetFG = false))
 											and ((argTile.Element < E_TEXT_MIN) or (argTile2.Element < E_TEXT_MIN))
 										then
-											argTile2.Color := ElementDefColor(argTile2.Element);
+											argTile2.Color := ElemDefColor(argTile2.Element);
 										replaceTile.Element := argTile2.Element;
 										replaceTile.Color := argTile2.Color;
 
 										while FindTileOnBoard(ix, iy, argTile) do begin
-											if (argTile.Element <= E_TEXT_MIN) and (ElementDefs[argTile.Element].Cycle < 0) then
+											if (argTile.Element <= E_TEXT_MIN) and (XDat.EDefs[argTile.Element].Cycle < 0) then
 												Board.Tiles[ix][iy].Element := E_EMPTY;
 											if (argTile2.SetFG = true) or (argTile2.SetBG = true) then
 												OopForceTile(ix, iy, replaceTile)
@@ -1809,9 +1825,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									and (((deltaX >= 0) and (deltaX <= 63))
 									and ((deltaY >= 0) and (deltaY <= 63)))
 								then begin
-									ExtendedData.Params[PALETTE_START + (ix * 3)] := iy;;
-									ExtendedData.Params[PALETTE_START + (ix * 3) + 1] := deltaX;
-									ExtendedData.Params[PALETTE_START + (ix * 3) + 2] := deltaY;
+									XDat.Params[PALETTE_START + (ix * 3)] := iy;;
+									XDat.Params[PALETTE_START + (ix * 3) + 1] := deltaX;
+									XDat.Params[PALETTE_START + (ix * 3) + 2] := deltaY;
 									BlockPalette(ix,iy,deltaX,deltaY);
 								end else
 									OopError(statId,position, 'Bad PALETTE Command');
@@ -1834,7 +1850,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									OopReadChar(statId, position);
 								Dec(position);
 								if position = ix then
-									GameWorldSave(ConfigList[78] + ':', SavedGameFileName, '.SAV')
+									GameWorldSave(XDat.Configs[78] + ':', SavedGameFileName, '.SAV')
 								else begin
 									textLine := OopReadLineToEnd(statId, position);
 									WorldSave(textLine,'.SAV');
@@ -2023,7 +2039,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 					TextWindowAppend(textWindow, textLine);
 				end;
 
-			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > ExtendedData.Params[10]);
+			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > XDat.Params[10]);
 
 			if OopWord = 'SAVEDGAMES' then goto StopExecution;
 

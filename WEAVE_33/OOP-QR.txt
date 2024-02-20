@@ -1,6 +1,6 @@
 WeaveZZT Extended ZZT-OOP Quick Reference
 v0.9
-For WeaveZZT v3.3
+For WeaveZZT v3.3b
 
 === INDEX ===
 
@@ -238,29 +238,17 @@ Elements:
 
 === 4A) CONFIG CHANGES ===
 
-A special case related to the above, all entries in the TEMPLATE.CFG file that match the "OTHER" and "THEME" categories can be modified during play with #set, #clear, #give, and #take. These are listed below:
+A special case related to the above, all entries in the TEMPLATE.CFG can be modified during play with #SET and #CLEAR, and all numeric entries can be modified with #GIVE and #TAKE as well. Some examples follow:
 
-other.altchar
-other.ouchdamage
-other.torchratiox
-other.torchratioy
-other.torchsize
-other.bombratiox
-other.bombratioy
-other.bombsize
-other.maxstats
-other.maxoop
-other.graceperiod
-other.friendlyfire
-other.footsteps
-theme.bg.sidebar
-theme.fg.text1
-theme.fg.text2
-theme.fg.alt
-theme.bg.alt1
-theme.bg.alt2
-theme.fg.special
-theme.blinking
+#set other.altchar 3 (Players will now take on a heart shape when energized)
+#clear other.ouchdamage (Bullets and enemies can no longer harm the player.)
+#give other.torchsize (The radius of torchlight in dark rooms will increase slightly)
+#set theme.bg.sidebar brown (The sidebar will now be brown.)
+#set theme.blinking true (Extended colors will now be used.)
+#clear keys.save.bind (Disables saving the game)
+#set duplicator.snd s-cdefg (Changes the duplicator sound.)
+#set ammo.msg.touch Here's five ammo! (Changes the message that plays when ammo is first collected)
+#set ammo.p1 50 (Ammo containers now give 50 ammo.)
 
 Check the WEAVEDMO file for upper and lower bounds for the above entries.
 
