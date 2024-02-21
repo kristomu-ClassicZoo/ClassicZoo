@@ -1,3 +1,11 @@
+2/21/2024: Weave 3.3c
+Bugs Fixed:
+* #put under was not putting the right color in some cases.
+* #if run would fail even when #end true was evoked.
+
+Changes
+* Expanded the number of custom counters to 114.
+
 2/20/2024: Weave 3.3b
 Added:
 * Ability to #set and #clear items that appear in the .CFG file, and #give and #take numerical items from same. 

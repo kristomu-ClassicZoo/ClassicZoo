@@ -971,11 +971,11 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 			if OopWord = 'NOT' then begin
 				OopReadWord(statId, position);
 				OopCheckCondition := not OopCheckCondition(statId, position);
-			end else if (OopWord = 'ALLIGNED') or (OopWord = 'ALIGNED') then begin
-				OopCheckCondition := (X = Board.Stats[0].X) or (Y = Board.Stats[0].Y);
-			end else if OopWord = 'CONTACT' then begin
-				OopCheckCondition := (Sqr(X - Board.Stats[0].X) + Sqr(Y - Board.Stats[0].Y)) = 1;
-			end else if OopWord = 'BLOCKED' then begin
+			end else if (OopWord = 'ALLIGNED') or (OopWord = 'ALIGNED') then
+				OopCheckCondition := (X = Board.Stats[0].X) or (Y = Board.Stats[0].Y)
+			else if OopWord = 'CONTACT' then
+				OopCheckCondition := (Sqr(X - Board.Stats[0].X) + Sqr(Y - Board.Stats[0].Y)) = 1
+			else if OopWord = 'BLOCKED' then begin
 				OopReadDirection(statId, position, deltaX, deltaY);
 				if ((X + deltaX) > 0)
 					and ((X + deltaX) <= BOARD_WIDTH)
@@ -1056,7 +1056,18 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 						OopError(statId,position, 'Bad condition');
 				end else if OopWord = 'PGET' then
 					OopCheckCondition := OopPget(statId, position) > 0
-				else if CounterFromWord(counter, statId, OopWord) then begin
+				else if OopWord = 'RUN' then
+					OopCheckCondition := OopRunFunc(statId, position) > 0
+				else if OopWord = 'RUNWITH' then begin
+					OopReadValue(statId, position);
+					if OopValue <> -32767 then 
+						OopCheckCondition := OopRunFuncWith(statId, position, OopValue) > 0
+					else
+						OopError(statId,position, 'Could not read ' + OopWord + ' value');
+				end else if OopWord = 'WITHIN' then begin
+					OopReadValue(statId, position);
+					OopCheckCondition := ((Sqr(Board.Stats[0].X - x) + Sqr(Board.Stats[0].Y - y) * 7 / 4) <= (Sqr(OopValue)));
+				end else if CounterFromWord(counter, statId, OopWord) then begin
 					CounterReadValue(counter);
 					iy := counter.Value;
 					ix := position;
@@ -1077,17 +1088,6 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 						position := ix;
 						OopCheckCondition := (iy > 0);
 					end;
-				end else if OopWord = 'RUN' then
-					OopCheckCondition := OopRunFunc(statId, position) > 0
-				else if OopWord = 'RUNWITH' then begin
-					OopReadValue(statId, position);
-					if OopValue <> -32767 then 
-						OopCheckCondition := OopRunFuncWith(statId, position, OopValue) > 0
-					else
-						OopError(statId,position, 'Could not read ' + OopWord + ' value');
-				end else if OopWord = 'WITHIN' then begin
-					OopReadValue(statId, position);
-					OopCheckCondition := ((Sqr(Board.Stats[0].X - x) + Sqr(Board.Stats[0].Y - y) * 7 / 4) <= (Sqr(OopValue)));
 				end else
 					if GetCustomFlag(OopWord) then
 						OopCheckCondition := true
@@ -1601,7 +1601,13 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								ix := GetStatIdAt(X + deltaX,Y + deltaY);
 								if SelUnder and (ix > -1) then begin
 									Board.Stats[ix].Under.Element := argTile.Element;
-									if (argTile.setBG = true) or (argTile.Element >= E_TEXT_MIN) then
+									if argTile.Color and $F0 > 0 then
+										argTile.setBG := true;
+									if argTile.Color and $0F > 0 then
+										argTile.setFG := true;
+									if (argTile.setBG = true)
+										or (argTile.Element >= E_TEXT_MIN)
+									then
 										Board.Stats[ix].Under.Color := argTile.Color
 									else if argtile.setFG = true then
 										Board.Stats[ix].Under.Color := argTile.Color and $0F

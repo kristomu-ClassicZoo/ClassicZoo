@@ -57,7 +57,7 @@ interface
 		CUSTOM_OBJ_OFFSET = CUSTOM_LOCAL_OFFSET + 6;
 		CUSTOM_COUNTER_OFFSET = CUSTOM_OBJ_OFFSET + 1;
 		CUSTOM_FLAG_OFFSET = CUSTOM_COUNTER_OFFSET + 1;
-		CUSTOM_COUNTER_COUNT = 99;
+		CUSTOM_COUNTER_COUNT = 114;
 		CUSTOM_FLAG_COUNT = 128;
 	type
 		TString50 = string[50];
@@ -151,7 +151,6 @@ interface
 			BoardTimeHsec: integer;
 			IsSave: shortint;
 			GracePeriod: byte;
-			Unused: array[0 .. 15] of integer;
 			CustomCounters: array[1 .. CUSTOM_COUNTER_COUNT] of integer;
 			CustomFlags: array[0..3] of longint;
 		end;

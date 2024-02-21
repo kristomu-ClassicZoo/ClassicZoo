@@ -240,7 +240,7 @@ function CounterFromWord(var c: TCounter; statId: integer; s: string): boolean;
 					exit;
 				end;
 			for i := 4 to 12 do
-				if s[i] = '.' then begin
+				if (i <= Length(s)) and (s[i] = '.') then begin
 					c.CType := TCElement;
 					exit;
 				end;

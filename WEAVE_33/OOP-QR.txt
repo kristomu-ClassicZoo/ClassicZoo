@@ -1,6 +1,6 @@
 WeaveZZT Extended ZZT-OOP Quick Reference
 v0.9
-For WeaveZZT v3.3b
+For WeaveZZT v3.3c
 
 === INDEX ===
 
@@ -297,7 +297,7 @@ Labels for input:
 
  -Many counters have been added to WeaveZZT. Many, many more can also be defined on a per-world basis. These counters can also be used as flags.
 
- -World counters: Default type of counter/flag. All base counters are world counters. Up to 99 more static flags and 99 more static counters can be defined in the .INI file for your world.
+ -World counters: Default type of counter/flag. All base counters are world counters. Up to 99 more static flags and 114 more static counters can be defined in the .INI file for your world.
  -Board counters: Counters tied to the board. There are 7 per board, and are named LOCAL1 through LOCAL7.
  -Object counters: Counters tied to an object. There can be a maximum of 9 per object, though certain counters have different behavior.
 	-OBJ1, OBJ2, OBJ3, and OBJ4 behave as normal and can hold any value ZZT can process.
