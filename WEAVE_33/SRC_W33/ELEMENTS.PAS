@@ -45,7 +45,7 @@ interface
 	function ElemDefColor(elem: integer): byte;
 
 implementation
-uses Crt, Video, Sounds, Input, TxtWind, Oop, Game;
+uses Crt, Video, Sounds, Input, TxtWind, Oop, Game, ObjTrack;
 
 const
 	TransporterNSChars: string = '^~^-v_v-';
@@ -1004,19 +1004,18 @@ procedure ElementObjectTick(statId: integer);
 	var
 		retVal: boolean;
 	begin
-		with Board.Stats[statId] do begin
-			if DataPos >= 0 then
-				retVal := OopExecute(statId, DataPos, XDat.Configs[84])
-			else
-				retVal := true;
+		with TrackPushStat(statId)^ do begin
+			if Stat^.DataPos >= 0 then
+				OopExecute(Index, XDat.Configs[84]);
 
-			if retVal then begin
-				if XDat.EDefs[Enum(Board.Tiles[X + StepX][Y + StepY].Element)].Walkable then
-					MoveStat(statId, X + StepX, Y + StepY)
-				else if (StepX <> 0) or (StepY <> 0) then
-					retVal := OopSend(-statId, 'THUD', false);
+			if (Stat^.StepX <> 0) or (Stat^.StepY <> 0) then begin
+				if XDat.EDefs[Enum(Board.Tiles[Stat^.X + Stat^.StepX][Stat^.Y + Stat^.StepY].Element)].Walkable then
+					MoveStat(Index, Stat^.X + Stat^.StepX, Stat^.Y + Stat^.StepY)
+				else if (Index > 0) then
+					retVal := OopSend(-Index, 'THUD', false);
 			end;
 		end;
+		TrackPopStat;
 	end;
 
 procedure ElementObjectDraw(x, y: integer; var ch: byte);
@@ -1109,23 +1108,27 @@ procedure ElementScrollTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 	var
 		textWindow: TTextWindowState;
 		statId: integer;
+		unk1: integer;
 	begin
 		statId := GetStatIdAt(x, y);
 
-		with Board.Stats[statId] do begin
+		with TrackPushStat(statId)^ do begin
 			textWindow.Selectable := false;
 			textWindow.LinePos := 1;
 
 			SoundQueue(2, SoundParse(XDat.Configs[60])); {Scroll Touch}
 
-			DataPos := 0;
-			if OopExecute(statId, DataPos, XDat.Configs[85]) then begin end; {'Scroll'}
-		end;
+			Stat^.DataPos := 0;
+			OopExecute(Index, XDat.Configs[85]);
 
-		statId := GetStatIdAt(x, y);
-		if statId <> -1 then
-			RemoveStat(statId);
+			if Index >= 0 then
+				RemoveStat(Index);
+		end;
+		TrackPopStat;
 	end;
+
+
+
 
 procedure ElementKeyTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	var

@@ -45,7 +45,7 @@ interface
 	procedure WorldClearFlag(name: TString20);
 	procedure InspectObjectCode(statId, PointPos: integer; ErrMsg: string);
 	function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
-	function OopExecute(statId: integer; var position: integer; name: TString50): boolean;
+	procedure OopExecute(statId: integer; name: TString50);
 	function OopStringToWord(input: TString50): TString50;
 	procedure OopReadValue(statId: integer; var position: integer);
 	procedure GetBoardStats;
@@ -53,7 +53,7 @@ interface
 	function WorldInfoFlags(flag: integer): string;
 
 implementation
-uses Sounds, TxtWind, Game, Elements, Counter;
+uses Sounds, TxtWind, Game, Elements, Counter, ObjTrack;
 
 procedure OopError(statId, position: integer; message: string);
 	begin
@@ -226,29 +226,32 @@ procedure XOut(s: TString50);
 
 function OopRunFunc(statId: integer; var position: integer): integer;
 	var
-		ix, iy: integer;
+		ix, iy, qpos: integer;
 		labelPtr: pointer;
 		tmpcond: boolean;
 	begin
 		OopReadWord(statId, position);
 		OopFuncReturn := -1;
-		with Board.Stats[statId] do begin
-			tmpcond := elseCheck;
-			labelPtr := Data;
-			ix := DataPos;
-			iy := DataLen;
-			Data := nil;
-			DataLen := 0;
-			if FileLoadStatData(OopWord,statId) then begin
-				if OopExecute(statId,DataPos,'%%Function') then begin end;
-				FreeMem(Data,DataLen);
+		with TrackPushStat(statId)^ do begin
+			tmpcond := Stat^.elseCheck;
+			labelPtr := Stat^.Data;
+			ix := Stat^.DataPos;
+			iy := Stat^.DataLen;
+			Stat^.Data := nil;
+			Stat^.DataLen := 0;
+			if FileLoadStatData(OopWord,Index) then begin
+				OopExecute(Index,'%%Function');
+				FreeMem(Stat^.Data,Stat^.DataLen);
 			end else 
-				OopError(statId,position, 'File not found ' + OopWord + '.OBJ');
-			Data := labelPtr;
-			DataPos := ix;
-			DataLen := iy;
-			elseCheck := tmpcond;
+				OopError(Index,position, 'File not found ' + OopWord + '.OBJ');
+			Stat^.Data := labelPtr;
+			Stat^.DataPos := ix;
+			Stat^.DataLen := iy;
+			Stat^.elseCheck := tmpcond;
 		end;
+		TrackPopStat;
+		World.Info.Score := Board.Stats[statid].DataPos;
+		GameUpdateSidebar;
 		OopRunFunc := OopFuncReturn;
 	end;
 
@@ -545,6 +548,7 @@ procedure OopReadValue(statId: integer; var position: integer);
 			end else if s = 'RUN' then begin
 				s := OopWord;
 				OopValue := OopRunFunc(statId, position);
+				InspectObjectCode(statid,board.stats[statid].datapos,OopWord + ' end');
 				OopWord := s;
 			end else if s = 'RUNWITH' then begin
 				s := OopWord;
@@ -1278,7 +1282,7 @@ function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boole
 		end;
 	end;
 
-function OopExecute(statId: integer; var position: integer; name: TString50): boolean;
+procedure OopExecute(statId: integer; name: TString50);
 	var
 		textWindow: TTextWindowState;
 		textLine: string;
@@ -1309,7 +1313,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 	label ReadCommand;
 	label StopExecution;
 	begin
-		with Board.Stats[statId] do begin
+		with TrackPushStat(statId)^ do begin
 		StartParsing:
 			TextWindowInitState(textWindow);
 			textWindow.Selectable := false;
@@ -1324,96 +1328,96 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 			repeat
 		ReadInstruction:
 				lineFinished := true;
-				lastPosition := position;
-				OopReadChar(statId, position);
+				lastPosition := Stat^.DataPos;
+				OopReadChar(Index, Stat^.DataPos);
 
 				{ skip labels }
 				while OopChar = ':' do begin
 					repeat
-						OopReadChar(statId, position);
+						OopReadChar(Index, Stat^.DataPos);
 					until (OopChar = #0) or (OopChar = #13);
-					OopReadChar(statId, position);
+					OopReadChar(Index, Stat^.DataPos);
 				end;
 
 				if (OopChar = '@') or (OopChar = #39) { apostrophe } then
-					OopSkipLine(statId, position)
+					OopSkipLine(Index, Stat^.DataPos)
 				else if (OopChar = '/') or (OopChar = '?') then begin
 					if OopChar = '/' then
 						repeatInsNextTick := true;
 
-					OopReadWord(statId, position);
-					if OopParseDirection(statId, position, deltaX, deltaY) then begin
+					OopReadWord(Index, Stat^.DataPos);
+					if OopParseDirection(Index, Stat^.DataPos, deltaX, deltaY) then begin
 						if (deltaX <> 0) or (deltaY <> 0) then begin
-							if not XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
-								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+							if not XDat.EDefs[Enum(Board.Tiles[Stat^.X + deltaX][Stat^.Y + deltaY].Element)].Walkable then
+								ElementPushablePush(Stat^.X + deltaX, Stat^.Y + deltaY, deltaX, deltaY);
 
-							if XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then begin
-								MoveStat(statId, X + deltaX, Y + deltaY);
+							if XDat.EDefs[Enum(Board.Tiles[Stat^.X + deltaX][Stat^.Y + deltaY].Element)].Walkable then begin
+								MoveStat(Index, Stat^.X + deltaX, Stat^.Y + deltaY);
 								repeatInsNextTick := false;
 							end;
 						end else begin
 							repeatInsNextTick := false;
 						end;
 
-						OopReadChar(statId, position);
+						OopReadChar(Index, Stat^.DataPos);
 						if OopChar <> #13 then
-							Dec(position);
+							Dec(Stat^.DataPos);
 
 						stopRunning := true;
 					end else
-						OopError(statId,position, 'Bad direction ' + OopWord);
+						OopError(Index,Stat^.DataPos, 'Bad direction ' + OopWord);
 				end else if OopChar = '#' then begin
 		ReadCommand:
-					OopReadWord(statId, position);
-					if OopWord = 'THEN' then OopReadWord(statId, position);
+					OopReadWord(Index, Stat^.DataPos);
+					if OopWord = 'THEN' then OopReadWord(Index, Stat^.DataPos);
 					if Length(OopWord) = 0 then goto ReadInstruction;
 					if name <> '%%Function' then Inc(insCount);
 					if Length(OopWord) <> 0 then begin
 						if OopWord = 'GO' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
-							if not XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
-								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+							OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
+							if not XDat.EDefs[Enum(Board.Tiles[Stat^.X + deltaX][Stat^.Y + deltaY].Element)].Walkable then
+								ElementPushablePush(Stat^.X + deltaX, Stat^.Y + deltaY, deltaX, deltaY);
 
-							if XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then begin
-								MoveStat(statId, X + deltaX, Y + deltaY);
+							if XDat.EDefs[Enum(Board.Tiles[Stat^.X + deltaX][Stat^.Y + deltaY].Element)].Walkable then begin
+								MoveStat(Index, Stat^.X + deltaX, Stat^.Y + deltaY);
 							end else begin
 								repeatInsNextTick := true;
 							end;
 							stopRunning := true;
 						end else if OopWord = 'TRY' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
-							if not XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
-								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+							OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
+							if not XDat.EDefs[Enum(Board.Tiles[Stat^.X + deltaX][Stat^.Y + deltaY].Element)].Walkable then
+								ElementPushablePush(Stat^.X + deltaX, Stat^.Y + deltaY, deltaX, deltaY);
 
-							if XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then begin
-								MoveStat(statId, X + deltaX, Y + deltaY);
+							if XDat.EDefs[Enum(Board.Tiles[Stat^.X + deltaX][Stat^.Y + deltaY].Element)].Walkable then begin
+								MoveStat(Index, Stat^.X + deltaX, Stat^.Y + deltaY);
 								stopRunning := true;
 							end else begin
-								OopReadChar(statId, position);
-								Dec(position);
+								OopReadChar(Index, Stat^.DataPos);
+								Dec(Stat^.DataPos);
 								if (OopChar <> #13) then
 									goto ReadCommand;
 							end;
 						end else if OopWord = 'WALK' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
-							StepX := deltaX;
-							StepY := deltaY;
+							OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
+							Stat^.StepX := deltaX;
+							Stat^.StepY := deltaY;
 						end else if OopWord = 'SET' then begin
-							OopReadWord(statId, position);
+							OopReadWord(Index, Stat^.DataPos);
 							textLine := OopWord;
 							if not HasINI then
 								WorldSetFlag(OopWord)
-							else if CounterFromWord(counter, statId, OopWord) then begin
+							else if CounterFromWord(counter, Index, OopWord) then begin
 								if counter.CType = TCConfig then begin
-									Inc(position);
-									textLine := OopReadLineToEnd(statId, position);
+									Inc(Stat^.DataPos);
+									textLine := OopReadLineToEnd(Index, Stat^.DataPos);
 									if textLine <> '' then begin
 										XDat.Configs[counter.Value] := textLine;
-										Dec(position);
+										Dec(Stat^.DataPos);
 									end;
 									GameDrawTheme;
 								end else begin
-									OopReadValue(statId, position);
+									OopReadValue(Index, Stat^.DataPos);
 									if OopValue = -32767 then
 										counter.Value := 1
 									else
@@ -1421,16 +1425,16 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									if CounterWriteValue(counter) then begin end;
 								end;
 								GameUpdateSidebar;
-							end else if OopNextWord(statId, position) = '' then begin
+							end else if OopNextWord(Index, Stat^.DataPos) = '' then begin
 								WorldSetFlag(OopWord);
 							end else
-								OopError(statId,position, 'Unknown counter ' + OopWord);
+								OopError(Index,Stat^.DataPos, 'Unknown counter ' + OopWord);
 							If HasCustomSidebar then GameDrawCustomSidebar;
 						end else if OopWord = 'CLEAR' then begin
-							OopReadWord(statId, position);
+							OopReadWord(Index, Stat^.DataPos);
 							if not HasINI then
 								WorldClearFlag(OopWord)
-							else if CounterFromWord(counter, statId, OopWord) then begin
+							else if CounterFromWord(counter, Index, OopWord) then begin
 								if counter.CType = TCConfig then begin
 									XDat.Configs[counter.Value] := '';
 									XDat.Configs[counter.Value][1] := #1;
@@ -1444,23 +1448,23 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								WorldClearFlag(OopWord);
 							If HasCustomSidebar then GameDrawCustomSidebar;
 						end else if OopWord = 'IF' then begin
-							elseCheck := false;
-							OopReadWord(statId, position);
-							if OopCheckCondition(statId, position) then begin
-								OopReadChar(statId, position);
-								Dec(position);
+							Stat^.elseCheck := false;
+							OopReadWord(Index, Stat^.DataPos);
+							if OopCheckCondition(Index, Stat^.DataPos) then begin
+								OopReadChar(Index, Stat^.DataPos);
+								Dec(Stat^.DataPos);
 								if (OopChar <> #13) then
 									goto ReadCommand;
 							end else
-								elseCheck := true;
+								Stat^.elseCheck := true;
 						end else if OopWord = 'SHOOT' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
-							if BoardShoot(E_BULLET, X, Y, deltaX, deltaY, XDat.EDefs[E_BULLET].P3) then
+							OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
+							if BoardShoot(E_BULLET, Stat^.X, Stat^.Y, deltaX, deltaY, XDat.EDefs[E_BULLET].P3) then
 								SoundQueue(2, SoundParse(XDat.Configs[43])); {Object shoot}
 							stopRunning := true;
 						end else if OopWord = 'THROWSTAR' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
-							if BoardShoot(E_STAR, X, Y, deltaX, deltaY, SHOT_SOURCE_ENEMY) then
+							OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
+							if BoardShoot(E_STAR, Stat^.X, Stat^.Y, deltaX, deltaY, SHOT_SOURCE_ENEMY) then
 								begin end;
 							stopRunning := true;
 						end else if (OopWord = 'GIVE') or (OopWord = 'TAKE') then begin
@@ -1469,34 +1473,34 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 							else
 								counterSubtract := false;
 
-							OopReadWord(statId, position);
+							OopReadWord(Index, Stat^.DataPos);
 							textLine := OopWord;
 
-							if CounterFromWord(counter, statId, OopWord) then begin
+							if CounterFromWord(counter, Index, OopWord) then begin
 								CounterReadValue(counter);
-								code := position;
-								OopReadValue(statId, position);
+								code := Stat^.DataPos;
+								OopReadValue(Index, Stat^.DataPos);
 								if OopValue = -32767 then begin
-									position := code;
+									Stat^.DataPos := code;
 									OopValue := 1;
 								end;
 								if counterSubtract then
 									OopValue := -OopValue;
 								counter.Value := counter.Value + OopValue;
 								if counter.Value < 0 then begin
-									OopReadChar(statId, position);
-									Dec(position);
+									OopReadChar(Index, Stat^.DataPos);
+									Dec(Stat^.DataPos);
 									if (OopChar <> #13) then
 										goto ReadCommand;
 								end else if CounterWriteValue(counter) then begin end;
 							end else
-								OopError(statId,position, 'Unknown counter ' + OopWord);
+								OopError(Index,Stat^.DataPos, 'Unknown counter ' + OopWord);
 							GameUpdateSidebar;
 							If HasCustomSidebar then GameDrawCustomSidebar;
 						end else if OopWord = 'END' then begin
-							OopReadValue(statId, position);
+							OopReadValue(Index, Stat^.DataPos);
 							OopFuncReturn := OopValue;
-							position := -1;
+							Stat^.DataPos := -1;
 							OopChar := #0;
 						end else if OopWord = 'ENDGAME' then begin
 							World.Info.Health := 0;
@@ -1504,19 +1508,19 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 						end else if OopWord = 'IDLE' then begin
 							stopRunning := true;
 						end else if OopWord = 'RESTART' then begin
-							position := 0;
+							Stat^.DataPos := 0;
 							lineFinished := false;
 						end else if (OopWord = 'ZAP') or (OopWord = 'RESTORE') then begin
 							textLine := OopWord;
 							repeat
-								OopReadChar(statId, position);
+								OopReadChar(Index, Stat^.DataPos);
 							until OopChar <> ' ';
 							if OopChar = '!' then begin
 								labelZap := '@';
 								labelUnzap := '!';
 								ix := 1;
 							end else begin
-								Dec(position);
+								Dec(Stat^.DataPos);
 								labelZap := #39;
 								labelUnzap := ':';
 								ix := 99;
@@ -1527,9 +1531,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								labelUnzap := tmpchar;
 							end else
 								ix := 1;
-							OopReadWord(statId, position);
+							OopReadWord(Index, Stat^.DataPos);
 							textLine := OopWord;
-							OopReadValue(statId, position);
+							OopReadValue(Index, Stat^.DataPos);
 							if OopValue = -32767 then 
 								OopValue := ix;
 							if OopValue < 0 then begin
@@ -1540,7 +1544,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								labelStatId := 0;
 								OopWord := textLine;
 								iy := ix;
-								while OopFindLabel(statId, ix, OopWord, labelStatId, labelDataPos, #13 + labelUnzap) do begin
+								while OopFindLabel(Index, ix, OopWord, labelStatId, labelDataPos, #13 + labelUnzap) do begin
 									iy := OopValue;
 									labelPtr := Board.Stats[labelStatId].Data;
 									AdvancePointer(labelPtr, labelDataPos + 1);
@@ -1554,51 +1558,51 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								iy := 0
 							else
 								iy := 1;
-							OopReadWord(statId, position);
-							if not OopParseDirection(statId, position, deltaX, deltaY) then
-								P2 := iy
+							OopReadWord(Index, Stat^.DataPos);
+							if not OopParseDirection(Index, Stat^.DataPos, deltaX, deltaY) then
+								Stat^.P2 := iy
 							else begin
-								ix := GetStatIdAt( X + deltaX, Y + deltaY );
+								ix := GetStatIdAt( Stat^.X + deltaX, Stat^.Y + deltaY );
 								if ix <> -1 then
 									Board.Stats[ix].P2 := iy;
 							end;
 						end else if OopWord = 'SEND' then begin
 							repeat
-								OopReadChar(statId, position);
+								OopReadChar(Index, Stat^.DataPos);
 							until OopChar <> ' ';
 							if OopChar = '/' then begin
-								OopReadWord(statId, position);
-								if OopParseDirection(statId, position, deltaX, deltaY) then begin
-									OopReadWord(statId, position);
-									ix := GetStatIdAt(X + deltaX, Y + deltaY);
+								OopReadWord(Index, Stat^.DataPos);
+								if OopParseDirection(Index, Stat^.DataPos, deltaX, deltaY) then begin
+									OopReadWord(Index, Stat^.DataPos);
+									ix := GetStatIdAt(Stat^.X + deltaX, Stat^.Y + deltaY);
 									if ix > 0 then
 										if OopSend(-ix, OopWord, false) then lineFinished := false;
 								end;
 							end else begin
-								Dec(position);
-								OopReadWord(statId, position);
-								if OopSend(statId, OopWord, false) then lineFinished := false;
+								Dec(Stat^.DataPos);
+								OopReadWord(Index, Stat^.DataPos);
+								if OopSend(Index, OopWord, false) then lineFinished := false;
 							end;
 						end else if OopWord = 'BECOME' then begin
-							if OopParseTile(statId, position, argTile) then begin
+							if OopParseTile(Index, Stat^.DataPos, argTile) then begin
 								replaceStat := true;
 								if (argTile.SetFG = true) or (argTile.SetBG = true) then
 									replaceForce := true;
 								replaceTile.Element := argTile.Element;
 								replaceTile.Color := argTile.Color;
 							end else begin
-								OopError(statId,position, 'Bad #BECOME');
+								OopError(Index,Stat^.DataPos, 'Bad #BECOME');
 							end;
 						end else if OopWord = 'PUT' then begin
-							OopReadDirection(statId, position, deltaX, deltaY);
-							if not OopParseTile(statId, position, argTile) then
-								OopError(statId,position, 'Bad #PUT')
-							else if ((X + deltaX) > 0)
-								and ((X + deltaX) <= BOARD_WIDTH)
-								and ((Y + deltaY) > 0)
-								and ((Y + deltaY) <= BOARD_HEIGHT) then
+							OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
+							if not OopParseTile(Index, Stat^.DataPos, argTile) then
+								OopError(Index,Stat^.DataPos, 'Bad #PUT')
+							else if ((Stat^.X + deltaX) > 0)
+								and ((Stat^.X + deltaX) <= BOARD_WIDTH)
+								and ((Stat^.Y + deltaY) > 0)
+								and ((Stat^.Y + deltaY) <= BOARD_HEIGHT) then
 							begin
-								ix := GetStatIdAt(X + deltaX,Y + deltaY);
+								ix := GetStatIdAt(Stat^.X + deltaX,Stat^.Y + deltaY);
 								if SelUnder and (ix > -1) then begin
 									Board.Stats[ix].Under.Element := argTile.Element;
 									if argTile.Color and $F0 > 0 then
@@ -1617,24 +1621,24 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 										Board.Stats[ix].Under.Color := AsColor(XDat.EDefs[Enum(argTile.Element)].Color,
 											Board.Stats[ix].Under.Color and $F0);
 
-								end else if ((deltaX <> 0) or (deltay <> 0)) then begin
-									if not XDat.EDefs[Enum(Board.Tiles[X + deltaX][Y + deltaY].Element)].Walkable then
-										ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+								end else if ((deltaX <> 0) or (deltaY <> 0)) then begin
+									if not XDat.EDefs[Enum(Board.Tiles[Stat^.X + deltaX][Stat^.Y + deltaY].Element)].Walkable then
+										ElementPushablePush(Stat^.X + deltaX, Stat^.Y + deltaY, deltaX, deltaY);
 									replaceTile.Element := argTile.Element;
 									replaceTile.Color := argTile.Color;
 									if (argTile.setFG = true) or (argTile.setBG = true) then
-										OopForceTile(X + deltaX, Y + deltaY, replaceTile)
+										OopForceTile(Stat^.X + deltaX, Stat^.Y + deltaY, replaceTile)
 									else
-										OopPlaceTile(X + deltaX, Y + deltaY, replaceTile);
+										OopPlaceTile(Stat^.X + deltaX, Stat^.Y + deltaY, replaceTile);
 								end;
 							end;
 						end else if OopWord = 'CHANGE' then begin
-							if not OopParseTile(statId, position, argTile) then
-								OopError(statId,position, 'Bad #CHANGE to ' + OopWord)
+							if not OopParseTile(Index, Stat^.DataPos, argTile) then
+								OopError(Index,Stat^.DataPos, 'Bad #CHANGE to ' + OopWord)
 							else begin
 								textLine := OopWord;
-								if not OopParseTile(statId, position, argTile2) then
-									OopError(statId,position, 'Bad #CHANGE from ' + textLine + ' to ' + OopWord)
+								if not OopParseTile(Index, Stat^.DataPos, argTile2) then
+									OopError(Index,Stat^.DataPos, 'Bad #CHANGE from ' + textLine + ' to ' + OopWord)
 								else begin
 									if (argTile.Element = E_PLAYER) then begin
 										if (argTile.Color = 0)
@@ -1674,116 +1678,116 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								end;
 							end;
 						end else if OopWord = 'PLAY' then begin
-							OopReadChar(statId, position);
+							OopReadChar(Index, Stat^.DataPos);
 							if OopChar = #13 then
 								SoundClearQueue;
-							Dec(position);
-							textLine := SoundParse(OopReadLineToEnd(statId, position));
+							Dec(Stat^.DataPos);
+							textLine := SoundParse(OopReadLineToEnd(Index, Stat^.DataPos));
 							if Length(textLine) <> 0 then
 								SoundQueue(-1, textLine);
 							lineFinished := false;
 						end else if OopWord = 'CYCLE' then begin
-							OopReadValue(statId, position);
+							OopReadValue(Index, Stat^.DataPos);
 							if OopValue > 0 then
-								Cycle := OopValue;
+								Stat^.Cycle := OopValue;
 						end else if OopWord = 'CHAR' then begin
-							OopReadValue(statId, position);
+							OopReadValue(Index, Stat^.DataPos);
 							if (OopValue > 0) and (OopValue <= 255) then begin
-								P1 := OopValue;
-								BoardDrawTile(X, Y);
+								Stat^.P1 := OopValue;
+								BoardDrawTile(Stat^.X, Stat^.Y);
 							end;
 						end else if OopWord = 'DIE' then begin
 							replaceStat := true;
 							replaceForce := true;
-							replaceTile.Element := Under.Element;
-							replaceTile.Color := Under.Color;
-							OopReadWord(statId, position);
+							replaceTile.Element := Stat^.Under.Element;
+							replaceTile.Color := Stat^.Under.Color;
+							OopReadWord(Index, Stat^.DataPos);
 							if OopWord = 'ITEM' then
 								dieItem := true;
 						end else if OopWord = 'BIND' then begin
-							OopReadWord(statId, position);
+							OopReadWord(Index, Stat^.DataPos);
 							bindStatId := 0;
-							if OopIterateStat(statId, bindStatId, OopWord) then begin
-								if statId <> bindStatId then begin
-									FreeStatDataMem(statId);
-									Data := Board.Stats[bindStatId].Data;
-									DataLen := Board.Stats[bindStatId].DataLen;
+							if OopIterateStat(Index, bindStatId, OopWord) then begin
+								if Index <> bindStatId then begin
+									FreeMem(Stat^.Data, Stat^.DataLen);
+									Stat^.Data := Board.Stats[bindStatId].Data;
+									Stat^.DataLen := Board.Stats[bindStatId].DataLen;
 								end;
-								position := 0;
+								Stat^.DataPos := 0;
 							end;
 						end else if HasINI then begin
 							if (OopWord = 'ELSE') then begin
-								if elseCheck then goto ReadCommand;
+								if Stat^.elseCheck then goto ReadCommand;
 							end else if (OopWord = 'AND') then begin
-								if not elseCheck then goto ReadCommand;
+								if not Stat^.elseCheck then goto ReadCommand;
 							end else if (OopWord = 'RUN') then begin
-								ix := OopRunFunc(statId, position);
+								ix := OopRunFunc(Index, Stat^.DataPos);
 							end else if OopWord = 'RUNWITH' then begin
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								if OopValue <> -32767 then
-									ix := OopRunFuncWith(statId, position, OopValue)
+									ix := OopRunFuncWith(Index, Stat^.DataPos, OopValue)
 								else
-									OopError(statId,position, 'Could not read ' + OopWord + ' value');
+									OopError(Index,Stat^.DataPos, 'Could not read ' + OopWord + ' value');
 							end else if OopWord = 'OUT' then begin {OUTPUT}
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								deltaX := OopValue;
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								deltaY := OopValue;
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								ix := OopValue;
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								iy := OopValue;
 								OopOutputTile(ix, iy, deltaX, deltaY, Board.Tiles[deltaX + ix][deltaY + iy]);
 							end else if OopWord = 'XOUT' then begin {OUTPUT}
-								OopReadChar(statId, position);
+								OopReadChar(Index, Stat^.DataPos);
 								while OopChar = ' ' do
-									OopReadChar(statId, position);
-								Dec(position);
-								textLine := OopReadLineToEnd(statId, position);
+									OopReadChar(Index, Stat^.DataPos);
+								Dec(Stat^.DataPos);
+								textLine := OopReadLineToEnd(Index, Stat^.DataPos);
 								XOut(textLine);
-								Dec(position);
+								Dec(Stat^.DataPos);
 							end else if OopWord = 'LOAD' then begin
-								OopReadDirection(statId, position, deltaX, deltaY);
-								if ((X + deltaX) > 0)
-									and ((X + deltaX) <= BOARD_WIDTH)
-									and ((Y + deltaY) > 0)
-									and ((Y + deltaY) <= BOARD_HEIGHT)
+								OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
+								if ((Stat^.X + deltaX) > 0)
+									and ((Stat^.X + deltaX) <= BOARD_WIDTH)
+									and ((Stat^.Y + deltaY) > 0)
+									and ((Stat^.Y + deltaY) <= BOARD_HEIGHT)
 								then begin
-									bindStatId := GetStatIdAt(X + deltaX, Y + deltaY);
-									if (Board.Tiles[X + deltaX][Y + deltaY].element = E_OBJECT)
+									bindStatId := GetStatIdAt(Stat^.X + deltaX, Stat^.Y + deltaY);
+									if (Board.Tiles[Stat^.X + deltaX][Stat^.Y + deltaY].element = E_OBJECT)
 										and (bindStatId > 0)
 									then begin
-										ix := position;
-										OopReadWord(statId, position);
+										ix := Stat^.DataPos;
+										OopReadWord(Index, Stat^.DataPos);
 										if OopWord <> 'APPEND' then
-											position := ix;
-										Inc(position);
-										textLine := OopReadLineToEnd(statId, position);
-										Dec(position);
+											Stat^.DataPos := ix;
+										Inc(Stat^.DataPos);
+										textLine := OopReadLineToEnd(Index, Stat^.DataPos);
+										Dec(Stat^.DataPos);
 										if (OopWord = 'APPEND') then begin
 											if FileAppendStatData(textLine,bindStatId) then
 												goto ReadCommand
 											else
-												OopError(statId,position, 'Unable to load ' + textLine + '.OBJ');
+												OopError(Index,Stat^.DataPos, 'Unable to load ' + textLine + '.OBJ');
 										end else if FileLoadStatData(textLine,bindStatId) then begin
 											Board.Stats[bindStatId].DataPos := 0;
 											goto ReadCommand;
 										end else
-											OopError(statId,position, 'Unable to load ' + textLine + '.OBJ');
+											OopError(Index,Stat^.DataPos, 'Unable to load ' + textLine + '.OBJ');
 									end;
 								end;
 							end else if OopWord = 'WRITE' then begin
-								OopReadDirection(statId, position, deltaX, deltaY);
-								Inc(deltaX,X);
-								Inc(deltaY,Y);
+								OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
+								Inc(deltaX,Stat^.X);
+								Inc(deltaY,Stat^.Y);
 
-								ix := OopGetColor(statId, position, argTile);
-								if ix < 0 then OopError(statId,position, 'Invalid WRITE color.');
+								ix := OopGetColor(Index, Stat^.DataPos, argTile);
+								if ix < 0 then OopError(Index,Stat^.DataPos, 'Invalid WRITE color.');
 								argTile.Element := 128 + (ix mod 128);
 
-								Inc(position);
-								textLine := OopReadLineToEnd(statId, position);
-								Dec(position);								
+								Inc(Stat^.DataPos);
+								textLine := OopReadLineToEnd(Index, Stat^.DataPos);
+								Dec(Stat^.DataPos);								
 
 								iy := Length(textLine);
 
@@ -1795,10 +1799,10 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 										and ((deltaY) <= BOARD_HEIGHT) then
 									begin
 										argTile.Color := Ord(textLine[Length(textLine) - iy]);
-										if ((deltax <> 0) or (deltaY <> 0)) and (GetStatIdAt(deltaX, deltaY) <> 0) then
-											if SelUnder and (GetStatIdAt(X + deltaX,Y + deltaY) > 0) then begin
-												Board.Stats[GetStatIdAt(X + deltaX,Y + deltaY)].Under.Element := argTile.Element;
-												Board.Stats[GetStatIdAt(X + deltaX,Y + deltaY)].Under.Color := argTile.Color;
+										if ((deltaX <> 0) or (deltaY <> 0)) and (GetStatIdAt(deltaX, deltaY) <> 0) then
+											if SelUnder and (GetStatIdAt(Stat^.X + deltaX,Stat^.Y + deltaY) > 0) then begin
+												Board.Stats[GetStatIdAt(Stat^.X + deltaX,Stat^.Y + deltaY)].Under.Element := argTile.Element;
+												Board.Stats[GetStatIdAt(Stat^.X + deltaX,Stat^.Y + deltaY)].Under.Color := argTile.Color;
 											end else begin
 												replaceTile.Element := argTile.Element;
 												replaceTile.Color := argTile.Color;
@@ -1808,18 +1812,18 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									end;
 								end;
 							end else if OopWord = 'PALETTE' then begin
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								ix := OopValue;
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								iy := OopValue;
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								deltaX := OopValue;
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								deltaY := OopValue;
 								if (ix >= 0)
 									and (ix <= 15)
 									and (iy = -1)
-									and (deltax = -1)
+									and (deltaX = -1)
 									and (deltaY = -1)
 								then begin
 									iy := SourcePalette[PALETTE_START + (ix * 3)];
@@ -1836,13 +1840,13 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									XDat.Params[PALETTE_START + (ix * 3) + 2] := deltaY;
 									BlockPalette(ix,iy,deltaX,deltaY);
 								end else
-									OopError(statId,position, 'Bad PALETTE Command');
+									OopError(Index,Stat^.DataPos, 'Bad PALETTE Command');
 							end else if OopWord = 'PLAYER' then begin
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								ix := OopValue;
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								iy := OopValue;
-								OopReadValue(statId, position);
+								OopReadValue(Index, Stat^.DataPos);
 								if ((( ix > -1 ) and ( ix < 16 ))
 									and (( iy > -1 ) and ( iy < 16 )))
 								then
@@ -1850,69 +1854,69 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 								if (( OopValue > -1 ) and ( OopValue < 256 )) then 
 									World.Info.PlayerChar := Chr(OopValue);
 							end else if OopWord = 'SAVEGAME' then begin
-								ix := position;
-								OopReadChar(statId, position);
+								ix := Stat^.DataPos;
+								OopReadChar(Index, Stat^.DataPos);
 								while OopChar = ' ' do
-									OopReadChar(statId, position);
-								Dec(position);
-								if position = ix then
+									OopReadChar(Index, Stat^.DataPos);
+								Dec(Stat^.DataPos);
+								if Stat^.DataPos = ix then
 									GameWorldSave(XDat.Configs[78] + ':', SavedGameFileName, '.SAV')
 								else begin
-									textLine := OopReadLineToEnd(statId, position);
+									textLine := OopReadLineToEnd(Index, Stat^.DataPos);
 									WorldSave(textLine,'.SAV');
-									Dec(position);
+									Dec(Stat^.DataPos);
 								end;
 								stopRunning := true;
 							end else if OopWord = 'LOADGAME' then begin
-								ix := position;
-								OopReadChar(statId, position);
+								ix := Stat^.DataPos;
+								OopReadChar(Index, Stat^.DataPos);
 								while OopChar = ' ' do
-									OopReadChar(statId, position);
-								Dec(position);
-								if position = ix then begin
+									OopReadChar(Index, Stat^.DataPos);
+								Dec(Stat^.DataPos);
+								if Stat^.DataPos = ix then begin
 									if GameWorldLoad('.SAV') then begin
 										ReturnBoardId := World.Info.CurrentBoard;
 										BoardChange(ReturnBoardId);
 										TransitionDrawToBoard;
 									end;
 								end else begin
-									textLine := OopReadLineToEnd(statId, position);
+									textLine := OopReadLineToEnd(Index, Stat^.DataPos);
 									if WorldLoad(textLine, '.SAV') then begin
 										ReturnBoardId := World.Info.CurrentBoard;
 										BoardChange(ReturnBoardId);
 										TransitionDrawToBoard;
 									end;
- 									Dec(position);
+ 									Dec(Stat^.DataPos);
 								end;
 								stopRunning := true;
 							end else if OopWord = 'STEP' then begin
-								OopReadDirection(statId, position, ix, iy);
-								textLine := OopNextWord(statId, position);
-								Inc(ix,X);
-								Inc(iy,Y);
-								OopReadDirectionRel(statId, position, deltaX, deltaY, ix, iy, textLine);
+								OopReadDirection(Index, Stat^.DataPos, ix, iy);
+								textLine := OopNextWord(Index, Stat^.DataPos);
+								Inc(ix,Stat^.X);
+								Inc(iy,Stat^.Y);
+								OopReadDirectionRel(Index, Stat^.DataPos, deltaX, deltaY, ix, iy, textLine);
 								bindStatId := GetStatIdAt(ix, iy);
 								if (bindStatId > -1) then begin
 									Board.Stats[bindStatId].StepX := deltaX;
 									Board.Stats[bindStatId].StepY := deltaY;
 								end;
 							end else if OopWord = 'PSET' then begin
-								OopReadDirection(statId, position, deltaX, deltaY);
-								bindStatId := GetStatIdAt( X + deltaX, Y + deltaY );
+								OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
+								bindStatId := GetStatIdAt( Stat^.X + deltaX, Stat^.Y + deltaY );
 								if bindStatId > -1 then begin
-									OopReadWord(statId, position);
+									OopReadWord(Index, Stat^.DataPos);
 									if OopWord = 'STEP' then begin
-										textLine := OopNextWord(statId, position);
-										Inc(deltaX,X);
-										Inc(deltaY,Y);
-										OopReadDirectionRel(statId, position, ix, iy, deltaX, deltaY, textLine);
+										textLine := OopNextWord(Index, Stat^.DataPos);
+										Inc(deltaX,Stat^.X);
+										Inc(deltaY,Stat^.Y);
+										OopReadDirectionRel(Index, Stat^.DataPos, ix, iy, deltaX, deltaY, textLine);
 										Board.Stats[bindStatId].StepX := ix;
 										Board.Stats[bindStatId].StepY := iy;
 									end else if OopWord = 'DESTINATION' then begin
-										iy := WorldGetBoardPosition(statId, position);
+										iy := WorldGetBoardPosition(Index, Stat^.DataPos);
 										Board.Stats[bindStatId].P3 := iy;
 									end else begin
-										OopReadValue(statId, position);
+										OopReadValue(Index, Stat^.DataPos);
 										iy := OopValue;
 										if ((OopWord = 'P1') or (OopWord = 'CHAR')) or ((OopWord = 'INTEL') or (OopWord = 'INTELLIGENCE')) then
 											Board.Stats[bindStatId].P1 := iy
@@ -1929,9 +1933,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									end;
 								end;
 							end else if OopWord = 'EDGE' then begin
-								OopReadDirection(statId, position, deltaX, deltaY);
+								OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
 								if (Sqr(deltaX) + Sqr(deltaY)) = 1 then begin
-									ix := WorldGetBoardPosition(statId, position);
+									ix := WorldGetBoardPosition(Index, Stat^.DataPos);
 									if (ix > -1) and (ix <= World.BoardCount) then begin
 										if deltaY = -1 then
 											Board.Info.NeighborBoards[0] := ix
@@ -1941,32 +1945,32 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 											Board.Info.NeighborBoards[2] := ix
 										else Board.Info.NeighborBoards[3] := ix;
 									end else
-										OopError(statId,position, 'No board label :' + OopWord);
+										OopError(Index,Stat^.DataPos, 'No board label :' + OopWord);
 								end else
-									OopError(statId,position, 'Bad board direction');
+									OopError(Index,Stat^.DataPos, 'Bad board direction');
 							end else if OopWord = 'BOARD' then begin
-								deltaX := WorldGetBoardPosition(statId, position);
+								deltaX := WorldGetBoardPosition(Index, Stat^.DataPos);
 								if (deltaX > -1) and (deltaX <= World.BoardCount) then begin
-									OopReadValue(statId, position);
+									OopReadValue(Index, Stat^.DataPos);
 									ix := OopValue;
-									OopReadValue(statId, position);
+									OopReadValue(Index, Stat^.DataPos);
 									iy := OopValue;
 									replaceBoard := true;
 									stopRunning := true;
 								end else
-									OopError(statId,position, 'No board label :' + OopWord);
+									OopError(Index,Stat^.DataPos, 'No board label :' + OopWord);
 							end else if OopWord = 'DUPLICATE' then begin
-								OopReadDirection(statId, position, ix, iy);
-								textLine := OopNextWord(statId, position);
-								OopReadDirection(statId, position, deltaX, deltaY);
-								if ElementDuplicate(ix, iy, deltaX, deltaY, statId) then
-									BoardDrawTile(X + deltaX, Y + deltaY);
+								OopReadDirection(Index, Stat^.DataPos, ix, iy);
+								textLine := OopNextWord(Index, Stat^.DataPos);
+								OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
+								if ElementDuplicate(ix, iy, deltaX, deltaY, Index) then
+									BoardDrawTile(Stat^.X + deltaX, Stat^.Y + deltaY);
 							end else if OopWord = 'SHOVE' then begin
-								OopReadDirection(statId, position, ix, iy);
-								textLine := OopNextWord(statId, position);
-								Inc(ix,X);
-								Inc(iy,Y);
-								OopReadDirectionRel(statId, position, deltaX, deltaY, ix, iy, textLine);
+								OopReadDirection(Index, Stat^.DataPos, ix, iy);
+								textLine := OopNextWord(Index, Stat^.DataPos);
+								Inc(ix,Stat^.X);
+								Inc(iy,Stat^.Y);
+								OopReadDirectionRel(Index, Stat^.DataPos, deltaX, deltaY, ix, iy, textLine);
 								argTile.Element := Board.Tiles[ix][iy].Element;
 								if (((deltaX <> 0) or (deltaY <> 0)) and (argTile.Element <> E_EMPTY))
 									and (((ix + deltaX > 0) and (ix + deltaX <= BOARD_WIDTH))
@@ -1989,51 +1993,51 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 									end;
 								end;
 							end else if OopWord = 'COLOR' then begin
-								OopReadDirection(statId, position, deltaX, deltaY);
-								if ((X + deltaX) > 0)
-									and ((X + deltaX) <= BOARD_WIDTH)
-									and ((Y + deltaY) > 0)
-									and ((Y + deltaY) <= BOARD_HEIGHT) then
+								OopReadDirection(Index, Stat^.DataPos, deltaX, deltaY);
+								if ((Stat^.X + deltaX) > 0)
+									and ((Stat^.X + deltaX) <= BOARD_WIDTH)
+									and ((Stat^.Y + deltaY) > 0)
+									and ((Stat^.Y + deltaY) <= BOARD_HEIGHT) then
 								begin
-									OopReadValue(statId, position);
+									OopReadValue(Index, Stat^.DataPos);
 									ix := OopValue;
-									OopReadValue(statId, position);
+									OopReadValue(Index, Stat^.DataPos);
 									iy := OopValue;
 									if ( iy < 1 ) or ( iy > 15 ) then
 										iy := 0;
 									if ((ix + (iy * 16)) > -1) and ((ix + (iy * 16)) < 256) then begin
-										if SelUnder and (GetStatIdAt(X + deltaX,Y + deltaY) > -1) then
-											Board.Stats[GetStatIdAt(X + deltaX,Y + deltaY)].Under.Color := AsColor(ix, iy)
+										if SelUnder and (GetStatIdAt(Stat^.X + deltaX,Stat^.Y + deltaY) > -1) then
+											Board.Stats[GetStatIdAt(Stat^.X + deltaX,Stat^.Y + deltaY)].Under.Color := AsColor(ix, iy)
 										else begin
-											Board.Tiles[X + deltaX][Y + deltaY].Color := AsColor(ix, iy);
-											BoardDrawTile(X + deltaX, Y + deltaY);
+											Board.Tiles[Stat^.X + deltaX][Stat^.Y + deltaY].Color := AsColor(ix, iy);
+											BoardDrawTile(Stat^.X + deltaX, Stat^.Y + deltaY);
 										end;
 									end else
-										OopError(statId,position, 'Unknown color.');
+										OopError(Index,Stat^.DataPos, 'Unknown color.');
 								end;
 							end else if OopWord = 'BGPLAY' then begin
-								textLine := SoundParse(OopReadLineToEnd(statId, position));
+								textLine := SoundParse(OopReadLineToEnd(Index, Stat^.DataPos));
 								if Length(textLine) <> 0 then
 									SoundQueue(2, textLine);
 								lineFinished := false;
 							end else begin
 								textLine := OopWord;
-								if OopSend(statId, OopWord, false) then
+								if OopSend(Index, OopWord, false) then
 									lineFinished := false
 								else if Pos(':', textLine) <= 0 then
-									OopError(statId,position, 'Bad command ' + textLine);
+									OopError(Index,Stat^.DataPos, 'Bad command ' + textLine);
 							end;
 						end else begin
 							textLine := OopWord;
-							if OopSend(statId, OopWord, false) then
+							if OopSend(Index, OopWord, false) then
 								lineFinished := false
 							else if Pos(':', textLine) <= 0 then
-								OopError(statId,position, 'Bad command ' + textLine);
+								OopError(Index,Stat^.DataPos, 'Bad command ' + textLine);
 						end;
 					end;
 
 					if lineFinished then
-						OopSkipLine(statId, position);
+						OopSkipLine(Index, Stat^.DataPos);
 
 				end else if OopChar = #13 then begin
 					if textWindow.LineCount > 0 then
@@ -2041,7 +2045,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 				end else if OopChar = #0 then begin
 					endOfProgram := true;
 				end else begin
-					textLine := OopChar + OopReadLineToEnd(statId, position);
+					textLine := OopChar + OopReadLineToEnd(Index, Stat^.DataPos);
 					TextWindowAppend(textWindow, textLine);
 				end;
 
@@ -2050,16 +2054,16 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 			if OopWord = 'SAVEDGAMES' then goto StopExecution;
 
 			if repeatInsNextTick then
-				position := lastPosition;
+				Stat^.DataPos := lastPosition;
 
 			if OopChar = #0 then
-				position := -1;
+				Stat^.DataPos := -1;
 
 			if textWindow.LineCount > 1 then begin
 				namePosition := 0;
-				OopReadChar(statId, namePosition);
+				OopReadChar(Index, namePosition);
 				if (OopChar = '@') then begin
-					name := OopReadLineToEnd(statId, namePosition);
+					name := OopReadLineToEnd(Index, namePosition);
 				end;
 
 				if Length(name) = 0 then
@@ -2072,7 +2076,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 				TextWindowFree(textWindow);
 
 				if Length(textWindow.Hyperlink) <> 0 then
-					if OopSend(statId, textWindow.Hyperlink, false) then
+					if OopSend(Index, textWindow.Hyperlink, false) then
 						goto StartParsing;
 			end else if textWindow.LineCount = 1 then begin
 				DisplayMessage(200, textWindow.Lines[1]^);
@@ -2080,9 +2084,9 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 			end;
 
 			if replaceStat and (name <> '%%Function') then begin
-				ix := X;
-				iy := Y;
-				DamageStat(statId);
+				ix := Stat^.X;
+				iy := Stat^.Y;
+				DamageStat(Index);
 				if replaceForce then
 					OopForceTile(ix, iy, replaceTile)
 				else
@@ -2105,7 +2109,7 @@ function OopExecute(statId: integer; var position: integer; name: TString50): bo
 		end;
 
 		StopExecution:
-		OopExecute := not (replaceStat or replaceBoard);
+		TrackPopStat;
 	end;
 
 begin

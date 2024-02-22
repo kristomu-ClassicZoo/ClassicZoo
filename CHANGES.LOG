@@ -1,3 +1,8 @@
+2/22/2024: Weave 3.3d
+Bugs Fixed:
+* Diemove, including an especially troubling diemove which could lead to board corruption, has been addressed.
+* WEAVEDMO's demonstration of THISX and THISY is fixed.
+
 2/21/2024: Weave 3.3c
 Bugs Fixed:
 * #put under was not putting the right color in some cases.

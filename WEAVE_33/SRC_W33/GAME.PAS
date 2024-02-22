@@ -66,10 +66,8 @@ interface
 	procedure AddStat(tx, ty: integer; txelement, txcolor: byte; tcycle: integer; template: TStat);
 	function FileLoadStatData(s: TString50; statId: integer): boolean;
 	function FileAppendStatData(s: TString50; statId: integer): boolean;
-	procedure FreeStatDataMem(statId: integer);
 	procedure RemoveStat(statId: integer);
 	function GetStatIdAt(x, y: integer): integer;
-	function BoardPrepareTileForPlacement(x, y: integer): boolean;
 	procedure MoveStat(statId: integer; newX, newY: integer);
 	procedure PopupPromptString(question: string; var buffer: TString50);
 	function Signum(val: integer): integer;
@@ -131,7 +129,7 @@ const
 	PalFilter: array[0..2] of integer = ( 31, 992, 31744 );
 
 implementation
-uses Dos, FileSel, Crt, ExtMem, Video, Sounds, Input, Elements, Oop, Counter;
+uses Dos, FileSel, Crt, ExtMem, Video, Sounds, Input, Elements, Oop, Counter, ObjTrack;
 
 procedure KeyRepeat;
 	begin
@@ -1539,8 +1537,8 @@ function FileLoadStatData(s: TString50; statId: integer): boolean;
 		FileLoadStatData := true;
 		Assign(f, s + '.OBJ');
 		Reset(f);
-		with Board.Stats[statId] do begin
-			FreeStatDataMem(statId);
+		with TrackPushStat(statId)^ do begin
+			FreeStatDataMem(Index);
 			if s <> CurrentFile then begin
 				CurrentFile := s;
 				NumRead := 0;
@@ -1570,11 +1568,12 @@ function FileLoadStatData(s: TString50; statId: integer): boolean;
 				CurFileLen := NumRead -k;
 			end;
 
-			GetMem(Data, CurFileLen);
-			Move(ObjTmpBuf^, Data^, CurFileLen);
-			DataLen := CurFileLen;
-			DataPos := 0;
+			GetMem(Stat^.Data, CurFileLen);
+			Move(ObjTmpBuf^, Stat^.Data^, CurFileLen);
+			Stat^.DataLen := CurFileLen;
+			Stat^.DataPos := 0;
 		end;
+		TrackPopStat;
 
 		Close(f);
 		if IOResult <> 0 then begin end;
@@ -1594,12 +1593,12 @@ function FileAppendStatData(s: TString50; statId: integer): boolean;
 		Assign(f, s + '.OBJ');
 		Reset(f);
 		CurrentFile := #0;
-		with Board.Stats[statId] do begin
+		with TrackPushStat(statId)^ do begin
 			TmpPtr := ObjTmpBuf;
-			Move(Data^, TmpPtr^, DataLen);
-			AdvancePointer(TmpPtr, DataLen);
-			NumRead := DataLen;
-			FreeStatDataMem(statId);
+			Move(Stat^.Data^, TmpPtr^, Stat^.DataLen);
+			AdvancePointer(TmpPtr, Stat^.DataLen);
+			NumRead := Stat^.DataLen;
+			FreeStatDataMem(Index);
 			k := 0;
 			i := 0;
 
@@ -1626,10 +1625,11 @@ function FileAppendStatData(s: TString50; statId: integer): boolean;
 				end;
 			end;
 
-			GetMem(Data, NumRead - k);
-			Move(ObjTmpBuf^, Data^, NumRead - k);
-			DataLen := NumRead - k;
+			GetMem(Stat^.Data, NumRead - k);
+			Move(ObjTmpBuf^, Stat^.Data^, NumRead - k);
+			Stat^.DataLen := NumRead - k;
 		end;
+		TrackPopStat;
 		Close(f);
 		if IOResult <> 0 then begin end;
 	end;
@@ -1641,13 +1641,13 @@ procedure RemoveStat(statId: integer);
 		with Board.Stats[statId] do begin
 			FreeStatDataMem(statId);
 
-			if statId <= CurrentStatTicked then
-				Dec(CurrentStatTicked);
+			if statId < CurrentStatTicked then
+				CurrentStatTicked := CurrentStatTicked - 1;
+			TrackOnRemoveStat(statId);
 
 			Board.Tiles[X][Y] := Under;
 			if Y > 0 then
 				BoardDrawTile(X, Y);
-
 			for i := 1 to Board.StatCount do begin
 				if (Board.Tiles[Board.Stats[i].X,Board.Stats[i].Y].Element = E_CENTIPEDE_HEAD)
 					or (Board.Tiles[Board.Stats[i].X,Board.Stats[i].Y].Element = E_CENTIPEDE_SEGMENT)
@@ -1658,7 +1658,6 @@ procedure RemoveStat(statId: integer);
 						else
 							Dec(Board.Stats[i].Follower);
 					end;
-
 					if Board.Stats[i].Leader >= statId then begin
 						if Board.Stats[i].Leader = statId then
 							Board.Stats[i].Leader := -1
@@ -1667,7 +1666,6 @@ procedure RemoveStat(statId: integer);
 					end;
 				end;
 			end;
-
 			for i := (statId + 1) to Board.StatCount do
 				Board.Stats[i - 1] := Board.Stats[i];
 			Dec(Board.StatCount);
