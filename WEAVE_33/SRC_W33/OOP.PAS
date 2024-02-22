@@ -548,7 +548,6 @@ procedure OopReadValue(statId: integer; var position: integer);
 			end else if s = 'RUN' then begin
 				s := OopWord;
 				OopValue := OopRunFunc(statId, position);
-				InspectObjectCode(statid,board.stats[statid].datapos,OopWord + ' end');
 				OopWord := s;
 			end else if s = 'RUNWITH' then begin
 				s := OopWord;
