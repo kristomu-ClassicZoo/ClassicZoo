@@ -2164,10 +2164,11 @@ procedure ElementMod(e: integer; par: string; op: string; statId: integer);
 		v := ColorNumber(op, statId);
 		if (v = -32767) then
 			Val(op, v, code);
-		if (v > 0) then
-			op := 'TRUE'
-		else
-			op := 'FALSE';
+		if ((op <> 'TRUE') and (op <> 'FALSE')) then
+			if v > 0 then
+				op := 'TRUE'
+			else
+				op := 'FALSE';
 		if par = 'CHAR' then begin
 			if (XDat.EDefs[e].Character = ' ') and XDat.EDefs[e].HasDrawProc then begin
 				XDat.EDefs[e].DrawProc := ElemDefaultDraw;
