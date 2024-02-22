@@ -1888,6 +1888,7 @@ procedure OopExecute(statId: integer; name: TString50);
 									end;
  									Dec(Stat^.DataPos);
 								end;
+								GameUpdateSidebar;
 								stopRunning := true;
 							end else if OopWord = 'STEP' then begin
 								OopReadDirection(Index, Stat^.DataPos, ix, iy);
