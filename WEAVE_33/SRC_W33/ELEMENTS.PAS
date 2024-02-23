@@ -1756,6 +1756,7 @@ procedure ElementMonitorTick(statId: integer);
 		Inc(Board.Info.BoardTicks);
 		if (Board.Info.BoardTicks > 420) then
 			Board.Info.BoardTicks := 1;
+		if QuickStart then GamePlayExitRequested := true;
 		if UpCase(InputKeyPressed) in [#27, 'A', 'E', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|'] then
 			GamePlayExitRequested := true;
 	end;

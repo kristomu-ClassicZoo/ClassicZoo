@@ -1,6 +1,6 @@
 WeaveZZT Extended ZZT-OOP Quick Reference
 v0.9
-For WeaveZZT v3.3d
+For WeaveZZT v3.3e
 
 === INDEX ===
 
@@ -137,7 +137,8 @@ Note: You can follow up #zap and #restore !link with positive and negative numbe
 #PSET <dir> <obj1-6> <value>	--
  -#PSET can also be used to remotely assign values to the object counters of other objects. Only one counter can be assigned at a time.
 
-
+#STARTGAME
+ - Use the #STARTGAME command on the title screen to begin play without requiring the player to input 'P'.
 
 === 2) BUILT-IN FLAGS AND LABELS ===
 COLOR <dir> <color> [bgcolor]			- True if the given direction is the specified colors.

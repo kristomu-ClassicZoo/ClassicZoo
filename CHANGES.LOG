@@ -1,7 +1,14 @@
+2/23/2024: Weave 3.3e
+Added:
+* #STARTGAME command begins play immediately from the title screen.
+
 2/22/2024: Weave 3.3d
 Bugs Fixed:
-* Diemove, including an especially troubling diemove which could lead to board corruption, has been addressed.
+* The RUNFUNC Diemove, an especially troubling bug which could lead to board corruption, has been addressed.
+* Small changes improving clarity in WEAVEDMO and OOP-QR.
+* #LOADGAME failed to draw the sidebar when restoring the game to the same screen; this has been remedied.
 * WEAVEDMO's demonstration of THISX and THISY is fixed.
+
 
 2/21/2024: Weave 3.3c
 Bugs Fixed:

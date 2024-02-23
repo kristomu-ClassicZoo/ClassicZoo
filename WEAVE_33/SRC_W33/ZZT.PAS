@@ -68,7 +68,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                                <=-  Weave  -=>');
 		TextColor(Yellow);
-		Writeln('                                 Version  3.3d');
+		Writeln('                                 Version  3.3e');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -139,6 +139,7 @@ begin
 	GameTitleExitRequested := false;
 	GameConfigure;
 	JustStarted := true;
+	QuickStart := false;
 
 	if not GameTitleExitRequested then begin
 		VideoInstall(80, Blue);

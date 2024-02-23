@@ -1852,6 +1852,9 @@ procedure OopExecute(statId: integer; name: TString50);
 									World.Info.PlayerColor := AsColor( ix, iy );
 								if (( OopValue > -1 ) and ( OopValue < 256 )) then 
 									World.Info.PlayerChar := Chr(OopValue);
+							end else if OopWord = 'STARTGAME' then begin
+								if GameStateElement <> E_PLAYER then
+									QuickStart := true;
 							end else if OopWord = 'SAVEGAME' then begin
 								ix := Stat^.DataPos;
 								OopReadChar(Index, Stat^.DataPos);

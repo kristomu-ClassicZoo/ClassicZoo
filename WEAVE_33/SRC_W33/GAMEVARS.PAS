@@ -222,6 +222,7 @@ interface
 		HasCHR: boolean;
 		NoCHR: boolean;
 		SelUnder: boolean;
+		QuickStart: boolean;
 		IoTmpBufSize: word;
 		FileWorldCachedLinePos: integer; 
 		FileSaveCachedLinePos: integer;

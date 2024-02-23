@@ -2907,6 +2907,7 @@ procedure GameTitleLoop;
 				GamePaused := false;
 				GamePlayLoop(boardChanged);
 				boardChanged := false;
+				if QuickStart then InputKeyPressed := 'P';
 				case UpCase(InputKeyPressed) of
 					'W': begin
 						if not IsRelease then
@@ -2952,7 +2953,10 @@ procedure GameTitleLoop;
 
 				if startPlay then begin
 					GameStateElement := E_PLAYER;
-					GamePaused := true;
+					if not QuickStart then
+						GamePaused := true
+					else
+						QuickStart := false;
 					GamePlayLoop(true);
 					boardChanged := true;
 				end;
