@@ -37,7 +37,6 @@ interface
 	procedure GamePromptEndPlay;
 	procedure ResetMessageNotShownFlags;
 	procedure InitElementsGame;
-	procedure ConfigStringsLoad;
 	procedure ElementMod(e: integer; par: string; op: string; statId: integer);
 	function ElementGet(e: integer; par: string): integer;
 	function StringConfigs(i: integer): string;
@@ -2170,6 +2169,7 @@ procedure ElementMod(e: integer; par: string; op: string; statId: integer);
 				op := 'TRUE'
 			else
 				op := 'FALSE';
+
 		if par = 'CHAR' then begin
 			if (XDat.EDefs[e].Character = ' ') and XDat.EDefs[e].HasDrawProc then begin
 				XDat.EDefs[e].DrawProc := ElemDefaultDraw;
@@ -2233,129 +2233,6 @@ function ElementGet(e: integer; par: string): integer;
 		else if (par = 'SEEDARK') and XDat.EDefs[e].SeeDark then ElementGet := 1
 		else if (par = 'CANPUT') and XDat.EDefs[e].CanPut then ElementGet := 1
 		else if (par = 'WALKABLE') and XDat.EDefs[e].Walkable then ElementGet := 1;
-	end;
-
-procedure InitElementsGame;
-	var
-		s: string;
-		k, l: string[20];
-		c: char;
-		f: text;
-		i, j, q, v, code: integer;
-	begin
-		InitXDatEDefs;
-		if World.Info.Name <> '' then begin
-			if not FileExists(World.Info.Name + '.CFG') then exit;
-			Assign(f, World.Info.Name + '.CFG');
-			Reset(f);
-			if IOResult = 0 then begin
-				j := 0;
-				while j <= 64 do begin
-					s := '';
-					ReadLn(f, s);
-					if s = '' then
-						Inc(j)
-					else if s[1] <> '#' then begin
-						k := '';
-						l := '';
-						i := 1;
-						while (s[i] <> '.') and (i <= Length(s)) do begin
-							c := UpCase(s[i]);
-							if ((c >= 'A') and (c <= 'Z')) then
-								k := k + c;
-							Inc(i);
-						end;
-						if k = 'PAL' then begin
-							k := '';
-							Inc(i);
-							while (s[i] <> '=') and (i <= Length(s)) do begin
-								c := UpCase(s[i]);
-								if ((c >= 'A') and (c <= 'Z'))
-									or ((c >= '0') and (c <= '9'))
-								then
-									k := k + c;
-								Inc(i);
-							end;
-							v := ColorNumber(k, -1);
-							if (v <> -32767) then begin
-								v := (v * 3) + PALETTE_START;
-								for q := 0 to 2 do begin
-									while (s[i] <> ',') and (i <= Length(s)) do begin
-										if (s[i] >= '0') and (s[i] <= '9') then
-											l := l + s[i];
-										Inc(i);
-									end;
-									if l <> '' then
-										Val(l, SourcePalette[v + q - PALETTE_START], code);
-									l := '';
-									Inc(i);
-								end;
-							end;
-						end else if (k = 'OTHER') or (k = 'THEME') then begin
-							while (s[i] <> '=') and (i <= Length(s)) do begin
-								c := UpCase(s[i]);
-								if ((c >= 'A') and (c <= 'Z'))
-									or ((c >= '0') and (c <= '9'))
-									or (c = '.')
-								then
-									k := k + c;
-								Inc(i);
-							end;
-							while (i <= Length(s)) do begin
-								c := UpCase(s[i]);
-								if ((c >= 'A') and (c <= 'Z'))
-									or ((c >= '0') and (c <= '9'))
-									or (c = '-')
-								then
-									l := l + c;
-								Inc(i);
-							end;
-							v := ColorNumber(l, -1);
-							if (v = -32767) then
-								Val(l, v, code);
-							for i := 1 to (PALETTE_START - 1) do
-								if ParamConfigs(i) = k then
-									XDat.Params[i] := v;
-							if ParamConfigs(71) = k then
-								XDat.Params[71] := v;
-						end else begin
-							Inc(i);
-							while (s[i] <> '=') and (i <= Length(s)) do begin
-								c := UpCase(s[i]);
-								if ((c >= 'A') and (c <= 'Z'))
-									or ((c >= '0') and (c <= '9'))
-								then
-									l := l + c;
-								Inc(i);
-							end;
-							q := -1;
-							for i := 0 to MAX_ELEMENT do
-								if XDat.EDefs[i].Name = k then
-									q := i;
-							if (q <> -1) and (l <> '') then begin
-								i := 1;
-								while (s[i] <> '=') and (i <= Length(s)) do
-									Inc(i);
-								k := '';
-								while i <= Length(s) do begin
-									c := UpCase(s[i]);
-									if ((c >= 'A') and (c <= 'Z'))
-										or ((c >= '0') and (c <= '9'))
-										or (c = '-')
-									then
-										k := k + c;
-									Inc(i);
-								end;
-								if k <> '' then ElementMod(q, l, k, -1);
-							end;
-						end;
-					end;
-				end;
-				Close(f);
-			end;
-		end;
-		{ World.Info.PlayerChar := XDat.EDefs[E_PLAYER].Character;
-		World.Info.PlayerColor := XDat.EDefs[E_PLAYER].Color; }
 	end;
 
 function StringConfigs(i: integer): string;
@@ -2546,18 +2423,23 @@ function DefaultConfigList(i: integer): string;
 		else DefaultConfigList := '' end;
 	end;
 
-procedure ConfigStringsLoad;
+procedure InitElementsGame;
 	var
-		s: string;
+		s, l: string;
 		k: string[20];
-		l: string[80];
 		c: char;
 		f: text;
-		i, j: integer;
+		i, j, v, code: integer;
 	begin
 		for i := 1 to CONFIG_FILE_COUNT do
 			XDat.Configs[i] := DefaultConfigList(i);
-		if (World.Info.Name <> '') and (FileExists(World.Info.Name + '.CFG')) then begin
+		for i := 1 to PARAM_FILE_COUNT do
+			XDat.Params[i] := DefaultParamList(i);
+		InitXDatEDefs;
+		for i := 0 to 47 do
+			SourcePalette[i] := DefaultParamList(PALETTE_START + i);
+		if (World.Info.Name <> '') then begin
+			if not FileExists(World.Info.Name + '.CFG') then exit;
 			Assign(f, World.Info.Name + '.CFG');
 			Reset(f);
 			if IOResult = 0 then begin
@@ -2580,21 +2462,72 @@ procedure ConfigStringsLoad;
 								k := k + c;
 							Inc(i);
 						end;
-						while (s[i] <> #34) and (i <= Length(s)) do
-							Inc(i);
-						Inc(i);
-						while (s[i] <> #34) and (i <= Length(s)) do begin
-							l := l + s[i];
-							Inc(i);
-						end;
-						for i := 1 to CONFIG_FILE_COUNT do
-							if StringConfigs(i) = k then begin
-								if l = '' then begin
-									XDat.Configs[i] := #1;
-									XDat.Configs[i] := '';
-								end else
-									XDat.Configs[i] := l;
+						if (Pos('PAL.',k) = 1) then begin
+							Delete(k,1,4);
+							v := ColorNumber(k, -1);
+							if (v <> -32767) or (k = 'LOAD') then begin
+								if v < 0 then
+									v := 0
+								else
+									v := v * 3;
+								l := '';
+								while i <= Length(s) do begin
+									if ((s[i] >= '0') and (s[i] <= '9')) then
+										l := l + s[i]
+									else begin
+										if l <> '' then begin
+											Val(l, SourcePalette[v], code);
+											Inc(v);
+										end;
+										l := '';
+									end;
+									Inc(i);
+								end;
 							end;
+						end else begin
+							for v := 1 to CONFIG_FILE_COUNT do
+								if StringConfigs(v) = k then begin
+									while (s[i] <> #34) and (i <= Length(s)) do
+										Inc(i);
+									Inc(i);
+									while (s[i] <> #34) and (i <= Length(s)) do begin
+										l := l + s[i];
+										Inc(i);
+									end;
+									if l = '' then begin
+										XDat.Configs[v] := #1;
+										XDat.Configs[v] := '';
+									end else
+										XDat.Configs[v] := l;
+								end;
+							while (i <= Length(s)) do begin
+								c := UpCase(s[i]);
+								if ((c >= 'A') and (c <= 'Z'))
+									or ((c >= '0') and (c <= '9'))
+									or (c = '-')
+								then
+									l := l + c;
+								Inc(i);
+							end;
+							if (Pos('OTHER.',k) = 1)
+								or (Pos('THEME.',k) = 1)
+							then begin
+								v := ColorNumber(l, -1);
+								if (v = -32767) then
+									Val(l, v, code);
+								for i := 1 to (PALETTE_START - 1) do
+									if ParamConfigs(i) = k then
+										XDat.Params[i] := v;
+								if ParamConfigs(71) = k then
+									XDat.Params[71] := v;
+							end;
+							for i := 0 to MAX_ELEMENT do
+								if Pos(XDat.EDefs[i].Name + '.', k) = 1 then begin
+									Delete(k,1,Length(XDat.EDefs[i].Name) + 1);
+									if (l <> '') and (k <> '') then
+										ElementMod(i, k, l, -1);
+								end;
+						end;
 					end;
 				end;
 				Close(f);

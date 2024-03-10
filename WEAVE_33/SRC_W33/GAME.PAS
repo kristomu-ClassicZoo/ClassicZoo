@@ -95,6 +95,7 @@ interface
 	procedure ResetCachedLinePos;
 	procedure BlockPalette(c,r,g,b: byte);
 	function ParamConfigs(i: integer): string;
+	function DefaultParamList(i: integer): integer;
 	procedure KeyRepeat;
 
 const
@@ -232,11 +233,19 @@ procedure InitPalette(palrefresh: boolean);
 	begin
 		doInit := true;
 		HasPAL := false;
-		for c := 0 to 47 do
-			if SourcePalette[PALETTE_START + c] <> 0 then
+		c := 0;
+		while c < 48 do begin
+			if (SourcePalette[PALETTE_START + c] < 0) or (SourcePalette[PALETTE_START + c] > 63) then begin
+				doInit := true;
+				c := 48;
+			end else if (SourcePalette[PALETTE_START + c] > 0) and (SourcePalette[PALETTE_START + c] < 64) then
 				doInit := false;
+			Inc(c);
+		end;
 		if doInit then
-			if (World.Info.Name <> '') and FileExists(World.Info.Name + '.PAL') then begin
+			if (World.Info.Name <> '')
+				and FileExists(World.Info.Name + '.PAL')
+			then begin
 				Assign(f, World.Info.Name + '.PAL');
 				Reset(f, 1);
 				if IOResult = 0 then begin
@@ -320,19 +329,6 @@ function DefaultParamList(i: integer): integer;
 			42,47,48,49,50,51,53,55,56,60,61,63,67: DefaultParamList := 21;
 			52,54,57,58,59,62,64,65,66,68,69,70: DefaultParamList := 63;
 		else DefaultParamList := -32767 end;
-	end;
-
-procedure ParamsLoad;
-	var
-		i: integer;
-	begin
-		for i := 1 to PARAM_FILE_COUNT do
-			XDat.Params[i] := DefaultParamList(i);
-		InitElementsGame;
-		ConfigStringsLoad;
-		SetBlink(XDat.Params[THEME_BLINK] = 0);
-		if (XDat.Params[21] <> -1) and (World.Info.IsSave = 0) then
-			World.Info.CurrentBoard := XDat.Params[21];
 	end;
 
 function OopConfigs (i: integer): string;
@@ -439,7 +435,9 @@ procedure CustomOOPLoad;
 			CustomSidebar[i].Elmt := -1;
 		end;
 		HasINI := false;
-		if (World.Info.Name <> '') and FileExists(World.Info.Name + '.INI') then begin
+		if (World.Info.Name <> '')
+			and FileExists(World.Info.Name + '.INI')
+		then begin
 			HasINI := true;
 			Assign(f, World.Info.Name + '.INI');
 			Reset(f);
@@ -965,10 +963,8 @@ procedure WorldCreate;
 	var
 		i: integer;
 	begin
-		World.Info.Name := 'Template';
-		ParamsLoad;
-		for i := 0 to 47 do
-			SourcePalette[i] := 0;
+		World.Info.Name := '';
+		InitElementsGame;
 		InitPalette(true);
 		World.BoardCount := 0;
 		World.BoardLen[0] := 0;
@@ -1336,11 +1332,15 @@ function WorldLoad(filename, extension: TString50): boolean;
 					end else RunError(203);
 				end;
 
-				ParamsLoad;
+
 				if extension = '.SAV' then begin
 					BlockRead(f, XDat, SizeOf(XDat));
 					GameDrawTheme;
-				end;
+				end else
+					InitElementsGame;
+				SetBlink(XDat.Params[THEME_BLINK] = 0);
+				if (XDat.Params[21] <> -1) and (World.Info.IsSave = 0) then
+					World.Info.CurrentBoard := XDat.Params[21];
 				InitPalette(false);
 				BoardOpen(World.Info.CurrentBoard);
 				BoardDrawBottom;
@@ -1463,7 +1463,7 @@ function GameWorldLoad(extension: TString50): boolean;
 				WorldCreate;
 				PauseOnError;
 			end;
-			TransitionDrawToFill(#219, $44);
+			TransitionDrawToFill('W', $4C);
 		end;
 	end;
 
@@ -2245,7 +2245,7 @@ procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 
 procedure TransitionDrawBoardChange;
 	begin
-		TransitionDrawToFill(#219, $05);
+		TransitionDrawToFill('W', $58);
 		TransitionDrawToBoard;
 	end;
 
@@ -2676,7 +2676,8 @@ procedure GameDrawTheme;
 			VideoWriteText(65, 7, AsColor(XDat.Params[THEME_START + 2],
 				XDat.Params[THEME_START]), ' World:');
 
-			if (Length(World.Info.Name) <> 0 ) and (World.Info.Name <> 'Template') then
+			if (World.Info.Name <> '')
+			then
 				VideoWriteText(69, 8, AsColor(XDat.Params[THEME_START + 1],
 					XDat.Params[THEME_START]), World.Info.Name)
 			else
@@ -2720,21 +2721,20 @@ procedure GamePlayLoop(boardChanged: boolean);
 		GameUpdateSidebar;
 
 		if JustStarted then begin
-			if Length(StartupWorldFileName) <> 0 then begin
+			if (StartupWorldFileName = '') then
+				WorldCreate
+			else begin
 				GoToDirectory(StartupWorldFileName);
 				if (FileExists(StartupWorldFileName + '.ZZT')
 					and WorldLoad(StartupWorldFileName, '.ZZT'))
 					or (FileExists(StartupWorldFileName)
 					and WorldLoad(StartupWorldFileName,''))
-				then begin
+				then
 					GameDrawTheme;
 					GameUpdateSidebar;
 					VideoWriteText(69, 8, AsColor(XDat.Params[THEME_START + 1],
 						XDat.Params[THEME_START]), World.Info.Name);
-				end else begin
-					WorldCreate;
 				end;
-			end;
 			if (ParamStr(1) = '') and not SkipToTitle then
 				GameAboutScreen;
 			ReturnBoardId := World.Info.CurrentBoard;
@@ -2879,10 +2879,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 				HighScoresLoad;
 				HighScoresAdd(World.Info.Score);
 			end;
-		end else if GameStateElement = E_MONITOR then begin
+		end else if GameStateElement = E_MONITOR then
 			SidebarClearLine(5);
-		end;
-
 
 		{ Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
 		BoardDrawTile(Board.Stats[0].X,Board.Stats[0].Y); }
@@ -2961,9 +2959,6 @@ procedure GameTitleLoop;
 					boardChanged := true;
 				end;
 			until boardChanged or GameTitleExitRequested;
-			for i := THEME_START to THEME_BLINK do
-				XDat.Params[i] := DefaultParamList(i);
-			SetBlink(XDat.Params[THEME_BLINK] = 0);
 		until GameTitleExitRequested;
 	end;
 

@@ -466,8 +466,10 @@ function OopPget(statId: integer; var position: integer): integer;
 					OopPget := P3
 				else if OopWord = 'CYCLE' then
 					OopPget := Cycle
-				else if CounterFromWord(counter, bindStatId, OopWord) then
+				else if CounterFromWord(counter, bindStatId, OopWord) then begin
+					CounterReadValue(counter);
 					OopPget := counter.Value;
+				end;
 			end;
 		end else
 			OopError(statId,position, 'Bad direction ' + OopWord);

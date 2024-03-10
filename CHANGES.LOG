@@ -1,3 +1,9 @@
+3/10/2024: Weave 3.3f
+Bugs Fixed:
+* PGET wasn't grabbing values from objects like OBJ1, OBJ2, and ARRAY.
+* ZZT files loaded without .CFG or .INI, or missing palette entries in the CFG, had all-black palettes.
+* Closing and re-opening a file multiple times could cause that file's INI and CFG data to fail to load.
+
 2/23/2024: Weave 3.3e
 Added:
 * #STARTGAME command begins play immediately from the title screen.
