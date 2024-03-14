@@ -1503,7 +1503,7 @@ procedure OopExecute(statId: integer; name: TString50);
 								OopError(Index,Stat^.DataPos, 'Unknown counter ' + OopWord);
 							GameUpdateSidebar;
 							If HasCustomSidebar then GameDrawCustomSidebar;
-						end else if OopWord = 'END' then begin
+						end else if OopWord = 'END' then begin {#END Returns Functions.}
 							OopReadValue(Index, Stat^.DataPos);
 							OopFuncReturn := OopValue;
 							Stat^.DataPos := -1;

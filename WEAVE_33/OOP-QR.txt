@@ -1,6 +1,6 @@
 WeaveZZT Extended ZZT-OOP Quick Reference
 v0.9
-For WeaveZZT v3.3e
+For WeaveZZT v3.3g
 
 === INDEX ===
 
@@ -359,9 +359,11 @@ Notes:
 
 #RUN <function>
  - #RUN <function> will load a <function>.OBJ file, and run it. If run by itself in this way, it will discard the result passed via #END.
+ - Note: If you pass a :label instead of the name of an OBJ file, the object will go to that label and #RUN it as a function.
 
 #RUNWITH <value> <function>
  - #RUNWITH <value> <function> will load a <function>.OBJ file, and run it. The <value> passed into the function will be available in the function as the special read-only counter, ARG. If run by itself in this way, it will discard the result passed via #END.
+ - Note: If you pass a :label instead of the name of an OBJ file, the object will go to that label and #RUNWITH it as a function.
 
 #END <value>		--
  -For use in functions. Ends the function and returns the given value.
@@ -385,9 +387,11 @@ Notes:
 
 #IF RUN <function> <cmd>--
  -Runs a function and checks to see if the function returns a value that is TRUE. If so, it runs the given command.
+ - Note: If you pass a :label instead of the name of an OBJ file, the object will go to that label's location in the object and run it as a function, then return the result.
 
 IF RUNWITH <value> <function> <cmd>--
  - Runs a function and checks to see if the function returns a value that is TRUE. The <value> passed into the function will be available in the function as the special read-only counter, ARG. If the function returns TRUE, it runs the given command.
+ - Note: If you pass a :label instead of the name of an OBJ file, the object will go to that label's location in the object and run it as a function, then return the result.
 
 #END TRUE		--
  -Like #END <value>, but returns TRUE instead. Used in conjuntion with "#IF RUN <file>" to create custom conditionals.
