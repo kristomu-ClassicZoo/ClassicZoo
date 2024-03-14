@@ -360,7 +360,7 @@ procedure ElementBulletTick(statId: integer);
 				or (XDat.EDefs[Enum(iElem)].CanShoot and ((iElem = E_PLAYER) or (P1 = 0))) then
 			begin
 				if XDat.EDefs[Enum(iElem)].ScoreValue <> 0 then begin
-					World.Info.Score := World.Info.Score + XDat.EDefs[Enum(iElem)].ScoreValue;
+					Inc(World.Info.Score, XDat.EDefs[Enum(iElem)].ScoreValue);
 					GameUpdateSidebar;
 				end;
 				BoardAttack(statId, ix, iy);
@@ -1167,9 +1167,9 @@ procedure ElementAmmoTouch(x, y: integer; sourceStatId: integer; var deltaX, del
 
 procedure ElementGemTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
-		World.Info.Gems := World.Info.Gems + XDat.EDefs[E_GEM].P1;
-		World.Info.Health := World.Info.Health + XDat.EDefs[E_GEM].P2;
-		World.Info.Score := World.Info.Score + XDat.EDefs[E_GEM].ScoreValue;
+		Inc(World.Info.Gems, XDat.EDefs[E_GEM].P1);
+		Inc(World.Info.Health, XDat.EDefs[E_GEM].P2);
+		Inc(World.Info.Score, XDat.EDefs[E_GEM].ScoreValue);
 
 		Board.Tiles[x][y].Element := XDat.EDefs[E_GEM].P3;
 		GameUpdateSidebar;

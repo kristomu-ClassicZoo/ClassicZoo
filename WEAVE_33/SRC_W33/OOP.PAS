@@ -234,23 +234,28 @@ function OopRunFunc(statId: integer; var position: integer): integer;
 		OopFuncReturn := -1;
 		with TrackPushStat(statId)^ do begin
 			tmpcond := Stat^.elseCheck;
-			labelPtr := Stat^.Data;
 			ix := Stat^.DataPos;
-			iy := Stat^.DataLen;
-			Stat^.Data := nil;
-			Stat^.DataLen := 0;
-			if FileLoadStatData(OopWord,Index) then begin
-				OopExecute(Index,'%%Function');
-				FreeMem(Stat^.Data,Stat^.DataLen);
-			end else 
-				OopError(Index,position, 'File not found ' + OopWord + '.OBJ');
-			Stat^.Data := labelPtr;
-			Stat^.DataPos := ix;
-			Stat^.DataLen := iy;
+			if OopWord[1] = ':' then begin
+				Delete(OopWord, 1, 1);
+				if OopSend(-Index, OopWord, false) then
+					OopExecute(Index,'%%Function');
+			end else begin
+				labelPtr := Stat^.Data;
+				iy := Stat^.DataLen;
+				Stat^.Data := nil;
+				Stat^.DataLen := 0;
+				if FileLoadStatData(OopWord,Index) then begin
+					OopExecute(Index,'%%Function');
+					FreeMem(Stat^.Data,Stat^.DataLen);
+				end else 
+					OopError(Index,position, 'File not found ' + OopWord + '.OBJ');
+				Stat^.Data := labelPtr;
+				Stat^.DataLen := iy;
+			end;
 			Stat^.elseCheck := tmpcond;
+			Stat^.DataPos := ix;
 		end;
 		TrackPopStat;
-		World.Info.Score := Board.Stats[statid].DataPos;
 		GameUpdateSidebar;
 		OopRunFunc := OopFuncReturn;
 	end;

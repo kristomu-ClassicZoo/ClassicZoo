@@ -2001,7 +2001,7 @@ procedure BoardDamageTile(x, y: integer);
 procedure BoardAttack(attackerStatId: integer; x, y: integer);
 	begin
 		if (attackerStatId = 0) and (World.Info.EnergizerTicks > 0) then begin
-			World.Info.Score := XDat.EDefs[Enum(Board.Tiles[x][y].Element)].ScoreValue + World.Info.Score;
+			Inc(World.Info.Score, XDat.EDefs[Enum(Board.Tiles[x][y].Element)].ScoreValue);
 			GameUpdateSidebar;
 		end else begin
 			DamageStat(attackerStatId);
@@ -2011,9 +2011,8 @@ procedure BoardAttack(attackerStatId: integer; x, y: integer);
 			Dec(CurrentStatTicked);
 
 		if (Board.Tiles[x][y].Element = E_PLAYER) and (World.Info.EnergizerTicks > 0) then begin
-			World.Info.Score := XDat.EDefs[
-					Enum(Board.Tiles[Board.Stats[attackerStatId].X][Board.Stats[attackerStatId].Y].Element)
-				].ScoreValue + World.Info.Score;
+			Inc(World.Info.Score, XDat.EDefs[
+				Enum(Board.Tiles[Board.Stats[attackerStatId].X][Board.Stats[attackerStatId].Y].Element)].ScoreValue);
 			GameUpdateSidebar;
 		end else begin
 			BoardDamageTile(x, y);
