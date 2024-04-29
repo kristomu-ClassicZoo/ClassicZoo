@@ -1,3 +1,11 @@
+4/29/2024: Weave 3.3h
+Bug Fix:
+* LOCKed objects cannot #RUN with :labels.
+
+Added:
+* :keyboard<letter> (for keys not in the .INI) and :space (in contrast to :shiftup etc) are added.
+
+
 3/14/2024: Weave 3.3g
 Added:
 * #RUN, #RUNWITH, #IF RUN, and #GIVE RUN can now accept :labels in addition to files.
