@@ -1458,6 +1458,9 @@ procedure ElementTruePlayerTick;
 					PlayerDirY := InputDeltaY;
 				end;
 
+				if InputKeyPressed = ' ' then
+					if OopSend(0, 'INPUT:SPACE', false) then begin end;
+
 				if (PlayerDirX <> 0) or (PlayerDirY <> 0) then begin
 					if HasINI then begin
 						if PlayerDirY = -1 then
@@ -1539,7 +1542,9 @@ procedure ElementTruePlayerTick;
 				and (inputC <> UpCase(XDat.Configs[83][1]))
 			then
 				inputC := #0;
-			if inputC =	UpCase(XDat.Configs[70][1]) then begin {'T' Torch hotkey}
+			if ((inputC = #27) or (inputC = 'Q')) then
+				GamePromptEndPlay
+			else if inputC = UpCase(XDat.Configs[70][1]) then begin {'T' Torch hotkey}
 				GameMove := true;
 				if World.Info.TorchTicks = 0 then begin
 					if World.Info.Torches > 0 then begin
@@ -1562,9 +1567,7 @@ procedure ElementTruePlayerTick;
 						end;
 					end;
 				end;
-			end else if ((inputC = #27) or (inputC = 'Q')) then
-				GamePromptEndPlay
-			else if inputC = UpCase(XDat.Configs[77][1]) then {'S' Save game hotkey }
+			end else if inputC = UpCase(XDat.Configs[77][1]) then {'S' Save game hotkey }
 				GameWorldSave(XDat.Configs[78] + ':', SavedGameFileName, '.SAV')
 			else if inputC = UpCase(XDat.Configs[72][1]) then begin {'B' Sound toggle hotkey}
 				SoundEnabled := not SoundEnabled;
@@ -1586,7 +1589,7 @@ procedure ElementTruePlayerTick;
 				and (World.Info.Health > 0))
 			then
 				GamePaused := true
-			else if HasINI and (KeyLimit > 0) then begin {.INI keyboard inputs}
+			else if HasINI and (KeyLimit > 0) then begin {.INI keyboard inputs - Override defaults}
 				i := 0;
 				while i < KeyLimit do begin
 					if (inputC = UpCase(KeyList[i * 3][Length(KeyList[i * 3])]))
@@ -1598,6 +1601,8 @@ procedure ElementTruePlayerTick;
 					end;
 					Inc(i);
 				end;
+				if i = KeyLimit then
+					if OopSend(0, 'INPUT:KEYBOARD' + InputC, false) then begin end;
 			end;
 
 			if World.Info.TorchTicks > 0 then begin

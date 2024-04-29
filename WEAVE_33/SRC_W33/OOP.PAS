@@ -237,7 +237,7 @@ function OopRunFunc(statId: integer; var position: integer): integer;
 			ix := Stat^.DataPos;
 			if OopWord[1] = ':' then begin
 				Delete(OopWord, 1, 1);
-				if OopSend(-Index, OopWord, false) then
+				if OopSend(Index, OopWord, true) then
 					OopExecute(Index,'%%Function');
 			end else begin
 				labelPtr := Stat^.Data;
