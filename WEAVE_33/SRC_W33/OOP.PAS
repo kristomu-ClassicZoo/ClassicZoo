@@ -1308,6 +1308,7 @@ procedure OopExecute(statId: integer; name: TString50);
 		labelStatId: integer;
 		labelZap, labelUnzap, tmpchar: char;
 		counter: TCounter;
+		scheduledUpdates: TScheduledUpdates;
 		counterSubtract: boolean;
 		bindStatId: integer;
 		insCount: integer;
@@ -1319,6 +1320,8 @@ procedure OopExecute(statId: integer; name: TString50);
 	label ReadCommand;
 	label StopExecution;
 	begin
+		ScheduledUpdatesClear(scheduledUpdates);
+
 		with TrackPushStat(statId)^ do begin
 		StartParsing:
 			TextWindowInitState(textWindow);
@@ -1421,16 +1424,16 @@ procedure OopExecute(statId: integer; name: TString50);
 										XDat.Configs[counter.Value] := textLine;
 										Dec(Stat^.DataPos);
 									end;
-									GameDrawTheme;
+									scheduledUpdates.UpdateTheme := true;
 								end else begin
 									OopReadValue(Index, Stat^.DataPos);
 									if OopValue = -32767 then
 										counter.Value := 1
 									else
 										counter.Value := OopValue;
-									if CounterWriteValue(counter) then begin end;
+									if CounterWriteValue(counter, scheduledUpdates) then begin end;
 								end;
-								GameUpdateSidebar;
+								scheduledUpdates.UpdateSidebar := true;
 							end else if OopNextWord(Index, Stat^.DataPos) = '' then begin
 								WorldSetFlag(OopWord);
 							end else
@@ -1444,12 +1447,12 @@ procedure OopExecute(statId: integer; name: TString50);
 								if counter.CType = TCConfig then begin
 									XDat.Configs[counter.Value] := '';
 									XDat.Configs[counter.Value][1] := #1;
-									GameDrawTheme;
+									scheduledUpdates.UpdateTheme := true;
 								end else begin
 									counter.Value := 0;
-									if CounterWriteValue(counter) then begin end;
+									if CounterWriteValue(counter, scheduledUpdates) then begin end;
 								end;
-								GameUpdateSidebar;
+								scheduledUpdates.UpdateSidebar := true;
 							end else
 								WorldClearFlag(OopWord);
 							If HasCustomSidebar then GameDrawCustomSidebar;
@@ -1498,10 +1501,10 @@ procedure OopExecute(statId: integer; name: TString50);
 									Dec(Stat^.DataPos);
 									if (OopChar <> #13) then
 										goto ReadCommand;
-								end else if CounterWriteValue(counter) then begin end;
+								end else if CounterWriteValue(counter, scheduledUpdates) then begin end;
 							end else
 								OopError(Index,Stat^.DataPos, 'Unknown counter ' + OopWord);
-							GameUpdateSidebar;
+							scheduledUpdates.UpdateSidebar := true;
 							If HasCustomSidebar then GameDrawCustomSidebar;
 						end else if OopWord = 'END' then begin {#END Returns Functions.}
 							OopReadValue(Index, Stat^.DataPos);
@@ -1897,7 +1900,7 @@ procedure OopExecute(statId: integer; name: TString50);
 									end;
  									Dec(Stat^.DataPos);
 								end;
-								GameUpdateSidebar;
+								scheduledUpdates.UpdateSidebar := true;
 								stopRunning := true;
 							end else if OopWord = 'STEP' then begin
 								OopReadDirection(Index, Stat^.DataPos, ix, iy);
@@ -1938,7 +1941,7 @@ procedure OopExecute(statId: integer; name: TString50);
 											Board.Stats[bindStatId].Cycle := iy										
 										else if CounterFromWord(counter, bindStatId, OopWord) then begin
 											counter.Value := iy;
-											if CounterWriteValue(counter) then begin end;
+											if CounterWriteValue(counter, scheduledUpdates) then begin end;
 										end;
 									end;
 								end;
@@ -2060,6 +2063,8 @@ procedure OopExecute(statId: integer; name: TString50);
 				end;
 
 			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > XDat.Params[10]);
+
+			ScheduledUpdatesApply(scheduledUpdates);
 
 			if OopWord = 'SAVEDGAMES' then goto StopExecution;
 

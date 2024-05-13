@@ -30,11 +30,18 @@ interface
 	type
 		TCounter = record
 			CType: (TCReadOnly, TCByte, TCShortInt, TCInteger, TCTickSpeed, TCElement, TCConfig);
-			UpdateBoard: boolean;
-			UpdateTheme: boolean;
 			Value: integer;
 			Pointer: pointer;
 			Entry: string[20];
+
+			{ Copied to scheduled updates in CounterWriteValue }
+			UpdateBoard: boolean;
+			UpdateTheme: boolean;
+		end;
+		TScheduledUpdates = record
+			UpdateBoard: boolean;
+			UpdateSidebar: boolean;
+			UpdateTheme: boolean;
 		end;
 		cInteger = ^integer;
 		cShortint = ^shortint;
@@ -44,7 +51,9 @@ interface
 	{ Reads value to c.Value }
 	procedure CounterReadValue(var c: TCounter);
 	{ Writes value from c.Value }
-	function CounterWriteValue(var c: TCounter): boolean;
+	function CounterWriteValue(var c: TCounter; var u: TScheduledUpdates): boolean;
+	procedure ScheduledUpdatesClear(var u: TScheduledUpdates);
+	procedure ScheduledUpdatesApply(var u: TScheduledUpdates);
 
 implementation
 uses GameVars, Elements, Game;
@@ -52,41 +61,41 @@ uses GameVars, Elements, Game;
 function ElementRead(var c: TCounter): integer;
 	var
 		i, j: integer;
-		t,u: string;
+		t,u: string[20];
 	begin
 		ElementRead := -32767;
-		t := '';
-		u := '';
 		for i := 4 to 12 do
 			if c.Entry[i] = '.' then j := i;
 		for i := 1 to j - 1 do
-			t := t + UpCase(c.Entry[i]);
+			t[i] := UpCase(c.Entry[i]);
+		t[0] := Chr(j - 1);
 		for i := j + 1 to Length(c.Entry) do
-			u := u + UpCase(c.Entry[i]);
+			u[i - j] := UpCase(c.Entry[i]);
+		u[0] := Chr(Length(c.Entry) - j);
 		for i := 1 to MAX_ELEMENT do
 			if XDat.EDefs[i].Name = t then
 				ElementRead := ElementGet(i,u);
 	end;
 
-procedure ElementWrite(var c: TCounter);
+procedure ElementWrite(var c: TCounter; var uu: TScheduledUpdates);
 	var
 		i, j: integer;
-		t, u, v: string;
+		t, u, v: string[20];
 	begin
-		t := '';
-		u := '';
 		Str(c.Value, v);
 		for i := 4 to 12 do
 			if c.Entry[i] = '.' then j := i;
 		for i := 1 to j - 1 do
-			t := t + UpCase(c.Entry[i]);
+			t[i] := UpCase(c.Entry[i]);
+		t[0] := Chr(j - 1);
 		for i := j + 1 to Length(c.Entry) do
-			u := u + UpCase(c.Entry[i]);
+			u[i - j] := UpCase(c.Entry[i]);
+		u[0] := Chr(Length(c.Entry) - j);
 		for i := 1 to MAX_ELEMENT do
 			if XDat.EDefs[i].Name = t then begin
 				ElementMod(i, u, v, -1);
-				c.UpdateTheme := true;
-				c.UpdateBoard := true;
+				uu.UpdateTheme := true;
+				uu.UpdateBoard := true;
 			end;
 	end;
 
@@ -264,9 +273,13 @@ procedure CounterReadValue(var c: TCounter);
 			c.Value := TickSpeed + 1;
 	end;
 
-function CounterWriteValue(var c: TCounter): boolean;
+function CounterWriteValue(var c: TCounter; var u: TScheduledUpdates): boolean;
 	begin
 		CounterWriteValue := true;
+
+		{ Copy counter update requests to scheduled updates }
+		u.UpdateBoard := u.UpdateBoard or c.UpdateBoard;
+		u.UpdateTheme := u.UpdateTheme or c.UpdateTheme;
 
 		if c.CType = TCByte then
 			cByte(c.Pointer)^ := c.Value
@@ -275,7 +288,7 @@ function CounterWriteValue(var c: TCounter): boolean;
 		else if c.CType = TCInteger then
 			cInteger(c.Pointer)^ := c.Value
 		else if c.CType = TCElement then
-			ElementWrite(c)
+			ElementWrite(c, u)
 		else if c.CType = TCTickSpeed then begin
 			if c.Value <= 0 then
 				TickSpeed := 0
@@ -284,13 +297,25 @@ function CounterWriteValue(var c: TCounter): boolean;
 			TickTimeDuration := TickSpeed * 2;
 		end else
 			CounterWriteValue := false;
+	end;
 
-		if c.UpdateTheme then begin
+procedure ScheduledUpdatesClear(var u: TScheduledUpdates);
+	begin
+		u.UpdateTheme := false;
+		u.UpdateSidebar := false;
+		u.UpdateBoard := false;
+	end;
+
+procedure ScheduledUpdatesApply(var u: TScheduledUpdates);
+	begin
+		if u.UpdateTheme then begin
 			GameDrawTheme;
 			GameUpdateSidebar;
-		end;
-		if c.UpdateBoard then
+		end else if u.UpdateSidebar then
+			GameUpdateSidebar;
+		if u.UpdateBoard then
 			TransitionDrawToBoard;
+		ScheduledUpdatesClear(u);
 	end;
 
 end.
