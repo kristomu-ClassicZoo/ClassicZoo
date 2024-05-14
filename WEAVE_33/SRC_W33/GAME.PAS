@@ -1261,7 +1261,22 @@ procedure SidebarPromptString(prompt: string; extension: TString50; var filename
 procedure PauseOnError;
 	begin
 		SoundQueue(1, SoundParse('s004x114x9'));
-		Delay(2000);
+		InputKeyPressed := #0;
+		while (InputKeyPressed = #0) do begin
+			if SoundHasTimeElapsed(TickTimeCounter, 25) then
+				InputUpdate;
+			if ((InputKeyPressed >= 'A')
+				and (InputKeyPressed <= 'Z'))
+				or ((InputKeyPressed >= 'a')
+				and (InputKeyPressed <= 'z'))
+				or ((InputKeyPressed >= '0')
+				and (InputKeyPressed <= '9'))
+				or (InputKeyPressed in [KEY_ENTER, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, #27, ' '])
+			then
+				Delay(2000)
+			else
+				InputKeyPressed := #0;
+		end;
 	end;
 
 function DisplayIOError(filename: TString50): boolean;
@@ -1312,8 +1327,10 @@ function WorldLoad(filename, extension: TString50): boolean;
 
 				if World.BoardCount < 0 then begin
 					if World.BoardCount <> -1 then begin
-						VideoWriteText(63, 5, $1E, 'You need a newer');
-						VideoWriteText(63, 6, $1E, ' version of ZZT!');
+						VideoWriteText(21, 11, $40, #223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223);
+						VideoWriteText(21, 12, $40, '    This is not a   ');
+						VideoWriteText(21, 13, $40, '  valid WEAVE .ZZT! ');
+						VideoWriteText(21, 14, $04, #223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223);
 						Close(f);
 						goto OnError;
 					end else begin
@@ -1349,6 +1366,15 @@ function WorldLoad(filename, extension: TString50): boolean;
 
 				if extension = '.SAV' then begin
 					BlockRead(f, XDat, SizeOf(XDat));
+					if (XDat.Version <> FOOTER_VERSION) then begin
+						VideoWriteText(22, 10, $40, #219#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#219);
+						VideoWriteText(22, 11, $40, ' This .SAV file is ');
+						VideoWriteText(22, 12, $40, '   for the wrong   ');
+						VideoWriteText(22, 13, $40, ' version of WEAVE! ');
+						VideoWriteText(22, 14, $40, #219#220#220#220#220#220#220#220#220#220#220#220#220#220#220#220#220#220#219);
+						Close(f);
+						goto OnError;
+					end;
 					GameDrawTheme;
 				end else
 					InitElementsGame;
@@ -1416,8 +1442,10 @@ procedure WorldSave(filename, extension: TString50);
 				BlockWrite(f, IoTmpBuf^, World.BoardLen[i]);
 				if DisplayIOError(filename + extension) then goto OnError;
 			end;
-			if extension = '.SAV' then
+			if extension = '.SAV' then begin
+				XDat.Version := FOOTER_VERSION;
 				BlockWrite(f, XDat, SizeOf(XDat));
+			end;
 			Close(f);
 		end;
 
@@ -1476,7 +1504,7 @@ function GameWorldLoad(extension: TString50): boolean;
 				WorldCreate;
 				PauseOnError;
 			end;
-			TransitionDrawToFill('W', $4C);
+			TransitionDrawToFill(#177, $4C);
 		end;
 	end;
 
@@ -2258,7 +2286,7 @@ procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 
 procedure TransitionDrawBoardChange;
 	begin
-		TransitionDrawToFill('W', $58);
+		TransitionDrawToFill(#177, $58);
 		TransitionDrawToBoard;
 	end;
 
@@ -2591,20 +2619,33 @@ procedure GameDrawCustomSidebar;
 		i, j, y, code: integer;
 		m: char;
 		numStr: string[8];
+		disp: string[20];
 	begin
 		i := 0;
 		{ Custom Key elements }
 		while i < KeyLimit do begin
+			j := 62;
 			Val(KeyList[(i * 3) + 2],y,code);
 			if (y > 2) and (y < 25) then begin
+				if length(KeyList[i * 3]) < 4 then begin
+					disp := ' ' + UpCase(KeyList[i * 3][1]) + ' ';
+					Inc(j);
+				end else begin
+					disp := KeyList[i * 3];
+					Delete(disp,1,1);
+					while (Length(disp) > 1) and (disp[1] <> #39) do
+						Delete(disp,1,1);
+					if disp[1] = #39 then Delete(disp,1,1);
+					if (disp[Length(disp)] = #39) then Delete(disp,Length(disp),1);
+				end;
 				if ((CFlagPos[y + 8] and World.Info.CustomFlags[3]) = 0) then begin
 					VideoWriteText(62, y,
 						AsColor(XDat.Params[THEME_START + 3],
 						XDat.Params[THEME_START + 5 - (y mod 2)]),
-						' ' + UpCaseString(KeyList[i * 3], true) + ' ');
-					VideoWriteText(64 + Length(KeyList[i * 3]), y,
+						disp);
+					VideoWriteText(j + Length(disp), y,
 						AsColor(XDat.Params[THEME_START + 1],
-						XDat.Params[THEME_START]), ' '+ KeyList[(i * 3) + 1]);
+						XDat.Params[THEME_START]), KeyList[(i * 3) + 1]);
 				end else SideBarClearLine(y);
 			end;
 			Inc(i);
@@ -2692,7 +2733,7 @@ procedure GameDrawTheme;
 				VideoWriteText(62, 7, AsColor(XDat.Params[THEME_START + 3],
 					XDat.Params[THEME_START + 5]), ' W ');
 			end else
-				WorldMenuChar := 'P';
+				WorldMenuChar := #0;
 
 			VideoWriteText(65, 7, AsColor(XDat.Params[THEME_START + 2],
 				XDat.Params[THEME_START]), ' World:');

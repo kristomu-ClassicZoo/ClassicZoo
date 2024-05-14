@@ -1419,8 +1419,8 @@ procedure ElementCustomInput(inputC: char);
 	begin {.INI keyboard inputs - Override defaults}
 		i := 0;
 		while i < KeyLimit do begin
-			if (inputC = UpCase(KeyList[i * 3][Length(KeyList[i * 3])]))
-				or (inputC = KeyList[i * 3][Length(KeyList[i * 3])])
+			if (inputC = UpCase(KeyList[i * 3][1]))
+				or (inputC = KeyList[i * 3][1])
 			then begin
 				GameMove := true;
 				if OopSend(0, 'INPUT:' + UpCaseString(KeyList[(i * 3) + 1], false), false) then begin end;
@@ -1496,8 +1496,6 @@ procedure ElementTruePlayerTick;
 				World.Info.GracePeriod := 0;
 			if InputShiftPressed or (InputKeyPressed = ' ') then begin
 				GameMove := true;
-				if HasINI then
-					ElementCustomDir(true);
 
 				if InputShiftPressed and ((InputDeltaX <> 0) or (InputDeltaY <> 0)) then begin
 					PlayerDirX := InputDeltaX;
@@ -1536,7 +1534,6 @@ procedure ElementTruePlayerTick;
 				end;
 			end else if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
 				GameMove := true;
-				if HasINI then ElementCustomDir(false);
 
 				PlayerDirX := InputDeltaX;
 				PlayerDirY := InputDeltaY;
@@ -1556,6 +1553,7 @@ procedure ElementTruePlayerTick;
 					end;
 				end;
 			end;
+			if HasINI then ElementCustomDir(InputShiftPressed);
 
 			inputC := UpCase(InputKeyPressed);
 			if (P2 = 1) {Locked players have limited input options}

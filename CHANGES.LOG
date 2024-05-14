@@ -1,3 +1,16 @@
+5/14/2024: Weave 3.3k
+Changes:
+* RELEASE and WEBRELEASE no longer alias 'W' to 'P' when there is only one file in the directory.
+* The .SAV file format is now versioned. Attempting to restore WEAVE games with incompatible .SAV files will display an error message.
+* Key binds can now be more explicit with how they are displayed in the sidebar. Details are in the template .INI file.
+
+Bugs fixed:
+* INPUT:SPACE was requiring SHIFT to be pressed in order to trigger.
+
+
+
+
+
 5/14/2024: Weave 3.3j
 Optimizations:
 * Multiple redraws per tick have been consolidated, leading to better performance.

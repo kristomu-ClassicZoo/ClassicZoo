@@ -28,6 +28,7 @@ unit GameVars;
 interface
 	uses ExtMem;
 	const
+		FOOTER_VERSION = 3311;
 		MAX_STAT = 254;
 		TSTAT_OFFSET = 33;
 		MAX_ELEMENT = 53;
@@ -171,6 +172,7 @@ interface
 			Score: integer;
 		end;
 		TExtendedData = record
+			Version: integer;
 			Flags: array[MAX_FLAG + 1 .. MAX_EXTENDEDFLAG] of TString20;
 			Params: array[1 .. PARAM_FILE_COUNT] of integer;
 			EDefs: array[0 .. MAX_ELEMENT] of TElemDef;
@@ -279,8 +281,8 @@ interface
 		HighScoreList: THighScoreList;
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
-		XDat: TExtendedData;
 		Accessibility: array[1..8] of TString50;
+		XDat: TExtendedData;
 
 		BoardNames: array[0 .. MAX_BOARD] of TString50;
 		CustomSidebar: array[3..24] of TSidebar;
