@@ -52,7 +52,7 @@ procedure GameConfigure;
 				ReadLn(cfgFile, Accessibility[i]);
 			Close(cfgFile);
 		end;
-        if Length(ConfigWorldFile) <> 0 then begin
+        if (Length(ConfigWorldFile) <> 0) and (ParamStr(1) = '') then begin
             StartupWorldFileName := ConfigWorldFile;
         end;
 
@@ -68,7 +68,7 @@ procedure GameConfigure;
 		Writeln;
 		Writeln('                                <=-  Weave  -=>');
 		TextColor(Yellow);
-		Writeln('                                 Version  3.3h');
+		Writeln('                                 Version  3.3j');
 		Writeln('                         based on '#39'ZZT'#39' by Tim Sweeney');
 		GotoXY(1, 7);
 		TextColor(Blue);
@@ -93,7 +93,10 @@ procedure GameConfigure;
 		HearingImpaired := false;
 		Diffkeys := false;
 		SkipToTitle := false;
+		PlayMenuChar := 'P';
 		IsRelease := false;
+		IsWebRelease := false;
+		IsSpeedForced := false;
 		TickSpeed := 9;
 		if Accessibility[1] = 'ACCESSIBLE' then begin
 			if Accessibility[2] = '' then begin
@@ -101,7 +104,7 @@ procedure GameConfigure;
 				HearingImpaired :=	HearingConfigure;
 				Diffkeys := KeydiffConfigure;
 			end else
-				for i := 2 to 7 do begin
+				for i := 2 to 8 do begin
 					if Accessibility[i] = 'NEUROMOTORASSIST' then
 						NeuromotorAssist :=	true;
 					if Accessibility[i] = 'VISUALSOUND' then
@@ -110,11 +113,19 @@ procedure GameConfigure;
 						Diffkeys :=	true;
 					if Accessibility[i] = 'SKIPTOTITLE' then
 						SkipToTitle := true;
-					if Accessibility[i] = 'RELEASE' then
-						IsRelease := true;						
+					if Accessibility[i] = 'TITLEONLY' then
+						PlayMenuChar := #0;
+					if (Accessibility[i] = 'RELEASE')
+						or (Accessibility[i] = 'WEBRELEASE')
+					then
+						IsRelease := true;
+					if Accessibility[i] = 'WEBRELEASE' then
+						IsWebRelease := true;
 					for j := 49 to 57 do
-						if Accessibility[i] = 'SPEED ' + Chr(j) then
+						if Accessibility[i] = 'SPEED ' + Chr(j) then begin
+							IsSpeedForced := true;
 							TickSpeed := j - 44;
+						end;
 				end;
 		end;
 		Dec(TickSpeed,5);
@@ -138,8 +149,14 @@ begin
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
 	GameTitleExitRequested := false;
 	GameConfigure;
+	LastLoadedCHR := #0;
+	LastLoadedPAL := '';
 	JustStarted := true;
 	QuickStart := false;
+	WorldMenuChar := 'W';
+	SpeedMenuChar := 'S';
+	HighScoreChar := 'H';
+	QuitMenuChar := 'Q';
 
 	if not GameTitleExitRequested then begin
 		VideoInstall(80, Blue);
@@ -174,7 +191,6 @@ begin
 	SoundClearQueue;
 
 	VideoUninstall;
-	Port[PORT_CGA_PALETTE] := 0;
 	TextAttr := InitialTextAttr;
 	ClrScr;
 	VideoShowCursor;

@@ -48,7 +48,7 @@ interface
 	procedure OopExecute(statId: integer; name: TString50);
 	function OopStringToWord(input: TString50): TString50;
 	procedure OopReadValue(statId: integer; var position: integer);
-	procedure GetBoardStats;
+	procedure GetBoardInfo;
 	function GetNumFlags: integer;
 	function WorldInfoFlags(flag: integer): string;
 
@@ -270,10 +270,112 @@ function OopRunFuncWith(statId: integer; var position: integer; var arg: integer
 		GlobalArg := tempArg;
 	end;
 
+function MatchTiles(sourceTile: TTile; searchTile: TMatchTile): boolean;
+	begin
+		MatchTiles := false;
+		if (sourceTile.Element = searchTile.Element) or (searchTile.Element = 2) then
+			if (searchTile.Color <> 0) or (searchTile.SetFG = true) then begin
+				if (searchTile.Color and $F0 > 0) or (searchTile.SetBG = true) then
+					MatchTiles := (searchTile.Color = sourceTile.Color)
+				else
+					MatchTiles := (searchTile.Color = (sourceTile.Color and $0F));
+			end else
+				MatchTiles := true;
+	end;
+
+function FindTileOnBoard(var x, y: integer; tile: TMatchTile): boolean;
+	begin
+		FindTileOnBoard := false;
+		while true do begin
+			x := x + 1;
+			if x > BOARD_WIDTH then begin
+				x := 1;
+				y := y + 1;
+				if y > BOARD_HEIGHT then
+					exit;
+			end;
+
+			if MatchTiles(Board.Tiles[x][y],tile) then begin
+				FindTileOnBoard := true;
+				exit;
+			end;
+		end;
+	end;
+
+function OopGetColor(statId: integer; var position: integer; var tile: TMatchTile): integer;
+	var 
+		i, j, p: integer;
+		doFind: boolean;
+	begin
+		doFind := (OopWord <> 'TEXT');
+		OopGetColor := -1;
+		p := position;
+		OopReadWord(statId, position);
+		if OopWord = 'AMMO' then begin
+			position := p;
+			exit;
+		end;
+		i := ColorNumber(OopWord, statId);
+		if i < 0 then begin
+			position := p;
+			exit;
+		end;
+		if (i = 0) and doFind then tile.setFG := true;
+		j := 0;
+		if i < 16 then begin
+			p := position;
+			OopReadWord(statId, position);
+			if OopWord = 'AMMO' then begin
+				OopGetColor := i;
+				tile.Color := AsColor(i, 0);
+				position := p;
+				exit;
+			end;
+			j := ColorNumber(OopWord, statId) mod 16;
+			if (j = 0) and doFind then
+				tile.SetBG := true
+			else if j < 0 then begin
+				j := 0;
+				position := p;
+			end;
+		end;
+		if i < 256 then begin
+			OopGetColor := i + (j * 16);
+			tile.Color := AsColor(i, j);
+		end;
+	end;
+
+function OopParseTile(var statId, position: integer; var tile: TMatchTile): boolean;
+	var
+		i, elem: integer;
+		tmpTile: TMatchTile;
+	begin
+		elem := -1;
+		OopParseTile := false;
+		tile.Color := 0;
+		tile.setBG := false;
+		tile.setFG := false;
+
+		i := OopGetColor(statId, position, tile);
+		OopReadWord(statId, position);
+		if OopWord = 'TEXT' then begin
+			i := OopGetColor(statId, position, tmpTile);
+			if i < 0 then exit;
+			elem := 128 + (i mod 128);
+		end else 
+			for i := 0 to MAX_ELEMENT do
+				if OopWord = XDat.EDefs[i].Name then elem := i;
+
+		if elem < 0 then exit;
+		OopParseTile := true;
+		tile.Element := elem;
+	end;
+
 function OopParseDirection(statId: integer; var position: integer; var dx, dy: integer): boolean;
 	var
 		ix, iy: integer;
 		q: string;
+		argTile: TMatchTile;
 	begin
 		SelUnder := false;
 		with Board.Stats[statId] do begin
@@ -360,6 +462,17 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 				Inc(dx,X);
 				Inc(dy,Y);
 				CalcDirectionFind(X, Y, dx, dy);
+			end else if (OopWord = 'PFIND') then begin
+				ix := 0;
+				iy := 1;
+				if OopParseTile(statId, position, argTile) and FindTileOnBoard(ix, iy, argTile) then begin
+					dx := ix - X;
+					dy := iy - Y;
+				end else begin
+					dx := 0;
+					dy := 0;
+					OopParseDirection := false;
+				end;
 			end else if (OopWord = 'TO') then begin
 				OopReadWord(statId, position);
 				OopParseDirection := OopParseDirection(statId, position, dx, dy);
@@ -571,75 +684,6 @@ procedure OopReadValue(statId: integer; var position: integer);
 		end;
 	end;
 
-function OopGetColor(statId: integer; var position: integer; var tile: TMatchTile): integer;
-	var 
-		i, j, p: integer;
-		doFind: boolean;
-	begin
-		doFind := (OopWord <> 'TEXT');
-		OopGetColor := -1;
-		p := position;
-		OopReadWord(statId, position);
-		if OopWord = 'AMMO' then begin
-			position := p;
-			exit;
-		end;
-		i := ColorNumber(OopWord, statId);
-		if i < 0 then begin
-			position := p;
-			exit;
-		end;
-		if (i = 0) and doFind then tile.setFG := true;
-		j := 0;
-		if i < 16 then begin
-			p := position;
-			OopReadWord(statId, position);
-			if OopWord = 'AMMO' then begin
-				OopGetColor := i;
-				tile.Color := AsColor(i, 0);
-				position := p;
-				exit;
-			end;
-			j := ColorNumber(OopWord, statId) mod 16;
-			if (j = 0) and doFind then
-				tile.SetBG := true
-			else if j < 0 then begin
-				j := 0;
-				position := p;
-			end;
-		end;
-		if i < 256 then begin
-			OopGetColor := i + (j * 16);
-			tile.Color := AsColor(i, j);
-		end;
-	end;
-
-function OopParseTile(var statId, position: integer; var tile: TMatchTile): boolean;
-	var
-		i, elem: integer;
-		tmpTile: TMatchTile;
-	begin
-		elem := -1;
-		OopParseTile := false;
-		tile.Color := 0;
-		tile.setBG := false;
-		tile.setFG := false;
-
-		i := OopGetColor(statId, position, tile);
-		OopReadWord(statId, position);
-		if OopWord = 'TEXT' then begin
-			i := OopGetColor(statId, position, tmpTile);
-			if i < 0 then exit;
-			elem := 128 + (i mod 128);
-		end else 
-			for i := 0 to MAX_ELEMENT do
-				if OopWord = XDat.EDefs[i].Name then elem := i;
-
-		if elem < 0 then exit;
-		OopParseTile := true;
-		tile.Element := elem;
-	end;
-
 procedure OopSkipLine(statId: integer; var position: integer);
 	begin
 		repeat
@@ -795,6 +839,10 @@ function WorldGetBoardPosition(statId: integer; var position: integer): integer;
 		zpos := position;
 		bpos := -1;
 		OopReadWord(statId, position);
+		if length(OopWord) < 1 then begin
+			WorldGetBoardPosition := -32767;
+			exit;
+		end;
 		while ((ix <= World.BoardCount) and (bpos = -1)) do begin
 			if BoardNames[ix][1] = ':' then begin
 				bpos := ix;
@@ -933,38 +981,6 @@ procedure WorldClearFlag(name: TString20);
 					XDat.Flags[i] := ''
 				else
 					World.Info.Flags[i] := '';
-			end;
-		end;
-	end;
-
-function MatchTiles(sourceTile: TTile; searchTile: TMatchTile): boolean;
-	begin
-		MatchTiles := false;
-		if (sourceTile.Element = searchTile.Element) or (searchTile.Element = 2) then
-			if (searchTile.Color <> 0) or (searchTile.SetFG = true) then begin
-				if (searchTile.Color and $F0 > 0) or (searchTile.SetBG = true) then
-					MatchTiles := (searchTile.Color = sourceTile.Color)
-				else
-					MatchTiles := (searchTile.Color = (sourceTile.Color and $0F));
-			end else
-				MatchTiles := true;
-	end;
-
-function FindTileOnBoard(var x, y: integer; tile: TMatchTile): boolean;
-	begin
-		FindTileOnBoard := false;
-		while true do begin
-			x := x + 1;
-			if x > BOARD_WIDTH then begin
-				x := 1;
-				y := y + 1;
-				if y > BOARD_HEIGHT then
-					exit;
-			end;
-
-			if MatchTiles(Board.Tiles[x][y],tile) then begin
-				FindTileOnBoard := true;
-				exit;
 			end;
 		end;
 	end;
@@ -1126,7 +1142,7 @@ function OopReadLineToEnd(statId: integer; var position: integer) : string;
 		OopReadLineToEnd := s;
 	end;
 
-procedure GetBoardStats;
+procedure GetBoardInfo;
 	var
 		i: integer;
 		s, t: string;
@@ -1142,7 +1158,7 @@ procedure GetBoardStats;
 				Str(i,s);
 				TextWindowAppend(textWindow, 'Key Slot ' + s + ': ' + KeyList[i]);
 			end; }
-			TextWindowAppend(textWindow, '$** Board Stats: **');
+			TextWindowAppend(textWindow, '$** Board Info: **');
 			s := 'Board is: ';
 			if IsDark > 0 then
 				s := s + 'Dark, '
@@ -1158,16 +1174,20 @@ procedure GetBoardStats;
 			TextWindowAppend(textWindow, 'Re-enter at: ' + t + ', ' + s);
 			if MaxShots < 0 then
 				TextWindowAppend(textWindow, 'Max Shots: Unlimited')
+			else if MaxShots = 0 then
+				TextWindowAppend(textWindow, 'Shooting disabled on this board')
 			else begin
 				Str(MaxShots,s);
 				TextWindowAppend(textWindow, 'Max Shots: ' + s);
 			end;
-			if (TimeLimitSec > 0) and (World.Info.BoardTimeSec >= 0) then begin
 				Str(TimeLimitSec,s);
 				Str(TimeLimitSec - World.Info.BoardTimeSec,t);
-				TextWindowAppend(textWindow, 'Time: ' + t + 's remains of ' + s + 's limit');
-			end else
-				TextWindowAppend(textWindow, 'Time: No time limit');
+			if (TimeLimitSec > 0) and (World.Info.BoardTimeSec >= 0) then
+				TextWindowAppend(textWindow, 'Time: ' + t + 's remains of ' + s + 's limit')
+			else 
+				TextWindowAppend(textWindow, 'No time limit (TIMELIMIT counter: ' + s + ')');
+			Str(World.Info.BoardTimeSec,s);
+			TextWindowAppend(textWindow, 'TIME Counter: ' + s);
 			Str(Board.StatCount, s);
 			TextWindowAppend(textWindow, 'Stat Count: ' + s);
 			Str(World.Info.PlayerColor, s);
@@ -1863,8 +1883,14 @@ procedure OopExecute(statId: integer; name: TString50);
 								if (( OopValue > -1 ) and ( OopValue < 256 )) then 
 									World.Info.PlayerChar := Chr(OopValue);
 							end else if OopWord = 'STARTGAME' then begin
-								if GameStateElement <> E_PLAYER then
+								if GameStateElement <> E_PLAYER then begin
 									QuickStart := true;
+									deltaX := WorldGetBoardPosition(Index, Stat^.DataPos);
+									if (deltaX > -1) and (deltaX <= World.BoardCount) then
+										QStartBoard := deltaX
+									else
+										QStartBoard := -1;
+								end;
 							end else if OopWord = 'SAVEGAME' then begin
 								ix := Stat^.DataPos;
 								OopReadChar(Index, Stat^.DataPos);

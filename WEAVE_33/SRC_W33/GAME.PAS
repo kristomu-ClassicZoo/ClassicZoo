@@ -221,6 +221,7 @@ function ParamConfigs(i: integer): string;
 			21: ParamConfigs := 'OTHER.STARTBOARD';
 			22: ParamConfigs := 'OTHER.EXTRAFLAGS';
 			71: ParamConfigs := 'OTHER.FOOTSTEPS';
+			72: ParamConfigs := 'OTHER.HIGHSCORES';
 		else ParamConfigs := '_nil' end;
 	end;
 
@@ -242,7 +243,10 @@ procedure InitPalette(palrefresh: boolean);
 				doInit := false;
 			Inc(c);
 		end;
-		if doInit then
+		if doInit 
+			and (LastLoadedPAL <> World.Info.Name)
+		then begin
+			LastLoadedPAL := World.Info.Name;
 			if (World.Info.Name <> '')
 				and FileExists(World.Info.Name + '.PAL')
 			then begin
@@ -254,6 +258,7 @@ procedure InitPalette(palrefresh: boolean);
 				end;
 				HasPAL := true;
 			end;
+		end;
 		for c := 0 to 15 do begin
 			r := c * 3;
 			g := (c * 3) + 1;
@@ -325,6 +330,7 @@ function DefaultParamList(i: integer): integer;
 			18: DefaultParamList := 3;
 			19: DefaultParamList := 12;
 			21: DefaultParamList := -1;
+			72: DefaultParamList := 30;
 			28,30,33,34,35,38,40,41,44,45,46: DefaultParamList := 42;
 			42,47,48,49,50,51,53,55,56,60,61,63,67: DefaultParamList := 21;
 			52,54,57,58,59,62,64,65,66,68,69,70: DefaultParamList := 63;
@@ -381,21 +387,24 @@ procedure CustomCharsetLoad(chrfile: string);
 		f: file;
 		ch: TCharsetData;
 	begin
-		HasCHR := false;
-		if (chrfile <> '') and FileExists(chrfile + '.CHR') then begin
-			Assign(f, chrfile + '.CHR');
-			Reset(f, 1);
-			if IOResult = 0 then begin
-				HasCHR := true;
-				BlockRead(f, ch, 3584);
-				Close(f);
-				if VideoSetCharset(@ch, 14) then exit;
+		if LastLoadedCHR <> chrfile then begin
+			LastLoadedCHR := chrfile;
+			HasCHR := false;
+			if (chrfile <> '') and FileExists(chrfile + '.CHR') then begin
+				Assign(f, chrfile + '.CHR');
+				Reset(f, 1);
+				if IOResult = 0 then begin
+					HasCHR := true;
+					BlockRead(f, ch, 3584);
+					Close(f);
+					if VideoSetCharset(@ch, 14) then exit;
+				end;
 			end;
+			{ Load default charset if failure/no charset }
+			if chrfile = World.Info.Name then
+				if VideoSetCharset(nil, 0) then begin end;
 		end;
 
-		{ Load default charset if failure/no charset }
-		if chrfile = World.Info.Name then
-			if VideoSetCharset(nil, 0) then begin end;
 	end;
 
 procedure CustomOOPLoad;
@@ -579,15 +588,17 @@ procedure HighScoresLoad;
 		f: file of THighScoreList;
 		i: integer;
 	begin
-		Assign(f, World.Info.Name + '.HI');
-		Reset(f);
-		if IOResult = 0 then begin
-			Read(f, HighScoreList);
-			Close(f);
-		end else begin
-			for i := 1 to HIGH_SCORE_COUNT do begin
-				HighScoreList[i].Name := '';
-				HighScoreList[i].Score := -1;
+		if XDat.Params[72] > 0 then begin
+			Assign(f, World.Info.Name + '.HI');
+			Reset(f);
+			if IOResult = 0 then begin
+				Read(f, HighScoreList);
+				Close(f);
+			end else begin
+				for i := 1 to XDat.Params[72] do begin
+					HighScoreList[i].Name := '';
+					HighScoreList[i].Score := -1;
+				end;
 			end;
 		end;
 	end;
@@ -596,12 +607,14 @@ procedure HighScoresSave;
 	var
 		f: file of THighScoreList;
 	begin
-		Assign(f, World.Info.Name + '.HI');
-		Rewrite(f);
-		Write(f, HighScoreList);
-		Close(f);
-		if DisplayIOError(World.Info.Name + '.HI') then begin
-		end else begin
+		if XDat.Params[72] > 0 then begin
+			Assign(f, World.Info.Name + '.HI');
+			Rewrite(f);
+			Write(f, HighScoreList);
+			Close(f);
+			if DisplayIOError(World.Info.Name + '.HI') then begin
+			end else begin
+			end;
 		end;
 	end;
 
@@ -613,7 +626,7 @@ procedure HighScoresInitTextWindow(var state: TTextWindowState);
 		TextWindowInitState(state);
 		TextWindowAppend(state, 'Score  Name');
 		TextWindowAppend(state, '-----  ----------------------------------');
-		for i := 1 to HIGH_SCORE_COUNT do begin
+		for i := 1 to XDat.Params[72] do begin
 			if (Length(HighScoreList[i].Name) > 0) and (HighScoreList[i].Score > 0) then begin
 				Str(HighScoreList[i].Score:5, scoreStr);
 				TextWindowAppend(state, scoreStr + '  ' + HighScoreList[i].Name);
@@ -643,10 +656,10 @@ procedure HighScoresAdd(score: integer);
 		i, listPos: integer;
 	begin
 		listPos := 1;
-		while (listPos <= HIGH_SCORE_COUNT) and (score < HighScoreList[listPos].Score) do
+		while (listPos <= XDat.Params[72]) and (score < HighScoreList[listPos].Score) do
 			listPos := listPos + 1;
-		if (listPos <= HIGH_SCORE_COUNT) and (score > 0) then begin
-			for i := (HIGH_SCORE_COUNT - 1) downto listPos do
+		if (listPos <= XDat.Params[72]) and (score > 0) then begin
+			for i := (XDat.Params[72] - 1) downto listPos do
 				HighScoreList[i + 1] := HighScoreList[i];
 			HighScoreList[listPos].Score := score;
 			HighScoreList[listPos].Name := '-- You! --';
@@ -812,7 +825,9 @@ procedure BoardOpen(boardId: integer);
 		ix, iy: integer;
 		rle: TRleTile;
 	begin
-		if boardId > World.BoardCount then
+		if (boardId > World.BoardCount)
+			or (boardId < 0)
+		then
 			boardId := World.Info.CurrentBoard;
 
 		case EnsureIoTmpBufSize(World.BoardLen[boardId]) of
@@ -904,8 +919,6 @@ procedure BoardChange(boardId: integer);
 				if lstring <> '' then
 					CustomCharsetLoad(lstring);
 			end else
-				HasCHR := false;
-			if (HasCHR = false) and (NoCHR = false) then
 				CustomCharsetLoad(World.Info.Name);
 	end;
 
@@ -994,7 +1007,7 @@ procedure WorldCreate;
 		for i := 1 to CUSTOM_COUNTER_COUNT do
 			World.Info.CustomCounters[i] := 0;
 		CustomOOPLoad;
-		NoCHR := false;
+		HasCHR := false;
 	end;
 
 procedure TransitionDrawToFill(chr: char; color: integer);
@@ -1276,6 +1289,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 	label OnError;
 	begin
 		WorldLoad := false;
+		LastLoadedPAL := '';
 		if not FileExists(filename + extension) then begin
 			exit;
 		end;
@@ -1338,7 +1352,9 @@ function WorldLoad(filename, extension: TString50): boolean;
 					GameDrawTheme;
 				end else
 					InitElementsGame;
-				SetBlink(XDat.Params[THEME_BLINK] = 0);
+				SetBlink(XDat.Params[THEME_BLINK]);
+				if QuickStart and (QStartBoard > -1) then
+					XDat.Params[21] := QStartBoard;
 				if (XDat.Params[21] <> -1) and (World.Info.IsSave = 0) then
 					World.Info.CurrentBoard := XDat.Params[21];
 				InitPalette(false);
@@ -1347,14 +1363,11 @@ function WorldLoad(filename, extension: TString50): boolean;
 				LoadedGameFileName := filename;
 				WorldLoad := true;
 
-				HighScoresLoad;
 				CustomOOPLoad;
 				CustomSidebarLoad;
-				NoCHR := false;
 				CustomCharsetLoad(World.Info.Name);
-				if not HasCHR then
-					NoCHR := true;
 
+				HighScoresLoad;
 				SidebarClearLine(5);
 
 			end;
@@ -1968,7 +1981,8 @@ procedure DamageStat(attackerStatId: integer);
 							Y := Board.Info.StartPlayerY;
 							TransitionDrawToBoard;
 
-							GamePaused := true;
+							if XDat.Configs[79] <> '' then
+								GamePaused := true;
 						end;
 						SoundQueue(4, SoundParse(XDat.Configs[49])); {Ouch sound}
 					end;
@@ -2349,8 +2363,8 @@ procedure GameDebugPrompt;
 			XDat.Params[2] := 0
 		else if input = 'INSPECT' then
 			InspectNext := true
-		else if input = 'STATS' then
-			GetBoardStats
+		else if (input = 'STATS') or (input = 'INFO') then
+			GetBoardInfo
 		else if input = 'FREE' then
 			Board.Stats[0].P2 := 0
 		else if input = 'NOZAP' then
@@ -2648,7 +2662,7 @@ procedure GoToDirectory(var input: string);
 
 procedure GameDrawTheme;
 	begin
-		SetBlink(XDat.Params[THEME_BLINK] = 0);
+		SetBlink(XDat.Params[THEME_BLINK]);
 		SidebarClear;
 		SidebarClearLine(0);
 		SidebarClearLine(1);
@@ -2667,11 +2681,19 @@ procedure GameDrawTheme;
 			GameDrawMainSidebar;
 			GameDrawCustomSidebar;
 		end else if GameStateElement = E_MONITOR then begin
-			SidebarPromptSlider(false, 66, 21, 'Game speed:;FS', TickSpeed);
-			VideoWriteText(62, 21, AsColor(XDat.Params[THEME_START + 3],
-				XDat.Params[THEME_START + 4]), ' S ');
-			if not IsRelease then VideoWriteText(62, 7, AsColor(XDat.Params[THEME_START + 3],
-				XDat.Params[THEME_START + 5]), ' W ');
+			if (IsRelease = false) or (IsSpeedForced = false) then begin
+				VideoWriteText(62, 21, AsColor(XDat.Params[THEME_START + 3],
+					XDat.Params[THEME_START + 4]), ' S ');
+				SidebarPromptSlider(false, 66, 21, 'Game speed:;FS', TickSpeed);
+			end else
+				SpeedMenuChar := #0;
+
+			if (IsRelease = false) or (FileIsMult = true) then begin
+				VideoWriteText(62, 7, AsColor(XDat.Params[THEME_START + 3],
+					XDat.Params[THEME_START + 5]), ' W ');
+			end else
+				WorldMenuChar := 'P';
+
 			VideoWriteText(65, 7, AsColor(XDat.Params[THEME_START + 2],
 				XDat.Params[THEME_START]), ' World:');
 
@@ -2683,28 +2705,36 @@ procedure GameDrawTheme;
 				VideoWriteText(69, 8, AsColor(XDat.Params[THEME_START + 1],
 					XDat.Params[THEME_START]), 'Untitled');
 
-			VideoWriteText(62, 11, AsColor(XDat.Params[THEME_START + 3],
-				XDat.Params[THEME_START + 4]), ' P ');
-			VideoWriteText(65, 11, AsColor(XDat.Params[THEME_START + 1],
-				XDat.Params[THEME_START]), ' Play');
+			if PlayMenuChar = 'P' then begin
+				VideoWriteText(62, 11, AsColor(XDat.Params[THEME_START + 3],
+					XDat.Params[THEME_START + 4]), ' P ');
+				VideoWriteText(65, 11, AsColor(XDat.Params[THEME_START + 1],
+					XDat.Params[THEME_START]), ' Play');
+			end;
 			if ((XDat.Configs[77][1] <> #1) or (IsRelease = false)) then begin
 				VideoWriteText(62, 12, AsColor(XDat.Params[THEME_START + 3],
 					XDat.Params[THEME_START + 5]), ' R ');
 				VideoWriteText(65, 12, AsColor(XDat.Params[THEME_START + 2],
 					XDat.Params[THEME_START]), ' Restore game');
 			end;
-			VideoWriteText(62, 13, AsColor(XDat.Params[THEME_START + 3],
-				XDat.Params[THEME_START + 4]), ' Q ');
-			VideoWriteText(65, 13, AsColor(XDat.Params[THEME_START + 2],
-				XDat.Params[THEME_START]), ' Quit');
+			if (IsWebRelease = false) then begin
+				VideoWriteText(62, 13, AsColor(XDat.Params[THEME_START + 3],
+					XDat.Params[THEME_START + 4]), ' Q ');
+				VideoWriteText(65, 13, AsColor(XDat.Params[THEME_START + 2],
+					XDat.Params[THEME_START]), ' Quit');
+			end else
+				QuitMenuChar := #0;
 			VideoWriteText(62, 16, AsColor(XDat.Params[THEME_START + 3],
 				XDat.Params[THEME_START + 5]), ' A ');
 			VideoWriteText(65, 16, AsColor(XDat.Params[THEME_START + 1],
 				XDat.Params[THEME_START]), ' License Info');
-			VideoWriteText(62, 17, AsColor(XDat.Params[THEME_START + 3],
-				XDat.Params[THEME_START + 4]), ' H ');
-			VideoWriteText(65, 17, AsColor(XDat.Params[THEME_START + 2],
-				XDat.Params[THEME_START]), ' High Scores');
+			if XDat.Params[72] > 0 then begin
+				VideoWriteText(62, 17, AsColor(XDat.Params[THEME_START + 3],
+					XDat.Params[THEME_START + 4]), ' H ');
+				VideoWriteText(65, 17, AsColor(XDat.Params[THEME_START + 2],
+					XDat.Params[THEME_START]), ' High Scores');
+			end else
+				HighScoreChar := #0;
 
 		end;
 	end;
@@ -2874,10 +2904,11 @@ procedure GamePlayLoop(boardChanged: boolean);
 		SoundClearQueue;
 
 		if GameStateElement = E_PLAYER then begin
-			if (World.Info.Health <= 0) then begin
+			if (World.Info.Health <= 0) and (XDat.Params[72] > 0) then begin
 				HighScoresLoad;
 				HighScoresAdd(World.Info.Score);
 			end;
+			if HasINI then if WorldLoad(World.Info.Name, '.ZZT') then begin end;
 		end else if GameStateElement = E_MONITOR then
 			SidebarClearLine(5);
 
@@ -2892,6 +2923,7 @@ procedure GameTitleLoop;
 		i: integer;
 		boardChanged: boolean;
 		startPlay: boolean;
+		inputC: char;
 	begin
 		GameTitleExitRequested := false;
 		ReturnBoardId := 0;
@@ -2904,17 +2936,26 @@ procedure GameTitleLoop;
 				GamePaused := false;
 				GamePlayLoop(boardChanged);
 				boardChanged := false;
-				if QuickStart then InputKeyPressed := 'P';
-				case UpCase(InputKeyPressed) of
+				inputC := UpCase(InputKeyPressed);
+				if inputC = 'W' then inputC := WorldMenuChar;
+				if inputC = 'S' then inputC := SpeedMenuChar;
+				if inputC = 'H' then inputC := HighScoreChar;
+				if InputC = 'P' then inputC := PlayMenuChar;
+				if QuickStart then inputC := 'P';
+				if (inputC = 'Q')
+					or (inputC = KEY_ESCAPE)
+				then
+					inputC := QuitMenuChar;
+
+				case inputC of
 					'W': begin
-						if not IsRelease then
-							if GameWorldLoad('.ZZT') then begin
-								ReturnBoardId := World.Info.CurrentBoard;
-								boardChanged := true;
-							end;
+						if GameWorldLoad('.ZZT') then begin
+							ReturnBoardId := World.Info.CurrentBoard;
+							boardChanged := true;
+						end;
 					end;
 					'P': begin
-						if (World.Info.IsSave = 1) and not DebugEnabled then begin
+						if not DebugEnabled then begin
 							startPlay := WorldLoad(World.Info.Name, '.ZZT');
 							ReturnBoardId := World.Info.CurrentBoard;
 						end else begin
@@ -2929,7 +2970,7 @@ procedure GameTitleLoop;
 					'A': GameAboutScreen;
 					'S': begin
 						SidebarPromptSlider(true, 66, 21, 'Game speed:;FS', TickSpeed);
-						InputKeyPressed := #0;
+						inputC := #0;
 					end;
 					'R': begin
 						if ((XDat.Configs[77][1] <> #1) or (IsRelease = false)) then
@@ -2950,7 +2991,7 @@ procedure GameTitleLoop;
 
 				if startPlay then begin
 					GameStateElement := E_PLAYER;
-					if not QuickStart then
+					if (QuickStart = false) and (XDat.Configs[79] <> '') then
 						GamePaused := true
 					else
 						QuickStart := false;

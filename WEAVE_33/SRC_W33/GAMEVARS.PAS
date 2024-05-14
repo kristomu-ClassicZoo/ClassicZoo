@@ -38,7 +38,6 @@ interface
 		BOARD_HEIGHT = 25;
 		BOARD_TILE_COUNT = BOARD_WIDTH * BOARD_HEIGHT;
 		WORLD_FILE_HEADER_SIZE = 512;
-		HIGH_SCORE_COUNT = 30;
 		OOP_TOKEN_LENGTH = 20;
 		IO_BUFFER_DEFAULT_SIZE = 20000;
 		IO_BUFFER_MAXIMUM_SIZE = 65500;
@@ -50,7 +49,7 @@ interface
 		THEME_START = 13;
 		THEME_BLINK = 20;
 		PALETTE_START = 23;
-		PARAM_FILE_COUNT = 71;
+		PARAM_FILE_COUNT = 72;
 		{.INI FILE}
 		CUSTOM_KEY_COUNT = 24;
 		CUSTOM_LOCAL_OFFSET = CUSTOM_KEY_COUNT + 7;
@@ -177,7 +176,7 @@ interface
 			EDefs: array[0 .. MAX_ELEMENT] of TElemDef;
 			Configs: array[1 .. CONFIG_FILE_COUNT] of string[80];
 		end;
-		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
+		THighScoreList = array[1 .. 30] of THighScoreEntry;
 		TCustomCounterList = array[1 .. CUSTOM_COUNTER_COUNT] of TString20;
 		TCustomFlagList = array[1 .. CUSTOM_FLAG_COUNT] of TString20;
 		TCustomBoardList = array[1 .. 7] of TString20;
@@ -216,13 +215,17 @@ interface
 		Diffkeys: boolean;
 		SkipToTitle: boolean;
 		IsRelease: boolean;
+		IsWebRelease: boolean;
+		IsSpeedForced: boolean;
 		GameMove: boolean;
 		HasINI: boolean;
 		HasCustomSidebar: boolean;
 		HasCHR: boolean;
-		NoCHR: boolean;
+		LastLoadedCHR: TString8;
+		LastLoadedPAL: TString8;
 		SelUnder: boolean;
 		QuickStart: boolean;
+		QStartBoard: integer;
 		IoTmpBufSize: word;
 		FileWorldCachedLinePos: integer; 
 		FileSaveCachedLinePos: integer;
@@ -249,6 +252,11 @@ interface
 		OopFuncReturn: integer;
 		GamePaused: boolean;
 		TickTimeCounter: integer;
+		WorldMenuChar: char;
+		SpeedMenuChar: char;
+		HighScoreChar: char;
+		QuitMenuChar: char;
+		PlayMenuChar: char;
 		KeyLimit: integer;
 
 		InitialTextAttr: byte;
@@ -272,7 +280,7 @@ interface
 		JustStarted: boolean;
 		ConfigWorldFile: TString50;
 		XDat: TExtendedData;
-		Accessibility: array[1..7] of TString50;
+		Accessibility: array[1..8] of TString50;
 
 		BoardNames: array[0 .. MAX_BOARD] of TString50;
 		CustomSidebar: array[3..24] of TSidebar;

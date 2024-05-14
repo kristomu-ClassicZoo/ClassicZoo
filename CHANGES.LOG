@@ -1,3 +1,34 @@
+5/14/2024: Weave 3.3j
+Optimizations:
+* Multiple redraws per tick have been consolidated, leading to better performance.
+* Removed some string concatenations, leading to better performance.
+
+Bug fixes:
+* Behavior for #startgame and for title screen in general made consistent, with the title screen reloading from the .ZZT file every time it is encountered.
+* If your finished game consisted of multiple .ZZT files and you were in RELEASE mode, it was formerly not possible to switch to the other .ZZT files in your directory.
+* .CHR and .PAL files detected as absent from the directory would continue to attempt to load.
+* SetBlink would continue to set itself repeatedly when changing other theme configs or the element table.
+* Specifying the ZZT file to be played as an executable argument was not being honored if a valid filename was present in the weavezzt.cfg file.
+
+
+Updates:
+* ?STATS cheat is now renamed to ?INFO (?STATS still works as an alias) and the remaining board-specific counter values are displayed (TIME and TIMELIMIT)
+* @INPUT now accepts custom input on the title screen.
+* Setting SPEED in the weavezzt.cfg for a game in RELEASE mode will remove the option to change the speed on the title screen.
+* Setting other.highscores to 0 in a game's .CFG file will cause the highscore menu option to be removed on the title screen.
+* Setting TITLEONLY in weavezzt.cfg will remove the Play option on the title screen (gameplay can still be started with #startgame)
+* Setting WEBRELEASE instead of RELEASE in the weavezzt.cfg will remove the option to Quit from the main menu (to reduce confusion when running the game in web zeta)
+* If the game .CFG has disabled Pausing in-game, then starting the game with P will no longer start the game paused. The game will still pause when using the default behavior of passages.
+
+
+
+Additions:
+* New config value other.highscores lets you choose how many high score values to save/view (max 30) or set to 0 to remove the loading and saving of high scores completely.
+* New direction PFIND [fg] [bg] <tile> will reference the first example on the board (searching top left to bottom right) of a given tile.
+
+
+
+
 4/29/2024: Weave 3.3h
 Bug Fix:
 * LOCKed objects cannot #RUN with :labels.

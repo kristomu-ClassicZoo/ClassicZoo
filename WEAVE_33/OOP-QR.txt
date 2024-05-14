@@ -1,6 +1,6 @@
 WeaveZZT Extended ZZT-OOP Quick Reference
 v0.9
-For WeaveZZT v3.3h
+For WeaveZZT v3.3j
 
 === INDEX ===
 
@@ -184,11 +184,14 @@ Notes:
 /PLAYER		--
  -Like /AT, but will always point to the player's coordinates.
 
+/PFIND [color] <tile>		--
+ - Like /PLAYER, but points to the first instance (searching top left to bottom right) of the given tile. The fg and bg color of the targeted tile may be specified.
+
 /TOWARD <x> <y>		--
  -Seeks the given x y coordinates on the board. This is treated like the object using /SEEK, but it will go towards the coordinates instead of the player.
 
-/FIND <x> <y>		--
- -Like /TOWARD, but there's some basic pathfinding logic to help get around obstacles. Very basic, and pretty finicky.
+/FIND <dir>		--
+ - Applies minimal pathfinding logic to attempt to reach the tile referenced at <dir>. Very basic, and pretty finicky.
 
 #SEND /<dir> <label>	--
  -#SEND commands have been upgraded to be able to target objects in specific directions, by specifying a direction instead of an object's name.

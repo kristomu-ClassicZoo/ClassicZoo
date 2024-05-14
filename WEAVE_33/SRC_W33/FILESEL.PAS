@@ -31,6 +31,7 @@ interface
 	uses GameVars;
 	function FileExists(name: TFilenameString): boolean;
 	function FileSelect(title, extension: TString50; var cachedLinePos: integer): TFilenameString;
+	function FileIsMult: boolean;
 
 implementation
 uses Dos, Game, TxtWind;
@@ -130,6 +131,16 @@ function FileSelect(title, extension: TString50; var cachedLinePos: integer): TF
 			{ Clear IOResult }
 			if IOResult <> 0 then begin end;
 		end;
+	end;
+
+function FileIsMult: boolean;
+	var
+		fileSearchRec: SearchRec;
+	begin
+		FileIsMult := false;
+		FindFirst('*.ZZT', AnyFile, fileSearchRec);
+		if DosError = 0 then FindNext(fileSearchRec);
+		if DosError = 0 then FileIsMult := true;
 	end;
 
 end.

@@ -1413,6 +1413,49 @@ procedure GamePromptEndPlay;
 		InputKeyPressed := #0;
 	end;
 
+procedure ElementCustomInput(inputC: char);
+	var
+		i: integer;	
+	begin {.INI keyboard inputs - Override defaults}
+		i := 0;
+		while i < KeyLimit do begin
+			if (inputC = UpCase(KeyList[i * 3][Length(KeyList[i * 3])]))
+				or (inputC = KeyList[i * 3][Length(KeyList[i * 3])])
+			then begin
+				GameMove := true;
+				if OopSend(0, 'INPUT:' + UpCaseString(KeyList[(i * 3) + 1], false), false) then begin end;
+				i := KeyLimit + 1;
+			end;
+			Inc(i);
+			if i = KeyLimit then
+				if OopSend(0, 'INPUT:KEYBOARD' + InputC, false) then begin end;
+		end;
+	end;
+
+procedure ElementCustomDir(shiftPressed: boolean);
+	var
+		shiftMod: string;
+	begin
+		if shiftPressed then
+			shiftMod := 'SHIFT'
+		else
+			shiftMod := '';
+		if InputDeltaY = -1 then
+			if OopSend(0, 'INPUT:' + shiftMod + 'UP', false) then begin end;
+		if InputDeltaY = 1 then
+			if OopSend(0, 'INPUT:' + shiftMod + 'DOWN', false) then begin end;
+		if InputDeltaX = -1 then
+			if OopSend(0, 'INPUT:' + shiftMod + 'LEFT', false) then begin end;
+		if InputDeltaX = 1 then
+			if OopSend(0, 'INPUT:' + shiftMod + 'RIGHT', false) then begin end;
+		if (InputKeyPressed = ' ')
+			and (InputDeltaX = 0)
+			and (InputDeltaY = 0)
+			and (shiftMod = '')
+		then
+			if OopSend(0, 'INPUT:SPACE', false) then begin end;
+	end;
+
 procedure ElementTruePlayerTick;
 	var
 		i: integer;
@@ -1453,25 +1496,15 @@ procedure ElementTruePlayerTick;
 				World.Info.GracePeriod := 0;
 			if InputShiftPressed or (InputKeyPressed = ' ') then begin
 				GameMove := true;
+				if HasINI then
+					ElementCustomDir(true);
+
 				if InputShiftPressed and ((InputDeltaX <> 0) or (InputDeltaY <> 0)) then begin
 					PlayerDirX := InputDeltaX;
 					PlayerDirY := InputDeltaY;
-				end;
-
-				if InputKeyPressed = ' ' then
-					if OopSend(0, 'INPUT:SPACE', false) then begin end;
+				end;					
 
 				if (PlayerDirX <> 0) or (PlayerDirY <> 0) then begin
-					if HasINI then begin
-						if PlayerDirY = -1 then
-							if OopSend(0, 'INPUT:SHIFTUP', false) then begin end;
-						if PlayerDirY = 1 then
-							if OopSend(0, 'INPUT:SHIFTDOWN', false) then begin end;
-						if PlayerDirX = -1 then
-							if OopSend(0, 'INPUT:SHIFTLEFT', false) then begin end;
-						if PlayerDirX = 1 then
-							if OopSend(0, 'INPUT:SHIFTRIGHT', false) then begin end;
-					end;
 					if Board.Info.MaxShots = 0 then begin
 						if MessageNoShootingNotShown then
 							DisplayMessage(200, XDat.Configs[40]); {"Can't Shoot in this place!"}
@@ -1503,16 +1536,7 @@ procedure ElementTruePlayerTick;
 				end;
 			end else if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
 				GameMove := true;
-				if HasINI then begin
-					if InputDeltaY = -1 then
-						if OopSend(0, 'INPUT:UP', false) then begin end;
-					if InputDeltaY = 1 then
-						if OopSend(0, 'INPUT:DOWN', false) then begin end;
-					if InputDeltaX = -1 then
-						if OopSend(0, 'INPUT:LEFT', false) then begin end;
-					if InputDeltaX = 1 then
-						if OopSend(0, 'INPUT:RIGHT', false) then begin end;
-				end;
+				if HasINI then ElementCustomDir(false);
 
 				PlayerDirX := InputDeltaX;
 				PlayerDirY := InputDeltaY;
@@ -1589,21 +1613,8 @@ procedure ElementTruePlayerTick;
 				and (World.Info.Health > 0))
 			then
 				GamePaused := true
-			else if HasINI and (KeyLimit > 0) then begin {.INI keyboard inputs - Override defaults}
-				i := 0;
-				while i < KeyLimit do begin
-					if (inputC = UpCase(KeyList[i * 3][Length(KeyList[i * 3])]))
-						or (inputC = KeyList[i * 3][Length(KeyList[i * 3])])
-					then begin
-						GameMove := true;
-						if OopSend(0, 'INPUT:' + UpCaseString(KeyList[(i * 3) + 1], false), false) then begin end;
-						i := KeyLimit + 1;
-					end;
-					Inc(i);
-				end;
-				if i = KeyLimit then
-					if OopSend(0, 'INPUT:KEYBOARD' + InputC, false) then begin end;
-			end;
+			else if HasINI and (KeyLimit > 0) then
+				ElementCustomInput(inputC);
 
 			if World.Info.TorchTicks > 0 then begin
 				if GameMove then
@@ -1756,13 +1767,23 @@ procedure ElementPlayerTick(statId: integer);
 	end;
 
 procedure ElementMonitorTick(statId: integer);
+	var
+		inputC: char;
 	begin
+		inputC := UpCase(InputKeyPressed);
 		Inc(Board.Info.BoardTicks);
 		if (Board.Info.BoardTicks > 420) then
 			Board.Info.BoardTicks := 1;
 		if QuickStart then GamePlayExitRequested := true;
-		if UpCase(InputKeyPressed) in [#27, 'A', 'E', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|'] then
+		if inputC in [#27, 'A', 'E', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|'] then
 			GamePlayExitRequested := true;
+		if HasINI
+			and (statId = 0)
+			and not (Board.Stats[0].P1 = 1)
+		then begin
+			ElementCustomInput(inputC);
+			ElementCustomDir(InputShiftPressed);
+		end;
 	end;
 
 procedure ResetMessageNotShownFlags;
@@ -2523,8 +2544,9 @@ procedure InitElementsGame;
 								for i := 1 to (PALETTE_START - 1) do
 									if ParamConfigs(i) = k then
 										XDat.Params[i] := v;
-								if ParamConfigs(71) = k then
-									XDat.Params[71] := v;
+								for i := 71 to (PARAM_FILE_COUNT) do
+									if ParamConfigs(i) = k then
+										XDat.Params[i] := v;
 							end;
 							for i := 0 to MAX_ELEMENT do
 								if Pos(XDat.EDefs[i].Name + '.', k) = 1 then begin
