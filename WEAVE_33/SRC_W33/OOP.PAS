@@ -465,14 +465,15 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 			end else if (OopWord = 'PFIND') then begin
 				ix := 0;
 				iy := 1;
-				if OopParseTile(statId, position, argTile) and FindTileOnBoard(ix, iy, argTile) then begin
-					dx := ix - X;
-					dy := iy - Y;
-				end else begin
-					dx := 0;
-					dy := 0;
+				dx := 0;
+				dy := 0;
+				if OopParseTile(statId, position, argTile) then begin
+					if FindTileOnBoard(ix, iy, argTile) then begin
+						dx := ix - X;
+						dy := iy - Y;
+					end;
+				end else
 					OopParseDirection := false;
-				end;
 			end else if (OopWord = 'TO') then begin
 				OopReadWord(statId, position);
 				OopParseDirection := OopParseDirection(statId, position, dx, dy);
