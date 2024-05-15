@@ -79,7 +79,11 @@ procedure SetBlink(blinkValue: boolean);
 	var
 		regs: Registers;
 	begin
-		{ CGA cards blinking disabled }
+		{ CGA cards }
+		if not blinkValue then
+			Port[PORT_CGA_MODE] := Port[PORT_CGA_MODE] or $20
+		else
+			Port[PORT_CGA_MODE] := Port[PORT_CGA_MODE] and $DF;
 
 		{ EGA/VGA cards }
 		regs.ax := $1003;

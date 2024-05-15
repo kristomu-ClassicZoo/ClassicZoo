@@ -1,3 +1,7 @@
+5/14/2024: Weave 3.3n
+* Blinking support restored for CGA cards.
+
+
 5/14/2024: Weave 3.3m
 Bug Fixes:
 * Setting 'theme.blinking' to TRUE was causing blinking to be disabled, and setting it to FALSE was causing blinking to be enabled.

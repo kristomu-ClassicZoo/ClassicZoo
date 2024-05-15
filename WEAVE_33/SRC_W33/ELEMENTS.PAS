@@ -2459,6 +2459,7 @@ procedure InitElementsGame;
 			XDat.Configs[i] := DefaultConfigList(i);
 		for i := 1 to PARAM_FILE_COUNT do
 			XDat.Params[i] := DefaultParamList(i);
+		CurrentBlink := true;
 		InitXDatEDefs;
 		for i := 0 to 47 do
 			SourcePalette[i] := DefaultParamList(PALETTE_START + i);

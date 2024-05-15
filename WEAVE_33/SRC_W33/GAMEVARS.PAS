@@ -220,6 +220,7 @@ interface
 		IsWebRelease: boolean;
 		IsSpeedForced: boolean;
 		GameMove: boolean;
+		CurrentBlink: boolean;
 		HasINI: boolean;
 		HasCustomSidebar: boolean;
 		HasCHR: boolean;

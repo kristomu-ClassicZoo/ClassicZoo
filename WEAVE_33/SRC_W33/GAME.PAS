@@ -1378,7 +1378,8 @@ function WorldLoad(filename, extension: TString50): boolean;
 					GameDrawTheme;
 				end else
 					InitElementsGame;
-				SetBlink(XDat.Params[THEME_BLINK] = 0);
+				CurrentBlink := (XDat.Params[THEME_BLINK] = 0);
+				SetBlink(CurrentBlink);
 				if QuickStart and (QStartBoard > -1) then
 					XDat.Params[21] := QStartBoard;
 				if (XDat.Params[21] <> -1) and (World.Info.IsSave = 0) then
@@ -2703,7 +2704,10 @@ procedure GoToDirectory(var input: string);
 
 procedure GameDrawTheme;
 	begin
-		SetBlink(XDat.Params[THEME_BLINK] = 0);
+		if CurrentBlink <> (XDat.Params[THEME_BLINK] = 0) then begin
+			CurrentBlink := (XDat.Params[THEME_BLINK] = 0);
+			SetBlink(CurrentBlink);
+		end;
 		SidebarClear;
 		SidebarClearLine(0);
 		SidebarClearLine(1);
