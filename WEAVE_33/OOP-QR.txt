@@ -1,6 +1,6 @@
 WeaveZZT Extended ZZT-OOP Quick Reference
 v0.10
-For WeaveZZT v3.3k
+For WeaveZZT v3.3m
 
 === INDEX ===
 
@@ -248,7 +248,7 @@ A special case related to the above, all entries in the TEMPLATE.CFG can be modi
 #clear other.ouchdamage (Bullets and enemies can no longer harm the player.)
 #give other.torchsize (The radius of torchlight in dark rooms will increase slightly)
 #set theme.bg.sidebar brown (The sidebar will now be brown.)
-#set theme.blinking true (Extended colors will now be used.)
+#set theme.blinking false (Extended colors will now be used.)
 #clear keys.save.bind (Disables saving the game)
 #set duplicator.snd s-cdefg (Changes the duplicator sound.)
 #set ammo.msg.touch Here's five ammo! (Changes the message that plays when ammo is first collected)

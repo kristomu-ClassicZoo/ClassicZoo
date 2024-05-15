@@ -46,7 +46,6 @@ interface
 		VideoEGAInstalled: boolean;
 		VideoMDAInstalled: boolean;
 		VideoUseFastPath: boolean;
-		BlinkValue: integer;
 	function VideoConfigure(SkipToTitle: boolean): boolean;
 	procedure VideoInstall(columns, borderColor: integer);
 	procedure VideoUninstall;
@@ -54,7 +53,7 @@ interface
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
-	procedure SetBlink(blinkState: integer);
+	procedure SetBlink(blinkValue: boolean);
 	procedure SetAccKeys;
 	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 
@@ -76,26 +75,19 @@ procedure SetAccKeys;
 		intr($10, regs);
 	end;
 
-procedure SetBlink(blinkState: integer);
+procedure SetBlink(blinkValue: boolean);
 	var
 		regs: Registers;
 	begin
-		if not blinkState = blinkValue then begin
-			blinkValue := blinkState;
-			{ CGA cards }
-			if blinkState <> 0 then
-				Port[PORT_CGA_MODE] := Port[PORT_CGA_MODE] or $20
-			else
-				Port[PORT_CGA_MODE] := Port[PORT_CGA_MODE] and $DF;
+		{ CGA cards blinking disabled }
 
-			{ EGA/VGA cards }
-			regs.ax := $1003;
-			if blinkState <> 0 then
-				regs.bx := $0001
-			else
-				regs.bx := $0000;
-			Intr($10, regs);
-		end;
+		{ EGA/VGA cards }
+		regs.ax := $1003;
+		if not blinkValue then
+			regs.bx := $0001
+		else
+			regs.bx := $0000;
+		Intr($10, regs);
 	end;
 
 function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
@@ -379,7 +371,6 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 
 
 begin
-	blinkValue := -1;
 	VideoBorderColor := 0;
 	VideoColumns := 80;
 	VideoWriteText := VideoWriteTextFastBW;

@@ -317,13 +317,13 @@ procedure TempPaletteGet;
 function DefaultParamList(i: integer): integer;
 	begin
 		case i of
-			1,3,6,12,13,22: DefaultParamList := 1;
+			1,3,6,12,13,20,22: DefaultParamList := 1;
 			2: DefaultParamList := 10;
 			4,7: DefaultParamList := 2;
 			5,8: DefaultParamList := 50;
 			9: DefaultParamList := 254;
 			10: DefaultParamList := 33;
-			11,16,20,23,24,25,26,27,29,31,32,36,37,39,43,71: DefaultParamList := 0;
+			11,16,23,24,25,26,27,29,31,32,36,37,39,43,71: DefaultParamList := 0;
 			14: DefaultParamList := 15;
 			15: DefaultParamList := 14;
 			17: DefaultParamList := 7;
@@ -1378,7 +1378,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 					GameDrawTheme;
 				end else
 					InitElementsGame;
-				SetBlink(XDat.Params[THEME_BLINK]);
+				SetBlink(XDat.Params[THEME_BLINK] = 0);
 				if QuickStart and (QStartBoard > -1) then
 					XDat.Params[21] := QStartBoard;
 				if (XDat.Params[21] <> -1) and (World.Info.IsSave = 0) then
@@ -2703,7 +2703,7 @@ procedure GoToDirectory(var input: string);
 
 procedure GameDrawTheme;
 	begin
-		SetBlink(XDat.Params[THEME_BLINK]);
+		SetBlink(XDat.Params[THEME_BLINK] = 0);
 		SidebarClear;
 		SidebarClearLine(0);
 		SidebarClearLine(1);
