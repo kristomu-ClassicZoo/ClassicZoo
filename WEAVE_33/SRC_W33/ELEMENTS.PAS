@@ -2462,7 +2462,7 @@ procedure InitElementsGame;
 		CurrentBlink := true;
 		InitXDatEDefs;
 		for i := 0 to 47 do
-			SourcePalette[i] := DefaultParamList(PALETTE_START + i);
+			XDat.CurrentPalette[i] := DefaultParamList(PALETTE_START + i);
 		if (World.Info.Name <> '') then begin
 			if not FileExists(World.Info.Name + '.CFG') then exit;
 			Assign(f, World.Info.Name + '.CFG');
@@ -2501,7 +2501,7 @@ procedure InitElementsGame;
 										l := l + s[i]
 									else begin
 										if l <> '' then begin
-											Val(l, SourcePalette[v], code);
+											Val(l, XDat.Params[PALETTE_START + v], code);
 											Inc(v);
 										end;
 										l := '';

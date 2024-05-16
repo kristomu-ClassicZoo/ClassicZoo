@@ -1856,18 +1856,18 @@ procedure OopExecute(statId: integer; name: TString50);
 									and (deltaX = -1)
 									and (deltaY = -1)
 								then begin
-									iy := SourcePalette[PALETTE_START + (ix * 3)];
-									deltaX := SourcePalette[PALETTE_START + (ix * 3) + 1];
-									deltaY := SourcePalette[PALETTE_START + (ix * 3) + 2];
+									iy := XDat.Params[PALETTE_START + (ix * 3)];
+									deltaX := XDat.Params[PALETTE_START + (ix * 3) + 1];
+									deltaY := XDat.Params[PALETTE_START + (ix * 3) + 2];
 								end;
 								if (((ix >= 0) and (ix <= 15))
 									and ((iy >= 0) and (iy <= 63)))
 									and (((deltaX >= 0) and (deltaX <= 63))
 									and ((deltaY >= 0) and (deltaY <= 63)))
 								then begin
-									XDat.Params[PALETTE_START + (ix * 3)] := iy;;
-									XDat.Params[PALETTE_START + (ix * 3) + 1] := deltaX;
-									XDat.Params[PALETTE_START + (ix * 3) + 2] := deltaY;
+									XDat.CurrentPalette[(ix * 3)] := iy;
+									XDat.CurrentPalette[(ix * 3) + 1] := deltaX;
+									XDat.CurrentPalette[(ix * 3) + 2] := deltaY;
 									BlockPalette(ix,iy,deltaX,deltaY);
 								end else
 									OopError(Index,Stat^.DataPos, 'Bad PALETTE Command');

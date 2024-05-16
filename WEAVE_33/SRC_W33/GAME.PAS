@@ -127,7 +127,6 @@ const
 		Follower: -1; Leader: -1
 	);
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
-	PalFilter: array[0..2] of integer = ( 31, 992, 31744 );
 
 implementation
 uses Dos, FileSel, Crt, ExtMem, Video, Sounds, Input, Elements, Oop, Counter, ObjTrack;
@@ -225,93 +224,69 @@ function ParamConfigs(i: integer): string;
 		else ParamConfigs := '_nil' end;
 	end;
 
-procedure InitPalette(palrefresh: boolean);
+procedure VerifyPalette(sourcePal: boolean);
+	var
+		c: integer;
+	begin
+		for c := 0 to 47 do
+			if sourcePal then begin
+				if (XDat.CurrentPalette[c] < 0)
+					or (XDat.CurrentPalette[c] > 63)
+				then
+					XDat.CurrentPalette[c] := DefaultParamList(PALETTE_START + c);
+			end else
+				if (XDat.Params[PALETTE_START + c] < 0)
+					or (XDat.Params[PALETTE_START + c] > 63)
+				then
+					XDat.Params[PALETTE_START + c] := DefaultParamList(PALETTE_START + c);
+	end;
+
+procedure PushPalette;
+	var
+		c: integer;
+	begin
+		for c := 0 to 47 do
+			XDat.CurrentPalette[c] := XDat.Params[PALETTE_START + c];
+	end;
+
+procedure LoadPalette;
 	var
 		f: file;
-		doInit, HasPAL: boolean;
-		c,r,g,b: integer;
-		pal: array[0..47] of byte;
+		c: integer;
+		TempPalette: array[0..47] of byte;
 	begin
-		doInit := true;
-		HasPAL := false;
-		c := 0;
-		while c < 48 do begin
-			if (SourcePalette[PALETTE_START + c] < 0) or (SourcePalette[PALETTE_START + c] > 63) then begin
-				doInit := true;
-				c := 48;
-			end else if (SourcePalette[PALETTE_START + c] > 0) and (SourcePalette[PALETTE_START + c] < 64) then
-				doInit := false;
-			Inc(c);
-		end;
-		if doInit 
-			and (LastLoadedPAL <> World.Info.Name)
-		then begin
-			LastLoadedPAL := World.Info.Name;
-			if (World.Info.Name <> '')
-				and FileExists(World.Info.Name + '.PAL')
-			then begin
-				Assign(f, World.Info.Name + '.PAL');
-				Reset(f, 1);
-				if IOResult = 0 then begin
-					BlockRead(f, pal, 48);
-					Close(f);
-				end;
-				HasPAL := true;
+		if FileExists(World.Info.Name + '.PAL') then begin
+			Assign(f, World.Info.Name + '.PAL');
+			Reset(f, 1);
+			if IOResult = 0 then begin
+				BlockRead(f, TempPalette, 48);
+				Close(f);
 			end;
+			for c := 0 to 47 do
+				XDat.Params[PALETTE_START + c] := TempPalette[c];
 		end;
+	end;
+
+procedure SetPalette(sourcePal: boolean);
+	var
+		c,r,g,b: integer;
+	begin
+		VerifyPalette(sourcePal);
 		for c := 0 to 15 do begin
 			r := c * 3;
 			g := (c * 3) + 1;
 			b := (c * 3) + 2;
-			if doInit or palrefresh then begin
-				if HasPAL then begin
-					XDat.Params[PALETTE_START + r] := pal[r];
-					XDat.Params[PALETTE_START + g] := pal[g];
-					XDat.Params[PALETTE_START + b] := pal[b];
-					SourcePalette[r] := pal[r];
-					SourcePalette[g] := pal[g];
-					SourcePalette[b] := pal[b];
-				end else begin
-					XDat.Params[PALETTE_START + r] := SourcePalette[r];
-					XDat.Params[PALETTE_START + g] := SourcePalette[g];
-					XDat.Params[PALETTE_START + b] := SourcePalette[b];
-				end;
+			if sourcePal then begin
+				r := XDat.Params[PALETTE_START + r];
+				g := XDat.Params[PALETTE_START + g];
+				b := XDat.Params[PALETTE_START + b];
+			end else begin
+				r := XDat.CurrentPalette[r];
+				g := XDat.CurrentPalette[g];
+				b := XDat.CurrentPalette[b];
 			end;
-			r := XDat.Params[PALETTE_START + r];
-			g := XDat.Params[PALETTE_START + g];
-			b := XDat.Params[PALETTE_START + b];
 			BlockPalette(c,r,g,b);
 		end;
-	end;
-
-procedure TempPaletteStore;
-	var
-		c,r,g,b: integer;
-	begin
-		for c := 0 to 15 do begin
-			r := c * 3;
-			g := (c * 3) + 1;
-			b := (c * 3) + 2;
-			TempPalette[r] := XDat.Params[PALETTE_START + r];
-			TempPalette[g] := XDat.Params[PALETTE_START + g];
-			TempPalette[b] := XDat.Params[PALETTE_START + b];
-		end;
-		InitPalette(true);
-	end;
-
-procedure TempPaletteGet;
-	var
-		c,r,g,b: integer;
-	begin
-		for c := 0 to 15 do begin
-			r := c * 3;
-			g := (c * 3) + 1;
-			b := (c * 3) + 2;
-			XDat.Params[PALETTE_START + r] := TempPalette[r];
-			XDat.Params[PALETTE_START + g] := TempPalette[g];
-			XDat.Params[PALETTE_START + b] := TempPalette[b];
-		end;
-		InitPalette(false);
 	end;
 
 function DefaultParamList(i: integer): integer;
@@ -978,7 +953,8 @@ procedure WorldCreate;
 	begin
 		World.Info.Name := '';
 		InitElementsGame;
-		InitPalette(true);
+		PushPalette;
+		SetPalette(false);
 		World.BoardCount := 0;
 		World.BoardLen[0] := 0;
 		ResetMessageNotShownFlags;
@@ -1224,11 +1200,11 @@ function SidebarPromptYesNo(message: string; defaultReturn: boolean): boolean;
 		VideoWriteText(63 + Length(message), 5, AsColor(XDat.Params[THEME_START + 2],
 			8 + XDat.Params[THEME_START]), '_');
 
-		TempPaletteStore;
+		SetPalette(true);
 		repeat
 			InputReadWaitKey;
 		until UpCase(InputKeyPressed) in [KEY_ESCAPE, 'N', 'Y'];
-		TempPaletteGet;
+		SetPalette(false);
 		if UpCase(InputKeyPressed) = 'Y' then
 			defaultReturn := true
 		else
@@ -1304,7 +1280,6 @@ function WorldLoad(filename, extension: TString50): boolean;
 	label OnError;
 	begin
 		WorldLoad := false;
-		LastLoadedPAL := '';
 		if not FileExists(filename + extension) then begin
 			exit;
 		end;
@@ -1327,10 +1302,12 @@ function WorldLoad(filename, extension: TString50): boolean;
 
 				if World.BoardCount < 0 then begin
 					if World.BoardCount <> -1 then begin
-						VideoWriteText(21, 11, $40, #223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223);
+						VideoWriteText(21, 11, $40,
+							#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223);
 						VideoWriteText(21, 12, $40, '    This is not a   ');
 						VideoWriteText(21, 13, $40, '  valid WEAVE .ZZT! ');
-						VideoWriteText(21, 14, $04, #223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223);
+						VideoWriteText(21, 14, $04,
+							#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223);
 						Close(f);
 						goto OnError;
 					end else begin
@@ -1367,24 +1344,30 @@ function WorldLoad(filename, extension: TString50): boolean;
 				if extension = '.SAV' then begin
 					BlockRead(f, XDat, SizeOf(XDat));
 					if (XDat.Version <> FOOTER_VERSION) then begin
-						VideoWriteText(22, 10, $40, #219#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#219);
+						VideoWriteText(22, 10, $40,
+							#219#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#223#219);
 						VideoWriteText(22, 11, $40, ' This .SAV file is ');
 						VideoWriteText(22, 12, $40, '   for the wrong   ');
 						VideoWriteText(22, 13, $40, ' version of WEAVE! ');
-						VideoWriteText(22, 14, $40, #219#220#220#220#220#220#220#220#220#220#220#220#220#220#220#220#220#220#219);
+						VideoWriteText(22, 14, $40,
+							#219#220#220#220#220#220#220#220#220#220#220#220#220#220#220#220#220#220#219);
 						Close(f);
 						goto OnError;
 					end;
 					GameDrawTheme;
-				end else
+					SetPalette(false);
+				end else begin
 					InitElementsGame;
+					LoadPalette;
+					PushPalette;
+					SetPalette(false);
+				end;
 				CurrentBlink := (XDat.Params[THEME_BLINK] = 0);
 				SetBlink(CurrentBlink);
 				if QuickStart and (QStartBoard > -1) then
 					XDat.Params[21] := QStartBoard;
 				if (XDat.Params[21] <> -1) and (World.Info.IsSave = 0) then
 					World.Info.CurrentBoard := XDat.Params[21];
-				InitPalette(false);
 				BoardOpen(World.Info.CurrentBoard);
 				BoardDrawBottom;
 				LoadedGameFileName := filename;
@@ -1468,9 +1451,9 @@ procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: T
 		newFilename: TString50;
 	begin
 		newFilename := filename;
-		TempPaletteStore;
+		SetPalette(true);
 		SidebarPromptString(prompt, extension, newFilename, PROMPT_ALPHANUM);
-		TempPaletteGet;
+		SetPalette(false);
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(newFilename) <> 0) then begin
 			filename := newFilename;
 			if extension = '.ZZT' then
@@ -2803,12 +2786,13 @@ procedure GamePlayLoop(boardChanged: boolean);
 					and WorldLoad(StartupWorldFileName, '.ZZT'))
 					or (FileExists(StartupWorldFileName)
 					and WorldLoad(StartupWorldFileName,''))
-				then
+				then begin
 					GameDrawTheme;
 					GameUpdateSidebar;
 					VideoWriteText(69, 8, AsColor(XDat.Params[THEME_START + 1],
 						XDat.Params[THEME_START]), World.Info.Name);
 				end;
+			end;
 			if (ParamStr(1) = '') and not SkipToTitle then
 				GameAboutScreen;
 			ReturnBoardId := World.Info.CurrentBoard;
@@ -2945,7 +2929,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end;
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
 
-		InitPalette(true);
+		SetPalette(true);
 		SoundClearQueue;
 
 		if GameStateElement = E_PLAYER then begin

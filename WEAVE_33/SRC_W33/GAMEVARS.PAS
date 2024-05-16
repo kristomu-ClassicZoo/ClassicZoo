@@ -28,7 +28,7 @@ unit GameVars;
 interface
 	uses ExtMem;
 	const
-		FOOTER_VERSION = 3311;
+		FOOTER_VERSION = 3316;
 		MAX_STAT = 254;
 		TSTAT_OFFSET = 33;
 		MAX_ELEMENT = 53;
@@ -175,6 +175,7 @@ interface
 			Version: integer;
 			Flags: array[MAX_FLAG + 1 .. MAX_EXTENDEDFLAG] of TString20;
 			Params: array[1 .. PARAM_FILE_COUNT] of integer;
+			CurrentPalette: TPalette;
 			EDefs: array[0 .. MAX_ELEMENT] of TElemDef;
 			Configs: array[1 .. CONFIG_FILE_COUNT] of string[80];
 		end;
@@ -225,14 +226,12 @@ interface
 		HasCustomSidebar: boolean;
 		HasCHR: boolean;
 		LastLoadedCHR: TString8;
-		LastLoadedPAL: TString8;
 		SelUnder: boolean;
 		QuickStart: boolean;
 		QStartBoard: integer;
 		IoTmpBufSize: word;
 		FileWorldCachedLinePos: integer; 
 		FileSaveCachedLinePos: integer;
-		TempPalette, SourcePalette: TPalette;
 
 		InspectNext: boolean;
 		NoClip: boolean;

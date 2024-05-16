@@ -1,3 +1,7 @@
+5/15/2024: Weave 3.3p
+* Palette handling refactored and palette data presence reduced.
+
+
 5/14/2024: Weave 3.3n
 * Blinking support restored for CGA cards.
 
