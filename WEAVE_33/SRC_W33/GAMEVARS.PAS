@@ -259,6 +259,7 @@ interface
 		HighScoreChar: char;
 		QuitMenuChar: char;
 		PlayMenuChar: char;
+		RestoreMenuChar: char;
 		KeyLimit: integer;
 
 		InitialTextAttr: byte;

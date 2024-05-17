@@ -224,21 +224,16 @@ function ParamConfigs(i: integer): string;
 		else ParamConfigs := '_nil' end;
 	end;
 
-procedure VerifyPalette(sourcePal: boolean);
+procedure VerifyPalette;
 	var
 		c: integer;
 	begin
-		for c := 0 to 47 do
-			if sourcePal then begin
-				if (XDat.CurrentPalette[c] < 0)
-					or (XDat.CurrentPalette[c] > 63)
-				then
-					XDat.CurrentPalette[c] := DefaultParamList(PALETTE_START + c);
-			end else
-				if (XDat.Params[PALETTE_START + c] < 0)
-					or (XDat.Params[PALETTE_START + c] > 63)
-				then
-					XDat.Params[PALETTE_START + c] := DefaultParamList(PALETTE_START + c);
+		for c := 0 to 47 do begin
+			if (XDat.Params[PALETTE_START + c] < 0) or (XDat.Params[PALETTE_START + c] > 63) then
+				XDat.Params[PALETTE_START + c] := DefaultParamList(PALETTE_START + c);
+			if (XDat.CurrentPalette[c] < 0) or (XDat.CurrentPalette[c] > 63) then
+				XDat.CurrentPalette[c] := XDat.Params[PALETTE_START + c];
+		end;
 	end;
 
 procedure PushPalette;
@@ -247,6 +242,28 @@ procedure PushPalette;
 	begin
 		for c := 0 to 47 do
 			XDat.CurrentPalette[c] := XDat.Params[PALETTE_START + c];
+	end;
+
+procedure SetPalette(sourcePal: boolean);
+	var
+		c,r,g,b: integer;
+	begin
+		VerifyPalette;
+		for c := 0 to 15 do begin
+			r := c * 3;
+			g := (c * 3) + 1;
+			b := (c * 3) + 2;
+			if sourcePal then begin
+				r := XDat.Params[PALETTE_START + r];
+				g := XDat.Params[PALETTE_START + g];
+				b := XDat.Params[PALETTE_START + b];
+			end else begin
+				r := XDat.CurrentPalette[r];
+				g := XDat.CurrentPalette[g];
+				b := XDat.CurrentPalette[b];
+			end;
+			BlockPalette(c,r,g,b);
+		end;
 	end;
 
 procedure LoadPalette;
@@ -265,28 +282,8 @@ procedure LoadPalette;
 			for c := 0 to 47 do
 				XDat.Params[PALETTE_START + c] := TempPalette[c];
 		end;
-	end;
-
-procedure SetPalette(sourcePal: boolean);
-	var
-		c,r,g,b: integer;
-	begin
-		VerifyPalette(sourcePal);
-		for c := 0 to 15 do begin
-			r := c * 3;
-			g := (c * 3) + 1;
-			b := (c * 3) + 2;
-			if sourcePal then begin
-				r := XDat.Params[PALETTE_START + r];
-				g := XDat.Params[PALETTE_START + g];
-				b := XDat.Params[PALETTE_START + b];
-			end else begin
-				r := XDat.CurrentPalette[r];
-				g := XDat.CurrentPalette[g];
-				b := XDat.CurrentPalette[b];
-			end;
-			BlockPalette(c,r,g,b);
-		end;
+		PushPalette;
+		SetPalette(false);
 	end;
 
 function DefaultParamList(i: integer): integer;
@@ -1355,13 +1352,9 @@ function WorldLoad(filename, extension: TString50): boolean;
 						goto OnError;
 					end;
 					GameDrawTheme;
-					SetPalette(false);
-				end else begin
+				end else
 					InitElementsGame;
-					LoadPalette;
-					PushPalette;
-					SetPalette(false);
-				end;
+				SetPalette(false);
 				CurrentBlink := (XDat.Params[THEME_BLINK] = 0);
 				SetBlink(CurrentBlink);
 				if QuickStart and (QStartBoard > -1) then
@@ -1482,9 +1475,10 @@ function GameWorldLoad(extension: TString50): boolean;
 		GetMem(IoTmpBuf, IoTmpBufSize);
 
 		if Length(entryName) > 0 then begin
-			if WorldLoad(entryName, extension) then
-				GameWorldLoad := true
-			else begin
+			if WorldLoad(entryName, extension) then begin
+				GameWorldLoad := true;
+				if extension = '.ZZT' then LoadPalette;
+			end else begin
 				WorldCreate;
 				PauseOnError;
 			end;
@@ -2744,7 +2738,8 @@ procedure GameDrawTheme;
 					XDat.Params[THEME_START + 5]), ' R ');
 				VideoWriteText(65, 12, AsColor(XDat.Params[THEME_START + 2],
 					XDat.Params[THEME_START]), ' Restore game');
-			end;
+			end else
+				RestoreMenuChar := #0;
 			if (IsWebRelease = false) then begin
 				VideoWriteText(62, 13, AsColor(XDat.Params[THEME_START + 3],
 					XDat.Params[THEME_START + 4]), ' Q ');
@@ -2787,6 +2782,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 					or (FileExists(StartupWorldFileName)
 					and WorldLoad(StartupWorldFileName,''))
 				then begin
+					LoadPalette;
 					GameDrawTheme;
 					GameUpdateSidebar;
 					VideoWriteText(69, 8, AsColor(XDat.Params[THEME_START + 1],
@@ -2929,7 +2925,6 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end;
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
 
-		SetPalette(true);
 		SoundClearQueue;
 
 		if GameStateElement = E_PLAYER then begin
@@ -2937,7 +2932,9 @@ procedure GamePlayLoop(boardChanged: boolean);
 				HighScoresLoad;
 				HighScoresAdd(World.Info.Score);
 			end;
-			if HasINI then if WorldLoad(World.Info.Name, '.ZZT') then begin end;
+			if (HasINI and not DebugEnabled) then if WorldLoad(World.Info.Name, '.ZZT') then begin
+				LoadPalette;
+			end;
 		end else if GameStateElement = E_MONITOR then
 			SidebarClearLine(5);
 
@@ -2970,22 +2967,24 @@ procedure GameTitleLoop;
 				if inputC = 'S' then inputC := SpeedMenuChar;
 				if inputC = 'H' then inputC := HighScoreChar;
 				if InputC = 'P' then inputC := PlayMenuChar;
+				if InputC = 'R' then inputC := RestoreMenuChar;
 				if QuickStart then inputC := 'P';
 				if (inputC = 'Q')
 					or (inputC = KEY_ESCAPE)
 				then
 					inputC := QuitMenuChar;
 
+				if inputC in ['W','A','S','R','H','|','Q',#27] then SetPalette(true);
 				case inputC of
-					'W': begin
+					'W': 
 						if GameWorldLoad('.ZZT') then begin
 							ReturnBoardId := World.Info.CurrentBoard;
 							boardChanged := true;
 						end;
-					end;
 					'P': begin
 						if not DebugEnabled then begin
 							startPlay := WorldLoad(World.Info.Name, '.ZZT');
+							LoadPalette;
 							ReturnBoardId := World.Info.CurrentBoard;
 						end else begin
 							startPlay := true;
@@ -3000,14 +2999,14 @@ procedure GameTitleLoop;
 					'S': begin
 						SidebarPromptSlider(true, 66, 21, 'Game speed:;FS', TickSpeed);
 						inputC := #0;
+						SetPalette(false);
 					end;
 					'R': begin
-						if ((XDat.Configs[77][1] <> #1) or (IsRelease = false)) then
-							if GameWorldLoad('.SAV') then begin
-								ReturnBoardId := World.Info.CurrentBoard;
-								BoardChange(ReturnBoardId);
-								startPlay := true;
-							end;
+						if GameWorldLoad('.SAV') then begin
+							ReturnBoardId := World.Info.CurrentBoard;
+							BoardChange(ReturnBoardId);
+							startPlay := true;
+						end;
 						KeyRepeat;
 					end;
 					'H': begin
@@ -3017,6 +3016,7 @@ procedure GameTitleLoop;
 					'|': GameDebugPrompt;
 					KEY_ESCAPE, 'Q': GameTitleExitRequested := SidebarPromptYesNo('Quit ZZT? ', true);
 				end;
+				if inputC in ['W','A','S','R','H','|','Q',#27] then SetPalette(false);
 
 				if startPlay then begin
 					GameStateElement := E_PLAYER;

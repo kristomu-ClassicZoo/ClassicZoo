@@ -1,6 +1,6 @@
 WeaveZZT Extended ZZT-OOP Quick Reference
 v0.10
-For WeaveZZT v3.3p
+For WeaveZZT v3.3q
 
 === INDEX ===
 
@@ -57,11 +57,16 @@ For WeaveZZT v3.3p
  -Changes the color(s) of the element in the given drection. Use i for direction to change the object's colors.
 
 #BOARD <label> [x] [y]		--
- -Teleports the player to the first board that contains the given board label. Example: "#BOARD party" will teleport the player to the first board that contains ":party;" in its title.
+ -Teleports the player to the first board that contains the given board label. Board labels can be expressed in the following ways:
+   - As a :label; in the board title. Example: "#BOARD party" will teleport the player to the first board that contains ":party;" in its title.
+   - As EdgeW, EdgeE, EdgeN, or EdgeS, teleporting the player to whichever board is linked in the provided direction.
+   - As a number indicating the board number. You can check the board number of the destination using ZLoom2.
+   - As a counter indicating the board number; see above.
  -If no coordinates are given, the player goes to the location the player object is on the target board.
 
 #EDGE <dir> <label>		--
  -Changes the border exit of the given direction to point to the board with the given board label instead.
+ -For more information about board labels, see the #BOARD entry above.
 
 #PSET <dir> STEP <walkdir>		--
  -Sets the walking direction of a stat in the given direction. Example: "#PSET N STEP W" will make the object or builtin north of it walk west.
@@ -137,8 +142,9 @@ Note: You can follow up #zap and #restore !link with positive and negative numbe
 #PSET <dir> <obj1-6> <value>	--
  -#PSET can also be used to remotely assign values to the object counters of other objects. Only one counter can be assigned at a time.
 
-#STARTGAME
+#STARTGAME [label]
  - Use the #STARTGAME command on the title screen to begin play without requiring the player to input 'P'.
+ - Optionally, you can choose a board on which to start the game, identified with [label]. See the entry for #BOARD for the ways a board label can be specified.
 
 === 2) BUILT-IN FLAGS AND LABELS ===
 COLOR <dir> <color> [bgcolor]			- True if the given direction is the specified colors.

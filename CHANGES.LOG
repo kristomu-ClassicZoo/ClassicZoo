@@ -1,3 +1,8 @@
+5/17/2024: Weave 3.3q
+* Updated the README and OOP-QR to include some changes.
+* Updated WEAVEDMO to include entries on PFIND and STARTGAME.
+* Eliminated unexpected behavior in certain edge cases surrounding palette usage.
+
 5/15/2024: Weave 3.3p
 * Palette handling refactored and palette data presence reduced.
 

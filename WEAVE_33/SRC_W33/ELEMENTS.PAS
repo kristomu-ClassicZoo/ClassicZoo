@@ -2461,8 +2461,6 @@ procedure InitElementsGame;
 			XDat.Params[i] := DefaultParamList(i);
 		CurrentBlink := true;
 		InitXDatEDefs;
-		for i := 0 to 47 do
-			XDat.CurrentPalette[i] := DefaultParamList(PALETTE_START + i);
 		if (World.Info.Name <> '') then begin
 			if not FileExists(World.Info.Name + '.CFG') then exit;
 			Assign(f, World.Info.Name + '.CFG');

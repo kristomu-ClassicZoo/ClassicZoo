@@ -23,6 +23,8 @@ Weave3 attempts to load your ZZT files into EMS/XMS. If your machine or emulator
 
 For a sampling of what you can do with Weave3, check out the WEAVEDMO.ZZT file included with the Weave3 download.
 
+Additionally, there is a quick reference guide, OOP-QR.TXT, with information about the new commands in ZZT-OOP.
+
 --> Okay, but WHAT CAN I DO WITH IT?
 
 You can add a .CFG file if you want to change the way ZZT sounds, the messages it displays, or the look of default items, terrains and text.
@@ -33,7 +35,7 @@ You can add a WEAVEZZT.CFG file if you want to play regular ZZT games with acces
 
 If you have a .INI file added to your game already, you can add .OBJ files to load or run ZZT-OOP code in real time.
 
-For further explanation about any of the above, see the WEAVEDMO.ZZT file.
+For further explanation about any of the above, see the WEAVEDMO.ZZT file and the OOP-QR.TXT quick reference guide.
 
 --> Anything else?
 
