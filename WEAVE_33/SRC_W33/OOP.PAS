@@ -53,7 +53,7 @@ interface
 	function WorldInfoFlags(flag: integer): string;
 
 implementation
-uses Sounds, TxtWind, Game, Elements, Counter, ObjTrack;
+uses Sounds, TxtWind, Game, ZVideo, Elements, Counter, ObjTrack, FileSys;
 
 procedure OopError(statId, position: integer; message: string);
 	begin
@@ -72,7 +72,11 @@ procedure OopReadChar(statId: integer; var position: integer);
 	begin
 		with Board.Stats[statId] do begin
 			if (position >= 0) and (position < DataLen) then begin
+{$IFDEF FPC}
+				OopChar := Data[position];
+{$ELSE}
 				OopChar := Data^[position];
+{$ENDIF}
 				Inc(position);
 			end else begin
 				OopChar := #0
@@ -204,7 +208,7 @@ procedure XOut(s: TString50);
 		AdvancePointer(OutTmpPos, 1);
 		Char(OutTmpPos^) := #13;
 		OutTmpPos := ObjTmpBuf;
-		Assign(f, s + '.OBJ');
+		AssignFSysText(f, s + '.OBJ');
 		Rewrite(f);
 		if IOResult = 0 then begin
 			j := 0;
@@ -708,7 +712,11 @@ function OopFindString(statId, searchDir: integer; s: string): integer;
 				wordPos := 1;
 				cmpPos := pos;
 				repeat
+{$IFDEF FPC}
+					OopChar := Data[cmpPos];
+{$ELSE}
 					OopChar := Data^[cmpPos];
+{$ENDIF}
 					if s[wordPos] <> UpCase(OopChar) then
 						goto NoMatch;
 					Inc(wordPos);
@@ -1256,7 +1264,11 @@ procedure InspectObjectCode(statId, PointPos: integer; ErrMsg: string);
 				TextWindowAppend(textWindow, '$** Object Data: **');
 			end;
 			while pos <= DataLen do begin
-				Move(Ptr(Seg(Data^), Ofs(Data^) + pos)^, ch, 1);
+{$IFDEF FPC}
+				ch := Data[pos];
+{$ELSE}
+				ch := Data^[pos];
+{$ENDIF}
 				if ch = #13 then begin
 					if isCurLine then begin
 						TextWindowAppend(textWindow, #255#16 + s);
@@ -2085,7 +2097,8 @@ procedure OopExecute(statId: integer; name: TString50);
 				end else if OopChar = #0 then begin
 					endOfProgram := true;
 				end else begin
-					textLine := OopChar + OopReadLineToEnd(Index, Stat^.DataPos);
+					textLine := OopChar;
+					textLine := textLine + OopReadLineToEnd(Index, Stat^.DataPos);
 					TextWindowAppend(textWindow, textLine);
 				end;
 

@@ -28,7 +28,8 @@
 {$M 49152,163840,655360}
 {$ENDIF}
 program ZZT;
-uses Crt, Dos, ExtMem, Video, Keys, Sounds, Input, TxtWind, GameVars, Elements, Oop, Game;
+uses Crt, Dos, ExtMem, ZVideo, Keys, Sounds, TimerSys, ZInput,
+FileSys, TxtWind, GameVars, Elements, Oop, Game;
 
 procedure ParseArguments;
 	begin
@@ -46,7 +47,7 @@ procedure GameConfigure;
 		cfgFile: text;
 	begin
 		ConfigWorldFile := '';
-        Assign(cfgFile, 'weavezzt.cfg');
+        AssignFSysText(cfgFile, 'weavezzt.cfg');
         Reset(cfgFile);
         if IOResult = 0 then begin
             ReadLn(cfgFile, ConfigWorldFile);
@@ -62,6 +63,7 @@ procedure GameConfigure;
 		joystickEnabled := InputJoystickEnabled;
 		mouseEnabled := InputMouseEnabled;
 
+{$IFNDEF SDL2} {TODO}
 		Window(1, 1, 80, 25);
 		TextBackground(Black);
 		ClrScr;
@@ -91,6 +93,7 @@ procedure GameConfigure;
 		TextBackground(Black);
 		ClrScr;
 		TextColor(Yellow);
+{$ENDIF}
 		NeuromotorAssist := false;
 		HearingImpaired := false;
 		Diffkeys := false;
@@ -103,9 +106,11 @@ procedure GameConfigure;
 		TickSpeed := 9;
 		if Accessibility[1] = 'ACCESSIBLE' then begin
 			if Accessibility[2] = '' then begin
+{$IFNDEF SDL2} {TODO}
 				NeuromotorAssist :=	NeuromotorConfigure;
 				HearingImpaired :=	HearingConfigure;
 				Diffkeys := KeydiffConfigure;
+{$ENDIF}
 			end else
 				for i := 2 to 8 do begin
 					if Accessibility[i] = 'NEUROMOTORASSIST' then
@@ -132,6 +137,7 @@ procedure GameConfigure;
 				end;
 		end;
 		Dec(TickSpeed,5);
+{$IFNDEF SDL2} {TODO}
 		if not InputConfigure(SkipToTitle) then
 			GameTitleExitRequested := true
 		else begin
@@ -140,12 +146,12 @@ procedure GameConfigure;
 				GameTitleExitRequested := true;
 		end;
 		Window(1, 1, 80, 25);
+{$ENDIF}
 	end;
 
 begin
 	Randomize;
-	SetCBreak(false);
-	InitialTextAttr := TextAttr;
+	TimerSysInstall;
 
 	ParseArguments;
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
@@ -159,8 +165,9 @@ begin
 	HighScoreChar := 'H';
 	QuitMenuChar := 'Q';
 
+	if VideoInstall(VIDEO_MODE_80X25, nil, 0, 1) then begin end;
+
 	if not GameTitleExitRequested then begin
-		VideoInstall(80, Blue);
 		TextWindowInit;
 		GetMem(IoTmpBuf, IoTmpBufSize);
 		GetMem(ObjTmpBuf, LOAD_OBJ_LENGTH);
@@ -171,9 +178,10 @@ begin
 		{OUTPUT}
 		OutTmpPos := ObjTmpBuf;
 
-		VideoHideCursor;
-		ClrScr;
-
+{$IFDEF SDL2}
+		{ SDL2 - Fixes initial window size }
+		InputUpdate;
+{$ENDIF}
 		DebugEnabled := false;
 		SavedGameFileName := 'SAVED';
 		WorldCreate;
@@ -190,11 +198,8 @@ begin
 		ExtMemUninstall;
 	end;
 
-	SoundUninstall;
 	SoundClearQueue;
 
 	VideoUninstall;
-	TextAttr := InitialTextAttr;
-	ClrScr;
-	VideoShowCursor;
+	SoundUninstall;
 end.

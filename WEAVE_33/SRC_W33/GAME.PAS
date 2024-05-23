@@ -97,7 +97,6 @@ interface
 	procedure GameDebugPrompt;
 	procedure GameTitleLoop;
 	procedure ResetCachedLinePos;
-	procedure BlockPalette(c,r,g,b: byte);
 	function ParamConfigs(i: integer): string;
 	function DefaultParamList(i: integer): integer;
 	procedure KeyRepeat;
@@ -106,9 +105,6 @@ const
 	ColorNames: array[0 .. 7] of TString8 =
 		('Black', 'Blue', 'Green', 'Cyan', 'Red', 'Purple', 'Yellow', 'White');
 
-	ColorList: array[0..15] of byte = (
-		0,1,2,3,4,5,20,7,56,57,58,59,60,61,62,63
-	);
 	MainSidebarList: array[1..15] of integer = (
 		6,7,8,9,10,11,12,14,15,16,18,19,21,22,23
 	);
@@ -133,7 +129,8 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, FileSel, Crt, ExtMem, Video, Sounds, Input, Elements, Oop, Counter, ObjTrack;
+uses Dos, FileSel, FileSys, Crt, ExtMem, ZVideo, Sounds, TimerSys,
+ZInput, Elements, Oop, Counter, ObjTrack;
 
 procedure KeyRepeat;
 	begin
@@ -177,22 +174,6 @@ function ColorNumber(s: string; statId: integer): integer;
 					ColorNumber := counter.Value;
 			end;
 		end;
-	end;
-
-procedure BlockPalette(c,r,g,b: byte);
-	var
-		arr: array[0..2] of byte;
-		regs: Registers;
-	begin
-		arr[0] := r;
-		arr[1] := g;
-		arr[2] := b;
-		regs.ax := $1012;
-		regs.bx := ColorList[c];
-		regs.cx := 1;
-		regs.es := Seg(arr);        (* segment of table *)
-		regs.dx := Ofs(arr);        (* offset of the table *)
-		intr($10, regs);
 	end;
 
 function ParamConfigs(i: integer): string;
@@ -277,7 +258,7 @@ procedure LoadPalette;
 		TempPalette: array[0..47] of byte;
 	begin
 		if FileExists(World.Info.Name + '.PAL') then begin
-			Assign(f, World.Info.Name + '.PAL');
+			AssignFSys(f, World.Info.Name + '.PAL');
 			Reset(f, 1);
 			if IOResult = 0 then begin
 				BlockRead(f, TempPalette, 48);
@@ -367,7 +348,7 @@ procedure CustomCharsetLoad(chrfile: string);
 			LastLoadedCHR := chrfile;
 			HasCHR := false;
 			if (chrfile <> '') and FileExists(chrfile + '.CHR') then begin
-				Assign(f, chrfile + '.CHR');
+				AssignFSys(f, chrfile + '.CHR');
 				Reset(f, 1);
 				if IOResult = 0 then begin
 					HasCHR := true;
@@ -424,7 +405,7 @@ procedure CustomOOPLoad;
 			and FileExists(World.Info.Name + '.INI')
 		then begin
 			HasINI := true;
-			Assign(f, World.Info.Name + '.INI');
+			AssignFSysText(f, World.Info.Name + '.INI');
 			Reset(f);
 			if IOResult = 0 then begin
 				j := 0;
@@ -494,7 +475,7 @@ procedure CustomSidebarLoad;
 		HasCustomSidebar := false;
 		if HasINI then begin
 			k := 0;
-			Assign(f, World.Info.Name + '.INI');
+			AssignFSysText(f, World.Info.Name + '.INI');
 			Reset(f);
 			if (IOResult = 0) then begin
 				while k <= 64 do begin
@@ -565,7 +546,11 @@ procedure HighScoresLoad;
 		i: integer;
 	begin
 		if XDat.Params[72] > 0 then begin
+{$IFNDEF MSDOS}
+			AssignFSys(f, World.Info.Name + '.HI');
+{$ELSE}
 			Assign(f, World.Info.Name + '.HI');
+{$ENDIF}
 			Reset(f);
 			if IOResult = 0 then begin
 				Read(f, HighScoreList);
@@ -584,7 +569,11 @@ procedure HighScoresSave;
 		f: file of THighScoreList;
 	begin
 		if XDat.Params[72] > 0 then begin
+{$IFNDEF MSDOS}
+			AssignFSys(f, World.Info.Name + '.HI');
+{$ELSE}
 			Assign(f, World.Info.Name + '.HI');
+{$ENDIF}
 			Rewrite(f);
 			Write(f, HighScoreList);
 			Close(f);
@@ -847,8 +836,10 @@ procedure BoardOpen(boardId: integer);
 				AdvancePointer(ptr, TSTAT_OFFSET);
 				Data := nil;
 				if DataLen > 0 then begin
+{$IFDEF MSDOS}
 					if MaxAvail < DataLen then begin
 					end;
+{$ENDIF}
 
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
@@ -1122,6 +1113,9 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 				VideoWriteText(x + value + 1, y + 1, AsColor(XDat.Params[THEME_START + 1],
 					XDat.Params[THEME_START] + 8), #31);
 
+{$IFDEF SDL2}
+				TimerSysIdle(IMUntilFrame);
+{$ENDIF}
 				InputUpdate;
 				if (InputKeyPressed >= '1') and (InputKeyPressed <= '9') then begin
 					value := Ord(InputKeyPressed) - 49;
@@ -1240,8 +1234,13 @@ procedure PauseOnError;
 		SoundQueue(1, SoundParse('s004x114x9'));
 		InputKeyPressed := #0;
 		while (InputKeyPressed = #0) do begin
-			if SoundHasTimeElapsed(TickTimeCounter, 25) then
+			if SoundHasTimeElapsed(TickTimeCounter, 25) then begin
+{$IFDEF SDL2}
+				TimerSysIdle(IMUntilFrame);
+{$ENDIF}
 				InputUpdate;
+			end;
+
 			if ((InputKeyPressed >= 'A')
 				and (InputKeyPressed <= 'Z'))
 				or ((InputKeyPressed >= 'a')
@@ -1289,7 +1288,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 		VideoWriteText(62, 5, AsColor(XDat.Params[THEME_START + 1],
 			XDat.Params[THEME_START]), 'Loading.....');
 
-		Assign(f, filename + extension);
+		AssignFSys(f, filename + extension);
 		Reset(f, 1);
 
 		if not DisplayIOError(filename + extension) then begin
@@ -1396,7 +1395,7 @@ procedure WorldSave(filename, extension: TString50);
 		VideoWriteText(63, 5, AsColor(XDat.Params[THEME_START + 1],
 			XDat.Params[THEME_START]), 'Saving...');
 
-		Assign(f, filename + extension);
+		AssignFSys(f, filename + extension);
 		Rewrite(f, 1);
 
 		if not DisplayIOError(filename + extension) then begin
@@ -1558,7 +1557,7 @@ function FileLoadStatData(s: TString50; statId: integer): boolean;
 		FileLoadStatData := false;
 		if not FileExists(s + '.OBJ') then exit;
 		FileLoadStatData := true;
-		Assign(f, s + '.OBJ');
+		AssignFSysText(f, s + '.OBJ');
 		Reset(f);
 		with TrackPushStat(statId)^ do begin
 			FreeStatDataMem(Index);
@@ -1613,7 +1612,7 @@ function FileAppendStatData(s: TString50; statId: integer): boolean;
 		FileAppendStatData := false;
 		if not FileExists(s + '.OBJ') then exit;
 		FileAppendStatData := true;
-		Assign(f, s + '.OBJ');
+		AssignFSysText(f, s + '.OBJ');
 		Reset(f);
 		CurrentFile := #0;
 		with TrackPushStat(statId)^ do begin
@@ -2012,6 +2011,7 @@ procedure GameUpdateSidebar;
 				end else SideBarClearLine(y);
 			end;
 
+{$IFDEF MSDOS}
 			if DebugEnabled then begin
 				Str(MemAvail, numStr);
 				VideoWriteText(62, 0, $1E, 'm' + numStr + ' ');
@@ -2024,6 +2024,7 @@ procedure GameUpdateSidebar;
 					VideoWriteText(62, 2, $1E, 'x' + numStr + ' ');
 				end;
 			end;
+{$ENDIF}
 		end;
 	end;
 
@@ -2924,6 +2925,9 @@ procedure GamePlayLoop(boardChanged: boolean);
 
 				VideoWriteText(64, 5, AsColor(XDat.Params[THEME_START + 1],
 					XDat.Params[THEME_START]), XDat.Configs[81]); {"Pausing..."}
+{$IFDEF SDL2}
+				TimerSysIdle(IMUntilFrame);
+{$ENDIF}
 				InputUpdate;
 
 				if InputKeyPressed = KEY_ESCAPE then
@@ -3009,6 +3013,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 					CurrentStatTicked := 0;
 
 					InputUpdate;
+				end else begin
+					TimerSysIdle(IMUntilPit);
 				end;
 			end;
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
