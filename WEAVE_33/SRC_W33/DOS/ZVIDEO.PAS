@@ -68,12 +68,11 @@ interface
 	procedure VideoInvert(x1, y1, x2, y2: integer);
 	procedure VideoScroll(x, y, width, height, dx, dy: integer);
 	procedure SetBlink(blinkValue: boolean);
-	procedure SetAccKeys;
 	function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 	procedure BlockPalette(c,r,g,b: byte);
 
 implementation
-uses Crt, Dos, AccKeys;
+uses Crt, Dos, AccKeys, Gamevars;
 var
 	InitialTextAttr: byte;
 const
@@ -140,6 +139,9 @@ function VideoSetCharset(data: PTCharsetData; height: integer): boolean;
 
 		VideoHideCursor;
 		VideoSetCharset := true;
+
+		if ((data = nil) or (height <= 0)) and Diffkeys then
+			SetAccKeys;
 	end;
 
 procedure BlockPalette(c,r,g,b: byte);
@@ -512,9 +514,7 @@ FinishVideoInstall:
 		VideoHideCursor;
 		VideoSetBorderColor(borderColor);
 
-		if charsetHeight > 0 then begin
-			if not VideoSetCharset(charsetData, charsetHeight) then exit;
-		end;
+		if not VideoSetCharset(charsetData, charsetHeight) then exit;
 
 		if VideoVGAInstalled then begin
 			{ Set 8-dot-clock character mode.  }

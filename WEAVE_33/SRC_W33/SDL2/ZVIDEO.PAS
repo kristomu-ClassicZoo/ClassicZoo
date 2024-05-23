@@ -32,7 +32,7 @@ interface
 		TSDLScalingMode = (SMNone, SM2x, SM3x, SMInteger, SMOrigAspect, SM43Aspect, SMIgnoreAspect);
 		TVideoLine = string[160];
 		TScreenCopyLine = string[255];
-		TCharsetData = array[0 .. 31999] of byte;
+		TCharsetData = array[0 .. 4095] of byte;
 		PTCharsetData = ^TCharsetData;
 	const
 		VIDEO_MODE_40X25 = 0;
@@ -86,7 +86,6 @@ interface
 	procedure VideoSetBorderColor(value: integer);
 	procedure VideoSetBlink(value: boolean);
 	procedure SetBlink(value: boolean);
-	procedure SetAccKeys;
 	procedure VideoClear(bgColor: integer);
 	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	procedure VideoInvert(x1, y1, x2, y2: integer);
@@ -95,7 +94,7 @@ interface
 	procedure VideoCoordsToChar(sx, sy: integer; var x, y: shortint);
 
 implementation
-uses F_ASCII, AccKeys, FileSel, FileSys, SysUtils, Sounds, TimerSys, ZInput, SDL2;
+uses F_ASCII, AccKeys, FileSel, FileSys, SysUtils, Sounds, TimerSys, ZInput, SDL2, Gamevars;
 type
 	TByteArray = array[0 .. 65535] of byte;
 	PByteArray = ^TByteArray;
@@ -178,7 +177,7 @@ procedure AfterSetWindowSize;
 		InputUpdate;
 		if charsetTexture.valid then begin
 			if charsetTexture.texture <> nil then begin
-				SDL_DestroyTexture(charsetTexture.texture);
+			SDL_DestroyTexture(charsetTexture.texture);
 				charsetTexture.texture := nil;
 			end;
 		end;
@@ -903,6 +902,8 @@ procedure BlockPalette(c,r,g,b: byte);
 	end;
 
 function VideoSetCharset(data: pointer; height: integer): boolean;
+	var
+		defaultCharset: PTCharsetData;
 	label FinishSetCharset;
 	begin
 		VideoSetCharset := false;
@@ -911,7 +912,7 @@ function VideoSetCharset(data: pointer; height: integer): boolean;
 
 		FreeCharsetTexture(charsetTexture);
 
-		if data <> nil then begin
+		if (data <> nil) and (height > 0) then begin
 			LoadCharsetFromByteArray(charsetTexture, PByteArray(data)^, height shl 8);
 			if charsetTexture.valid then begin
 				VideoSetCharset := true;
@@ -920,7 +921,13 @@ function VideoSetCharset(data: pointer; height: integer): boolean;
 			end;
 		end;
 
-		LoadCharsetFromByteArray(charsetTexture, F_ASCIIData, F_ASCIISize);
+		New(defaultCharset);
+		Move(F_ASCIIData[0], defaultCharset^[0], 3584);
+		if Diffkeys then
+			Move(acc[0], defaultCharset^[14 * 133], 14 * 14);
+		LoadCharsetFromByteArray(charsetTexture, defaultCharset^, 3584);
+		Dispose(defaultCharset);
+
 		usingCustomCharset := false;
 		if not charsetTexture.valid then
 			RunError(217);
@@ -1064,11 +1071,6 @@ procedure VideoSetBlink(value: boolean);
 procedure SetBlink(value: boolean);
 	begin
 		VideoSetBlink(not value);
-	end;
-
-procedure SetAccKeys;
-	begin
-		{ TODO }
 	end;
 
 procedure VideoClear(bgColor: integer);

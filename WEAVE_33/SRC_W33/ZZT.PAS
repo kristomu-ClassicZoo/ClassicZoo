@@ -155,6 +155,7 @@ begin
 
 	ParseArguments;
 	IoTmpBufSize := IO_BUFFER_DEFAULT_SIZE;
+
 	GameTitleExitRequested := false;
 	GameConfigure;
 	LastLoadedCHR := #0;
@@ -185,8 +186,6 @@ begin
 		DebugEnabled := false;
 		SavedGameFileName := 'SAVED';
 		WorldCreate;
-		if Diffkeys then
-			SetAccKeys;
 
 		GameTitleLoop;
 
