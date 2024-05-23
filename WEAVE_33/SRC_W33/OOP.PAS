@@ -845,15 +845,15 @@ function WorldGetBoardPosition(statId: integer; var position: integer): integer;
 			exit;
 		end;
 		while ((ix <= World.BoardCount) and (bpos = -1)) do begin
-			if BoardNames[ix][1] = ':' then begin
+			if BoardNames^[ix][1] = ':' then begin
 				bpos := ix;
 				for iy := 1 to Length(OopWord) do
-					if UpCase(BoardNames[ix][iy + 1]) <> OopWord[iy] then
+					if UpCase(BoardNames^[ix][iy + 1]) <> OopWord[iy] then
 						bpos := -1;
-					if (((BoardNames[ix][Length(OopWord) + 2] >= 'A') and
-						(BoardNames[ix][Length(OopWord) + 2] <= 'Z')) or
-						((BoardNames[ix][Length(OopWord) + 2] >= '0') and
-						(BoardNames[ix][Length(OopWord) + 2] <= '9'))) then
+					if (((BoardNames^[ix][Length(OopWord) + 2] >= 'A') and
+						(BoardNames^[ix][Length(OopWord) + 2] <= 'Z')) or
+						((BoardNames^[ix][Length(OopWord) + 2] >= '0') and
+						(BoardNames^[ix][Length(OopWord) + 2] <= '9'))) then
 						bpos := -1;
 			end;
 			Inc(ix);
@@ -1201,7 +1201,7 @@ procedure GetBoardInfo;
 			TextWindowAppend(textWindow, '$** Board connections: **');
 			for i := 0 to 3 do
 				if NeighborBoards[i] <> 0 then
-					TextWindowAppend(textWindow, '  ' + NeighborArrowList[i] + '  ' +  BoardNames[NeighborBoards[i]])
+					TextWindowAppend(textWindow, '  ' + NeighborArrowList[i] + '  ' +  BoardNames^[NeighborBoards[i]])
 				else
 					TextWindowAppend(textWindow, '  ' + NeighborArrowList[i] + '  None');
 			textWindow.Title := 'Inspecting Board';

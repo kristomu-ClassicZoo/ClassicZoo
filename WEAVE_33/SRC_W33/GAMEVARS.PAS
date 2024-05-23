@@ -191,6 +191,7 @@ interface
 			Ident: shortint;
 			Elmt: shortint;
 		end;
+		TBoardNames = array[0 .. MAX_BOARD] of TString50;
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
@@ -285,7 +286,7 @@ interface
 		Accessibility: array[1..8] of TString50;
 		XDat: TExtendedData;
 
-		BoardNames: array[0 .. MAX_BOARD] of TString50;
+		BoardNames: ^TBoardNames;
 		CustomSidebar: array[3..24] of TSidebar;
 	const
 		E_EMPTY = 0;

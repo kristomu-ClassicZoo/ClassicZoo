@@ -24,7 +24,9 @@
 }
 
 {$I-}
+{$IFNDEF FPC}
 {$M 49152,163840,655360}
+{$ENDIF}
 program ZZT;
 uses Crt, Dos, ExtMem, Video, Keys, Sounds, Input, TxtWind, GameVars, Elements, Oop, Game;
 
@@ -141,7 +143,6 @@ procedure GameConfigure;
 	end;
 
 begin
-
 	Randomize;
 	SetCBreak(false);
 	InitialTextAttr := TextAttr;
@@ -164,6 +165,7 @@ begin
 		GetMem(IoTmpBuf, IoTmpBufSize);
 		GetMem(ObjTmpBuf, LOAD_OBJ_LENGTH);
 		GetMem(PathTmpBuf, BOARD_TILE_COUNT);
+		New(BoardNames);
 		CurrentSave := '';
 
 		{OUTPUT}
@@ -180,6 +182,7 @@ begin
 
 		GameTitleLoop;
 
+		Dispose(BoardNames);
 		FreeMem(PathTmpBuf, BOARD_TILE_COUNT);
 		FreeMem(ObjTmpBuf, LOAD_OBJ_LENGTH);
 		FreeMem(IoTmpBuf, IoTmpBufSize);
