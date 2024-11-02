@@ -893,6 +893,16 @@ procedure WorldSave(filename, extension: TString50);
 		version: integer;
 	label OnError;
 	begin
+
+		{ If a demo is being recorded, save the demo too. }
+		if DemoIsRecording then begin
+			DemoFinalize;
+			{ TODO: Error handling using IOResult... or just let
+			  DisplayIOError handle it. }
+			CopyFile(DemoFilename, filename + '.ZZD');
+			CopyFile(DemoLogFilename, filename + '.ZZL');
+		end;
+
 		BoardClose;
 		VideoWriteText(63, 5, $1F, 'Saving...');
 
@@ -1226,6 +1236,7 @@ procedure GameDemoUpdateSidebar;
 			DrawHighlight(x, y + 1, $70, sv, cond and InputShiftPressed);
 		end;
 	begin
+		{TODO? Instead of file position, use relative time?}
 		Str(((DemoFilePos * 100) div DemoFileSize), numStr);
 		VideoWriteText(72, 16, $1E, numStr + '% ');
 
@@ -1840,6 +1851,8 @@ function GameDemoStartPlay: boolean;
 	end;
 
 {$IFDEF ZDEMOVAL}
+{TODO: Make this a function that returns score. Take a parameter
+ indicating whether we want to save the end state to a SAV file.}
 procedure GameValidateRun;
 	begin
 		GameTitleExitRequested := false;

@@ -46,11 +46,17 @@ interface
 		DemoPitTicksFirst: longint;
 		DemoPitTicksLast: longint;
 		DemoStartSeed: longint;
+		{ File data }
+		DemoFilename: string;
+		DemoLogFilename: string;
+	{ Helper functions }
+	procedure CopyFile(fromName: string; toName: string);
 	{ Library }
 	procedure DemoFlushFile(var f: text);
 	function DemoStartRecord(filename: string): boolean;
 	function DemoStartPlay(filename: string): boolean;
 	function DemoStartLogging(filename: string): boolean;
+	procedure DemoFinalize;
 	procedure DemoStop(ignoreErrors: boolean);
 	function DemoIsComplete: boolean;
 	function DemoIsPlaying: boolean;
@@ -142,6 +148,35 @@ var
 	DemoLogFile: text;
 	DemoLogActive: boolean;
 	DemoLogBoard: integer;
+
+const COPY_BUFFER_SIZE = 512;
+var CopyBuffer: array[1 .. COPY_BUFFER_SIZE] of byte;
+
+{ As best as I can understand, there's no file copy command in TP.}
+procedure CopyFile(fromName: string; toName: string);
+	var
+		fromFile, toFile: file;
+		bytesRead, bytesWritten: integer;
+		OK: boolean;
+		i: integer;
+		byteArray : array[1..8] of byte;
+	begin
+		Assign(fromFile, fromName);
+		Assign(toFile, toName);
+		Reset(fromFile, 1);
+		Rewrite(toFile, 1);
+
+		OK := true;
+
+		while OK and not Eof(fromFile) do
+		begin
+			BlockRead(fromFile, CopyBuffer, COPY_BUFFER_SIZE, bytesRead);
+			BlockWrite(toFile, CopyBuffer, bytesRead, bytesWritten);
+			OK := (IOResult = 0);
+		end;
+		Close(fromFile);
+		Close(toFile);
+	end;
 
 procedure DemoFlushFile(var f: text);
 	var
@@ -276,6 +311,9 @@ procedure DemoSetMode(mode: DemoMode);
 		FillChar(DemoCurrentCommand, SizeOf(DemoCurrentCommand), 0);
 	end;
 
+{ TODO: DemoAppendRecord, continuing from a partial file without adding
+  a new header, etc. }
+
 function DemoStartRecord(filename: string): boolean;
 	var
 		hdr: DemoHeader;
@@ -304,6 +342,7 @@ function DemoStartRecord(filename: string): boolean;
 
 		DemoSetMode(DModeRecord);
 		DemoStartRecord := true;
+		DemoFilename := filename;
 
 		{ Record the initial commands. }
 		cmd.cmdType := DCmdGameStart;
@@ -345,6 +384,7 @@ function DemoStartPlay(filename: string): boolean;
 
 		DemoSetMode(DModePlay);
 		DemoStartPlay := true;
+		DemoFilename := filename;
 
 		if not DemoFetchCommand(cmd, DCmdGameStart, DFetchExpected) then exit;
 
@@ -374,6 +414,23 @@ function DemoStartLogging(filename: string): boolean;
 		DemoLogActive := true;
 		DemoLogBoard := -1;
 		DemoStartLogging := true;
+		DemoLogFilename := filename;
+	end;
+
+{ Dump the current command to file if we have one. This is used for
+	finalizing demos accompanying savegames without actually stopping the
+	recording. }
+procedure DemoFinalize;
+	var
+		cmd: DemoCommand;
+	begin
+		if DemoCurrentCommand.count > 0 then
+			DemoAppendCommand(DemoCurrentCommand);
+
+		cmd.cmdType := DCmdGameStop;
+		DemoAppendCommand(cmd);
+
+		DemoFlushRecordBuffer;
 	end;
 
 procedure DemoStop(ignoreErrors: boolean);
@@ -381,13 +438,7 @@ procedure DemoStop(ignoreErrors: boolean);
 		cmd: DemoCommand;
 	begin
 		if DemoCurrentMode = DModeRecord then begin
-			if DemoCurrentCommand.count > 0 then
-				DemoAppendCommand(DemoCurrentCommand);
-
-			cmd.cmdType := DCmdGameStop;
-			DemoAppendCommand(cmd);
-
-			DemoFlushRecordBuffer;
+			DemoFinalize;
 		end;
 
 		if DemoCurrentMode = DModePlay then begin
@@ -451,7 +502,10 @@ procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean);
 	label PlayFoundInput;
 	label AfterInput;
 	begin
+		{ Playback mode. }
 		if DemoCurrentMode = DModePlay then begin
+
+			{ Set the key pressed. If it's Q, then stop the demo. }
 			while KeyPressed do begin
 				rkey := UpCase(readKey);
 				if rkey in [#27, 'Q'] then begin
@@ -508,13 +562,17 @@ procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean);
 				end;
 			end;
 
+			{ If we entered a new board, record a split and our current PIT counter. }
 			if (DemoLogBoard >= 0) and (DemoLogBoard <> World.Info.CurrentBoard) then begin
 				DemoLogEmit('SPLIT', DemoPitTicks);
 				DemoLogBoard := World.Info.CurrentBoard;
 			end;
 		end;
 
+		{ Recording mode. }
 		if DemoCurrentMode = DModeRecord then begin
+
+			{ Update the demo pit counter??? }
 			if isGameplaySensitive or DemoInputNonZero then begin
 				Cli;
 				tickDiff := (DemoPitTicks - DemoLastPitTicks) - expectedPitCount;
@@ -546,6 +604,8 @@ procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean);
 					exit;
 				end;
 			end;
+
+			{ If something has changed, record it. }
 
 			if (DemoCurrentCommand.deltaX <> InputDeltaX)
 			or (DemoCurrentCommand.deltaY <> InputDeltaY)
