@@ -896,11 +896,18 @@ procedure WorldSave(filename, extension: TString50);
 
 		{ If a demo is being recorded, save the demo too. }
 		if DemoIsRecording then begin
-			DemoFinalize;
-			{ TODO: Error handling using IOResult... or just let
-			  DisplayIOError handle it. }
-			CopyFile(DemoFilename, filename + '.ZZD');
-			CopyFile(DemoLogFilename, filename + '.ZZL');
+			CopyDemoFiles(filename);
+		end;
+
+		{ If a demo is being played, don't save the game again,
+		  as usually you don't want it to be doing file ops when
+		  replaying a demo.
+		  Whether to do this could be turned into a configurable
+		  parameter, I guess, if the need arises. }
+		if DemoIsPlaying then begin
+			BoardClose;
+			BoardOpen(World.Info.CurrentBoard);
+			Exit;
 		end;
 
 		BoardClose;

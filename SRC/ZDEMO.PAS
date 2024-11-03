@@ -50,13 +50,13 @@ interface
 		DemoFilename: string;
 		DemoLogFilename: string;
 	{ Helper functions }
-	procedure CopyFile(fromName: string; toName: string);
+	procedure CopyDemoFiles(toFilename: string);
 	{ Library }
 	procedure DemoFlushFile(var f: text);
 	function DemoStartRecord(filename: string): boolean;
 	function DemoStartPlay(filename: string): boolean;
 	function DemoStartLogging(filename: string): boolean;
-	procedure DemoFinalize;
+	procedure DemoFinalize(stop: boolean);
 	procedure DemoStop(ignoreErrors: boolean);
 	function DemoIsComplete: boolean;
 	function DemoIsPlaying: boolean;
@@ -152,21 +152,25 @@ var
 const COPY_BUFFER_SIZE = 512;
 var CopyBuffer: array[1 .. COPY_BUFFER_SIZE] of byte;
 
-{ As best as I can understand, there's no file copy command in TP.}
-procedure CopyFile(fromName: string; toName: string);
+{ Copies the whole from file to a new to file. }
+procedure CopyFile(var fromFile: file; toFilename: string; toExt: string);
 	var
-		fromFile, toFile: file;
+		toFile: file;
 		bytesRead, bytesWritten: integer;
 		OK: boolean;
-		i: integer;
+		currentPos: integer;
 		byteArray : array[1..8] of byte;
 	begin
-		Assign(fromFile, fromName);
-		Assign(toFile, toName);
-		Reset(fromFile, 1);
+		Assign(toFile, toFilename + toExt);
 		Rewrite(toFile, 1);
 
-		OK := true;
+		OK := (IOResult = 0);
+		if not OK then Exit;	{ Couldn't open destination file. }
+
+		{ Get current position (which is usually the end of the file). 
+		  Does TP support files > 65K? I don't know. }
+		currentPos := FilePos(fromFile);
+		Seek(fromFile, 0);
 
 		while OK and not Eof(fromFile) do
 		begin
@@ -174,8 +178,28 @@ procedure CopyFile(fromName: string; toName: string);
 			BlockWrite(toFile, CopyBuffer, bytesRead, bytesWritten);
 			OK := (IOResult = 0);
 		end;
-		Close(fromFile);
 		Close(toFile);
+
+		Seek(fromFile, currentPos);
+	end;
+
+procedure CopyDemoFiles(toFilename: string);
+	var
+		demoLogRawFile: file;
+	begin
+		if not DemoIsRecording then Exit;
+
+		{ Copy the demo and log files. }
+		DemoFinalize(false);
+		CopyFile(DemoFile, toFilename, '.ZZD');
+
+		{ .ZZL has to be done differently because it's a text file.  }
+		Close(DemoLogFile);
+		Assign(demoLogRawFile, DemoLogFilename);
+		Reset(demoLogRawFile, 1);
+		CopyFile(demoLogRawFile, toFilename, '.ZZL');
+		Close(demoLogRawFile);
+		Append(DemoLogFile);
 	end;
 
 procedure DemoFlushFile(var f: text);
@@ -420,15 +444,20 @@ function DemoStartLogging(filename: string): boolean;
 { Dump the current command to file if we have one. This is used for
 	finalizing demos accompanying savegames without actually stopping the
 	recording. }
-procedure DemoFinalize;
+procedure DemoFinalize(stop: boolean);
 	var
 		cmd: DemoCommand;
 	begin
 		if DemoCurrentCommand.count > 0 then
 			DemoAppendCommand(DemoCurrentCommand);
 
-		cmd.cmdType := DCmdGameStop;
-		DemoAppendCommand(cmd);
+		{ TODO: Somehow append stop commands to savegame demos, so they're all
+			proper demos? But then that means we have to strip them when loading...
+			ponder this more. }
+		if stop then begin
+			cmd.cmdType := DCmdGameStop;
+			DemoAppendCommand(cmd);
+		end;
 
 		DemoFlushRecordBuffer;
 	end;
@@ -438,7 +467,7 @@ procedure DemoStop(ignoreErrors: boolean);
 		cmd: DemoCommand;
 	begin
 		if DemoCurrentMode = DModeRecord then begin
-			DemoFinalize;
+			DemoFinalize(true);
 		end;
 
 		if DemoCurrentMode = DModePlay then begin
