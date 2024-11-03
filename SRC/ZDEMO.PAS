@@ -95,6 +95,11 @@ type
 		Name: string[20];
 		Flags: byte;
 		EngineName: string[30];
+
+		{ Contains the last savegame saved before the demo was recorded. This is
+		  required because, when saving a game, ZZT shows the previous save game
+		  name in its filename field. }
+		LastSaveName: string[20];
 	end;
 	DemoCommand = record
 		case cmdType: DemoCommandType of
@@ -118,7 +123,7 @@ type
 
 const
 	DEMO_MAGIC = $D327;
-	DEMO_VERSION = $0002;
+	DEMO_VERSION = $0003;
 	DEMO_BUFFER_SIZE = 512;
 	DEMO_COMMAND_OPTIONAL = $01;
 	DEMO_COMMAND_VARLEN = $80;
@@ -158,7 +163,7 @@ procedure CopyFile(var fromFile: file; toFilename: string; toExt: string);
 		toFile: file;
 		bytesRead, bytesWritten: integer;
 		OK: boolean;
-		currentPos: integer;
+		currentPos: longint;
 		byteArray : array[1..8] of byte;
 	begin
 		Assign(toFile, toFilename + toExt);
@@ -335,9 +340,6 @@ procedure DemoSetMode(mode: DemoMode);
 		FillChar(DemoCurrentCommand, SizeOf(DemoCurrentCommand), 0);
 	end;
 
-{ TODO: DemoAppendRecord, continuing from a partial file without adding
-  a new header, etc. }
-
 function DemoStartRecord(filename: string): boolean;
 	var
 		hdr: DemoHeader;
@@ -348,6 +350,7 @@ function DemoStartRecord(filename: string): boolean;
 		hdr.Magic := DEMO_MAGIC;
 		hdr.Version := DEMO_VERSION;
 		hdr.Name := World.Info.Name;
+		hdr.LastSaveName := SavedGameFileName;
 		hdr.Flags := 0;
 		hdr.EngineName := DemoEngineName;
 
@@ -411,6 +414,8 @@ function DemoStartPlay(filename: string): boolean;
 		DemoFilename := filename;
 
 		if not DemoFetchCommand(cmd, DCmdGameStart, DFetchExpected) then exit;
+
+		SavedGameFileName := hdr.LastSaveName;
 
 		DemoStartSeed := cmd.gsRandSeed;
 		RandSeed := cmd.gsRandSeed;
