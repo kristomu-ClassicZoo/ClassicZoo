@@ -47,15 +47,17 @@ interface
 		DemoPitTicksLast: longint;
 		DemoStartSeed: longint;
 		{ File data }
-		DemoFilename: string;
-		DemoLogFilename: string;
+		FullDemoFilename: string;
+		FullDemoLogFilename: string;
 	{ Helper functions }
 	procedure CopyDemoFiles(toFilename: string);
 	{ Library }
 	procedure DemoFlushFile(var f: text);
-	function DemoStartRecord(filename: string): boolean;
-	function DemoStartPlay(filename: string): boolean;
-	function DemoStartLogging(filename: string): boolean;
+	function DemoStartRecord(filename, extension: string): boolean;
+	function DemoStartPlay(filename, extension: string): boolean;
+	function DemoStartLogging(filename, extension: string): boolean;
+	{ Resume recording from a savegame. filename is only the filename, not the extension. }
+	function DemoRestoreRecord(filename: string): boolean;
 	procedure DemoFinalize(stop: boolean);
 	procedure DemoStop(ignoreErrors: boolean);
 	function DemoIsComplete: boolean;
@@ -69,7 +71,7 @@ interface
 	function DemoSoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 
 implementation
-uses Dos, Crt, GameVars, Input, Sounds;
+uses Dos, Crt, GameVars, Input, Sounds, FileOps;
 
 type
 	DemoMode = (
@@ -92,14 +94,21 @@ type
 	DemoHeader = record
 		Magic: word;
 		Version: word;
-		Name: string[20];
+		WorldName: string[20];
 		Flags: byte;
 		EngineName: string[30];
 
 		{ Contains the last savegame saved before the demo was recorded. This is
 		  required because, when saving a game, ZZT shows the previous save game
-		  name in its filename field. }
+		  name in its filename field. Contains only the filename, not the
+		  extension. }
 		LastSaveName: string[20];
+
+		{ Tracks the original demo name when we save a copy of the demo so far to
+			a savegame. This lets us use a derived name when the player restores a
+			savegame to continue recording. Contains only the filename, not the
+			extension. }
+		OrigDemoName: string[20];
 	end;
 	DemoCommand = record
 		case cmdType: DemoCommandType of
@@ -154,40 +163,6 @@ var
 	DemoLogActive: boolean;
 	DemoLogBoard: integer;
 
-const COPY_BUFFER_SIZE = 512;
-var CopyBuffer: array[1 .. COPY_BUFFER_SIZE] of byte;
-
-{ Copies the whole from file to a new to file. }
-procedure CopyFile(var fromFile: file; toFilename: string; toExt: string);
-	var
-		toFile: file;
-		bytesRead, bytesWritten: integer;
-		OK: boolean;
-		currentPos: longint;
-		byteArray : array[1..8] of byte;
-	begin
-		Assign(toFile, toFilename + toExt);
-		Rewrite(toFile, 1);
-
-		OK := (IOResult = 0);
-		if not OK then Exit;	{ Couldn't open destination file. }
-
-		{ Get current position (which is usually the end of the file). 
-		  Does TP support files > 65K? I don't know. }
-		currentPos := FilePos(fromFile);
-		Seek(fromFile, 0);
-
-		while OK and not Eof(fromFile) do
-		begin
-			BlockRead(fromFile, CopyBuffer, COPY_BUFFER_SIZE, bytesRead);
-			BlockWrite(toFile, CopyBuffer, bytesRead, bytesWritten);
-			OK := (IOResult = 0);
-		end;
-		Close(toFile);
-
-		Seek(fromFile, currentPos);
-	end;
-
 procedure CopyDemoFiles(toFilename: string);
 	var
 		demoLogRawFile: file;
@@ -196,13 +171,13 @@ procedure CopyDemoFiles(toFilename: string);
 
 		{ Copy the demo and log files. }
 		DemoFinalize(false);
-		CopyFile(DemoFile, toFilename, '.ZZD');
+		CopyOpenFile(DemoFile, toFilename, '.ZZD');
 
 		{ .ZZL has to be done differently because it's a text file.  }
 		Close(DemoLogFile);
-		Assign(demoLogRawFile, DemoLogFilename);
+		Assign(demoLogRawFile, FullDemoLogFilename);
 		Reset(demoLogRawFile, 1);
-		CopyFile(demoLogRawFile, toFilename, '.ZZL');
+		CopyOpenFile(demoLogRawFile, toFilename, '.ZZL');
 		Close(demoLogRawFile);
 		Append(DemoLogFile);
 	end;
@@ -340,7 +315,7 @@ procedure DemoSetMode(mode: DemoMode);
 		FillChar(DemoCurrentCommand, SizeOf(DemoCurrentCommand), 0);
 	end;
 
-function DemoStartRecord(filename: string): boolean;
+function DemoStartRecord(filename, extension: string): boolean;
 	var
 		hdr: DemoHeader;
 		cmd: DemoCommand;
@@ -349,12 +324,13 @@ function DemoStartRecord(filename: string): boolean;
 
 		hdr.Magic := DEMO_MAGIC;
 		hdr.Version := DEMO_VERSION;
-		hdr.Name := World.Info.Name;
+		hdr.WorldName := World.Info.Name;
 		hdr.LastSaveName := SavedGameFileName;
 		hdr.Flags := 0;
 		hdr.EngineName := DemoEngineName;
+		hdr.OrigDemoName := filename;
 
-		Assign(DemoFile, filename);
+		Assign(DemoFile, filename + extension);
 		Rewrite(DemoFile, 1);
 		if IOResult <> 0 then begin
 			Close(DemoFile);
@@ -369,7 +345,7 @@ function DemoStartRecord(filename: string): boolean;
 
 		DemoSetMode(DModeRecord);
 		DemoStartRecord := true;
-		DemoFilename := filename;
+		FullDemoFilename := filename + extension;
 
 		{ Record the initial commands. }
 		cmd.cmdType := DCmdGameStart;
@@ -378,13 +354,13 @@ function DemoStartRecord(filename: string): boolean;
 		DemoAppendCommand(cmd);
 	end;
 
-function DemoStartPlay(filename: string): boolean;
+function DemoStartPlay(filename, extension: string): boolean;
 	var
 		hdr: DemoHeader;
 		cmd: DemoCommand;
 	begin
 		DemoStartPlay := false;
-		Assign(DemoFile, filename);
+		Assign(DemoFile, filename + extension);
 		Reset(DemoFile, 1);
 		if IOResult <> 0 then begin
 			Close(DemoFile);
@@ -398,10 +374,10 @@ function DemoStartPlay(filename: string): boolean;
 		end;
 
 		if hdr.Version = $0001 then begin
-			BlockRead(DemoFile, hdr.Name, 22);
+			BlockRead(DemoFile, hdr.WorldName, 22);
 			hdr.EngineName[0] := #0;
 		end else if hdr.Version = DEMO_VERSION then begin
-			BlockRead(DemoFile, hdr.Name, SizeOf(DemoHeader) - 4);
+			BlockRead(DemoFile, hdr.WorldName, SizeOf(DemoHeader) - 4);
 		end else begin
 			Close(DemoFile);
 			exit;
@@ -411,7 +387,7 @@ function DemoStartPlay(filename: string): boolean;
 
 		DemoSetMode(DModePlay);
 		DemoStartPlay := true;
-		DemoFilename := filename;
+		FullDemoFilename := filename + extension;
 
 		if not DemoFetchCommand(cmd, DCmdGameStart, DFetchExpected) then exit;
 
@@ -428,12 +404,12 @@ function DemoStartPlay(filename: string): boolean;
 		InputKeyPressed := #0;
 	end;
 
-function DemoStartLogging(filename: string): boolean;
+function DemoStartLogging(filename, extension: string): boolean;
 	begin
 		DemoStartLogging := false;
 		if DemoCurrentMode = DModeNone then exit;
 
-		Assign(DemoLogFile, filename);
+		Assign(DemoLogFile, filename + extension);
 		Rewrite(DemoLogFile);
 		if IOResult <> 0 then begin
 			Close(DemoLogFile);
@@ -443,7 +419,67 @@ function DemoStartLogging(filename: string): boolean;
 		DemoLogActive := true;
 		DemoLogBoard := -1;
 		DemoStartLogging := true;
-		DemoLogFilename := filename;
+		FullDemoLogFilename := filename + extension;
+	end;
+
+{ Get the original demo name stored in the given demo file. }
+function GetOrigDemoName(filename, extension: string): string;
+	var
+		hdr: DemoHeader;
+		f: file;
+	begin
+		GetOrigDemoName := '';
+		Assign(f, filename + extension);
+		Reset(f, 1);
+		if IOResult <> 0 then begin
+			Close(f);
+			Exit;
+		end;
+
+		BlockRead(f, hdr, 4);
+		if (IOResult <> 0) or (hdr.Magic <> DEMO_MAGIC) then begin
+			Close(f);
+			Exit;
+		end;
+
+		if hdr.Version < $0003 then begin
+			{ Earlier versions don't have the original demo name recorded. }
+			Close(f);
+			Exit;
+		end;
+
+		BlockRead(f, hdr.WorldName, SizeOf(DemoHeader) - 4);
+		GetOrigDemoName := hdr.OrigDemoName;
+		Close(f);
+	end;
+
+function DemoRestoreRecord(filename: string): boolean;
+	var
+		newRecordFilename: string;
+	begin
+		DemoRestoreRecord := false;
+
+		if DemoIsPlaying or DemoIsRecording then
+			DemoStop(true);
+
+		if not FileExists(filename + '.ZZD') then
+			Exit;
+
+		newRecordFilename := GetOrigDemoName(filename, '.ZZD');
+		if newRecordFilename = '' then
+			newRecordFilename := 'UNKDEMO';
+
+		newRecordFilename := GetNumberedFilename(newRecordFilename,
+			'.ZZD', 1000);
+
+		CopyFile(filename, '.ZZD', newRecordFilename, '.ZZD');
+
+		{ TODO: Open the new record name for recording, dump the header
+		  to the unit-wide variables the way StartRecord does, and set
+		  the pointer to the very end of the file to be ready to append.
+
+			Remember to copy the ZZL file too. }
+
 	end;
 
 { Dump the current command to file if we have one. This is used for
