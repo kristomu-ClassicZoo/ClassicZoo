@@ -973,6 +973,7 @@ function GameWorldLoad(extension: TString50): boolean;
 		fileSearchRec: SearchRec;
 		entryName: string;
 		i: integer;
+		demoOK: boolean;
 	begin
 		TextWindowInitState(textWindow);
 		if extension = '.ZZT' then
@@ -1005,6 +1006,9 @@ function GameWorldLoad(extension: TString50): boolean;
 				entryName := Copy(entryName, 1, Pos(' ', entryName) - 1);
 
 			GameWorldLoad := WorldLoad(entryName, extension, false);
+			{ Try to resume recording a demo if the save game comes with one. }
+			demoOK := DemoResumeRecord(entryName, '.ZZD');
+
 			TransitionDrawToFill(#219, $44);
 		end;
 
@@ -1824,8 +1828,8 @@ function GameDemoStartRecord: boolean;
 		filename := World.Info.Name;
 		SidebarPromptString('Demo name?', '.ZZD', filename, PROMPT_ALPHANUM);
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(filename) <> 0) then begin
-			if DemoStartRecord(filename + '.ZZD') then begin
-				if DemoStartLogging(filename + '.ZZL') then begin
+			if DemoStartRecord(filename, '.ZZD') then begin
+				if DemoStartLogging(filename, '.ZZL') then begin
 					GameDemoStartRecord := true;
 				end else begin
 					DemoStop(true);
@@ -1843,8 +1847,8 @@ function GameDemoStartPlay: boolean;
 		filename := World.Info.Name;
 		SidebarPromptString('Demo name?', '.ZZD', filename, PROMPT_ALPHANUM);
 		if (InputKeyPressed <> KEY_ESCAPE) and (Length(filename) <> 0) then begin
-			if DemoStartPlay(filename + '.ZZD') then begin
-				if DemoStartLogging(filename + '.ZZL') then begin
+			if DemoStartPlay(filename, '.ZZD') then begin
+				if DemoStartLogging(filename, '.ZZL') then begin
 					GameDemoStartPlay := true;
 					if DemoFastForward then begin
 						SoundEnabled := false;
@@ -1870,8 +1874,8 @@ procedure GameValidateRun;
 		DemoStopOnEndgame := false;
 		SoundEnabled := false;
 
-		if DemoStartPlay(StartupWorldFileName + '.ZZD') then begin
-			if DemoStartLogging(StartupWorldFileName + '.ZZL') then begin
+		if DemoStartPlay(StartupWorldFileName, '.ZZD') then begin
+			if DemoStartLogging(StartupWorldFileName, '.ZZL') then begin
 				if WorldLoad(StartupWorldFileName, '.ZZT', false) then begin
 					ReturnBoardId := World.Info.CurrentBoard;
 

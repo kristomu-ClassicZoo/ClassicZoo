@@ -55,6 +55,7 @@ interface
 	procedure DemoFlushFile(var f: text);
 	function DemoStartRecord(filename, extension: string): boolean;
 	function DemoStartPlay(filename, extension: string): boolean;
+	function DemoResumeRecord(filename, extension: string): boolean;
 	function DemoStartLogging(filename, extension: string): boolean;
 	{ Resume recording from a savegame. filename is only the filename, not the extension. }
 	function DemoRestoreRecord(filename: string): boolean;
@@ -299,6 +300,12 @@ function DemoFetchCommand(var cmd: DemoCommand; expectedType: DemoCommandType; f
 		end;
 	end;
 
+function DemoFetchAnyCommand(var cmd: DemoCommand): boolean;
+	begin
+		{ The last parameter isn't actually used and could be anything. }
+		DemoFetchAnyCommand := DemoFetchCommand(cmd, DCmdInput, DFetchAny);
+	end;
+
 procedure DemoSetMode(mode: DemoMode);
 	begin
 		DemoCurrentMode := mode;
@@ -397,6 +404,81 @@ function DemoStartPlay(filename, extension: string): boolean;
 		RandSeed := cmd.gsRandSeed;
 		TickSpeed := cmd.gsTickSpeed;
 		TickTimeDuration := TickSpeed * 2;
+
+		InputDeltaX := 0;
+		InputDeltaY := 0;
+		InputShiftPressed := false;
+		InputKeyPressed := #0;
+	end;
+
+{ Resume recording from the end of the given file. Returns false on error.
+  We assume that the game state (player location, stats, etc.) has been set
+  by restoring a game; if the game state has diverged from the log we're
+  resuming from, weird things may happen upon replaying. }
+{ TODO: Give the function a different name once it's working, to help
+	distinguish it from DemoRestoreRecord. }
+function DemoResumeRecord(filename, extension: string): boolean;
+	var
+		hdr: DemoHeader;
+		cmd: DemoCommand;
+	begin
+		DemoResumeRecord := false;
+
+		{ First load the file (or try to). This part is like DemoStartPlay. }
+		Assign(DemoFile, filename + extension);
+		Reset(DemoFile, 1);
+		if IOResult <> 0 then begin
+			Close(DemoFile);
+			exit;
+		end;
+
+		BlockRead(DemoFile, hdr, 4);
+		if (IOResult <> 0) or (hdr.Magic <> DEMO_MAGIC) then begin
+			Close(DemoFile);
+			exit;
+		end;
+
+		if hdr.Version = $0001 then begin
+			BlockRead(DemoFile, hdr.WorldName, 22);
+			hdr.EngineName[0] := #0;
+		end else if hdr.Version = DEMO_VERSION then begin
+			BlockRead(DemoFile, hdr.WorldName, SizeOf(DemoHeader) - 4);
+		end else begin
+			Close(DemoFile);
+			exit;
+		end;
+
+		DemoFileSize := FileSize(DemoFile);
+
+		{ Now "play" through the demo to set the random seed and other
+			game-specific variables so the game state will match up.  }
+
+		{ TODO: We need a way to update SavedGameFileName.
+			Fix that later with a separate command. }
+
+		while not Eof(DemoFile) do begin
+			if not DemoFetchAnyCommand(cmd) then begin
+				Close(DemoFile);
+				Exit; { Something went wrong... Better error handling here? }
+			end;
+
+			if cmd.cmdType = DCmdGameStart then begin
+				DemoStartSeed := cmd.gsRandSeed;
+				RandSeed := cmd.gsRandSeed;
+				TickSpeed := cmd.gsTickSpeed;
+				TickTimeDuration := TickSpeed * 2;
+			end;
+
+			if cmd.cmdType = DCmdReseedCurrentTick then begin
+				RandSeed := cmd.RandSeed;
+			end;
+		end;
+
+		DemoResumeRecord := true;
+
+		DemoSetMode(DModeRecord);
+		FullDemoFilename := filename + extension;
+		SavedGameFileName := 'TODO';
 
 		InputDeltaX := 0;
 		InputDeltaY := 0;
