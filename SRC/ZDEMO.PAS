@@ -478,6 +478,7 @@ function DemoResumeRecord(filename, extension: string): boolean;
 
 			if cmd.cmdType = DCmdReseedCurrentTick then begin
 				RandSeed := cmd.RandSeed;
+				CurrentTick := Random(100);
 			end;
 		end;
 
