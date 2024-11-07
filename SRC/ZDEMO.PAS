@@ -70,6 +70,8 @@ interface
 	procedure DemoInputReadWaitKey;
 	procedure DemoOnPitTick; { Call from SOUNDS.PAS's PIT interrupt handler }
 	function DemoSoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
+	{ Pseudo-hooks. }
+	procedure DemoRestartHere;
 
 implementation
 uses Dos, Crt, GameVars, Input, Sounds, FileOps;
@@ -82,11 +84,12 @@ type
 		DModeComplete
 	);
 	DemoCommandType = (
-		DCmdInput,
-		DCmdReseedCurrentTick,
-		DCmdGameStart,
-		DCmdGameStop,
-		DCmdPitTickDelta
+		DCmdInput,								{ Player input. }
+		DCmdReseedCurrentTick,		{ Current tick value is reseeded; checks RNG state. }
+		DCmdGameStart,						{ Game and demo start. }
+		DCmdGameStop,							{ End of a finished demo. }
+		DCmdPitTickDelta,					{ ??? }
+		DCmdRestartHere						{ Restart the main gameplay loop as if the game was just started. }
 	);
 	DemoFetchMode = (
 		DFetchAny,
@@ -137,19 +140,23 @@ const
 	DEMO_BUFFER_SIZE = 512;
 	DEMO_COMMAND_OPTIONAL = $01;
 	DEMO_COMMAND_VARLEN = $80;
-	DemoCommandLengths: array[DCmdInput .. DCmdPitTickDelta] of byte = (
+	DemoCommandLengths: array[DCmdInput .. DCmdRestartHere] of byte = (
 		7,
 		5,
 		7,
 		1,
-		3
+		3,
+		1
 	);
-	DemoCommandFlags: array[DCmdInput .. DCmdPitTickDelta] of byte = (
+	DemoCommandFlags: array[DCmdInput .. DCmdRestartHere] of byte = (
 		0,
+		{ Should DCmdReseedCurrentTick really be optional? It advances
+		  the state of the RNG after all. }
 		DEMO_COMMAND_OPTIONAL,
 		0,
 		0,
-		DEMO_COMMAND_OPTIONAL
+		DEMO_COMMAND_OPTIONAL,
+		0
 	);
 var
 	DemoBufferPos: integer;
@@ -450,7 +457,7 @@ function DemoResumeRecord(filename, extension: string): boolean;
 
 		DemoFileSize := FileSize(DemoFile);
 
-		{ Now "play" through the demo to set the random seed and other
+		{ Now "play through" the demo to set the random seed and other
 			game-specific variables so the game state will match up.  }
 
 		{ TODO: We need a way to update SavedGameFileName.
@@ -479,6 +486,10 @@ function DemoResumeRecord(filename, extension: string): boolean;
 		DemoSetMode(DModeRecord);
 		FullDemoFilename := filename + extension;
 		SavedGameFileName := 'TODO';
+
+		{ Append a DCmdRestartHere event since we just restored a game. }
+		cmd.cmdType := DCmdRestartHere;
+		DemoAppendCommand(cmd);
 
 		InputDeltaX := 0;
 		InputDeltaY := 0;
@@ -561,6 +572,8 @@ function DemoRestoreRecord(filename: string): boolean;
 		  the pointer to the very end of the file to be ready to append.
 
 			Remember to copy the ZZL file too. }
+
+		DemoRestoreRecord := DemoResumeRecord(newRecordFilename, '.ZZD');
 
 	end;
 
@@ -839,6 +852,22 @@ function DemoSoundHasTimeElapsed(var counter: integer; duration: integer): boole
 				DemoSoundHasTimeElapsed := false;
 			end;
 		end else DemoSoundHasTimeElapsed := SoundHasTimeElapsed(counter, duration);
+	end;
+
+{ Handle the DCmdRestartHere event if present, which sets GameRestartNeeded, thus
+	restarting the gameplay loop to reproduce what happens when a game is saved,
+	exited, and restored. }
+
+procedure DemoRestartHere;
+	var
+		cmd: DemoCommand;
+	begin
+		if DemoCurrentMode = DModePlay then begin
+			{ Check if there's an actual restart event in the log. }
+			if DemoFetchCommand(cmd, DCmdRestartHere, DFetchExpected) then begin
+				GameRestartNeeded := true;
+			end;
+		end;
 	end;
 
 begin

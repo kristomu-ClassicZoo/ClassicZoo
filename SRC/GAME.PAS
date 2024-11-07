@@ -902,11 +902,14 @@ procedure WorldSave(filename, extension: TString50);
 		{ If a demo is being played, don't save the game again,
 		  as usually you don't want it to be doing file ops when
 		  replaying a demo.
-		  Whether to do this could be turned into a configurable
-		  parameter, I guess, if the need arises. }
+		  If we're replaying a demo, this might also be the end of
+		  one segment, meaning the rest of the gameplay starts with
+		  a restore. Call DemoRestartHere to check if that's the
+		  case and to set GameRestartNeeded if so.}
 		if DemoIsPlaying then begin
-			BoardClose;
-			BoardOpen(World.Info.CurrentBoard);
+			{BoardClose;
+			BoardOpen(World.Info.CurrentBoard);}
+			DemoRestartHere;
 			Exit;
 		end;
 
@@ -1006,8 +1009,9 @@ function GameWorldLoad(extension: TString50): boolean;
 				entryName := Copy(entryName, 1, Pos(' ', entryName) - 1);
 
 			GameWorldLoad := WorldLoad(entryName, extension, false);
-			{ Try to resume recording a demo if the save game comes with one. }
-			demoOK := DemoResumeRecord(entryName, '.ZZD');
+			{ Try to resume recording a demo if the save game comes with one. 
+			  TODO: Only if a savegame. }
+			demoOK := DemoRestoreRecord(entryName);
 
 			TransitionDrawToFill(#219, $44);
 		end;
@@ -1673,6 +1677,14 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end;
 		end;
 	begin
+
+		{ We've started playing; disable GameRestartNeeded so that when we quit,
+		  the title screen handler won't immediately restart the game.
+		  If we're running a demo and that demo includes a restore from
+		  a saved game, it will set GameRestartNeeded when that event occurs.
+		}
+		GameRestartNeeded := false;
+
 		GameDrawSidebar;
 		GameUpdateSidebar;
 
@@ -1800,6 +1812,14 @@ procedure GamePlayLoop(boardChanged: boolean);
 					end;						
 				end;
 			end;
+
+			{ If the player finished a save game operation and we're playing
+			  back a demo, it's possible that GameRestartNeeded was set. If
+			  so, exit so we can start this procedure from the top. (Is this
+			  better than a goto?) }
+
+			if GameRestartNeeded then Exit;
+
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
 
 		DemoStop(false);
@@ -1978,9 +1998,16 @@ procedure GameTitleLoop;
 				end;
 
 				if startPlay then begin
-					GameStateElement := E_PLAYER;
-					GamePaused := true;
-					GamePlayLoop(true);
+					GameRestartNeeded := true;
+					{ Needed to make the transition only play once
+					  when playing back a demo. }
+					boardChanged := true;
+					while GameRestartNeeded do begin
+						GameStateElement := E_PLAYER;
+						GamePaused := true;
+						GamePlayLoop(boardChanged);
+						boardChanged := false;
+					end;
 					boardChanged := true;
 				end;
 			until boardChanged or GameTitleExitRequested;

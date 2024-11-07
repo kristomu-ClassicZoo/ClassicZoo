@@ -191,6 +191,7 @@ interface
 		CurrentTick: integer;
 		CurrentStatTicked: integer;
 		GamePaused: boolean;
+		GameRestartNeeded: boolean;
 		TickTimeCounter: integer;
 
 		ForceDarknessOff: boolean;
