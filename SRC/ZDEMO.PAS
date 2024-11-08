@@ -25,13 +25,17 @@
 	Special thanks to Mr_Alert for the initial proof of concept.
 }
 
+{ TODO: Add RNG verification to keyboard inputs; not doing so opens up possibilities
+  for undetected desynchronization on the final board. But I'll have to add writeln
+  to debug file to trace what's going on, first, and possibly something like "if
+  randVerify is either 0 or the current random state, then OK". Or just make it log
+	errors to the debug file first, so I can compare the RNG sequence.}
+
 {$I-}
 {$V-}
 unit ZDemo;
 
 interface
-	const
-		DEMO_MAX_COMMAND_SIZE = 7; { Shouldn't be here }
 	var
 		{ Configuration options }
 		DemoFastForward: boolean;
@@ -50,7 +54,7 @@ interface
 		FullDemoFilename: string;
 		FullDemoLogFilename: string;
 	{ Helper functions }
-	procedure CopyDemoFiles(toFilename: string);
+	procedure SaveCopyDemoFiles(toFilename: string);
 	{ Library }
 	procedure DemoFlushFile(var f: text);
 	function DemoStartRecord(filename, extension: string): boolean;
@@ -89,7 +93,8 @@ type
 		DCmdGameStart,						{ Game and demo start. }
 		DCmdGameStop,							{ End of a finished demo. }
 		DCmdPitTickDelta,					{ ??? }
-		DCmdRestartHere						{ Restart the main gameplay loop as if the game was just started. }
+		DCmdRestartHere,					{ Restart the main gameplay loop as if the game was just started. }
+		DCmdNewSavegameName				{ Register a new savegame name, updating LastSaveName. (See below.)}
 	);
 	DemoFetchMode = (
 		DFetchAny,
@@ -132,6 +137,9 @@ type
 		DCmdPitTickDelta: (
 			pitTicks: integer;
 		);
+		DCmdNewSavegameName: (
+			NewSaveName: string[20]
+		);
 	end;
 
 const
@@ -140,15 +148,16 @@ const
 	DEMO_BUFFER_SIZE = 512;
 	DEMO_COMMAND_OPTIONAL = $01;
 	DEMO_COMMAND_VARLEN = $80;
-	DemoCommandLengths: array[DCmdInput .. DCmdRestartHere] of byte = (
+	DemoCommandLengths: array[DCmdInput .. DCmdNewSavegameName] of byte = (
 		7,
 		5,
 		7,
 		1,
 		3,
-		1
+		1,
+		22
 	);
-	DemoCommandFlags: array[DCmdInput .. DCmdRestartHere] of byte = (
+	DemoCommandFlags: array[DCmdInput .. DCmdNewSavegameName] of byte = (
 		0,
 		{ Should DCmdReseedCurrentTick really be optional? It advances
 		  the state of the RNG after all. }
@@ -156,7 +165,8 @@ const
 		0,
 		0,
 		DEMO_COMMAND_OPTIONAL,
-		0
+		0,
+		DEMO_COMMAND_OPTIONAL
 	);
 var
 	DemoBufferPos: integer;
@@ -170,25 +180,6 @@ var
 	DemoLogFile: text;
 	DemoLogActive: boolean;
 	DemoLogBoard: integer;
-
-procedure CopyDemoFiles(toFilename: string);
-	var
-		demoLogRawFile: file;
-	begin
-		if not DemoIsRecording then Exit;
-
-		{ Copy the demo and log files. }
-		DemoFinalize(false);
-		CopyOpenFile(DemoFile, toFilename, '.ZZD');
-
-		{ .ZZL has to be done differently because it's a text file.  }
-		Close(DemoLogFile);
-		Assign(demoLogRawFile, FullDemoLogFilename);
-		Reset(demoLogRawFile, 1);
-		CopyOpenFile(demoLogRawFile, toFilename, '.ZZL');
-		Close(demoLogRawFile);
-		Append(DemoLogFile);
-	end;
 
 procedure DemoFlushFile(var f: text);
 	var
@@ -329,6 +320,31 @@ procedure DemoSetMode(mode: DemoMode);
 		FillChar(DemoCurrentCommand, SizeOf(DemoCurrentCommand), 0);
 	end;
 
+procedure SaveCopyDemoFiles(toFilename: string);
+	var
+		demoLogRawFile: file;
+		cmd: DemoCommand;
+	begin
+		if not DemoIsRecording then Exit;
+
+		{ Mark that a game was saved, as well as its filename. }
+		cmd.cmdType := DCmdNewSavegameName;
+		cmd.NewSaveName := toFilename;
+		DemoAppendCommand(cmd);
+
+		{ Copy the demo and log files. }
+		DemoFinalize(false);
+		CopyOpenFile(DemoFile, toFilename, '.ZZD');
+
+		{ .ZZL has to be done differently because it's a text file.  }
+		Close(DemoLogFile);
+		Assign(demoLogRawFile, FullDemoLogFilename);
+		Reset(demoLogRawFile, 1);
+		CopyOpenFile(demoLogRawFile, toFilename, '.ZZL');
+		Close(demoLogRawFile);
+		Append(DemoLogFile);
+	end;
+
 function DemoStartRecord(filename, extension: string): boolean;
 	var
 		hdr: DemoHeader;
@@ -460,9 +476,6 @@ function DemoResumeRecord(filename, extension: string): boolean;
 		{ Now "play through" the demo to set the random seed and other
 			game-specific variables so the game state will match up.  }
 
-		{ TODO: We need a way to update SavedGameFileName.
-			Fix that later with a separate command. }
-
 		while not Eof(DemoFile) do begin
 			if not DemoFetchAnyCommand(cmd) then begin
 				Close(DemoFile);
@@ -480,13 +493,15 @@ function DemoResumeRecord(filename, extension: string): boolean;
 				RandSeed := cmd.RandSeed;
 				CurrentTick := Random(100);
 			end;
+
+			if cmd.cmdType = DCmdNewSavegameName then
+				SavedGameFileName := cmd.NewSaveName;
 		end;
 
 		DemoResumeRecord := true;
 
 		DemoSetMode(DModeRecord);
 		FullDemoFilename := filename + extension;
-		SavedGameFileName := 'TODO';
 
 		{ Append a DCmdRestartHere event since we just restored a game. }
 		cmd.cmdType := DCmdRestartHere;
@@ -660,6 +675,8 @@ function DemoInputNonZero: boolean;
   The isGameplaySensitive flag culls dummy cycles from calls whose idle cycles
   do not affect gameplay.
 }
+
+{ I don't really know what's going on here. -KM }
 procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean); { Replaces InputUpdate; }
 	var
 		rkey: char;
@@ -671,7 +688,7 @@ procedure DemoInputUpdate(expectedPitCount: word; isGameplaySensitive: boolean);
 		{ Playback mode. }
 		if DemoCurrentMode = DModePlay then begin
 
-			{ Set the key pressed. If it's Q, then stop the demo. }
+			{ Check if the player pressed Q or ESC. If so, stop the demo. }
 			while KeyPressed do begin
 				rkey := UpCase(readKey);
 				if rkey in [#27, 'Q'] then begin

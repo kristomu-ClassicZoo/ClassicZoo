@@ -896,7 +896,7 @@ procedure WorldSave(filename, extension: TString50);
 
 		{ If a demo is being recorded, save the demo too. }
 		if DemoIsRecording then begin
-			CopyDemoFiles(filename);
+			SaveCopyDemoFiles(filename);
 		end;
 
 		{ If a demo is being played, don't save the game again,
