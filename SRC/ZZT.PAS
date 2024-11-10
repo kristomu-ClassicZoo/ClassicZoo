@@ -61,6 +61,61 @@ procedure WritelnCentered(s: string);
 		Writeln(s);
 	end;
 
+function PermConfigure: boolean;
+	var
+		charTyped: char;
+	begin
+		PublicScores := false;
+		PublicDemos := false;
+		PermConfigure := true;
+
+		charTyped := ' ';
+		Writeln;
+		Write('  Share new high scores with public scoreboard:  Y)es N)o');
+		Write('?  ');
+
+		repeat
+			repeat until KeyPressed;
+			charTyped := UpCase(ReadKey);
+		until (charTyped = 'Y') or (charTyped = 'N') or (charTyped = #27);
+		Writeln;
+
+		case charTyped of
+			'Y': begin
+				PublicScores := true;
+			end;
+			#27: begin
+				PermConfigure := false;
+				Exit;
+			end;
+		end;
+		Writeln;
+
+		if not PublicScores then
+			Exit; { Can't share runs if the player doesn't want to share scores. }
+
+		Writeln;
+		Write('  Share game runs publicly:  Y)es N)o');
+		Write('?  ');
+
+		repeat
+			repeat until KeyPressed;
+			charTyped := UpCase(ReadKey);
+		until (charTyped = 'Y') or (charTyped = 'N') or (charTyped = #27);
+		Writeln;
+
+		case charTyped of
+			'Y': begin
+				PublicDemos := true;
+			end;
+			#27: begin
+				PermConfigure := false;
+				Exit;
+			end;
+		end;
+		Writeln;
+	end;
+
 procedure GameConfigure;
 	var
 		unk1: integer;
@@ -137,6 +192,13 @@ procedure GameConfigure;
 			TextColor(LightGreen);
 			if not VideoConfigure then
 				GameTitleExitRequested := true;
+
+			TextColor(LightBlue);
+			Writeln;
+
+			if not GameTitleExitRequested then
+				if not PermConfigure then
+					GameTitleExitRequested := true;
 		end;
 {$ENDIF}
 		Window(1, 1, 80, 25);

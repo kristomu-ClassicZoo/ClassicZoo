@@ -721,6 +721,27 @@ procedure GameDemoShowError;
 		DemoErrorCode := 0;
 	end;
 
+procedure GameAutoDemoShowError;
+	var
+		textWindow: TTextWindowState;
+	begin
+		textWindow.Title := 'Demo error';
+		TextWindowInitState(textWindow);
+		TextWindowAppend(textWindow, 'You have enabled public sharing,');
+		TextWindowAppend(textWindow, 'but the game was unable to start');
+		TextWindowAppend(textWindow, 'recording a play log.');
+		TextWindowAppend(textWindow, '');
+		TextWindowAppend(textWindow, 'High scores and play logs will');
+		TextWindowAppend(textWindow, 'therefore not be recorded.');
+		TextWindowAppend(textWindow, '');
+		TextWindowAppend(textWindow, 'Exit the current world and press ''P''');
+		TextWindowAppend(textWindow, 'if you want to try again.');
+		TextWindowDrawOpen(textWindow);
+		TextWindowSelect(textWindow, false, false);
+		TextWindowDrawClose(textWindow);
+		TextWindowFree(textWindow);
+	end;
+
 procedure TimeToString(timeHs: longint; var fullStr: TString50);
 	var
 		i: integer;
@@ -1009,9 +1030,9 @@ function GameWorldLoad(extension: TString50): boolean;
 				entryName := Copy(entryName, 1, Pos(' ', entryName) - 1);
 
 			GameWorldLoad := WorldLoad(entryName, extension, false);
-			{ Try to resume recording a demo if the save game comes with one. 
-			  TODO: Only if a savegame. }
-			demoOK := DemoRestoreRecord(entryName);
+			{ Try to resume recording a demo if the save game comes with one.}
+			if extension <> '.ZZT' then
+				demoOK := DemoRestoreRecord(entryName);
 
 			TransitionDrawToFill(#219, $44);
 		end;
@@ -1840,23 +1861,34 @@ procedure GamePlayLoop(boardChanged: boolean);
 		SoundBlockQueueing := false;
 	end;
 
+{ "filename" only designates the filename itself, not the extension.}
+function GameDemoStartRecordFn(filename: string): boolean;
+	begin
+		GameDemoStartRecordFn := false;
+		if (InputKeyPressed <> KEY_ESCAPE) and (Length(filename) <> 0) then begin
+			if DemoStartRecord(filename, '.ZZD') then begin
+				if DemoStartLogging(filename, '.ZZL') then begin
+					GameDemoStartRecordFn := true;
+				end else begin
+					DemoStop(true);
+					GameDemoStartRecordFn := false;
+				end;
+			end;
+		end;
+	end;
+
 function GameDemoStartRecord: boolean;
 	var
 		filename: TString50;
 	begin
-		GameDemoStartRecord := false;
 		filename := World.Info.Name;
 		SidebarPromptString('Demo name?', '.ZZD', filename, PROMPT_ALPHANUM);
-		if (InputKeyPressed <> KEY_ESCAPE) and (Length(filename) <> 0) then begin
-			if DemoStartRecord(filename, '.ZZD') then begin
-				if DemoStartLogging(filename, '.ZZL') then begin
-					GameDemoStartRecord := true;
-				end else begin
-					DemoStop(true);
-					GameDemoStartRecord := false;
-				end;
-			end;
-		end;
+		GameDemoStartRecord := GameDemoStartRecordFn(filename);
+	end;
+
+function GameDemoStartImplicitRecord: boolean;
+	begin
+		GameDemoStartImplicitRecord := GameDemoStartRecordFn(World.Info.Name);
 	end;
 
 function GameDemoStartPlay: boolean;
@@ -1954,6 +1986,15 @@ procedure GameTitleLoop;
 							startPlay := true;
 						end;
 						if startPlay then begin
+							{ If the player has enabled sharing, start recording
+							  when we start playing. But not if we're already
+							  doing something related to demos. }
+							if (PublicScores or PublicDemos) and not (DemoIsRecording or DemoIsPlaying) then begin
+								if not GameDemoStartImplicitRecord then begin
+									GameAutoDemoShowError;
+								end;
+							end;
+
 							BoardChange(ReturnBoardId);
 							BoardEnter;
 						end;

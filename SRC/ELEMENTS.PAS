@@ -1434,6 +1434,11 @@ procedure ElementPlayerTick(statId: integer);
 					end;
 				end;
 				'S': begin
+					{ TODO?? Might need some kind of check when the player
+					  labels the savegame the same name as the world; then
+					  demos could potentially overwrite each other, perhaps
+					  with UB fun if the player is already recording
+					  [WORLDNAME].ZZD at that point... XXX. }
 					GameWorldSave('Save game:', SavedGameFileName, '.SAV');
 				end;
 				'P': begin

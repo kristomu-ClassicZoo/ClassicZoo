@@ -104,7 +104,8 @@ type
 		DCmdPitTickDelta,					{ ??? }
 		DCmdRestartHere,					{ Restart the main gameplay loop as if the game was just started. }
 		DCmdNewSavegameName,			{ Register a new savegame name, updating LastSaveName. (See below.)}
-		DCmdPlayerName						{ Register the player name for a high score entry. }
+		DCmdPlayerName,						{ Register the player name for a high score entry. }
+		DCmdShare									{ Record metadata about whether this run can be shared. }
 	);
 	DemoFetchMode = (
 		DFetchAny,
@@ -153,6 +154,15 @@ type
 		DCmdPlayerName: (
 			PlayerName: TString50
 		);
+		{ The metadata about whether something can be shared is stored in a
+		  command at the end of the stream instead of as flags in the header,
+			because this makes it easier to deal with partial runs loaded from
+			local storage after the player changes their mind; we won't have to
+			mess with the header in that case. }
+		DCmdShare: (
+			publicScores: boolean;
+			publicDemos: boolean
+		);
 	end;
 
 const
@@ -161,7 +171,7 @@ const
 	DEMO_BUFFER_SIZE = 512;
 	DEMO_COMMAND_OPTIONAL = $01;
 	DEMO_COMMAND_VARLEN = $80;
-	DemoCommandLengths: array[DCmdInput .. DCmdPlayerName] of byte = (
+	DemoCommandLengths: array[DCmdInput .. DCmdShare] of byte = (
 		7,
 		5,
 		7,
@@ -169,9 +179,10 @@ const
 		3,
 		1,
 		22,
-		52
+		52,
+		3
 	);
-	DemoCommandFlags: array[DCmdInput .. DCmdPlayerName] of byte = (
+	DemoCommandFlags: array[DCmdInput .. DCmdShare] of byte = (
 		0,
 		{ Should DCmdReseedCurrentTick really be optional? It advances
 		  the state of the RNG after all. }
@@ -180,6 +191,7 @@ const
 		0,
 		DEMO_COMMAND_OPTIONAL,
 		0,
+		DEMO_COMMAND_OPTIONAL,
 		DEMO_COMMAND_OPTIONAL,
 		DEMO_COMMAND_OPTIONAL
 	);
@@ -658,6 +670,11 @@ procedure DemoStop(ignoreErrors: boolean);
 		end;
 
 		if DemoCurrentMode <> DModeNone then begin
+			cmd.cmdType := DCmdShare;
+			cmd.publicDemos := PublicDemos;
+			cmd.publicScores := PublicScores;
+			DemoAppendCommand(cmd);
+
 			Close(DemoFile);
 			if DemoLogActive then begin
 				DemoLogEmit('STOP', DemoPitTicksLast);
